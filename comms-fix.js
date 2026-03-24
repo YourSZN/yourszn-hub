@@ -1,9 +1,8 @@
 /**
- * comms-fix.js v12.0
- * DM: UNTOUCHED - working perfectly
- * Group chat: UNTOUCHED - working perfectly
- * New: Fix unhideTask to call saveData() so restored tasks persist
- * New: Fix new tasks showing immediately without requiring acknowledgement
+ * comms-fix.js v13.0
+ * DM + Group chat: UNTOUCHED
+ * Task fix: intercept hideTask AND unhideTask to call saveData()
+ * so hidden/restored tasks persist to cloud
  */
 (function () {
   'use strict';
@@ -12,20 +11,16 @@
   const H = { apikey: K, Authorization: `Bearer ${K}`, 'Content-Type': 'application/json' };
 
   function tk(a, b) { return [a, b].sort().join('_'); }
-
   async function ins(table, data) {
-    try { await fetch(`${U}/rest/v1/${table}`, { method: 'POST', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify(data) }); }
-    catch(e) {}
+    try { await fetch(`${U}/rest/v1/${table}`, { method: 'POST', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify(data) }); } catch(e) {}
   }
 
-  // ── DM SECTION - DO NOT MODIFY ────────────────────────────────
+  // ── DM SECTION - DO NOT MODIFY ───────────────────────────────────
   function filterDMsForUser(user) {
     if (!window.dmMsgs || !window.USERS || !user) return;
     const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
     const myKeys = others.map(o => tk(user, o));
-    Object.keys(window.dmMsgs).forEach(key => {
-      if (!myKeys.includes(key)) delete window.dmMsgs[key];
-    });
+    Object.keys(window.dmMsgs).forEach(key => { if (!myKeys.includes(key)) delete window.dmMsgs[key]; });
   }
   function interceptLogin() {
     if (typeof window.chkPin !== 'function') return;
@@ -60,7 +55,7 @@
       }
     };
   }
-  // ── END DM SECTION ───────────────────────────────────────
+  // ── END DM SECTION ──────────────────────────────────────────
 
   // ── GROUP CHAT SECTION - DO NOT MODIFY ─────────────────────────
   function interceptSendGroupMsg() {
@@ -91,59 +86,49 @@
 
   // ── TASK FIXES ──────────────────────────────────────────────
 
-  // Fix 1: unhideTask doesn't call saveData() - so restored tasks don't persist
+  // hideTask doesn't call saveData() so hiddenTasks is lost on reload
+  // This means renderHiddenBox() finds nothing on next load
+  function fixHideTask() {
+    if (typeof window.hideTask !== 'function') return;
+    const orig = window.hideTask;
+    window.hideTask = function(taskId) {
+      orig.call(this, taskId);
+      if (typeof window.saveData === 'function') {
+        window.saveData();
+        console.log('[comms-fix] hideTask: saveData called for', taskId);
+      }
+    };
+    console.log('[comms-fix] hideTask patched');
+  }
+
+  // unhideTask also doesn't call saveData()
   function fixUnhideTask() {
     if (typeof window.unhideTask !== 'function') return;
     const orig = window.unhideTask;
     window.unhideTask = function(taskId) {
       orig.call(this, taskId);
-      // saveData() was missing - add it so the restore persists to cloud
       if (typeof window.saveData === 'function') {
         window.saveData();
         console.log('[comms-fix] unhideTask: saveData called for', taskId);
       }
     };
+    console.log('[comms-fix] unhideTask patched');
   }
-
-  // Fix 2: New tasks assigned to staff require banner acknowledgement before showing
-  // The banner shows but staff need to click it - auto-mark as seen after 5s
-  // so tasks appear without requiring the click
-  function fixNewTaskNotification() {
-    if (typeof window.renderNewTaskBanner !== 'function') return;
-    const orig = window.renderNewTaskBanner;
-    window.renderNewTaskBanner = function(...a) {
-      const r = orig.apply(this, a);
-      // Auto-dismiss after 5 seconds so tasks show without manual acknowledgement
-      setTimeout(() => {
-        const banner = document.getElementById('new-task-banner');
-        if (banner && banner.style.display !== 'none') {
-          if (typeof window.clearTaskBadge === 'function') {
-            window.clearTaskBadge();
-            console.log('[comms-fix] Auto-dismissed new task banner');
-          }
-        }
-      }, 5000);
-      return r;
-    };
-  }
-  // ── END TASK FIXES ─────────────────────────────────────────────
+  // ── END TASK FIXES ───────────────────────────────────────────
 
   async function boot() {
-    console.log('[comms-fix] v12.0 booting...');
+    console.log('[comms-fix] v13.0 booting...');
     await new Promise(r => setTimeout(r, 2000));
-    // DM
     interceptLogin();
     interceptSendDm();
     watchAppReloadForDMs();
     if (window.curUser) filterDMsForUser(window.curUser.toLowerCase());
-    // Group
     interceptSendGroupMsg();
     await pollGroup();
     setInterval(pollGroup, 5000);
-    // Tasks
+    fixHideTask();
     fixUnhideTask();
-    fixNewTaskNotification();
-    console.log('[comms-fix] v12.0 active');
+    console.log('[comms-fix] v13.0 active');
   }
 
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
