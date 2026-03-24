@@ -1,9 +1,8 @@
 /**
- * comms-fix.js v14.0
+ * comms-fix.js v16.0
  * DM + Group chat: UNTOUCHED
- * Task fix: renderHiddenBoxFor uses .map(Number) on task IDs
- * but IDs are UUIDs so Number('uuid') = NaN and no tasks ever show.
- * Fix: patch renderHiddenBoxFor to use string IDs directly.
+ * Hidden task fix: patch renderHiddenBoxFor then immediately call renderHiddenBox
+ * so existing hidden tasks show right away without needing to hide another one
  */
 (function () {
   'use strict';
@@ -86,68 +85,67 @@
   // ── END GROUP CHAT SECTION ─────────────────────────────
 
   // ── HIDDEN TASK FIX ──────────────────────────────────────────
-  // Bug: renderHiddenBoxFor does Object.keys(hiddenTasks).map(Number)
-  // UUID task IDs like 'fdb79ffe-138d-...' become NaN when converted to Number
-  // so myHidden is always empty and the box never shows
-  // Fix: replace renderHiddenBoxFor with a version that uses string IDs
   function fixRenderHiddenBoxFor() {
     if (typeof window.renderHiddenBoxFor !== 'function') return;
     window.renderHiddenBoxFor = function(view) {
       var elId = view === 'owner' ? 'hidden-box-owner' : 'hidden-box-staff';
       var el = document.getElementById(elId);
       if (!el) return;
-
-      // Use string IDs - do NOT call .map(Number) which breaks UUIDs
       var hiddenIds = Object.keys(window.hiddenTasks || {});
       var myHidden;
       if (window.curUser === 'latisha') {
         myHidden = hiddenIds.map(function(id) {
-          return (window.tasks || []).find(function(t) { return t.id == id; });
+          return (window.tasks || []).find(function(t) { return String(t.id) === String(id); });
         }).filter(Boolean);
       } else {
         myHidden = hiddenIds
-          .filter(function(id) { return window.hiddenTasks[id] && (window.tasks || []).find(function(t) { return t.id == id && t.assignedTo === window.curUser; }); })
-          .map(function(id) { return (window.tasks || []).find(function(t) { return t.id == id; }); })
+          .filter(function(id) {
+            if (!window.hiddenTasks[id]) return false;
+            var t = (window.tasks || []).find(function(t) { return String(t.id) === String(id); });
+            if (!t) return false;
+            // Check BOTH assignedTo (camelCase) and assigned_to (snake_case)
+            var assignee = t.assignedTo || t.assigned_to || '';
+            return assignee === window.curUser;
+          })
+          .map(function(id) {
+            return (window.tasks || []).find(function(t) { return String(t.id) === String(id); });
+          })
           .filter(Boolean);
       }
-
       if (!myHidden.length) { el.style.display = 'none'; return; }
       el.style.display = 'block';
-
       var isOpen = !!window.hiddenBoxOpen[view];
       var html = '<div class="hidden-box-hd" onclick="toggleHiddenBox(\'' + view + '\')">' +
-        '<span>' + myHidden.length + ' hidden task' + (myHidden.length !== 1 ? 's' : '') + '</span>' +
-        '<span>' + (isOpen ? '▲' : '▼') + '</span>' +
+        '<span>👁 ' + myHidden.length + ' hidden task' + (myHidden.length !== 1 ? 's' : '') + '</span>' +
+        '<span style="float:right">' + (isOpen ? '▲ collapse' : '▼ show') + '</span>' +
         '</div>';
-
       if (isOpen) {
         html += '<div class="hidden-box-list">';
         myHidden.forEach(function(t) {
-          var h = window.hiddenTasks[t.id];
+          var h = window.hiddenTasks[String(t.id)];
           var canUnhide = window.curUser === 'latisha' || (h && h.by === window.curUser);
           html += '<div class="hb-row">' +
             '<div class="hb-main">' +
-            '<div class="hb-title">' + t.title + '</div>' +
+            '<div class="hb-title">' + (t.title || '') + '</div>' +
             '<div class="hb-meta">' +
-            (h && h.completedDate ? '<span class="hb-date">🗓 ' + h.completedDate + '</span>' : '') +
-            (window.curUser === 'latisha' && h && h.by ? '<span class="hb-who">by ' + h.by + '</span>' : '') +
+            (h && h.completedDate ? '<span class="hb-date">🗓 ' + h.completedDate + '</span> ' : '') +
+            (window.curUser === 'latisha' && h && h.by ? '<span class="hb-who">by ' + h.by + '</span> ' : '') +
             '<span class="hb-cat">' + (t.category || 'Admin') + '</span>' +
             (h && h.staffNotes ? '<div class="hb-notes">' + h.staffNotes + '</div>' : '') +
-            '</div>' +
-            '</div>' +
-            (canUnhide ? '<button class="hb-restore" onclick="unhideTask(\'' + t.id + '\');event.stopPropagation()">Restore</button>' : '') +
+            '</div></div>' +
+            (canUnhide ? '<button class="hb-restore" onclick="unhideTask(\'' + String(t.id) + '\');event.stopPropagation()">Restore</button>' : '') +
             '</div>';
         });
         html += '</div>';
       }
-
       el.innerHTML = html;
-      console.log('[comms-fix] renderHiddenBoxFor:', view, myHidden.length, 'hidden tasks shown');
+      console.log('[comms-fix] Hidden box:', view, myHidden.length, 'tasks for', window.curUser);
     };
-    console.log('[comms-fix] renderHiddenBoxFor patched - UUID fix applied');
+    // Immediately re-render now that the fix is in place
+    if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+    console.log('[comms-fix] renderHiddenBoxFor patched + re-rendered');
   }
 
-  // Also fix unhideTask to call saveData
   function fixUnhideTask() {
     if (typeof window.unhideTask !== 'function') return;
     const orig = window.unhideTask;
@@ -159,7 +157,7 @@
   // ── END HIDDEN TASK FIX ───────────────────────────────────
 
   async function boot() {
-    console.log('[comms-fix] v14.0 booting...');
+    console.log('[comms-fix] v16.0 booting...');
     await new Promise(r => setTimeout(r, 2000));
     interceptLogin();
     interceptSendDm();
@@ -170,7 +168,7 @@
     setInterval(pollGroup, 5000);
     fixRenderHiddenBoxFor();
     fixUnhideTask();
-    console.log('[comms-fix] v14.0 active');
+    console.log('[comms-fix] v16.0 active');
   }
 
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
