@@ -1,137 +1,105 @@
 /**
- * comms-fix.js v9.0
- * DO NOT TOUCH GROUP CHAT - it works via DB trigger.
- * DM fix only:
- *  - Save DMs to comms_dm table on send
- *  - On login: filter dmMsgs to only show current user's threads
- *  - Poll comms_dm every 5s for new messages, append only (never replace whole object)
- *  - Never interrupt the app during polling
+ * comms-fix.js v10.0
+ * Now using confirmed variable names: curUser, activeDmUser, dmMsgs
+ * Group chat: handled by DB trigger (do not touch)
+ * DM: 
+ *   1. Save to comms_dm on send (DB trigger writes back to app_state)
+ *   2. Filter dmMsgs after app loads to hide threads curUser is not in
+ *   3. Use curUser directly - no guessing
  */
 (function () {
   'use strict';
   const U = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
   const K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
   const H = { apikey: K, Authorization: `Bearer ${K}`, 'Content-Type': 'application/json' };
-  let me = null;
-  let dmPollActive = false;
 
   function tk(a, b) { return [a, b].sort().join('_'); }
-  function fmt(d) { return new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase(); }
 
   async function ins(table, data) {
     try { await fetch(`${U}/rest/v1/${table}`, { method: 'POST', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify(data) }); }
     catch(e) {}
   }
 
-  async function getDMs() {
-    try {
-      const r = await fetch(`${U}/rest/v1/comms_dm?select=*&order=created_at.asc`, { headers: H });
-      return r.ok ? r.json() : [];
-    } catch(e) { return []; }
-  }
-
-  // Filter window.dmMsgs to only show threads current user is part of
-  // Called ONCE after login, never during active DM use
-  function filterDMs(user) {
-    if (!window.dmMsgs || !window.USERS) return;
+  // Filter dmMsgs so curUser only sees their own threads
+  function filterDMsForUser(user) {
+    if (!window.dmMsgs || !window.USERS || !user) return;
     const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
     const myKeys = others.map(o => tk(user, o));
-    const filtered = {};
-    for (const key of myKeys) {
-      if (window.dmMsgs[key]) filtered[key] = window.dmMsgs[key];
-    }
-    window.dmMsgs = filtered;
-    console.log('[comms-fix] DMs filtered for', user, ':', Object.keys(filtered));
+    // Remove any thread keys that don't involve this user
+    Object.keys(window.dmMsgs).forEach(key => {
+      if (!myKeys.includes(key)) {
+        delete window.dmMsgs[key];
+        console.log('[comms-fix] Removed private thread from view:', key);
+      }
+    });
   }
 
-  // Intercept chkPin - capture user and filter DMs immediately after login
+  // Intercept chkPin to capture user and immediately filter DMs
   function interceptLogin() {
     if (typeof window.chkPin !== 'function') return;
     const orig = window.chkPin;
     window.chkPin = function(pin, ...args) {
       const r = orig.call(this, pin, ...args);
-      if (window.USERS) {
-        const found = Object.entries(window.USERS).find(([k,v]) => String(v.pin) === String(pin));
-        if (found) {
-          me = found[0].toLowerCase();
-          console.log('[comms-fix] Logged in:', me);
-          // Wait for app to finish login render, then filter DMs
-          setTimeout(() => { filterDMs(me); startDMPoll(); }, 800);
+      // curUser is set by the app after chkPin succeeds
+      setTimeout(() => {
+        const user = window.curUser;
+        if (user) {
+          filterDMsForUser(user.toLowerCase());
+          console.log('[comms-fix] DMs filtered for:', user);
         }
-      }
+      }, 500);
       return r;
     };
   }
 
-  // Intercept sendDm to save to DB
+  // Intercept sendDm to also save to comms_dm table
+  // DB trigger will write back to app_state so other users see it on next load
   function interceptSendDm() {
     if (typeof window.sendDm !== 'function') return;
     const orig = window.sendDm;
     window.sendDm = async function(...a) {
       const r = orig.apply(this, a);
+      // Wait for app to update dmMsgs
       await new Promise(x => setTimeout(x, 200));
-      if (!me || !window.dmMsgs || !window.USERS) return r;
-      const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== me);
-      for (const o of others) {
-        const key = tk(me, o);
-        const msgs = window.dmMsgs[key] || [];
-        const last = msgs[msgs.length - 1];
-        if (last?.from && last?.text) {
-          await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
-          console.log('[comms-fix] DM saved:', key, last.text);
-          break;
-        }
+      const user = window.curUser;
+      const other = window.activeDmUser;
+      if (!user || !other || !window.dmMsgs) return r;
+      const key = [user, other].sort().join('_');
+      const msgs = window.dmMsgs[key] || [];
+      const last = msgs[msgs.length - 1];
+      if (last?.from && last?.text) {
+        await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
+        console.log('[comms-fix] DM saved to DB:', key, last.text);
       }
       return r;
     };
   }
 
-  // Poll for new DMs - ONLY append new messages, never replace whole dmMsgs
-  let dmCounts = {};
-  async function pollDMs() {
-    if (!me || !window.USERS) return;
-    const data = await getDMs();
-    if (!data.length) return;
-
-    const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== me);
-    const myKeys = others.map(o => tk(me, o));
-
-    for (const key of myKeys) {
-      const msgs = data.filter(m => m.thread_key === key);
-      const prev = dmCounts[key] || 0;
-      if (msgs.length > prev) {
-        // Only update this specific thread, never touch others
-        if (!window.dmMsgs) window.dmMsgs = {};
-        window.dmMsgs[key] = msgs.map(m => ({ from: m.author, text: m.message, time: fmt(m.created_at) }));
-        dmCounts[key] = msgs.length;
-        console.log('[comms-fix] DM thread updated:', key, msgs.length, 'msgs');
+  // Watch for app state reloads and re-filter DMs each time
+  // The app reloads from cloud every ~30s - we need to re-filter after each reload
+  function watchAppReload() {
+    // The app logs 'YourSZN: cloud load successful' - intercept console to detect it
+    const origLog = console.log;
+    console.log = function(...args) {
+      origLog.apply(console, args);
+      if (args[0] && String(args[0]).includes('cloud load successful')) {
+        setTimeout(() => {
+          const user = window.curUser;
+          if (user) filterDMsForUser(user.toLowerCase());
+        }, 200);
       }
-    }
-
-    // Remove any threads user shouldn't see (privacy)
-    if (window.dmMsgs) {
-      for (const key of Object.keys(window.dmMsgs)) {
-        if (!myKeys.includes(key)) {
-          delete window.dmMsgs[key];
-        }
-      }
-    }
-  }
-
-  let pollInterval = null;
-  function startDMPoll() {
-    if (dmPollActive) return;
-    dmPollActive = true;
-    pollInterval = setInterval(pollDMs, 5000);
-    pollDMs(); // run immediately
+    };
   }
 
   async function boot() {
-    console.log('[comms-fix] v9.0 booting...');
+    console.log('[comms-fix] v10.0 booting...');
     await new Promise(r => setTimeout(r, 2000));
     interceptLogin();
     interceptSendDm();
-    console.log('[comms-fix] v9.0 active - waiting for login to start DM poll');
+    watchAppReload();
+    // Filter immediately in case already logged in
+    if (window.curUser) filterDMsForUser(window.curUser.toLowerCase());
+    console.log('[comms-fix] v10.0 active, curUser:', window.curUser);
   }
 
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
