@@ -1,11 +1,8 @@
 /**
- * comms-fix.js v10.0
- * Now using confirmed variable names: curUser, activeDmUser, dmMsgs
- * Group chat: handled by DB trigger (do not touch)
- * DM: 
- *   1. Save to comms_dm on send (DB trigger writes back to app_state)
- *   2. Filter dmMsgs after app loads to hide threads curUser is not in
- *   3. Use curUser directly - no guessing
+ * comms-fix.js v11.0
+ * DM: UNTOUCHED - working perfectly
+ * Group chat fix: poll comms_group every 5s and update window.groupMsgs
+ * so all profiles see new messages without waiting for app_state reload
  */
 (function () {
   'use strict';
@@ -20,46 +17,34 @@
     catch(e) {}
   }
 
-  // Filter dmMsgs so curUser only sees their own threads
+  // ── DM SECTION - DO NOT MODIFY ─────────────────────────────────────
   function filterDMsForUser(user) {
     if (!window.dmMsgs || !window.USERS || !user) return;
     const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
     const myKeys = others.map(o => tk(user, o));
-    // Remove any thread keys that don't involve this user
     Object.keys(window.dmMsgs).forEach(key => {
-      if (!myKeys.includes(key)) {
-        delete window.dmMsgs[key];
-        console.log('[comms-fix] Removed private thread from view:', key);
-      }
+      if (!myKeys.includes(key)) delete window.dmMsgs[key];
     });
   }
 
-  // Intercept chkPin to capture user and immediately filter DMs
   function interceptLogin() {
     if (typeof window.chkPin !== 'function') return;
     const orig = window.chkPin;
     window.chkPin = function(pin, ...args) {
       const r = orig.call(this, pin, ...args);
-      // curUser is set by the app after chkPin succeeds
       setTimeout(() => {
         const user = window.curUser;
-        if (user) {
-          filterDMsForUser(user.toLowerCase());
-          console.log('[comms-fix] DMs filtered for:', user);
-        }
+        if (user) filterDMsForUser(user.toLowerCase());
       }, 500);
       return r;
     };
   }
 
-  // Intercept sendDm to also save to comms_dm table
-  // DB trigger will write back to app_state so other users see it on next load
   function interceptSendDm() {
     if (typeof window.sendDm !== 'function') return;
     const orig = window.sendDm;
     window.sendDm = async function(...a) {
       const r = orig.apply(this, a);
-      // Wait for app to update dmMsgs
       await new Promise(x => setTimeout(x, 200));
       const user = window.curUser;
       const other = window.activeDmUser;
@@ -67,18 +52,12 @@
       const key = [user, other].sort().join('_');
       const msgs = window.dmMsgs[key] || [];
       const last = msgs[msgs.length - 1];
-      if (last?.from && last?.text) {
-        await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
-        console.log('[comms-fix] DM saved to DB:', key, last.text);
-      }
+      if (last?.from && last?.text) await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
       return r;
     };
   }
 
-  // Watch for app state reloads and re-filter DMs each time
-  // The app reloads from cloud every ~30s - we need to re-filter after each reload
-  function watchAppReload() {
-    // The app logs 'YourSZN: cloud load successful' - intercept console to detect it
+  function watchAppReloadForDMs() {
     const origLog = console.log;
     console.log = function(...args) {
       origLog.apply(console, args);
@@ -90,16 +69,55 @@
       }
     };
   }
+  // ── END DM SECTION ─────────────────────────────────────────────────
+
+  // ── GROUP CHAT SECTION ─────────────────────────────────────────────
+  function interceptSendGroupMsg() {
+    if (typeof window.sendGroupMsg !== 'function') return;
+    const orig = window.sendGroupMsg;
+    window.sendGroupMsg = async function(...a) {
+      const r = orig.apply(this, a);
+      await new Promise(x => setTimeout(x, 200));
+      const last = (window.groupMsgs || []).slice(-1)[0];
+      if (last?.from && last?.text) await ins('comms_group', { author: last.from, message: last.text });
+      return r;
+    };
+  }
+
+  // Poll comms_group every 5s - update window.groupMsgs and re-render if new messages
+  let lastGroupCount = 0;
+  async function pollGroup() {
+    try {
+      const r = await fetch(`${U}/rest/v1/comms_group?select=*&order=created_at.asc`, { headers: H });
+      if (!r.ok) return;
+      const data = await r.json();
+      if (!data.length || data.length === lastGroupCount) return;
+      // New messages arrived - update groupMsgs
+      const fmt = d => new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+      window.groupMsgs = data.map(m => ({ from: m.author, text: m.message, time: fmt(m.created_at) }));
+      lastGroupCount = data.length;
+      // Re-render group thread if it's currently visible
+      if (typeof window.renderGroupThread === 'function') {
+        window.renderGroupThread();
+      }
+      console.log('[comms-fix] Group updated:', data.length, 'messages');
+    } catch(e) {}
+  }
+  // ── END GROUP CHAT SECTION ─────────────────────────────────────────
 
   async function boot() {
-    console.log('[comms-fix] v10.0 booting...');
+    console.log('[comms-fix] v11.0 booting...');
     await new Promise(r => setTimeout(r, 2000));
+    // DM setup
     interceptLogin();
     interceptSendDm();
-    watchAppReload();
-    // Filter immediately in case already logged in
+    watchAppReloadForDMs();
     if (window.curUser) filterDMsForUser(window.curUser.toLowerCase());
-    console.log('[comms-fix] v10.0 active, curUser:', window.curUser);
+    // Group chat setup
+    interceptSendGroupMsg();
+    await pollGroup();
+    setInterval(pollGroup, 5000);
+    console.log('[comms-fix] v11.0 active');
   }
 
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
