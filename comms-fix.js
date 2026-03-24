@@ -1,143 +1,189 @@
 /**
- * comms-fix.js — YourSZN Hub v5.0
- * Confirmed variable names: sendGroupMsg, sendDm, window.groupMsgs, window.dmMsgs, window.USERS, chkPin
+ * comms-fix.js v6.0
+ * Fixes: group chat render + DM privacy (user detection from sidebar element not body text)
  */
 (function () {
   'use strict';
+  const URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+  const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+  const H = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+  let me = null;
 
-  const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
-  const H = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
-  let currentUser = null;
-
-  function threadKey(a, b) { return [a, b].sort().join('_'); }
+  function tk(a, b) { return [a, b].sort().join('_'); }
   function fmt(d) { return new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase(); }
 
-  async function dbSelect(table, params) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=created_at.asc${params||''}`, { headers: H });
+  // Get current user from the specific sidebar element, not body text
+  function getMe() {
+    if (me) return me;
+    // The sidebar shows the name in a specific element - find it precisely
+    const sidebar = document.querySelector('.sidebar, #sidebar, nav, [class*="sidebar"], [class*="nav"]');
+    const target = sidebar || document.body;
+    // Look for the "LOGGED IN AS" label and get the next element or text
+    const allEls = target.querySelectorAll('*');
+    for (const el of allEls) {
+      if (el.children.length === 0 && el.textContent.match(/^(latisha|lemari|salma)$/i)) {
+        me = el.textContent.trim().toLowerCase();
+        console.log('[comms-fix] User from element:', me);
+        return me;
+      }
+    }
+    // Fallback: find the profile name after LOGGED IN AS text node
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node;
+    while (node = walker.nextNode()) {
+      if (node.textContent.trim() === 'LOGGED IN AS') {
+        // Get next sibling text nodes
+        let next = node.nextSibling;
+        while (next) {
+          const t = next.textContent.trim();
+          if (t.match(/^(latisha|lemari|salma)$/i)) {
+            me = t.toLowerCase();
+            return me;
+          }
+          next = next.nextSibling;
+        }
+      }
+    }
+    return null;
+  }
+
+  async function db(table, params) {
+    const r = await fetch(`${URL}/rest/v1/${table}?select=*&order=created_at.asc${params||''}`, { headers: H });
     return r.ok ? r.json() : [];
   }
 
-  async function dbInsert(table, payload) {
-    await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method: 'POST', headers: { ...H, 'Prefer': 'return=minimal' }, body: JSON.stringify(payload) });
+  async function ins(table, data) {
+    await fetch(`${URL}/rest/v1/${table}`, { method: 'POST', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify(data) });
   }
 
-  function getUser() {
-    if (currentUser) return currentUser;
-    const m = document.body.innerText.match(/LOGGED IN AS\s+(\w+)/i);
-    if (m) { currentUser = m[1].toLowerCase(); }
-    return currentUser;
+  // Re-render group chat by finding the render function or manipulating DOM directly
+  function renderGroup(msgs) {
+    // Try all known render functions
+    const fns = ['renderCommsPage','renderComms','renderGroupChat','renderGroupThread','showComms','refreshComms','renderCommsSection'];
+    let rendered = false;
+    for (const fn of fns) {
+      if (typeof window[fn] === 'function') {
+        try { window[fn](); rendered = true; break; } catch(e) {}
+      }
+    }
+    // Also dispatch event
+    window.dispatchEvent(new CustomEvent('comms:updated'));
+    // Scroll group chat container to bottom
+    const chatEl = document.querySelector('#group-chat, .group-chat, [id*="group"][class*="msg"], [id*="group"][class*="chat"]');
+    if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
   }
 
-  function triggerRender() {
-    ['renderCommsPage','renderComms','renderGroupThread','renderDmThread','showComms','refreshComms'].forEach(fn => {
-      if (typeof window[fn] === 'function') { try { window[fn](); } catch(e) {} }
-    });
-    document.querySelectorAll('[id*="msg"],[class*="msg"],[class*="chat"],[class*="thread"]')
-      .forEach(el => { if (el.scrollHeight > el.clientHeight) el.scrollTop = el.scrollHeight; });
+  function renderDMs() {
+    window.dispatchEvent(new CustomEvent('comms:updated'));
   }
 
+  // Intercept chkPin to capture login
   function interceptLogin() {
     if (typeof window.chkPin !== 'function') return;
     const orig = window.chkPin;
     window.chkPin = function(pin, ...args) {
-      const result = orig.call(this, pin, ...args);
+      const r = orig.call(this, pin, ...args);
       if (window.USERS) {
-        const match = Object.entries(window.USERS).find(([k,v]) => String(v.pin) === String(pin));
-        if (match) { currentUser = match[0].toLowerCase(); console.log('[comms-fix] Logged in:', currentUser); loadDMs(); }
+        const found = Object.entries(window.USERS).find(([k,v]) => String(v.pin) === String(pin));
+        if (found) {
+          me = found[0].toLowerCase();
+          console.log('[comms-fix] Login detected:', me);
+          setTimeout(() => loadDMs(), 500);
+        }
       }
-      return result;
+      return r;
     };
   }
 
-  function interceptSendGroupMsg() {
+  // Intercept sendGroupMsg
+  function interceptGroup() {
     if (typeof window.sendGroupMsg !== 'function') return;
     const orig = window.sendGroupMsg;
-    window.sendGroupMsg = async function(...args) {
-      const result = orig.apply(this, args);
-      await new Promise(r => setTimeout(r, 150));
+    window.sendGroupMsg = async function(...a) {
+      const r = orig.apply(this, a);
+      await new Promise(x => setTimeout(x, 200));
       const msgs = window.groupMsgs || [];
       const last = msgs[msgs.length - 1];
-      if (last && last.from && last.text) {
-        await dbInsert('comms_group', { author: last.from, message: last.text });
-        console.log('[comms-fix] Group msg saved:', last.text);
+      if (last?.from && last?.text) {
+        await ins('comms_group', { author: last.from, message: last.text });
+        console.log('[comms-fix] Group saved:', last.text);
       }
-      return result;
+      return r;
     };
   }
 
-  function interceptSendDm() {
+  // Intercept sendDm
+  function interceptDM() {
     if (typeof window.sendDm !== 'function') return;
     const orig = window.sendDm;
-    window.sendDm = async function(...args) {
-      const result = orig.apply(this, args);
-      await new Promise(r => setTimeout(r, 150));
-      const me = getUser();
-      if (!me || !window.dmMsgs) return result;
-      const profiles = Object.keys(window.USERS || {}).map(k => k.toLowerCase());
-      const myThreads = profiles.filter(p => p !== me).map(p => threadKey(me, p));
-      for (const key of myThreads) {
+    window.sendDm = async function(...a) {
+      const r = orig.apply(this, a);
+      await new Promise(x => setTimeout(x, 200));
+      const user = getMe();
+      if (!user || !window.dmMsgs || !window.USERS) return r;
+      const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
+      for (const other of others) {
+        const key = tk(user, other);
         const msgs = window.dmMsgs[key];
-        if (!msgs || !msgs.length) continue;
+        if (!msgs?.length) continue;
         const last = msgs[msgs.length - 1];
-        if (last && last.from && last.text) {
-          await dbInsert('comms_dm', { thread_key: key, author: last.from, message: last.text });
+        if (last?.from && last?.text) {
+          await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
           console.log('[comms-fix] DM saved:', key, last.text);
           break;
         }
       }
-      return result;
+      return r;
     };
   }
 
-  let lastGroup = 0, lastDm = {};
+  let lastGroupCount = 0;
+  let lastDmCounts = {};
 
-  async function loadGroupMessages() {
-    const data = await dbSelect('comms_group');
-    if (!data.length || data.length === lastGroup) return;
+  async function loadGroup() {
+    const data = await db('comms_group');
+    if (!data.length || data.length === lastGroupCount) return;
     window.groupMsgs = data.map(m => ({ from: m.author, text: m.message, time: fmt(m.created_at) }));
-    lastGroup = data.length;
-    triggerRender();
+    lastGroupCount = data.length;
+    renderGroup(window.groupMsgs);
     console.log('[comms-fix] Group loaded:', data.length);
   }
 
   async function loadDMs() {
-    const me = getUser();
-    if (!me) return;
-    const profiles = Object.keys(window.USERS || {}).map(k => k.toLowerCase());
-    const myThreads = profiles.filter(p => p !== me).map(p => threadKey(me, p));
-    const data = await dbSelect('comms_dm');
-    if (!data.length) return;
+    const user = getMe();
+    if (!user || !window.USERS) return;
+    const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
+    const myKeys = others.map(o => tk(user, o));
+    const data = await db('comms_dm');
     let updated = false;
     const newDms = {};
-    for (const t of myThreads) {
-      const msgs = data.filter(m => m.thread_key === t);
-      if (msgs.length !== (lastDm[t] || 0)) {
-        newDms[t] = msgs.map(m => ({ from: m.author, text: m.message, time: fmt(m.created_at) }));
-        lastDm[t] = msgs.length;
+    for (const key of myKeys) {
+      const msgs = data.filter(m => m.thread_key === key);
+      const prev = lastDmCounts[key] || 0;
+      if (msgs.length !== prev) {
+        newDms[key] = msgs.map(m => ({ from: m.author, text: m.message, time: fmt(m.created_at) }));
+        lastDmCounts[key] = msgs.length;
         updated = true;
-      } else if (window.dmMsgs && window.dmMsgs[t]) {
-        newDms[t] = window.dmMsgs[t];
+      } else {
+        newDms[key] = window.dmMsgs?.[key] || [];
       }
     }
-    if (updated) {
-      window.dmMsgs = newDms;
-      triggerRender();
-      console.log('[comms-fix] DMs loaded for:', me);
-    }
+    // PRIVACY: only set threads user is part of — removes latisha_lemari from salma
+    window.dmMsgs = newDms;
+    if (updated) { renderDMs(); console.log('[comms-fix] DMs loaded for:', user, Object.keys(newDms)); }
   }
 
   async function boot() {
-    console.log('[comms-fix] v5.0 booting...');
+    console.log('[comms-fix] v6.0 booting...');
     await new Promise(r => setTimeout(r, 1500));
     interceptLogin();
-    interceptSendGroupMsg();
-    interceptSendDm();
-    getUser();
-    await loadGroupMessages();
+    interceptGroup();
+    interceptDM();
+    getMe();
+    await loadGroup();
     await loadDMs();
-    setInterval(() => { loadGroupMessages(); loadDMs(); }, 3000);
-    console.log('[comms-fix] v5.0 active, user:', currentUser);
+    setInterval(async () => { await loadGroup(); await loadDMs(); }, 3000);
+    console.log('[comms-fix] v6.0 active, user:', me);
   }
 
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
