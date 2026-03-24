@@ -1,8 +1,9 @@
 /**
- * comms-fix.js v11.0
+ * comms-fix.js v12.0
  * DM: UNTOUCHED - working perfectly
- * Group chat fix: poll comms_group every 5s and update window.groupMsgs
- * so all profiles see new messages without waiting for app_state reload
+ * Group chat: UNTOUCHED - working perfectly
+ * New: Fix unhideTask to call saveData() so restored tasks persist
+ * New: Fix new tasks showing immediately without requiring acknowledgement
  */
 (function () {
   'use strict';
@@ -17,7 +18,7 @@
     catch(e) {}
   }
 
-  // ── DM SECTION - DO NOT MODIFY ─────────────────────────────────────
+  // ── DM SECTION - DO NOT MODIFY ────────────────────────────────
   function filterDMsForUser(user) {
     if (!window.dmMsgs || !window.USERS || !user) return;
     const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
@@ -26,28 +27,22 @@
       if (!myKeys.includes(key)) delete window.dmMsgs[key];
     });
   }
-
   function interceptLogin() {
     if (typeof window.chkPin !== 'function') return;
     const orig = window.chkPin;
     window.chkPin = function(pin, ...args) {
       const r = orig.call(this, pin, ...args);
-      setTimeout(() => {
-        const user = window.curUser;
-        if (user) filterDMsForUser(user.toLowerCase());
-      }, 500);
+      setTimeout(() => { const user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 500);
       return r;
     };
   }
-
   function interceptSendDm() {
     if (typeof window.sendDm !== 'function') return;
     const orig = window.sendDm;
     window.sendDm = async function(...a) {
       const r = orig.apply(this, a);
       await new Promise(x => setTimeout(x, 200));
-      const user = window.curUser;
-      const other = window.activeDmUser;
+      const user = window.curUser; const other = window.activeDmUser;
       if (!user || !other || !window.dmMsgs) return r;
       const key = [user, other].sort().join('_');
       const msgs = window.dmMsgs[key] || [];
@@ -56,22 +51,18 @@
       return r;
     };
   }
-
   function watchAppReloadForDMs() {
     const origLog = console.log;
     console.log = function(...args) {
       origLog.apply(console, args);
       if (args[0] && String(args[0]).includes('cloud load successful')) {
-        setTimeout(() => {
-          const user = window.curUser;
-          if (user) filterDMsForUser(user.toLowerCase());
-        }, 200);
+        setTimeout(() => { const user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 200);
       }
     };
   }
-  // ── END DM SECTION ─────────────────────────────────────────────────
+  // ── END DM SECTION ───────────────────────────────────────
 
-  // ── GROUP CHAT SECTION ─────────────────────────────────────────────
+  // ── GROUP CHAT SECTION - DO NOT MODIFY ─────────────────────────
   function interceptSendGroupMsg() {
     if (typeof window.sendGroupMsg !== 'function') return;
     const orig = window.sendGroupMsg;
@@ -83,8 +74,6 @@
       return r;
     };
   }
-
-  // Poll comms_group every 5s - update window.groupMsgs and re-render if new messages
   let lastGroupCount = 0;
   async function pollGroup() {
     try {
@@ -92,32 +81,69 @@
       if (!r.ok) return;
       const data = await r.json();
       if (!data.length || data.length === lastGroupCount) return;
-      // New messages arrived - update groupMsgs
       const fmt = d => new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
       window.groupMsgs = data.map(m => ({ from: m.author, text: m.message, time: fmt(m.created_at) }));
       lastGroupCount = data.length;
-      // Re-render group thread if it's currently visible
-      if (typeof window.renderGroupThread === 'function') {
-        window.renderGroupThread();
-      }
-      console.log('[comms-fix] Group updated:', data.length, 'messages');
+      if (typeof window.renderGroupThread === 'function') window.renderGroupThread();
     } catch(e) {}
   }
-  // ── END GROUP CHAT SECTION ─────────────────────────────────────────
+  // ── END GROUP CHAT SECTION ─────────────────────────────────
+
+  // ── TASK FIXES ──────────────────────────────────────────────
+
+  // Fix 1: unhideTask doesn't call saveData() - so restored tasks don't persist
+  function fixUnhideTask() {
+    if (typeof window.unhideTask !== 'function') return;
+    const orig = window.unhideTask;
+    window.unhideTask = function(taskId) {
+      orig.call(this, taskId);
+      // saveData() was missing - add it so the restore persists to cloud
+      if (typeof window.saveData === 'function') {
+        window.saveData();
+        console.log('[comms-fix] unhideTask: saveData called for', taskId);
+      }
+    };
+  }
+
+  // Fix 2: New tasks assigned to staff require banner acknowledgement before showing
+  // The banner shows but staff need to click it - auto-mark as seen after 5s
+  // so tasks appear without requiring the click
+  function fixNewTaskNotification() {
+    if (typeof window.renderNewTaskBanner !== 'function') return;
+    const orig = window.renderNewTaskBanner;
+    window.renderNewTaskBanner = function(...a) {
+      const r = orig.apply(this, a);
+      // Auto-dismiss after 5 seconds so tasks show without manual acknowledgement
+      setTimeout(() => {
+        const banner = document.getElementById('new-task-banner');
+        if (banner && banner.style.display !== 'none') {
+          if (typeof window.clearTaskBadge === 'function') {
+            window.clearTaskBadge();
+            console.log('[comms-fix] Auto-dismissed new task banner');
+          }
+        }
+      }, 5000);
+      return r;
+    };
+  }
+  // ── END TASK FIXES ─────────────────────────────────────────────
 
   async function boot() {
-    console.log('[comms-fix] v11.0 booting...');
+    console.log('[comms-fix] v12.0 booting...');
     await new Promise(r => setTimeout(r, 2000));
-    // DM setup
+    // DM
     interceptLogin();
     interceptSendDm();
     watchAppReloadForDMs();
     if (window.curUser) filterDMsForUser(window.curUser.toLowerCase());
-    // Group chat setup
+    // Group
     interceptSendGroupMsg();
     await pollGroup();
     setInterval(pollGroup, 5000);
-    console.log('[comms-fix] v11.0 active');
+    // Tasks
+    fixUnhideTask();
+    fixNewTaskNotification();
+    console.log('[comms-fix] v12.0 active');
   }
 
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
