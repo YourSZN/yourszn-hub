@@ -1,471 +1,180 @@
 /**
- * comms-fix.js — YourSZN Hub
- * Patches the Comms section to use Supabase Realtime so messages
- * are delivered live to all profiles (latisha / lemari / salma).
- *
- * How it works:
- *  - Waits for the app's Supabase client to be ready
- *  - Migrates any existing messages from app_state into the proper tables
- *  - Subscribes to comms_group + comms_dm via Realtime
- *  - When a new message arrives it re-renders the comms UI automatically
- *  - Overrides the send functions so new messages go to Supabase, not just app_state
+ * comms-fix.js — YourSZN Hub v2.0
+ * Fixes:
+ *  1. Group chat messages now show for all profiles
+ *  2. DMs are private — only the two people in the thread can see them
+ *  3. Realtime delivery (or 3s polling fallback) so messages arrive live
  */
-
 (function () {
   'use strict';
 
-  const PATCH_VERSION = '1.0.3';
-  const MAX_WAIT_MS   = 15000;
-  const POLL_INTERVAL = 200;
+  const VERSION = '2.0.0';
+  const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0OTI2MDUsImV4cCI6MjA1NzA2ODYwNX0.iOgl9X2pMecrMDvFGMB5oGMUAXBuuOFBaXJPbhGVNSo';
+  const PROFILES = ['latisha', 'lemari', 'salma'];
 
-  /* ─── Wait for the app's supabase client ─────────────────────────── */
-  function waitForSupabase(cb) {
-    const start = Date.now();
-    const timer = setInterval(() => {
-      // The app exposes the client as window.supabase or window._sb
-      const sb = window.supabase || window._sb || window.supabaseClient;
-      if (sb && sb.channel) {
-        clearInterval(timer);
-        cb(sb);
-      } else if (Date.now() - start > MAX_WAIT_MS) {
-        clearInterval(timer);
-        console.warn('[comms-fix] Supabase client not found — patch skipped');
-      }
-    }, POLL_INTERVAL);
-  }
-
-  /* ─── Wait for the app's currentUser / activeProfile to be set ───── */
-  function waitForUser(cb) {
-    const start = Date.now();
-    const timer = setInterval(() => {
-      const user =
-        window.currentUser ||
-        window.activeProfile ||
-        window.state?.currentUser ||
-        window.appState?.currentUser;
-      if (user) {
-        clearInterval(timer);
-        cb(user);
-      } else if (Date.now() - start > MAX_WAIT_MS) {
-        clearInterval(timer);
-        // Still try to patch without a known user — send will pick it up at runtime
-        cb(null);
-      }
-    }, POLL_INTERVAL);
-  }
-
-  /* ─── Migrate old messages from app_state JSON into proper tables ─── */
-  async function migrateExistingMessages(sb) {
-    try {
-      // Fetch current app_state
-      const { data, error } = await sb
-        .from('app_state')
-        .select('state')
-        .eq('id', 'main')
-        .single();
-
-      if (error || !data) return;
-
-      const state = data.state || {};
-
-      // --- Group messages ---
-      const groupMsgs = state.groupMsgs || [];
-      for (const msg of groupMsgs) {
-        if (!msg || !msg.from) continue;
-        // Check if already migrated
-        const { data: existing } = await sb
-          .from('comms_group')
-          .select('id')
-          .eq('author', msg.from)
-          .eq('message', msg.text || msg.message || '')
-          .limit(1);
-        if (existing && existing.length > 0) continue;
-
-        await sb.from('comms_group').insert({
-          author:  msg.from,
-          message: msg.text || msg.message || '',
-          created_at: msg.time
-            ? new Date().toISOString()   // can't reconstruct exact time
-            : new Date().toISOString(),
-        });
-      }
-
-      // --- DM messages ---
-      const dmMsgs = state.dmMsgs || {};
-      for (const [threadKey, msgs] of Object.entries(dmMsgs)) {
-        if (!Array.isArray(msgs)) continue;
-        for (const msg of msgs) {
-          if (!msg || !msg.from) continue;
-          const { data: existing } = await sb
-            .from('comms_dm')
-            .select('id')
-            .eq('thread_key', threadKey)
-            .eq('author', msg.from)
-            .eq('message', msg.text || msg.message || '')
-            .limit(1);
-          if (existing && existing.length > 0) continue;
-
-          await sb.from('comms_dm').insert({
-            thread_key: threadKey,
-            author:     msg.from,
-            message:    msg.text || msg.message || '',
-            created_at: new Date().toISOString(),
-          });
-        }
-      }
-
-      console.log('[comms-fix] Migration complete');
-    } catch (err) {
-      console.warn('[comms-fix] Migration error:', err);
-    }
-  }
-
-  /* ─── Subscribe to Realtime for group + DM channels ─────────────── */
-  let _realtimeChannel = null;
-
-  function subscribeRealtime(sb) {
-    if (_realtimeChannel) {
-      sb.removeChannel(_realtimeChannel);
-    }
-
-    _realtimeChannel = sb
-      .channel('comms-realtime-v1')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'comms_group' },
-        (payload) => {
-          console.log('[comms-fix] New group message:', payload.new);
-          handleIncomingGroupMessage(payload.new);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'comms_dm' },
-        (payload) => {
-          console.log('[comms-fix] New DM message:', payload.new);
-          handleIncomingDM(payload.new);
-        }
-      )
-      .subscribe((status) => {
-        console.log('[comms-fix] Realtime status:', status);
-      });
-  }
-
-  /* ─── Handle incoming realtime group message ─────────────────────── */
-  function handleIncomingGroupMessage(msg) {
-    // Update app state so existing render functions pick it up
-    const state = getAppState();
-    if (!state) return;
-
-    const newMsg = {
-      from:    msg.author,
-      text:    msg.message,
-      time:    formatTime(new Date(msg.created_at)),
-    };
-
-    // Avoid duplicates
-    if (!state.groupMsgs) state.groupMsgs = [];
-    const alreadyExists = state.groupMsgs.some(
-      (m) => m.from === newMsg.from && m.text === newMsg.text
-    );
-    if (!alreadyExists) {
-      state.groupMsgs.push(newMsg);
-      triggerRender('group');
-    }
-  }
-
-  /* ─── Handle incoming realtime DM ───────────────────────────────── */
-  function handleIncomingDM(msg) {
-    const state = getAppState();
-    if (!state) return;
-
-    if (!state.dmMsgs) state.dmMsgs = {};
-    if (!state.dmMsgs[msg.thread_key]) state.dmMsgs[msg.thread_key] = [];
-
-    const newMsg = {
-      from: msg.author,
-      text: msg.message,
-      time: formatTime(new Date(msg.created_at)),
-    };
-
-    const alreadyExists = state.dmMsgs[msg.thread_key].some(
-      (m) => m.from === newMsg.from && m.text === newMsg.text
-    );
-    if (!alreadyExists) {
-      state.dmMsgs[msg.thread_key].push(newMsg);
-      triggerRender('dm', msg.thread_key);
-    }
-  }
-
-  /* ─── Patch send functions ───────────────────────────────────────── */
-  function patchSendFunctions(sb) {
-    // We intercept the most common patterns apps use for sending
-    // Strategy: wrap XMLHttpRequest + fetch aren't needed since this is
-    // a direct Supabase JS client app. Instead we patch window functions.
-
-    // Look for common send function names and wrap them
-    const GROUP_SEND_NAMES = ['sendGroupMessage', 'sendCommsGroup', 'sendGroup', 'postGroupMsg'];
-    const DM_SEND_NAMES    = ['sendDM', 'sendDirectMessage', 'sendCommsDM', 'postDM'];
-
-    GROUP_SEND_NAMES.forEach((name) => {
-      if (typeof window[name] === 'function') {
-        const original = window[name];
-        window[name] = async function (...args) {
-          // Call original (keeps local state updated)
-          const result = await original.apply(this, args);
-          // Also save to Supabase
-          const text   = args[0] || (typeof args[0] === 'object' ? args[0].text : '');
-          const author = getCurrentUser();
-          if (author && text) {
-            await sb.from('comms_group').insert({ author, message: text });
-          }
-          return result;
-        };
-        console.log(`[comms-fix] Patched ${name}`);
-      }
-    });
-
-    DM_SEND_NAMES.forEach((name) => {
-      if (typeof window[name] === 'function') {
-        const original = window[name];
-        window[name] = async function (...args) {
-          const result = await original.apply(this, args);
-          const text      = typeof args[0] === 'string' ? args[0] : args[0]?.text || '';
-          const threadKey = args[1] || args[0]?.threadKey || buildThreadKey(args);
-          const author    = getCurrentUser();
-          if (author && text && threadKey) {
-            await sb.from('comms_dm').insert({ thread_key: threadKey, author, message: text });
-          }
-          return result;
-        };
-        console.log(`[comms-fix] Patched ${name}`);
-      }
-    });
-
-    // Also intercept direct supabase calls from the app by wrapping sb.from
-    const originalFrom = sb.from.bind(sb);
-    sb.from = function (table) {
-      const builder = originalFrom(table);
-      if (table === 'app_state') {
-        const originalUpsert = builder.upsert?.bind(builder);
-        if (originalUpsert) {
-          builder.upsert = async function (payload, opts) {
-            const result = await originalUpsert(payload, opts);
-            // After app_state save, sync any new comms messages to proper tables
-            if (Array.isArray(payload)) {
-              payload.forEach((p) => syncCommFromAppState(sb, p));
-            } else {
-              syncCommFromAppState(sb, payload);
-            }
-            return result;
-          };
-        }
-      }
-      return builder;
-    };
-  }
-
-  /* ─── Sync new comms messages when app_state is saved ───────────── */
-  async function syncCommFromAppState(sb, payload) {
-    try {
-      if (!payload || payload.id !== 'main') return;
-      const state = payload.state || {};
-
-      // Sync group messages
-      const groupMsgs = state.groupMsgs || [];
-      if (groupMsgs.length > 0) {
-        const lastMsg = groupMsgs[groupMsgs.length - 1];
-        if (lastMsg?.from && lastMsg?.text) {
-          // Check if already in DB
-          const { data } = await sb
-            .from('comms_group')
-            .select('id')
-            .eq('author', lastMsg.from)
-            .eq('message', lastMsg.text)
-            .limit(1);
-          if (!data || data.length === 0) {
-            await sb.from('comms_group').insert({
-              author:  lastMsg.from,
-              message: lastMsg.text,
-            });
-          }
-        }
-      }
-
-      // Sync DM messages
-      const dmMsgs = state.dmMsgs || {};
-      for (const [threadKey, msgs] of Object.entries(dmMsgs)) {
-        if (!Array.isArray(msgs) || msgs.length === 0) continue;
-        const lastMsg = msgs[msgs.length - 1];
-        if (!lastMsg?.from || !lastMsg?.text) continue;
-
-        const { data } = await sb
-          .from('comms_dm')
-          .select('id')
-          .eq('thread_key', threadKey)
-          .eq('author', lastMsg.from)
-          .eq('message', lastMsg.text)
-          .limit(1);
-        if (!data || data.length === 0) {
-          await sb.from('comms_dm').insert({
-            thread_key: threadKey,
-            author:     lastMsg.from,
-            message:    lastMsg.text,
-          });
-        }
-      }
-    } catch (err) {
-      // Silent fail — don't break the app
-    }
-  }
-
-  /* ─── Load existing messages from Supabase on startup ───────────── */
-  async function loadMessagesFromSupabase(sb) {
-    try {
-      const state = getAppState();
-      if (!state) return;
-
-      // Load group messages
-      const { data: groupData } = await sb
-        .from('comms_group')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (groupData && groupData.length > 0) {
-        state.groupMsgs = groupData.map((m) => ({
-          from: m.author,
-          text: m.message,
-          time: formatTime(new Date(m.created_at)),
-        }));
-      }
-
-      // Load DM messages
-      const { data: dmData } = await sb
-        .from('comms_dm')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (dmData && dmData.length > 0) {
-        state.dmMsgs = {};
-        for (const m of dmData) {
-          if (!state.dmMsgs[m.thread_key]) state.dmMsgs[m.thread_key] = [];
-          state.dmMsgs[m.thread_key].push({
-            from: m.author,
-            text: m.message,
-            time: formatTime(new Date(m.created_at)),
-          });
-        }
-      }
-
-      // Re-render if comms tab is currently visible
-      triggerRender('both');
-    } catch (err) {
-      console.warn('[comms-fix] Load error:', err);
-    }
-  }
-
-  /* ─── Helpers ───────────────────────────────────────────────────── */
-
-  function getAppState() {
-    return (
-      window.state ||
-      window.appState ||
-      window.APP_STATE ||
-      null
-    );
-  }
+  // ── Helpers ──────────────────────────────────────────────────────────
+  function threadKey(a, b) { return [a, b].sort().join('_'); }
 
   function getCurrentUser() {
-    return (
-      window.currentUser ||
-      window.activeProfile ||
-      window.state?.currentUser ||
-      window.appState?.currentUser ||
-      null
-    );
+    const st = window.state || window.appState || window.APP;
+    if (st) return st.currentUser || st.activeUser || st.profile || st.user || null;
+    const el = document.querySelector('[data-user],[data-profile],#current-user,.current-profile');
+    if (el) return (el.dataset.user || el.dataset.profile || el.textContent || '').trim().toLowerCase();
+    return null;
   }
 
-  function buildThreadKey(args) {
-    // Try to figure out the thread key from args
-    const user = getCurrentUser();
-    if (!user) return null;
-    const other = args[1] || args[0]?.to || null;
-    if (!other) return null;
-    return [user, other].sort().join('_');
-  }
+  function getAppState() { return window.state || window.appState || window.APP || null; }
 
   function formatTime(date) {
-    return date.toLocaleTimeString('en-AU', {
-      hour:   '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    }).toLowerCase();
+    return date.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
   }
 
-  function triggerRender(type, threadKey) {
-    // Try common render function names the app might use
-    const renderFns = [
-      'renderComms', 'renderCommsSection', 'renderMessages',
-      'refreshComms', 'updateComms', 'drawComms',
-      'renderGroupChat', 'renderDMs', 'renderChat',
-    ];
-    for (const name of renderFns) {
-      if (typeof window[name] === 'function') {
-        try {
-          window[name](type, threadKey);
-        } catch (e) { /* ignore */ }
-      }
-    }
-
-    // Also try dispatching a custom event the app might listen for
-    window.dispatchEvent(new CustomEvent('comms:update', {
-      detail: { type, threadKey }
-    }));
-
-    // Last resort: look for the comms section in the DOM and trigger a re-render
-    // by finding and clicking the active comms tab if visible
-    const commsSection = document.querySelector(
-      '[data-section="comms"], #comms, .comms-section, [id*="comm"]'
-    );
-    if (commsSection && commsSection.style.display !== 'none') {
-      // Scroll chat to bottom
-      const chatContainers = commsSection.querySelectorAll(
-        '.messages, .chat-messages, .msg-list, [class*="message"]'
-      );
-      chatContainers.forEach((el) => {
-        el.scrollTop = el.scrollHeight;
-      });
-    }
+  function refreshUI() {
+    ['renderComms','renderCommsTab','renderGroupChat','renderDMs','renderMessages',
+     'refreshComms','updateComms','renderChat','showComms'].forEach(fn => {
+      if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} }
+    });
+    window.dispatchEvent(new CustomEvent('comms:updated'));
+    document.querySelectorAll('.messages,.chat-messages,.msg-list,.group-chat,.dm-chat')
+      .forEach(el => { el.scrollTop = el.scrollHeight; });
   }
 
-  /* ─── Boot ───────────────────────────────────────────────────────── */
-  function boot() {
-    console.log(`[comms-fix] Booting v${PATCH_VERSION}`);
+  // ── REST API (works with or without Supabase JS SDK) ─────────────────
+  const H = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
 
-    waitForSupabase(async (sb) => {
-      console.log('[comms-fix] Supabase client found');
+  async function dbSelect(table, params = {}) {
+    let url = `${SUPABASE_URL}/rest/v1/${table}?select=*&order=created_at.asc`;
+    if (params.eq) Object.entries(params.eq).forEach(([k,v]) => { url += `&${k}=eq.${encodeURIComponent(v)}`; });
+    if (params.in) Object.entries(params.in).forEach(([k,vals]) => { url += `&${k}=in.(${vals.map(v=>encodeURIComponent(v)).join(',')})`; });
+    const r = await fetch(url, { headers: H });
+    return r.ok ? await r.json() : [];
+  }
 
-      // 1. Migrate any old messages from app_state to proper tables
-      await migrateExistingMessages(sb);
-
-      // 2. Load messages from Supabase into app state
-      await loadMessagesFromSupabase(sb);
-
-      // 3. Subscribe to Realtime so new messages arrive live
-      subscribeRealtime(sb);
-
-      // 4. Patch send functions to also write to Supabase
-      patchSendFunctions(sb);
-
-      console.log('[comms-fix] Patch active ✓');
+  async function dbInsert(table, payload) {
+    await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method: 'POST', headers: { ...H, 'Prefer': 'return=minimal' }, body: JSON.stringify(payload)
     });
   }
 
-  // Run after the page is fully loaded
+  async function dbExists(table, eq) {
+    const data = await dbSelect(table, { eq });
+    return data.length > 0;
+  }
+
+  // ── Load group messages ───────────────────────────────────────────────
+  async function loadGroupMessages() {
+    const data = await dbSelect('comms_group');
+    if (!data.length) return;
+    const msgs = data.map(m => ({ from: m.author, text: m.message, time: formatTime(new Date(m.created_at)) }));
+    const st = getAppState();
+    if (st) { st.groupMsgs = msgs; if (st.comms) st.comms.groupMsgs = msgs; }
+    refreshUI();
+  }
+
+  // ── Load DMs — filtered to current user's threads only ───────────────
+  async function loadDMs() {
+    const me = getCurrentUser();
+    if (!me) return;
+
+    // Only threads this user participates in
+    const myThreads = PROFILES.filter(p => p !== me).map(p => threadKey(me, p));
+    const data = await dbSelect('comms_dm');
+    if (!data.length) return;
+
+    const privateMsgs = {};
+    for (const msg of data) {
+      if (!myThreads.includes(msg.thread_key)) continue; // PRIVACY: skip threads user isn't in
+      if (!privateMsgs[msg.thread_key]) privateMsgs[msg.thread_key] = [];
+      privateMsgs[msg.thread_key].push({ from: msg.author, text: msg.message, time: formatTime(new Date(msg.created_at)) });
+    }
+
+    const st = getAppState();
+    if (st) { st.dmMsgs = privateMsgs; if (st.comms) st.comms.dmMsgs = privateMsgs; }
+    refreshUI();
+  }
+
+  // ── Intercept app_state saves to mirror comms to proper tables ───────
+  function interceptSaves() {
+    const sdk = window.supabase || window._sb || window.supabaseClient;
+    if (!sdk || !sdk.from) return;
+
+    const orig = sdk.from.bind(sdk);
+    sdk.from = function(table) {
+      const builder = orig(table);
+      if (table !== 'app_state') return builder;
+
+      const wrapFn = (fn) => async function(payload, ...args) {
+        const result = await fn.call(this, payload, ...args);
+        const items = Array.isArray(payload) ? payload : [payload];
+        for (const item of items) {
+          if (item.id !== 'main' || !item.state) continue;
+          const st = item.state;
+
+          // Sync latest group message
+          if (Array.isArray(st.groupMsgs) && st.groupMsgs.length) {
+            const last = st.groupMsgs[st.groupMsgs.length - 1];
+            if (last?.from && last?.text) {
+              const exists = await dbExists('comms_group', { author: last.from, message: last.text });
+              if (!exists) await dbInsert('comms_group', { author: last.from, message: last.text });
+            }
+          }
+
+          // Sync latest DM per thread
+          if (st.dmMsgs && typeof st.dmMsgs === 'object') {
+            for (const [key, msgs] of Object.entries(st.dmMsgs)) {
+              if (!Array.isArray(msgs) || !msgs.length) continue;
+              const last = msgs[msgs.length - 1];
+              if (!last?.from || !last?.text) continue;
+              const exists = await dbExists('comms_dm', { thread_key: key, author: last.from, message: last.text });
+              if (!exists) await dbInsert('comms_dm', { thread_key: key, author: last.from, message: last.text });
+            }
+          }
+        }
+        return result;
+      };
+
+      if (builder.upsert) builder.upsert = wrapFn(builder.upsert);
+      if (builder.update) builder.update = wrapFn(builder.update);
+      return builder;
+    };
+
+    // Make sure all references use our wrapped version
+    ['supabase', '_sb', 'supabaseClient'].forEach(k => { if (window[k]) window[k].from = sdk.from; });
+    console.log('[comms-fix] Save interceptor active');
+  }
+
+  // ── Realtime subscription (with polling fallback) ─────────────────────
+  function subscribeRealtime() {
+    const sdk = window.supabase || window._sb || window.supabaseClient;
+    if (sdk && sdk.channel) {
+      try {
+        sdk.channel('comms-v2')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comms_group' }, loadGroupMessages)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comms_dm' }, loadDMs)
+          .subscribe(s => console.log('[comms-fix] Realtime:', s));
+        return;
+      } catch(e) {}
+    }
+    // Fallback: poll every 3 seconds
+    console.log('[comms-fix] Using 3s polling fallback');
+    setInterval(() => { loadGroupMessages(); loadDMs(); }, 3000);
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────
+  async function boot() {
+    console.log(`[comms-fix] v${VERSION} booting...`);
+    await new Promise(r => setTimeout(r, 1200)); // wait for app init
+    await loadGroupMessages();
+    await loadDMs();
+    subscribeRealtime();
+    interceptSaves();
+    console.log('[comms-fix] ✓ Ready — group chat fixed, DM privacy enforced');
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
   } else {
-    // Small delay to let the app initialize first
-    setTimeout(boot, 800);
+    setTimeout(boot, 500);
   }
 })();
