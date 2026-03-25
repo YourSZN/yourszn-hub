@@ -402,10 +402,35 @@
 
         var titCell = titIdx > -1 ? cells[titIdx] : cells[0];
         if (!titCell) continue;
+        // Skip already-patched rows (title cell already has our span)
+        if (titCell.dataset.v24c) continue;
         var titleText = titCell.textContent.trim();
+
+        // Get the current status text from the status cell to disambiguate duplicates
+        var curStatusText = '';
+        if (stIdx > -1 && cells[stIdx]) {
+          curStatusText = cells[stIdx].textContent.trim().toLowerCase().replace(/\s+/g,'-');
+        }
+
         var task = null;
+        // Try to match by title AND status to handle duplicate titles
+        var titleMatches = [];
         for (var xi = 0; xi < (window.tasks || []).length; xi++) {
-          if ((window.tasks[xi].title || '').trim() === titleText) { task = window.tasks[xi]; break; }
+          if ((window.tasks[xi].title || '').trim() === titleText) titleMatches.push(window.tasks[xi]);
+        }
+        if (titleMatches.length === 0) continue;
+        if (titleMatches.length === 1) {
+          task = titleMatches[0];
+        } else {
+          // Multiple tasks with same title - try to match by status
+          for (var mi = 0; mi < titleMatches.length; mi++) {
+            var ts = (titleMatches[mi].status || 'not-started').toLowerCase();
+            if (ts === curStatusText || curStatusText.indexOf(ts.replace(/-/g,'')) > -1) {
+              task = titleMatches[mi]; break;
+            }
+          }
+          // If still not matched, just use first
+          if (!task) task = titleMatches[0];
         }
         if (!task) continue;
         var sid = safeId(task.id);
@@ -426,13 +451,11 @@
         }
 
         // Title: make clickable to open panel (same as note btn)
-        if (!titCell.dataset.v24c) {
-          titCell.dataset.v24c = '1';
-          titCell.style.cursor = 'pointer';
-          var titleEsc = esc(task.title || titleText);
-          titCell.innerHTML = '<span onclick="__v24_openPanel(\'' + sid + '\',this);event.stopPropagation()" style="font-weight:600">' +
-            titleEsc + '<span style="font-size:9px;color:#ccc;margin-left:4px"> \u25bc</span></span>';
-        }
+        titCell.dataset.v24c = '1';
+        titCell.style.cursor = 'pointer';
+        var titleEsc = esc(task.title || titleText);
+        titCell.innerHTML = '<span onclick="__v24_openPanel(\'' + sid + '\',this);event.stopPropagation()" style="font-weight:600">' +
+          titleEsc + '<span style="font-size:9px;color:#ccc;margin-left:4px"> \u25bc</span></span>';
       }
     }
   }
