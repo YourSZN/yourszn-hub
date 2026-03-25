@@ -1,11 +1,13 @@
 /**
- * comms-fix.js v22.0
+ * comms-fix.js v24.0
  * v16 core: DM + Group + Hidden tasks UNCHANGED
- * v22: Task table fixes
- *   - Fixed colspan syntax (quoted attributes)
- *   - Hours columns now visible (detail row uses full colspan correctly)
- *   - Staff notes button in each row — opens editable textarea in expanded panel
- *   - Latisha sees all staff notes; staff edit their own note on their tasks
+ * v24: Complete rewrite of task table approach
+ *   - NO MORE colspan/tr injection — uses floating div panel instead
+ *   - This avoids the app's template engine choking on injected table rows
+ *   - Priority column hidden via CSS class
+ *   - Status dropdown inline
+ *   - Notes button opens floating panel below the row
+ *   - Panel rebuilds fresh on open based on curUser
  */
 (function () {
   'use strict';
@@ -163,14 +165,14 @@
   }
   // ── END HIDDEN TASK FIX ───────────────────────────────────
 
-  // ── TASK TABLE v22 ────────────────────────────────────────
+  // ── TASK TABLE v24 — FLOATING PANEL APPROACH ─────────────
   var ST = [
     { v: 'not-started', l: 'Not Started', bg: '#f0f0f0', c: '#666' },
     { v: 'in-progress', l: 'In Progress', bg: '#fff3e0', c: '#e65100' },
     { v: 'blocked',     l: 'Blocked',     bg: '#fdecea', c: '#c62828' },
     { v: 'complete',    l: 'Complete',    bg: '#e8f5e9', c: '#2e7d32' }
   ];
-  var expandedRows = {};
+  var openPanelSid = null;
 
   function stCfg(v) {
     var val = (v || 'not-started').toLowerCase();
@@ -179,23 +181,57 @@
     return found || ST[0];
   }
 
+  function safeId(id) {
+    return String(id).replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
   function injectCSS() {
-    if (document.getElementById('v22css')) return;
+    if (document.getElementById('v24css')) return;
     var s = document.createElement('style');
-    s.id = 'v22css';
+    s.id = 'v24css';
     s.textContent = [
-      '.v22pri{display:none!important;width:0!important;padding:0!important;border:none!important}',
-      '.v22-detail-row td{padding:14px 18px 16px 20px!important;background:#faf8f5!important;border-bottom:2px solid #ece8e3!important}',
-      '.v22-notes-btn{background:#f5f0eb;border:1px solid #d4c9bc;color:#7a6a5a;font-size:11px;padding:3px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}',
-      '.v22-notes-btn:hover{background:#ece4da}',
-      '.v22-notes-save{background:#c07a5a;border:none;color:#fff;font-size:12px;padding:5px 14px;border-radius:8px;cursor:pointer;margin-top:6px}',
-      '.v22-notes-save:hover{background:#a5644a}',
-      '.v22-notes-area{width:100%;box-sizing:border-box;border:1px solid #d4c9bc;border-radius:8px;padding:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;margin-top:6px}'
+      '.v24pri{display:none!important;width:0!important;padding:0!important;border:none!important}',
+      '#v24panel{position:fixed;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:10px;',
+      'box-shadow:0 4px 20px rgba(0,0,0,.12);padding:18px 20px;max-width:480px;width:90vw;',
+      'max-height:70vh;overflow-y:auto;font-family:inherit}',
+      '#v24panel .v24-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}',
+      '#v24panel .v24-val{font-size:13px;color:#333;white-space:pre-wrap;margin-bottom:12px}',
+      '#v24panel textarea{width:100%;box-sizing:border-box;border:1px solid #d4c9bc;border-radius:8px;',
+      'padding:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;margin-top:4px}',
+      '#v24panel .v24-save{background:#c07a5a;border:none;color:#fff;font-size:12px;padding:5px 14px;',
+      'border-radius:8px;cursor:pointer;margin-top:6px}',
+      '#v24panel .v24-save:hover{background:#a5644a}',
+      '#v24panel .v24-close{position:absolute;top:10px;right:14px;background:none;border:none;',
+      'font-size:18px;color:#aaa;cursor:pointer;line-height:1}',
+      '.v24-notes-btn{background:#f5f0eb;border:1px solid #d4c9bc;color:#7a6a5a;font-size:11px;',
+      'padding:3px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;display:inline-block;margin-top:3px}',
+      '.v24-notes-btn:hover{background:#ece4da}'
     ].join('');
     document.head.appendChild(s);
   }
 
-  window.__v22_status = function(taskId, newVal, sel) {
+  function getOrCreatePanel() {
+    var p = document.getElementById('v24panel');
+    if (!p) {
+      p = document.createElement('div');
+      p.id = 'v24panel';
+      p.style.display = 'none';
+      document.body.appendChild(p);
+    }
+    return p;
+  }
+
+  function closePanel() {
+    var p = document.getElementById('v24panel');
+    if (p) p.style.display = 'none';
+    openPanelSid = null;
+  }
+
+  window.__v24_status = function(taskId, newVal, sel) {
     var t = null;
     (window.tasks || []).forEach(function(x) { if (String(x.id) === String(taskId)) t = x; });
     if (!t) return;
@@ -207,73 +243,89 @@
     if (typeof window.saveData === 'function') window.saveData();
   };
 
-  window.__v22_expand = function(sid) {
-    expandedRows[sid] = !expandedRows[sid];
-    var dr = document.getElementById('v22d' + sid);
-    var cr = document.getElementById('v22c' + sid);
-    if (!dr) return;
-    if (expandedRows[sid]) {
-      // Rebuild inner content fresh based on current logged-in user
-      var task = null;
-      (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
-      if (task) {
-        var isLatisha = (window.curUser || '').toLowerCase() === 'latisha';
-        var desc  = task.desc || task.description || '';
-        var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
-        var file  = task.fileUrl || task.file_url || '';
-        var lbl = 'font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px';
-        var inner = '';
-        if (desc)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Instructions</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
-        if (video) inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Training Video</div><a href="' + video + '" target="_blank" style="font-size:13px;color:#b5785a">' + video + '</a></div>';
-        if (file)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">File / Resource</div><a href="' + file + '" target="_blank" style="font-size:13px;color:#b5785a">' + file + '</a></div>';
-        if (isLatisha) {
-          inner += '<div style="margin-bottom:10px"><div style="' + lbl + '">My Notes (Owner)</div>';
-          inner += '<textarea id="v22ta' + sid + '" class="v22-notes-area">' + (task.notes || '').replace(/</g,'&lt;') + '</textarea>';
-          inner += '<button id="v22nb' + sid + '" class="v22-notes-save" onclick="__v22_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button></div>';
-          var sNote = task.staffNotes || task.staff_notes || '';
-          if (sNote) {
-            var assignee = task.assignedTo || task.assigned_to || 'Staff';
-            inner += '<div><div style="' + lbl + '">Note from ' + assignee + '</div><div style="font-size:13px;color:#555;white-space:pre-wrap;background:#fff;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + sNote.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
-          }
-        } else {
-          var myNote = task.staffNotes || task.staff_notes || '';
-          inner += '<div><div style="' + lbl + '">My Notes</div>';
-          inner += '<textarea id="v22ta' + sid + '" class="v22-notes-area">' + myNote.replace(/</g,'&lt;') + '</textarea>';
-          inner += '<button id="v22nb' + sid + '" class="v22-notes-save" onclick="__v22_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button></div>';
-        }
-        if (!inner) inner = '<em style="color:#bbb;font-size:12px">No extra details saved for this task yet.</em>';
-        dr.querySelector('td').innerHTML = inner;
-      }
-      dr.style.display = 'table-row';
-    } else {
-      dr.style.display = 'none';
-    }
-    if (cr) cr.textContent = expandedRows[sid] ? ' \u25b2' : ' \u25bc';
-  };
-
-  window.__v22_saveNote = function(taskId, sid) {
+  window.__v24_saveNote = function(taskId, sid) {
     var t = null;
     (window.tasks || []).forEach(function(x) { if (String(x.id) === String(taskId)) t = x; });
     if (!t) return;
-    var ta = document.getElementById('v22ta' + sid);
+    var ta = document.getElementById('v24ta' + sid);
     if (!ta) return;
     var noteVal = ta.value.trim();
-    // Staff save to staffNotes; Latisha saves to notes (owner notes)
-    if (window.curUser === 'latisha') {
+    if ((window.curUser || '').toLowerCase() === 'latisha') {
       t.notes = noteVal;
     } else {
       t.staffNotes = noteVal;
       t.staff_notes = noteVal;
     }
     if (typeof window.saveData === 'function') window.saveData();
-    // Show saved confirmation
-    var btn = document.getElementById('v22nb' + sid);
-    if (btn) { btn.textContent = 'Saved!'; setTimeout(function() { btn.textContent = 'Save Note'; }, 1500); }
+    var btn = document.getElementById('v24nb' + sid);
+    if (btn) { btn.textContent = 'Saved \u2713'; setTimeout(function() { btn.textContent = 'Save Note'; }, 1500); }
   };
 
-  function safeId(id) {
-    return String(id).replace(/[^a-zA-Z0-9_]/g, '_');
-  }
+  window.__v24_openPanel = function(taskId, anchorEl) {
+    var sid = safeId(taskId);
+
+    // If same panel already open, close it
+    if (openPanelSid === sid) { closePanel(); return; }
+    openPanelSid = sid;
+
+    var task = null;
+    (window.tasks || []).forEach(function(x) { if (String(x.id) === String(taskId)) task = x; });
+    if (!task) return;
+
+    var isLatisha = (window.curUser || '').toLowerCase() === 'latisha';
+    var desc  = task.desc || task.description || '';
+    var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
+    var file  = task.fileUrl || task.file_url || '';
+    var myNote = isLatisha ? (task.notes || '') : (task.staffNotes || task.staff_notes || '');
+
+    var html = '<button class="v24-close" onclick="__v24_closePanel()">\u00d7</button>';
+    html += '<div style="font-weight:700;font-size:14px;margin-bottom:12px;padding-right:20px">' + esc(task.title || '') + '</div>';
+
+    if (desc)  html += '<div class="v24-lbl">Instructions</div><div class="v24-val">' + esc(desc) + '</div>';
+    if (video) html += '<div class="v24-lbl">Training Video</div><div class="v24-val"><a href="' + esc(video) + '" target="_blank" style="color:#b5785a">' + esc(video) + '</a></div>';
+    if (file)  html += '<div class="v24-lbl">File / Resource</div><div class="v24-val"><a href="' + esc(file) + '" target="_blank" style="color:#b5785a">' + esc(file) + '</a></div>';
+
+    if (isLatisha) {
+      html += '<div class="v24-lbl">My Notes (Owner)</div>';
+      html += '<textarea id="v24ta' + sid + '">' + esc(task.notes || '') + '</textarea>';
+      html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button>';
+      var sNote = task.staffNotes || task.staff_notes || '';
+      if (sNote) {
+        var assignee = task.assignedTo || task.assigned_to || 'Staff';
+        html += '<div class="v24-lbl" style="margin-top:14px">Note from ' + esc(assignee) + '</div>';
+        html += '<div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(sNote) + '</div>';
+      }
+    } else {
+      html += '<div class="v24-lbl">My Notes</div>';
+      html += '<textarea id="v24ta' + sid + '">' + esc(myNote) + '</textarea>';
+      html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button>';
+    }
+
+    var panel = getOrCreatePanel();
+    panel.innerHTML = html;
+
+    // Position panel below the anchor element
+    var rect = anchorEl.getBoundingClientRect();
+    var top = rect.bottom + window.scrollY + 6;
+    var left = Math.min(rect.left + window.scrollX, window.innerWidth - 500);
+    if (left < 8) left = 8;
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+    panel.style.display = 'block';
+
+    // Close on outside click
+    setTimeout(function() {
+      document.addEventListener('click', function outsideClick(e) {
+        var p = document.getElementById('v24panel');
+        if (p && !p.contains(e.target) && !e.target.classList.contains('v24-notes-btn')) {
+          closePanel();
+          document.removeEventListener('click', outsideClick);
+        }
+      });
+    }, 50);
+  };
+
+  window.__v24_closePanel = closePanel;
 
   function buildSelect(task) {
     var cfg = stCfg(task.status);
@@ -285,68 +337,14 @@
     ST.forEach(function(o) {
       opts += '<option value="' + o.v + '"' + (o.v === curVal ? ' selected' : '') + '>' + o.l + '</option>';
     });
-    return '<select data-v22s="1" style="' + st + '" onchange="__v22_status(\'' + sid + '\',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
+    return '<select data-v24s="1" style="' + st + '" onchange="__v24_status(\'' + sid + '\',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
   }
 
-  function buildDetail(task, cols) {
-    var sid = safeId(task.id);
-    var isLatisha = window.curUser === 'latisha';
-
-    // Determine note value to show
-    var myNote = isLatisha
-      ? (task.notes || '')
-      : (task.staffNotes || task.staff_notes || '');
-
-    // Task details (instructions, video, file)
-    var desc  = task.desc || task.description || '';
-    var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
-    var file  = task.fileUrl || task.file_url || '';
-
-    var lbl = 'font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px';
-    var detailHtml = '';
-    if (desc)  detailHtml += '<div style="margin-bottom:8px"><div style="' + lbl + '">Instructions</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
-    if (video) detailHtml += '<div style="margin-bottom:8px"><div style="' + lbl + '">Training Video</div><a href="' + video + '" target="_blank" style="font-size:13px;color:#b5785a">' + video + '</a></div>';
-    if (file)  detailHtml += '<div style="margin-bottom:8px"><div style="' + lbl + '">File / Resource</div><a href="' + file + '" target="_blank" style="font-size:13px;color:#b5785a">' + file + '</a></div>';
-
-    // Staff notes section — always visible
-    // If latisha: show all staff notes (read-only from staff, editable owner note)
-    var notesSection = '';
-    if (isLatisha) {
-      // Show owner note (editable)
-      notesSection += '<div style="margin-bottom:10px"><div style="' + lbl + '">My Notes (Owner)</div>';
-      notesSection += '<textarea id="v22ta' + sid + '" class="v22-notes-area">' + (task.notes || '').replace(/</g,'&lt;') + '</textarea>';
-      notesSection += '<button id="v22nb' + sid + '" class="v22-notes-save" onclick="__v22_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button>';
-      notesSection += '</div>';
-      // Show staff note (read-only for latisha)
-      var sNote = task.staffNotes || task.staff_notes || '';
-      if (sNote) {
-        var assignee = task.assignedTo || task.assigned_to || 'Staff';
-        notesSection += '<div><div style="' + lbl + '">Note from ' + assignee + '</div><div style="font-size:13px;color:#555;white-space:pre-wrap;background:#fff;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + sNote.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
-      }
-    } else {
-      // Staff: editable note
-      notesSection += '<div><div style="' + lbl + '">My Notes</div>';
-      notesSection += '<textarea id="v22ta' + sid + '" class="v22-notes-area">' + myNote.replace(/</g,'&lt;') + '</textarea>';
-      notesSection += '<button id="v22nb' + sid + '" class="v22-notes-save" onclick="__v22_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button>';
-      notesSection += '</div>';
-    }
-
-    var inner = '';
-    if (detailHtml) inner += detailHtml;
-    inner += notesSection;
-    if (!detailHtml && !myNote && !isLatisha) {
-      // show placeholder hint
-    }
-
-    // IMPORTANT: colspan must be a quoted number, and the row must NOT interfere with the main table columns
-    return '<tr id="v22d' + sid + '" class="v22-detail-row" data-v22det="1" style="display:none"><td colspan="' + cols + '">' + inner + '</td></tr>';
-  }
-
-  function buildNotesBtn(task) {
+  function buildNoteBtn(task) {
     var sid = safeId(task.id);
     var hasNote = !!(task.staffNotes || task.staff_notes || task.notes);
     var label = hasNote ? '\uD83D\uDCDD Note' : '+ Note';
-    return '<button class="v22-notes-btn" onclick="__v22_expand(\'' + sid + '\');event.stopPropagation()">' + label + '</button>';
+    return '<button class="v24-notes-btn" onclick="__v24_openPanel(\'' + String(task.id) + '\',this);event.stopPropagation()">' + label + '</button>';
   }
 
   function doPatch() {
@@ -354,7 +352,7 @@
     var tables = document.querySelectorAll('table');
     for (var ti = 0; ti < tables.length; ti++) {
       var table = tables[ti];
-      if (table.dataset.v22skip) continue;
+      if (table.dataset.v24skip) continue;
       var hrow = table.querySelector('thead tr') || table.querySelector('tr');
       if (!hrow) continue;
       var ths = hrow.querySelectorAll('th,td');
@@ -362,25 +360,24 @@
       for (var hi = 0; hi < ths.length; hi++) hdrs.push(ths[hi].textContent.trim().toLowerCase());
       var hasTask   = hdrs.indexOf('task') > -1 || hdrs.indexOf('title') > -1;
       var hasStatus = hdrs.indexOf('status') > -1;
-      if (!hasTask || !hasStatus) { table.dataset.v22skip = '1'; continue; }
+      if (!hasTask || !hasStatus) { table.dataset.v24skip = '1'; continue; }
 
       var priIdx = hdrs.indexOf('priority');
       var stIdx  = hdrs.indexOf('status');
       var titIdx = hdrs.indexOf('task') > -1 ? hdrs.indexOf('task') : hdrs.indexOf('title');
       var notIdx = hdrs.indexOf('notes');
-      var cols   = ths.length;
 
-      if (priIdx > -1) ths[priIdx].classList.add('v22pri');
+      if (priIdx > -1) ths[priIdx].classList.add('v24pri');
       if (notIdx > -1) { ths[notIdx].style.minWidth = '200px'; ths[notIdx].style.width = '240px'; }
 
       var rows = table.querySelectorAll('tr');
       for (var ri = 0; ri < rows.length; ri++) {
         var row = rows[ri];
-        if (row === hrow || row.dataset.v22det) continue;
+        if (row === hrow) continue;
         var cells = row.querySelectorAll('td');
         if (cells.length < 3) continue;
 
-        if (priIdx > -1 && cells[priIdx]) cells[priIdx].classList.add('v22pri');
+        if (priIdx > -1 && cells[priIdx]) cells[priIdx].classList.add('v24pri');
         if (notIdx > -1 && cells[notIdx]) {
           cells[notIdx].style.minWidth = '200px';
           cells[notIdx].style.whiteSpace = 'normal';
@@ -398,30 +395,27 @@
         var sid = safeId(task.id);
 
         // Status dropdown
-        if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v22s]')) {
+        if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v24s]')) {
           cells[stIdx].innerHTML = buildSelect(task);
         }
 
-        // Notes column: show notes btn + existing notes text
-        if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v22n) {
-          cells[notIdx].dataset.v22n = '1';
+        // Notes column: show existing note text + button
+        if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v24n) {
+          cells[notIdx].dataset.v24n = '1';
           var existingNote = task.staffNotes || task.staff_notes || task.notes || '';
-          var noteText = existingNote ? '<div style="font-size:12px;color:#666;margin-bottom:4px;white-space:pre-wrap;word-break:break-word">' + existingNote.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>' : '';
-          cells[notIdx].innerHTML = noteText + buildNotesBtn(task);
+          var notePreview = existingNote
+            ? '<div style="font-size:12px;color:#666;margin-bottom:4px;white-space:pre-wrap;word-break:break-word">' + esc(existingNote.substring(0, 60)) + (existingNote.length > 60 ? '...' : '') + '</div>'
+            : '';
+          cells[notIdx].innerHTML = notePreview + buildNoteBtn(task);
         }
 
-        // Title: add caret + expand
-        if (!titCell.dataset.v22c) {
-          titCell.dataset.v22c = '1';
+        // Title: make clickable to open panel (same as note btn)
+        if (!titCell.dataset.v24c) {
+          titCell.dataset.v24c = '1';
           titCell.style.cursor = 'pointer';
-          var titleEsc = (task.title || titleText).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          titCell.innerHTML = '<span onclick="__v22_expand(\'' + sid + '\')" style="font-weight:600">' +
-            titleEsc + '<span id="v22c' + sid + '" style="font-size:9px;color:#ccc;margin-left:4px"> \u25bc</span></span>';
-          if (!document.getElementById('v22d' + sid)) {
-            row.insertAdjacentHTML('afterend', buildDetail(task, cols));
-            var dr = document.getElementById('v22d' + sid);
-            if (dr) dr.dataset.v22det = '1';
-          }
+          var titleEsc = esc(task.title || titleText);
+          titCell.innerHTML = '<span onclick="__v24_openPanel(\'' + String(task.id) + '\',this);event.stopPropagation()" style="font-weight:600">' +
+            titleEsc + '<span style="font-size:9px;color:#ccc;margin-left:4px"> \u25bc</span></span>';
         }
       }
     }
@@ -429,6 +423,7 @@
 
   function watchTaskTable() {
     injectCSS();
+    getOrCreatePanel();
     doPatch();
     var obs = new MutationObserver(function(muts) {
       for (var i = 0; i < muts.length; i++) {
@@ -437,12 +432,12 @@
     });
     obs.observe(document.body, { childList: true, subtree: true });
     setInterval(doPatch, 900);
-    console.log('[v22] task table watcher active');
+    console.log('[v24] task table watcher active');
   }
-  // ── END TASK TABLE v22 ────────────────────────────────────
+  // ── END TASK TABLE v24 ────────────────────────────────────
 
   function boot() {
-    console.log('[comms-fix] v22.0 booting...');
+    console.log('[comms-fix] v24.0 booting...');
     setTimeout(function() {
       interceptLogin();
       interceptSendDm();
@@ -454,7 +449,7 @@
       fixRenderHiddenBoxFor();
       fixUnhideTask();
       watchTaskTable();
-      console.log('[comms-fix] v22.0 active');
+      console.log('[comms-fix] v24.0 active');
     }, 2000);
   }
 
