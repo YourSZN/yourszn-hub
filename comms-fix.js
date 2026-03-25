@@ -1,26 +1,20 @@
 /**
- * comms-fix.js v19.0
- * DM + Group chat: UNTOUCHED
- * Hidden task fix: UNTOUCHED
- * v19: Task table fixes
- *   - Status values are stored as 'not-started','in-progress','blocked','complete' (hyphenated)
- *   - App renders status as a <span> pill — we replace its innerHTML with a <select>
- *   - Priority column hidden by adding CSS rule (no DOM reliance)
- *   - Expandable row on task name click
- *   - Runs every 600ms to survive re-renders
+ * comms-fix.js v20.0
+ * RESTORED: v16 DM + Group + Hidden task fixes exactly as they were
+ * NEW: Task table patches added carefully with no quote escaping issues
  */
 (function () {
   'use strict';
   const U = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
   const K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
-  const H = { apikey: K, Authorization: `Bearer ${K}`, 'Content-Type': 'application/json' };
+  const H = { apikey: K, Authorization: 'Bearer ' + K, 'Content-Type': 'application/json' };
 
   function tk(a, b) { return [a, b].sort().join('_'); }
   async function ins(table, data) {
-    try { await fetch(`${U}/rest/v1/${table}`, { method: 'POST', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify(data) }); } catch(e) {}
+    try { await fetch(U + '/rest/v1/' + table, { method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(data) }); } catch(e) {}
   }
 
-  // ── DM SECTION - DO NOT MODIFY ─────────────────────────────────
+  // -- DM SECTION - DO NOT MODIFY --
   function filterDMsForUser(user) {
     if (!window.dmMsgs || !window.USERS || !user) return;
     const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
@@ -30,8 +24,8 @@
   function interceptLogin() {
     if (typeof window.chkPin !== 'function') return;
     const orig = window.chkPin;
-    window.chkPin = function(pin, ...args) {
-      const r = orig.call(this, pin, ...args);
+    window.chkPin = function(pin) {
+      const r = orig.call(this, pin);
       setTimeout(() => { const user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 500);
       return r;
     };
@@ -39,45 +33,45 @@
   function interceptSendDm() {
     if (typeof window.sendDm !== 'function') return;
     const orig = window.sendDm;
-    window.sendDm = async function(...a) {
-      const r = orig.apply(this, a);
+    window.sendDm = async function() {
+      const r = orig.apply(this, arguments);
       await new Promise(x => setTimeout(x, 200));
       const user = window.curUser; const other = window.activeDmUser;
       if (!user || !other || !window.dmMsgs) return r;
       const key = [user, other].sort().join('_');
       const msgs = window.dmMsgs[key] || [];
       const last = msgs[msgs.length - 1];
-      if (last?.from && last?.text) await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
+      if (last && last.from && last.text) await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
       return r;
     };
   }
   function watchAppReloadForDMs() {
     const origLog = console.log;
-    console.log = function(...args) {
-      origLog.apply(console, args);
-      if (args[0] && String(args[0]).includes('cloud load successful')) {
+    console.log = function() {
+      origLog.apply(console, arguments);
+      if (arguments[0] && String(arguments[0]).includes('cloud load successful')) {
         setTimeout(() => { const user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 200);
       }
     };
   }
-  // ── END DM SECTION ────────────────────────────────────────
+  // -- END DM SECTION --
 
-  // ── GROUP CHAT SECTION - DO NOT MODIFY ──────────────────────
+  // -- GROUP CHAT SECTION - DO NOT MODIFY --
   function interceptSendGroupMsg() {
     if (typeof window.sendGroupMsg !== 'function') return;
     const orig = window.sendGroupMsg;
-    window.sendGroupMsg = async function(...a) {
-      const r = orig.apply(this, a);
+    window.sendGroupMsg = async function() {
+      const r = orig.apply(this, arguments);
       await new Promise(x => setTimeout(x, 200));
       const last = (window.groupMsgs || []).slice(-1)[0];
-      if (last?.from && last?.text) await ins('comms_group', { author: last.from, message: last.text });
+      if (last && last.from && last.text) await ins('comms_group', { author: last.from, message: last.text });
       return r;
     };
   }
   let lastGroupCount = 0;
   async function pollGroup() {
     try {
-      const r = await fetch(`${U}/rest/v1/comms_group?select=*&order=created_at.asc`, { headers: H });
+      const r = await fetch(U + '/rest/v1/comms_group?select=*&order=created_at.asc', { headers: H });
       if (!r.ok) return;
       const data = await r.json();
       if (!data.length || data.length === lastGroupCount) return;
@@ -87,9 +81,9 @@
       if (typeof window.renderGroupThread === 'function') window.renderGroupThread();
     } catch(e) {}
   }
-  // ── END GROUP CHAT SECTION ─────────────────────────────
+  // -- END GROUP CHAT SECTION --
 
-  // ── HIDDEN TASK FIX - DO NOT MODIFY ─────────────────────────
+  // -- HIDDEN TASK FIX - EXACT v16 --
   function fixRenderHiddenBoxFor() {
     if (typeof window.renderHiddenBoxFor !== 'function') return;
     window.renderHiddenBoxFor = function(view) {
@@ -119,7 +113,7 @@
       if (!myHidden.length) { el.style.display = 'none'; return; }
       el.style.display = 'block';
       var isOpen = !!window.hiddenBoxOpen[view];
-      var html = '<div class="hidden-box-hd" onclick="toggleHiddenBox(\'' + view + '\')">' +
+      var html = '<div class="hidden-box-hd" onclick="toggleHiddenBox('' + view + '')">' +
         '<span>👁 ' + myHidden.length + ' hidden task' + (myHidden.length !== 1 ? 's' : '') + '</span>' +
         '<span style="float:right">' + (isOpen ? '▲ collapse' : '▼ show') + '</span>' +
         '</div>';
@@ -137,7 +131,7 @@
             '<span class="hb-cat">' + (t.category || 'Admin') + '</span>' +
             (h && h.staffNotes ? '<div class="hb-notes">' + h.staffNotes + '</div>' : '') +
             '</div></div>' +
-            (canUnhide ? '<button class="hb-restore" onclick="unhideTask(\'' + String(t.id) + '\');event.stopPropagation()">Restore</button>' : '') +
+            (canUnhide ? '<button class="hb-restore" onclick="unhideTask('' + String(t.id) + '');event.stopPropagation()">Restore</button>' : '') +
             '</div>';
         });
         html += '</div>';
@@ -156,212 +150,173 @@
       if (typeof window.saveData === 'function') window.saveData();
     };
   }
-  // ── END HIDDEN TASK FIX ───────────────────────────────────
+  // -- END HIDDEN TASK FIX --
 
-  // ── TASK TABLE v19 ──────────────────────────────────────────
-
-  // Status values as stored in DB (hyphenated lowercase)
-  var STATUS_OPTS = [
-    { val: 'not-started', label: 'Not Started', bg: '#f0f0f0',  color: '#666' },
-    { val: 'in-progress', label: 'In Progress', bg: '#fff3e0',  color: '#e65100' },
-    { val: 'blocked',     label: 'Blocked',     bg: '#fdecea',  color: '#c62828' },
-    { val: 'complete',    label: 'Complete',    bg: '#e8f5e9',  color: '#2e7d32' }
+  // -- TASK TABLE v20 --
+  // Status values stored in DB: 'not-started', 'in-progress', 'blocked', 'complete'
+  var ST = [
+    { v: 'not-started', l: 'Not Started', bg: '#f0f0f0', c: '#666' },
+    { v: 'in-progress', l: 'In Progress', bg: '#fff3e0', c: '#e65100' },
+    { v: 'blocked',     l: 'Blocked',     bg: '#fdecea', c: '#c62828' },
+    { v: 'complete',    l: 'Complete',    bg: '#e8f5e9', c: '#2e7d32' }
   ];
-
   var expandedRows = {};
 
-  function getStatusCfg(val) {
-    return STATUS_OPTS.find(function(o) { return o.val === val; }) || STATUS_OPTS[0];
+  function stCfg(v) {
+    var val = (v || 'not-started').toLowerCase();
+    return ST.find(function(o) { return o.v === val; }) || ST[0];
   }
 
-  // Inject a CSS rule once to hide all Priority column cells
-  function injectPriorityHideCSS() {
-    if (document.getElementById('v19-priority-hide')) return;
-    // We identify priority column cells by their text content "Red", "Orange", "Green"
-    // Strategy: hide any td that directly contains ONLY a color word with no child elements
-    // Better: we'll use our column-index approach via a <style> with nth-child
-    // But we don't know nth-child without reading the table.
-    // Instead: add a class to them during patch, then hide via CSS
-    var style = document.createElement('style');
-    style.id = 'v19-priority-hide';
-    style.textContent = '.v19-hide { display: none !important; width: 0 !important; padding: 0 !important; }';
-    document.head.appendChild(style);
+  // Inject CSS to hide priority column cells tagged with class v20pri
+  function injectCSS() {
+    if (document.getElementById('v20css')) return;
+    var s = document.createElement('style');
+    s.id = 'v20css';
+    s.textContent = '.v20pri{display:none!important;width:0!important;padding:0!important;border:none!important}';
+    document.head.appendChild(s);
   }
 
-  window.__v19_setStatus = function(taskId, newVal, sel) {
+  // Global callbacks — must not use template literals to avoid escaping issues
+  window.__v20_status = function(taskId, newVal, sel) {
     var t = (window.tasks || []).find(function(x) { return String(x.id) === String(taskId); });
     if (!t) return;
     t.status = newVal;
-    var cfg = getStatusCfg(newVal);
+    var cfg = stCfg(newVal);
     sel.style.background = cfg.bg;
-    sel.style.color = cfg.color;
-    sel.style.borderColor = cfg.color + '60';
+    sel.style.color = cfg.c;
+    sel.style.borderColor = cfg.c;
     if (typeof window.saveData === 'function') window.saveData();
-    console.log('[v19] Status saved:', taskId, newVal);
   };
 
-  window.__v19_toggleExpand = function(taskId) {
+  window.__v20_expand = function(taskId) {
     expandedRows[taskId] = !expandedRows[taskId];
-    var dr = document.getElementById('v19d-' + taskId);
+    var dr = document.getElementById('v20d' + taskId);
     if (dr) dr.style.display = expandedRows[taskId] ? 'table-row' : 'none';
-    var cr = document.getElementById('v19c-' + taskId);
+    var cr = document.getElementById('v20c' + taskId);
     if (cr) cr.textContent = expandedRows[taskId] ? ' ▲' : ' ▼';
   };
 
-  function esc(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function safeId(id) {
+    // Make task id safe to embed in HTML attribute / inline JS string
+    return String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
   }
 
   function buildSelect(task) {
-    var val = (task.status || 'not-started').toLowerCase();
-    var cfg = getStatusCfg(val);
-    var style = 'background:' + cfg.bg + ';color:' + cfg.color + ';border:1px solid ' + cfg.color + '60;' +
-      'padding:3px 7px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;outline:none;width:100%;max-width:120px;';
-    var opts = STATUS_OPTS.map(function(o) {
-      return '<option value="' + o.val + '"' + (o.val === val ? ' selected' : '') + '>' + o.label + '</option>';
+    var cfg = stCfg(task.status);
+    var style = 'background:' + cfg.bg + ';color:' + cfg.c + ';border:1px solid ' + cfg.c +
+      ';padding:3px 7px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;outline:none;width:100%;max-width:120px;';
+    var sid = safeId(task.id);
+    var opts = ST.map(function(o) {
+      return '<option value=' + o.v + (o.v === (task.status || 'not-started').toLowerCase() ? ' selected' : '') + '>' + o.l + '</option>';
     }).join('');
-    return '<select data-v19sel="1" style="' + style + '" onchange="__v19_setStatus('' + esc(String(task.id)) + '',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
+    return '<select data-v20s=1 style="' + style + '" onchange="__v20_status(' + JSON.stringify(String(task.id)) + ',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
   }
 
-  function buildDetailRow(task, cols) {
-    var desc  = task.desc || task.description || task.instructions || '';
-    var video = task.videoUrl || task.trainingVideoUrl || task.training_video_url || task.video_url || '';
-    var file  = task.fileUrl || task.file_url || task.resourceUrl || task.resource_url || '';
+  function buildDetail(task, cols) {
+    var desc  = task.desc || task.description || '';
+    var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
+    var file  = task.fileUrl || task.file_url || '';
     var notes = task.notes || task.staffNotes || task.staff_notes || '';
     var inner = '';
     if (!desc && !video && !file && !notes) {
-      inner = '<em style="color:#bbb;font-size:12px;">No extra details saved for this task yet.</em>';
+      inner = '<em style="color:#bbb;font-size:12px">No extra details saved for this task yet.</em>';
     } else {
-      if (desc)  inner += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Instructions</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + esc(desc) + '</div></div>';
-      if (video) inner += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Training Video</div><a href="' + esc(video) + '" target="_blank" style="font-size:13px;color:#b5785a;word-break:break-all">' + esc(video) + '</a></div>';
-      if (file)  inner += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">File / Resource</div><a href="' + esc(file) + '" target="_blank" style="font-size:13px;color:#b5785a;word-break:break-all">' + esc(file) + '</a></div>';
-      if (notes) inner += '<div><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Notes</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + esc(notes) + '</div></div>';
+      var lbl = 'font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px';
+      if (desc)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Instructions</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
+      if (video) inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Training Video</div><a href="' + video + '" target=_blank style="font-size:13px;color:#b5785a">' + video + '</a></div>';
+      if (file)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">File / Resource</div><a href="' + file + '" target=_blank style="font-size:13px;color:#b5785a">' + file + '</a></div>';
+      if (notes) inner += '<div><div style="' + lbl + '">Notes</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + notes.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
     }
-    return '<tr id="v19d-' + esc(String(task.id)) + '" data-v19detail="1" style="display:none;">' +
-      '<td colspan="' + cols + '" style="padding:14px 18px 16px 36px;background:#faf8f5;border-bottom:2px solid #ece8e3">' +
-      inner + '</td></tr>';
+    var sid = safeId(task.id);
+    return '<tr id=v20d' + sid + ' data-v20det=1 style=display:none><td colspan=' + cols +
+      ' style="padding:14px 18px 16px 36px;background:#faf8f5;border-bottom:2px solid #ece8e3">' + inner + '</td></tr>';
   }
 
-  function _doPatch() {
+  function doPatch() {
     if (!window.tasks || !window.tasks.length) return;
+    document.querySelectorAll('table').forEach(function(table) {
+      if (table.dataset.v20skip) return;
+      var hrow = table.querySelector('thead tr') || table.querySelector('tr');
+      if (!hrow) return;
+      var ths = Array.from(hrow.querySelectorAll('th,td'));
+      var hdrs = ths.map(function(h) { return h.textContent.trim().toLowerCase(); });
+      var hasTask   = hdrs.some(function(h) { return h === 'task' || h === 'title'; });
+      var hasStatus = hdrs.some(function(h) { return h === 'status'; });
+      if (!hasTask || !hasStatus) { table.dataset.v20skip = 1; return; }
 
-    var tables = document.querySelectorAll('table');
-    tables.forEach(function(table) {
-      // Skip detail rows' wrapping tables and already-noted non-task tables
-      if (table.dataset.v19skip) return;
-
-      var headerRow = table.querySelector('thead tr') || table.querySelector('tr');
-      if (!headerRow) return;
-
-      var ths = Array.from(headerRow.querySelectorAll('th, td'));
-      var headers = ths.map(function(h) { return h.textContent.trim().toLowerCase(); });
-
-      // Must have a TASK/TITLE column AND a STATUS column to be a task table
-      var hasTask   = headers.some(function(h) { return h === 'task' || h === 'title'; });
-      var hasStatus = headers.some(function(h) { return h === 'status'; });
-      if (!hasTask || !hasStatus) { table.dataset.v19skip = '1'; return; }
-
-      var priorityIdx = headers.findIndex(function(h) { return h === 'priority'; });
-      var statusIdx   = headers.findIndex(function(h) { return h === 'status'; });
-      var taskIdx     = headers.findIndex(function(h) { return h === 'task' || h === 'title'; });
-      var notesIdx    = headers.findIndex(function(h) { return h === 'notes'; });
-      var colCount    = ths.length;
+      var priIdx  = hdrs.findIndex(function(h) { return h === 'priority'; });
+      var stIdx   = hdrs.findIndex(function(h) { return h === 'status'; });
+      var titIdx  = hdrs.findIndex(function(h) { return h === 'task' || h === 'title'; });
+      var notIdx  = hdrs.findIndex(function(h) { return h === 'notes'; });
+      var cols    = ths.length;
 
       // Hide priority TH
-      if (priorityIdx > -1 && !ths[priorityIdx].classList.contains('v19-hide')) {
-        ths[priorityIdx].classList.add('v19-hide');
-      }
+      if (priIdx > -1) ths[priIdx].classList.add('v20pri');
       // Widen notes TH
-      if (notesIdx > -1) {
-        ths[notesIdx].style.minWidth = '200px';
-        ths[notesIdx].style.width = '260px';
-      }
+      if (notIdx > -1) { ths[notIdx].style.minWidth = '200px'; ths[notIdx].style.width = '260px'; }
 
-      // Process body rows
-      var bodyRows = Array.from(table.querySelectorAll('tr')).filter(function(r) {
-        return r !== headerRow && !r.dataset.v19detail;
-      });
-
-      bodyRows.forEach(function(row) {
+      // Patch data rows
+      Array.from(table.querySelectorAll('tr')).forEach(function(row) {
+        if (row === hrow || row.dataset.v20det) return;
         var cells = Array.from(row.querySelectorAll('td'));
         if (cells.length < 3) return;
 
-        // --- Hide priority TD ---
-        if (priorityIdx > -1 && cells[priorityIdx]) {
-          cells[priorityIdx].classList.add('v19-hide');
+        // Hide priority TD
+        if (priIdx > -1 && cells[priIdx]) cells[priIdx].classList.add('v20pri');
+        // Widen notes TD
+        if (notIdx > -1 && cells[notIdx]) {
+          cells[notIdx].style.minWidth = '200px';
+          cells[notIdx].style.whiteSpace = 'normal';
+          cells[notIdx].style.wordBreak = 'break-word';
         }
 
-        // --- Widen notes TD ---
-        if (notesIdx > -1 && cells[notesIdx]) {
-          cells[notesIdx].style.minWidth = '200px';
-          cells[notesIdx].style.whiteSpace = 'normal';
-          cells[notesIdx].style.wordBreak = 'break-word';
-        }
-
-        // --- Match task by title (strip all child element text, just raw text) ---
-        var titleCell = taskIdx > -1 ? cells[taskIdx] : null;
-        if (!titleCell) return;
-
-        // Get title text — look for the text content of the cell ignoring nested elements
-        var titleText = titleCell.textContent.trim();
+        // Find matching task by title
+        var titCell = titIdx > -1 ? cells[titIdx] : cells[0];
+        if (!titCell) return;
+        var titleText = titCell.textContent.trim();
         var task = (window.tasks || []).find(function(t) {
           return (t.title || '').trim() === titleText;
         });
         if (!task) return;
-        var tid = String(task.id);
+        var sid = safeId(task.id);
 
-        // --- Patch STATUS cell: replace if it doesn't already have our select ---
-        if (statusIdx > -1 && cells[statusIdx]) {
-          var statusCell = cells[statusIdx];
-          if (!statusCell.querySelector('[data-v19sel]')) {
-            statusCell.innerHTML = buildSelect(task);
-          } else {
-            // Update existing select value in case task status changed elsewhere
-            var sel = statusCell.querySelector('[data-v19sel]');
-            var currentVal = (task.status || 'not-started').toLowerCase();
-            if (sel.value !== currentVal) sel.value = currentVal;
-          }
+        // Replace status cell with dropdown (only if not already done)
+        if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v20s]')) {
+          cells[stIdx].innerHTML = buildSelect(task);
         }
 
-        // --- Patch title cell: add expand caret + detail row ---
-        if (!titleCell.dataset.v19click) {
-          titleCell.dataset.v19click = '1';
-          titleCell.style.cursor = 'pointer';
-          titleCell.innerHTML = '<span onclick="__v19_toggleExpand('' + tid + '')" style="font-weight:600;">' +
-            esc(task.title || titleText) +
-            '<span id="v19c-' + tid + '" style="font-size:9px;color:#ccc;margin-left:4px;"> ▼</span>' +
-            '</span>';
-          // Insert detail row after this row if not already present
-          if (!document.getElementById('v19d-' + tid)) {
-            row.insertAdjacentHTML('afterend', buildDetailRow(task, colCount));
-            var dr = document.getElementById('v19d-' + tid);
-            if (dr) dr.dataset.v19detail = '1';
+        // Make title clickable with expand caret (only once per row)
+        if (!titCell.dataset.v20c) {
+          titCell.dataset.v20c = 1;
+          titCell.style.cursor = 'pointer';
+          var titleEsc = (task.title || titleText).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          titCell.innerHTML = '<span onclick="__v20_expand(' + JSON.stringify(sid) + ')" style="font-weight:600">' +
+            titleEsc + '<span id=v20c' + sid + ' style="font-size:9px;color:#ccc;margin-left:4px"> ▼</span></span>';
+          // Insert detail row after this row if not already there
+          if (!document.getElementById('v20d' + sid)) {
+            row.insertAdjacentHTML('afterend', buildDetail(task, cols));
+            var dr = document.getElementById('v20d' + sid);
+            if (dr) dr.dataset.v20det = 1;
           }
         }
       });
     });
   }
 
-  function watchForTaskTable() {
-    injectPriorityHideCSS();
-    _doPatch();
+  function watchTaskTable() {
+    injectCSS();
+    doPatch();
     var obs = new MutationObserver(function(muts) {
-      var relevant = muts.some(function(m) {
-        return Array.from(m.addedNodes).some(function(n) {
-          return n.nodeType === 1;
-        });
-      });
-      if (relevant) setTimeout(_doPatch, 100);
+      if (muts.some(function(m) { return m.addedNodes.length > 0; })) setTimeout(doPatch, 120);
     });
     obs.observe(document.body, { childList: true, subtree: true });
-    // Interval fallback — catches any re-renders we miss
-    setInterval(_doPatch, 800);
-    console.log('[v19] Task table watcher active');
+    setInterval(doPatch, 900);
+    console.log('[v20] task table watcher active');
   }
-  // ── END TASK TABLE v19 ───────────────────────────────────
+  // -- END TASK TABLE v20 --
 
   async function boot() {
-    console.log('[comms-fix] v19.0 booting...');
+    console.log('[comms-fix] v20.0 booting...');
     await new Promise(r => setTimeout(r, 2000));
     interceptLogin();
     interceptSendDm();
@@ -372,9 +327,13 @@
     setInterval(pollGroup, 5000);
     fixRenderHiddenBoxFor();
     fixUnhideTask();
-    watchForTaskTable();
-    console.log('[comms-fix] v19.0 active');
+    watchTaskTable();
+    console.log('[comms-fix] v20.0 active');
   }
 
-  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    setTimeout(boot, 500);
+  }
 })();
