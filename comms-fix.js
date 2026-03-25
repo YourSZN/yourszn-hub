@@ -210,8 +210,44 @@
   window.__v22_expand = function(sid) {
     expandedRows[sid] = !expandedRows[sid];
     var dr = document.getElementById('v22d' + sid);
-    if (dr) dr.style.display = expandedRows[sid] ? 'table-row' : 'none';
     var cr = document.getElementById('v22c' + sid);
+    if (!dr) return;
+    if (expandedRows[sid]) {
+      // Rebuild inner content fresh based on current logged-in user
+      var task = null;
+      (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
+      if (task) {
+        var isLatisha = (window.curUser || '').toLowerCase() === 'latisha';
+        var desc  = task.desc || task.description || '';
+        var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
+        var file  = task.fileUrl || task.file_url || '';
+        var lbl = 'font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px';
+        var inner = '';
+        if (desc)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Instructions</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
+        if (video) inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Training Video</div><a href="' + video + '" target="_blank" style="font-size:13px;color:#b5785a">' + video + '</a></div>';
+        if (file)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">File / Resource</div><a href="' + file + '" target="_blank" style="font-size:13px;color:#b5785a">' + file + '</a></div>';
+        if (isLatisha) {
+          inner += '<div style="margin-bottom:10px"><div style="' + lbl + '">My Notes (Owner)</div>';
+          inner += '<textarea id="v22ta' + sid + '" class="v22-notes-area">' + (task.notes || '').replace(/</g,'&lt;') + '</textarea>';
+          inner += '<button id="v22nb' + sid + '" class="v22-notes-save" onclick="__v22_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button></div>';
+          var sNote = task.staffNotes || task.staff_notes || '';
+          if (sNote) {
+            var assignee = task.assignedTo || task.assigned_to || 'Staff';
+            inner += '<div><div style="' + lbl + '">Note from ' + assignee + '</div><div style="font-size:13px;color:#555;white-space:pre-wrap;background:#fff;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + sNote.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
+          }
+        } else {
+          var myNote = task.staffNotes || task.staff_notes || '';
+          inner += '<div><div style="' + lbl + '">My Notes</div>';
+          inner += '<textarea id="v22ta' + sid + '" class="v22-notes-area">' + myNote.replace(/</g,'&lt;') + '</textarea>';
+          inner += '<button id="v22nb' + sid + '" class="v22-notes-save" onclick="__v22_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button></div>';
+        }
+        if (!inner) inner = '<em style="color:#bbb;font-size:12px">No extra details saved for this task yet.</em>';
+        dr.querySelector('td').innerHTML = inner;
+      }
+      dr.style.display = 'table-row';
+    } else {
+      dr.style.display = 'none';
+    }
     if (cr) cr.textContent = expandedRows[sid] ? ' \u25b2' : ' \u25bc';
   };
 
@@ -258,7 +294,7 @@
 
     // Determine note value to show
     var myNote = isLatisha
-      ? (task.ng.otes || '')
+      ? (task.notes || '')
       : (task.staffNotes || task.staff_notes || '');
 
     // Task details (instructions, video, file)
@@ -370,7 +406,7 @@
         if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v22n) {
           cells[notIdx].dataset.v22n = '1';
           var existingNote = task.staffNotes || task.staff_notes || task.notes || '';
-          var noteText = existingnote ? '<div style="font-size:12px;color:#666;margin-bottom:4px;white-space:pre-wrap;word-break:break-word">' + existingnote.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>' : '';
+          var noteText = existingNote ? '<div style="font-size:12px;color:#666;margin-bottom:4px;white-space:pre-wrap;word-break:break-word">' + existingNote.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>' : '';
           cells[notIdx].innerHTML = noteText + buildNotesBtn(task);
         }
 
