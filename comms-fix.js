@@ -308,15 +308,26 @@
 
     var panel = getOrCreatePanel();
     panel.innerHTML = html;
+    panel.style.display = 'block';
 
-    // Position panel below the anchor element
+    // Smart positioning: show below anchor, but flip above if near bottom of viewport
     var rect = anchorEl.getBoundingClientRect();
-    var top = rect.bottom + window.scrollY + 6;
+    var panelH = Math.min(panel.offsetHeight || 350, window.innerHeight * 0.7);
+    var spaceBelow = window.innerHeight - rect.bottom;
     var left = Math.min(rect.left + window.scrollX, window.innerWidth - 500);
     if (left < 8) left = 8;
+    var top;
+    if (spaceBelow >= panelH + 10 || spaceBelow >= 200) {
+      // enough space below — show below anchor
+      top = rect.bottom + window.scrollY + 6;
+    } else {
+      // not enough space below — show above anchor
+      top = rect.top + window.scrollY - panelH - 6;
+    }
+    // Clamp so panel never goes above viewport top
+    if (top < window.scrollY + 8) top = window.scrollY + 8;
     panel.style.top = top + 'px';
     panel.style.left = left + 'px';
-    panel.style.display = 'block';
 
     // Close on outside click
     setTimeout(function() {
