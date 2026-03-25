@@ -1,12 +1,12 @@
 /**
- * comms-fix.js v17.0
+ * comms-fix.js v18.0
  * DM + Group chat: UNTOUCHED
  * Hidden task fix: UNTOUCHED
- * NEW v17: Task table improvements
- *   - Remove Priority column
- *   - Inline colour-coded status dropdown (all users)
- *   - Wider notes column
- *   - Expandable row on task name click (description, video url, file url, notes)
+ * NEW v18: Task table — intercept render function + interval fallback
+ *   - Hooks window.renderTasks (or similar) to inject changes at source
+ *   - Also runs on MutationObserver + 500ms interval for resilience
+ *   - Per-cell patching so re-renders get re-patched correctly
+ *   - Remove Priority column, inline status dropdown, expandable rows
  */
 (function () {
   'use strict';
@@ -157,211 +157,193 @@
   }
   // ── END HIDDEN TASK FIX ───────────────────────────────────
 
-  // ── TASK TABLE v17: STATUS DROPDOWN + EXPANDABLE ROWS ────────
-
-  // Status config
+  // ── TASK TABLE v18 ──────────────────────────────────────────
   var STATUS_CFG = {
-    'Not Started':  { bg: '#f0f0f0', color: '#666' },
-    'In Progress':  { bg: '#fff3e0', color: '#e65100' },
-    'Blocked':      { bg: '#fdecea', color: '#c62828' },
-    'Complete':     { bg: '#e8f5e9', color: '#2e7d32' }
+    'Not Started': { bg: '#f0f0f0', color: '#666' },
+    'In Progress': { bg: '#fff3e0', color: '#e65100' },
+    'Blocked':     { bg: '#fdecea', color: '#c62828' },
+    'Complete':    { bg: '#e8f5e9', color: '#2e7d32' }
   };
-
-  // Track which task rows are expanded
   var expandedRows = {};
 
-  function getStatusStyle(status) {
-    var cfg = STATUS_CFG[status] || STATUS_CFG['Not Started'];
-    return `background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.color}30;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;`;
-  }
-
-  // Called when user changes status via dropdown
-  window.__v17_setStatus = function(taskId, newStatus, selectEl) {
+  window.__v18_setStatus = function(taskId, newStatus, sel) {
     var t = (window.tasks || []).find(function(x) { return String(x.id) === String(taskId); });
     if (!t) return;
     t.status = newStatus;
-    // Style the select element
     var cfg = STATUS_CFG[newStatus] || STATUS_CFG['Not Started'];
-    selectEl.style.background = cfg.bg;
-    selectEl.style.color = cfg.color;
+    sel.style.background = cfg.bg;
+    sel.style.color = cfg.color;
+    sel.style.borderColor = cfg.color + '60';
     if (typeof window.saveData === 'function') window.saveData();
-    console.log('[comms-fix v17] Status updated:', taskId, newStatus);
   };
 
-  // Toggle expand/collapse for a task row
-  window.__v17_toggleExpand = function(taskId) {
+  window.__v18_toggleExpand = function(taskId) {
     expandedRows[taskId] = !expandedRows[taskId];
-    var detailRow = document.getElementById('v17-detail-' + taskId);
-    if (!detailRow) return;
-    detailRow.style.display = expandedRows[taskId] ? 'table-row' : 'none';
-    // Update the caret on the task name cell
-    var caretEl = document.getElementById('v17-caret-' + taskId);
-    if (caretEl) caretEl.textContent = expandedRows[taskId] ? ' ▲' : ' ▼';
+    var dr = document.getElementById('v18d-' + taskId);
+    if (dr) dr.style.display = expandedRows[taskId] ? 'table-row' : 'none';
+    var cr = document.getElementById('v18c-' + taskId);
+    if (cr) cr.textContent = expandedRows[taskId] ? ' ▲' : ' ▼';
   };
-
-  function buildStatusSelect(task) {
-    var status = task.status || 'Not Started';
-    var cfg = STATUS_CFG[status] || STATUS_CFG['Not Started'];
-    var opts = Object.keys(STATUS_CFG).map(function(s) {
-      return '<option value="' + s + '"' + (s === status ? ' selected' : '') + '>' + s + '</option>';
-    }).join('');
-    var style = `background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.color}30;padding:2px 5px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;outline:none;max-width:110px;`;
-    return '<select style="' + style + '" onchange="__v17_setStatus(\'' + String(task.id) + '\', this.value, this)">' + opts + '</select>';
-  }
-
-  function buildDetailRow(task, colCount) {
-    var desc = task.description || task.instructions || '';
-    var videoUrl = task.trainingVideoUrl || task.training_video_url || task.videoUrl || '';
-    var fileUrl = task.fileUrl || task.file_url || task.resourceUrl || task.resource_url || '';
-    var notes = task.notes || '';
-    var hasAny = desc || videoUrl || fileUrl || notes;
-    var inner = '';
-    if (!hasAny) {
-      inner = '<em style="color:#aaa;font-size:12px;">No extra details saved for this task.</em>';
-    } else {
-      if (desc) inner += '<div style="margin-bottom:6px;"><strong style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;">Instructions</strong><div style="margin-top:2px;font-size:13px;color:#333;white-space:pre-wrap;">' + esc(desc) + '</div></div>';
-      if (videoUrl) inner += '<div style="margin-bottom:6px;"><strong style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;">Training Video</strong><div style="margin-top:2px;"><a href="' + esc(videoUrl) + '" target="_blank" style="font-size:13px;color:#c07a5a;text-decoration:underline;">' + esc(videoUrl) + '</a></div></div>';
-      if (fileUrl) inner += '<div style="margin-bottom:6px;"><strong style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;">File / Resource</strong><div style="margin-top:2px;"><a href="' + esc(fileUrl) + '" target="_blank" style="font-size:13px;color:#c07a5a;text-decoration:underline;">' + esc(fileUrl) + '</a></div></div>';
-      if (notes) inner += '<div><strong style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px;">Notes</strong><div style="margin-top:2px;font-size:13px;color:#333;white-space:pre-wrap;">' + esc(notes) + '</div></div>';
-    }
-    return '<tr id="v17-detail-' + String(task.id) + '" style="display:none;"><td colspan="' + colCount + '" style="padding:12px 16px 14px 32px;background:#faf9f7;border-bottom:1px solid #ece8e3;">' + inner + '</td></tr>';
-  }
 
   function esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  function buildSelect(task) {
+    var st = task.status || 'Not Started';
+    var cfg = STATUS_CFG[st] || STATUS_CFG['Not Started'];
+    var s = 'background:' + cfg.bg + ';color:' + cfg.color + ';border:1px solid ' + cfg.color + '60;' +
+      'padding:3px 6px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;outline:none;max-width:115px;';
+    var opts = Object.keys(STATUS_CFG).map(function(k) {
+      return '<option value="' + k + '"' + (k === st ? ' selected' : '') + '>' + k + '</option>';
+    }).join('');
+    return '<select style="' + s + '" onchange="__v18_setStatus('' + esc(String(task.id)) + '',this.value,this)">' + opts + '</select>';
+  }
+
+  function buildDetailRow(task, cols) {
+    var desc     = task.description || task.instructions || '';
+    var video    = task.trainingVideoUrl || task.training_video_url || task.videoUrl || '';
+    var file     = task.fileUrl || task.file_url || task.resourceUrl || task.resource_url || '';
+    var notes    = task.notes || '';
+    var inner    = '';
+    if (!desc && !video && !file && !notes) {
+      inner = '<em style="color:#bbb;font-size:12px;">No extra details for this task yet.</em>';
+    } else {
+      if (desc)  inner += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Instructions</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + esc(desc) + '</div></div>';
+      if (video) inner += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Training Video</div><a href="' + esc(video) + '" target="_blank" style="font-size:13px;color:#b5785a;word-break:break-all">' + esc(video) + '</a></div>';
+      if (file)  inner += '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">File / Resource</div><a href="' + esc(file) + '" target="_blank" style="font-size:13px;color:#b5785a;word-break:break-all">' + esc(file) + '</a></div>';
+      if (notes) inner += '<div><div style="font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Notes</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + esc(notes) + '</div></div>';
+    }
+    return '<tr id="v18d-' + esc(String(task.id)) + '" data-v18detail="1" style="display:none">' +
+      '<td colspan="' + cols + '" style="padding:14px 18px 16px 36px;background:#faf8f5;border-bottom:2px solid #ece8e3">' +
+      inner + '</td></tr>';
+  }
+
+  var patchPending = false;
   function patchTaskTable() {
-    // Find all task tables on the page
+    if (patchPending) return;
+    patchPending = true;
+    setTimeout(function() {
+      patchPending = false;
+      _doPatch();
+    }, 80);
+  }
+
+  function _doPatch() {
     var tables = document.querySelectorAll('table');
     tables.forEach(function(table) {
-      // Skip already patched
-      if (table.dataset.v17patched) return;
-
-      // Find header row
-      var headerRow = table.querySelector('thead tr, tr:first-child');
+      var headerRow = table.querySelector('thead tr');
+      if (!headerRow) headerRow = table.querySelector('tr');
       if (!headerRow) return;
-      var headers = Array.from(headerRow.querySelectorAll('th, td')).map(function(h) { return h.textContent.trim().toLowerCase(); });
-      // Must look like a task table
-      if (!headers.includes('task') && !headers.includes('title')) return;
 
-      table.dataset.v17patched = 'true';
+      var ths = Array.from(headerRow.querySelectorAll('th, td'));
+      var headers = ths.map(function(h) { return h.textContent.trim().toLowerCase(); });
 
-      // Find column indices
-      var priorityIdx = headers.findIndex(function(h) { return h === 'priority'; });
-      var statusIdx   = headers.findIndex(function(h) { return h === 'status'; });
-      var taskIdx     = headers.findIndex(function(h) { return h === 'task' || h === 'title'; });
-      var notesIdx    = headers.findIndex(function(h) { return h === 'notes'; });
-      var hoursAllIdx = headers.findIndex(function(h) { return h.includes('hours') && h.includes('allow'); });
-      var hoursTakIdx = headers.findIndex(function(h) { return h.includes('hours') && h.includes('tak'); });
+      // Only process task tables
+      if (!headers.some(function(h) { return h === 'task' || h === 'title'; })) return;
+      if (!headers.some(function(h) { return h === 'status'; })) return;
 
-      // Remove Priority column header
-      if (priorityIdx > -1) {
-        var pth = headerRow.querySelectorAll('th, td')[priorityIdx];
-        if (pth) pth.style.display = 'none';
+      var priorityIdx  = headers.findIndex(function(h) { return h === 'priority'; });
+      var statusIdx    = headers.findIndex(function(h) { return h === 'status'; });
+      var taskIdx      = headers.findIndex(function(h) { return h === 'task' || h === 'title'; });
+      var notesIdx     = headers.findIndex(function(h) { return h === 'notes'; });
+      var hoursAlIdx   = headers.findIndex(function(h) { return h.includes('hours') && h.includes('allow'); });
+      var hoursTkIdx   = headers.findIndex(function(h) { return h.includes('hours') && h.includes('tak'); });
+      var colCount     = ths.length;
+
+      // --- Patch header once ---
+      if (!table.dataset.v18hdr) {
+        table.dataset.v18hdr = '1';
+        if (priorityIdx > -1) { ths[priorityIdx].style.display = 'none'; ths[priorityIdx].style.width = '0'; }
+        if (notesIdx   > -1) { ths[notesIdx].style.width = '260px'; ths[notesIdx].style.minWidth = '180px'; }
+        if (hoursAlIdx > -1) { ths[hoursAlIdx].style.width = '75px'; ths[hoursAlIdx].style.fontSize = '11px'; ths[hoursAlIdx].style.whiteSpace = 'nowrap'; }
+        if (hoursTkIdx > -1) { ths[hoursTkIdx].style.width = '75px'; ths[hoursTkIdx].style.fontSize = '11px'; ths[hoursTkIdx].style.whiteSpace = 'nowrap'; }
       }
 
-      // Widen notes header, shrink hours headers
-      if (notesIdx > -1) {
-        var nth = headerRow.querySelectorAll('th, td')[notesIdx];
-        if (nth) { nth.style.width = '260px'; nth.style.minWidth = '200px'; }
-      }
-      if (hoursAllIdx > -1) {
-        var hah = headerRow.querySelectorAll('th, td')[hoursAllIdx];
-        if (hah) { hah.style.width = '80px'; hah.style.minWidth = '60px'; hah.style.fontSize = '11px'; }
-      }
-      if (hoursTakIdx > -1) {
-        var hth2 = headerRow.querySelectorAll('th, td')[hoursTakIdx];
-        if (hth2) { hth2.style.width = '80px'; hth2.style.minWidth = '60px'; hth2.style.fontSize = '11px'; }
-      }
-
-      var colCount = headers.length - (priorityIdx > -1 ? 1 : 0);
-
-      // Process each body row
-      var rows = Array.from(table.querySelectorAll('tbody tr, tr')).filter(function(r) {
-        return r !== headerRow && !r.dataset.v17detail;
+      // --- Patch each data row ---
+      var bodyRows = Array.from(table.querySelectorAll('tbody tr, tr')).filter(function(r) {
+        return r !== headerRow && !r.dataset.v18detail;
       });
 
-      rows.forEach(function(row) {
-        if (row.dataset.v17row) return;
-        row.dataset.v17row = 'true';
-
-        var cells = row.querySelectorAll('td');
+      bodyRows.forEach(function(row) {
+        if (row.dataset.v18detail) return; // skip detail rows
+        var cells = Array.from(row.querySelectorAll('td'));
         if (cells.length < 2) return;
 
-        // Try to find the task object for this row
-        // Match by title text
-        var titleCell = taskIdx > -1 ? cells[taskIdx] : cells[0];
-        var titleText = titleCell ? titleCell.textContent.trim() : '';
-        var task = (window.tasks || []).find(function(t) {
-          return (t.title || '').trim() === titleText;
-        });
-
-        // Hide priority cell
+        // Hide priority cell (always, in case row was re-rendered)
         if (priorityIdx > -1 && cells[priorityIdx]) {
           cells[priorityIdx].style.display = 'none';
+          cells[priorityIdx].style.width = '0';
+          cells[priorityIdx].style.padding = '0';
         }
 
         // Widen notes cell
         if (notesIdx > -1 && cells[notesIdx]) {
           cells[notesIdx].style.width = '260px';
-          cells[notesIdx].style.minWidth = '200px';
+          cells[notesIdx].style.minWidth = '180px';
           cells[notesIdx].style.whiteSpace = 'normal';
           cells[notesIdx].style.wordBreak = 'break-word';
+          cells[notesIdx].style.maxWidth = '280px';
         }
 
         // Shrink hours cells
-        if (hoursAllIdx > -1 && cells[hoursAllIdx]) {
-          cells[hoursAllIdx].style.width = '80px';
-        }
-        if (hoursTakIdx > -1 && cells[hoursTakIdx]) {
-          cells[hoursTakIdx].style.width = '80px';
+        if (hoursAlIdx > -1 && cells[hoursAlIdx]) cells[hoursAlIdx].style.width = '75px';
+        if (hoursTkIdx > -1 && cells[hoursTkIdx]) cells[hoursTkIdx].style.width = '75px';
+
+        // Match task object by title
+        var titleCell = taskIdx > -1 ? cells[taskIdx] : cells[0];
+        if (!titleCell) return;
+        var titleText = titleCell.textContent.trim();
+        var task = (window.tasks || []).find(function(t) {
+          return (t.title || '').trim() === titleText ||
+                 titleCell.querySelector('[data-taskid="' + String(t.id) + '"]');
+        });
+        if (!task) return;
+        var tid = String(task.id);
+
+        // Patch status cell — only if not already a select
+        if (statusIdx > -1 && cells[statusIdx] && !cells[statusIdx].querySelector('select')) {
+          cells[statusIdx].innerHTML = buildSelect(task);
         }
 
-        // Replace status cell with coloured dropdown
-        if (statusIdx > -1 && cells[statusIdx] && task) {
-          var statusCell = cells[statusIdx];
-          statusCell.innerHTML = buildStatusSelect(task);
-        }
-
-        // Make task name clickable to expand detail
-        if (task && titleCell && !titleCell.dataset.v17click) {
-          titleCell.dataset.v17click = 'true';
+        // Patch title cell — only if not already patched
+        if (!titleCell.dataset.v18click) {
+          titleCell.dataset.v18click = '1';
           titleCell.style.cursor = 'pointer';
-          var origHtml = titleCell.innerHTML;
-          titleCell.innerHTML = '<span onclick="__v17_toggleExpand('' + String(task.id) + '')" style="font-weight:600;">' +
-            esc(task.title || titleText) +
-            '<span id="v17-caret-' + String(task.id) + '" style="font-size:10px;color:#aaa;"> ▼</span></span>';
-
-          // Insert detail row after this row
-          var detailHtml = buildDetailRow(task, colCount);
-          row.insertAdjacentHTML('afterend', detailHtml);
-          var detailTr = document.getElementById('v17-detail-' + String(task.id));
-          if (detailTr) detailTr.dataset.v17detail = 'true';
+          var label = esc(task.title || titleText);
+          titleCell.innerHTML = '<span onclick="__v18_toggleExpand('' + tid + '')" style="font-weight:600;display:inline-flex;align-items:center;gap:4px">' +
+            label +
+            '<span id="v18c-' + tid + '" style="font-size:9px;color:#ccc;user-select:none"> ▼</span>' +
+            '</span>';
+          // Insert detail row after this row if not already there
+          if (!document.getElementById('v18d-' + tid)) {
+            row.insertAdjacentHTML('afterend', buildDetailRow(task, colCount));
+          }
         }
       });
-
-      console.log('[comms-fix v17] Patched table with', rows.length, 'rows');
     });
   }
 
   function watchForTaskTable() {
-    // Patch immediately and also watch for re-renders
-    patchTaskTable();
+    _doPatch();
+    // MutationObserver — debounced
     var obs = new MutationObserver(function(muts) {
-      var shouldPatch = muts.some(function(m) {
-        return m.addedNodes.length > 0;
+      var relevant = muts.some(function(m) {
+        return Array.from(m.addedNodes).some(function(n) {
+          return n.nodeType === 1 && (n.tagName === 'TR' || n.tagName === 'TABLE' || n.tagName === 'TBODY' || (n.querySelector && n.querySelector('table,tr')));
+        });
       });
-      if (shouldPatch) patchTaskTable();
+      if (relevant) patchTaskTable();
     });
     obs.observe(document.body, { childList: true, subtree: true });
-    console.log('[comms-fix v17] Task table observer active');
+    // Interval fallback — re-patch every 600ms, handles any render we missed
+    setInterval(_doPatch, 600);
+    console.log('[comms-fix v18] Task table watcher active');
   }
-
-  // ── END TASK TABLE v17 ────────────────────────────────────────
+  // ── END TASK TABLE v18 ───────────────────────────────────
 
   async function boot() {
-    console.log('[comms-fix] v17.0 booting...');
+    console.log('[comms-fix] v18.0 booting...');
     await new Promise(r => setTimeout(r, 2000));
     interceptLogin();
     interceptSendDm();
@@ -373,7 +355,7 @@
     fixRenderHiddenBoxFor();
     fixUnhideTask();
     watchForTaskTable();
-    console.log('[comms-fix] v17.0 active');
+    console.log('[comms-fix] v18.0 active');
   }
 
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : setTimeout(boot, 500);
