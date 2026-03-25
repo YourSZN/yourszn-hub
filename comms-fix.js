@@ -1,89 +1,96 @@
 /**
- * comms-fix.js v20.0
- * RESTORED: v16 DM + Group + Hidden task fixes exactly as they were
- * NEW: Task table patches added carefully with no quote escaping issues
+ * comms-fix.js v21.0
+ * v16 core: DM + Group + Hidden tasks UNCHANGED
+ * v21 new: Task table - hide priority col, status dropdown, expandable rows
  */
 (function () {
   'use strict';
-  const U = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-  const K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
-  const H = { apikey: K, Authorization: 'Bearer ' + K, 'Content-Type': 'application/json' };
+  var U = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+  var K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+  var H = { apikey: K, Authorization: 'Bearer ' + K, 'Content-Type': 'application/json' };
 
   function tk(a, b) { return [a, b].sort().join('_'); }
-  async function ins(table, data) {
-    try { await fetch(U + '/rest/v1/' + table, { method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(data) }); } catch(e) {}
+  function ins(table, data) {
+    try { fetch(U + '/rest/v1/' + table, { method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(data) }); } catch(e) {}
   }
 
-  // -- DM SECTION - DO NOT MODIFY --
+  // ── DM SECTION - DO NOT MODIFY ─────────────────────────────────
   function filterDMsForUser(user) {
     if (!window.dmMsgs || !window.USERS || !user) return;
-    const others = Object.keys(window.USERS).map(k => k.toLowerCase()).filter(k => k !== user);
-    const myKeys = others.map(o => tk(user, o));
-    Object.keys(window.dmMsgs).forEach(key => { if (!myKeys.includes(key)) delete window.dmMsgs[key]; });
+    var others = Object.keys(window.USERS).map(function(k) { return k.toLowerCase(); }).filter(function(k) { return k !== user; });
+    var myKeys = others.map(function(o) { return tk(user, o); });
+    Object.keys(window.dmMsgs).forEach(function(key) { if (!myKeys.includes(key)) delete window.dmMsgs[key]; });
   }
   function interceptLogin() {
     if (typeof window.chkPin !== 'function') return;
-    const orig = window.chkPin;
+    var orig = window.chkPin;
     window.chkPin = function(pin) {
-      const r = orig.call(this, pin);
-      setTimeout(() => { const user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 500);
+      var r = orig.call(this, pin);
+      setTimeout(function() { var user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 500);
       return r;
     };
   }
   function interceptSendDm() {
     if (typeof window.sendDm !== 'function') return;
-    const orig = window.sendDm;
-    window.sendDm = async function() {
-      const r = orig.apply(this, arguments);
-      await new Promise(x => setTimeout(x, 200));
-      const user = window.curUser; const other = window.activeDmUser;
-      if (!user || !other || !window.dmMsgs) return r;
-      const key = [user, other].sort().join('_');
-      const msgs = window.dmMsgs[key] || [];
-      const last = msgs[msgs.length - 1];
-      if (last && last.from && last.text) await ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
+    var orig = window.sendDm;
+    window.sendDm = function() {
+      var args = arguments;
+      var r = orig.apply(this, args);
+      setTimeout(function() {
+        var user = window.curUser; var other = window.activeDmUser;
+        if (!user || !other || !window.dmMsgs) return;
+        var key = [user, other].sort().join('_');
+        var msgs = window.dmMsgs[key] || [];
+        var last = msgs[msgs.length - 1];
+        if (last && last.from && last.text) ins('comms_dm', { thread_key: key, author: last.from, message: last.text });
+      }, 200);
       return r;
     };
   }
   function watchAppReloadForDMs() {
-    const origLog = console.log;
+    var origLog = console.log;
     console.log = function() {
       origLog.apply(console, arguments);
       if (arguments[0] && String(arguments[0]).includes('cloud load successful')) {
-        setTimeout(() => { const user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 200);
+        setTimeout(function() { var user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 200);
       }
     };
   }
-  // -- END DM SECTION --
+  // ── END DM SECTION ────────────────────────────────────────
 
-  // -- GROUP CHAT SECTION - DO NOT MODIFY --
+  // ── GROUP CHAT SECTION - DO NOT MODIFY ──────────────────────
   function interceptSendGroupMsg() {
     if (typeof window.sendGroupMsg !== 'function') return;
-    const orig = window.sendGroupMsg;
-    window.sendGroupMsg = async function() {
-      const r = orig.apply(this, arguments);
-      await new Promise(x => setTimeout(x, 200));
-      const last = (window.groupMsgs || []).slice(-1)[0];
-      if (last && last.from && last.text) await ins('comms_group', { author: last.from, message: last.text });
+    var orig = window.sendGroupMsg;
+    window.sendGroupMsg = function() {
+      var r = orig.apply(this, arguments);
+      setTimeout(function() {
+        var last = (window.groupMsgs || []).slice(-1)[0];
+        if (last && last.from && last.text) ins('comms_group', { author: last.from, message: last.text });
+      }, 200);
       return r;
     };
   }
-  let lastGroupCount = 0;
-  async function pollGroup() {
-    try {
-      const r = await fetch(U + '/rest/v1/comms_group?select=*&order=created_at.asc', { headers: H });
-      if (!r.ok) return;
-      const data = await r.json();
-      if (!data.length || data.length === lastGroupCount) return;
-      const fmt = d => new Date(d).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
-      window.groupMsgs = data.map(m => ({ from: m.author, text: m.message, time: fmt(m.created_at) }));
-      lastGroupCount = data.length;
-      if (typeof window.renderGroupThread === 'function') window.renderGroupThread();
-    } catch(e) {}
+  var lastGroupCount = 0;
+  function pollGroup() {
+    fetch(U + '/rest/v1/comms_group?select=*&order=created_at.asc', { headers: H })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.length || data.length === lastGroupCount) return;
+        window.groupMsgs = data.map(function(m) {
+          var t = new Date(m.created_at);
+          var h = t.getHours(); var mn = t.getMinutes();
+          var ampm = h >= 12 ? 'pm' : 'am';
+          h = h % 12 || 12;
+          return { from: m.author, text: m.message, time: (h < 10 ? '0' : '') + h + ':' + (mn < 10 ? '0' : '') + mn + ' ' + ampm };
+        });
+        lastGroupCount = data.length;
+        if (typeof window.renderGroupThread === 'function') window.renderGroupThread();
+      }).catch(function() {});
   }
-  // -- END GROUP CHAT SECTION --
+  // ── END GROUP CHAT SECTION ─────────────────────────────
 
-  // -- HIDDEN TASK FIX - EXACT v16 --
+  // ── HIDDEN TASK FIX - EXACT v16 ──────────────────────────────
   function fixRenderHiddenBoxFor() {
     if (typeof window.renderHiddenBoxFor !== 'function') return;
     window.renderHiddenBoxFor = function(view) {
@@ -113,9 +120,9 @@
       if (!myHidden.length) { el.style.display = 'none'; return; }
       el.style.display = 'block';
       var isOpen = !!window.hiddenBoxOpen[view];
-      var html = '<div class="hidden-box-hd" onclick="toggleHiddenBox('' + view + '')">' +
-        '<span>👁 ' + myHidden.length + ' hidden task' + (myHidden.length !== 1 ? 's' : '') + '</span>' +
-        '<span style="float:right">' + (isOpen ? '▲ collapse' : '▼ show') + '</span>' +
+      var html = '<div class="hidden-box-hd" onclick="toggleHiddenBox(\'' + view + '\')">' +
+        '<span>\uD83D\uDC41 ' + myHidden.length + ' hidden task' + (myHidden.length !== 1 ? 's' : '') + '</span>' +
+        '<span style="float:right">' + (isOpen ? '\u25b2 collapse' : '\u25bc show') + '</span>' +
         '</div>';
       if (isOpen) {
         html += '<div class="hidden-box-list">';
@@ -126,12 +133,12 @@
             '<div class="hb-main">' +
             '<div class="hb-title">' + (t.title || '') + '</div>' +
             '<div class="hb-meta">' +
-            (h && h.completedDate ? '<span class="hb-date">🗓 ' + h.completedDate + '</span> ' : '') +
+            (h && h.completedDate ? '<span class="hb-date">\uD83D\uDDD3 ' + h.completedDate + '</span> ' : '') +
             (window.curUser === 'latisha' && h && h.by ? '<span class="hb-who">by ' + h.by + '</span> ' : '') +
             '<span class="hb-cat">' + (t.category || 'Admin') + '</span>' +
             (h && h.staffNotes ? '<div class="hb-notes">' + h.staffNotes + '</div>' : '') +
             '</div></div>' +
-            (canUnhide ? '<button class="hb-restore" onclick="unhideTask('' + String(t.id) + '');event.stopPropagation()">Restore</button>' : '') +
+            (canUnhide ? '<button class="hb-restore" onclick="unhideTask(\'' + String(t.id) + '\');event.stopPropagation()">Restore</button>' : '') +
             '</div>';
         });
         html += '</div>';
@@ -144,16 +151,15 @@
   }
   function fixUnhideTask() {
     if (typeof window.unhideTask !== 'function') return;
-    const orig = window.unhideTask;
+    var orig = window.unhideTask;
     window.unhideTask = function(taskId) {
       orig.call(this, taskId);
       if (typeof window.saveData === 'function') window.saveData();
     };
   }
-  // -- END HIDDEN TASK FIX --
+  // ── END HIDDEN TASK FIX ───────────────────────────────────
 
-  // -- TASK TABLE v20 --
-  // Status values stored in DB: 'not-started', 'in-progress', 'blocked', 'complete'
+  // ── TASK TABLE v21 ────────────────────────────────────────
   var ST = [
     { v: 'not-started', l: 'Not Started', bg: '#f0f0f0', c: '#666' },
     { v: 'in-progress', l: 'In Progress', bg: '#fff3e0', c: '#e65100' },
@@ -164,21 +170,22 @@
 
   function stCfg(v) {
     var val = (v || 'not-started').toLowerCase();
-    return ST.find(function(o) { return o.v === val; }) || ST[0];
+    var found = null;
+    ST.forEach(function(o) { if (o.v === val) found = o; });
+    return found || ST[0];
   }
 
-  // Inject CSS to hide priority column cells tagged with class v20pri
   function injectCSS() {
-    if (document.getElementById('v20css')) return;
+    if (document.getElementById('v21css')) return;
     var s = document.createElement('style');
-    s.id = 'v20css';
-    s.textContent = '.v20pri{display:none!important;width:0!important;padding:0!important;border:none!important}';
+    s.id = 'v21css';
+    s.textContent = '.v21pri{display:none!important;width:0!important;padding:0!important;border:none!important}';
     document.head.appendChild(s);
   }
 
-  // Global callbacks — must not use template literals to avoid escaping issues
-  window.__v20_status = function(taskId, newVal, sel) {
-    var t = (window.tasks || []).find(function(x) { return String(x.id) === String(taskId); });
+  window.__v21_status = function(taskId, newVal, sel) {
+    var t = null;
+    (window.tasks || []).forEach(function(x) { if (String(x.id) === String(taskId)) t = x; });
     if (!t) return;
     t.status = newVal;
     var cfg = stCfg(newVal);
@@ -188,28 +195,29 @@
     if (typeof window.saveData === 'function') window.saveData();
   };
 
-  window.__v20_expand = function(taskId) {
-    expandedRows[taskId] = !expandedRows[taskId];
-    var dr = document.getElementById('v20d' + taskId);
-    if (dr) dr.style.display = expandedRows[taskId] ? 'table-row' : 'none';
-    var cr = document.getElementById('v20c' + taskId);
-    if (cr) cr.textContent = expandedRows[taskId] ? ' ▲' : ' ▼';
+  window.__v21_expand = function(sid) {
+    expandedRows[sid] = !expandedRows[sid];
+    var dr = document.getElementById('v21d' + sid);
+    if (dr) dr.style.display = expandedRows[sid] ? 'table-row' : 'none';
+    var cr = document.getElementById('v21c' + sid);
+    if (cr) cr.textContent = expandedRows[sid] ? ' \u25b2' : ' \u25bc';
   };
 
   function safeId(id) {
-    // Make task id safe to embed in HTML attribute / inline JS string
-    return String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+    return String(id).replace(/[^a-zA-Z0-9_]/g, '_');
   }
 
   function buildSelect(task) {
     var cfg = stCfg(task.status);
-    var style = 'background:' + cfg.bg + ';color:' + cfg.c + ';border:1px solid ' + cfg.c +
+    var st = 'background:' + cfg.bg + ';color:' + cfg.c + ';border:1px solid ' + cfg.c +
       ';padding:3px 7px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;outline:none;width:100%;max-width:120px;';
     var sid = safeId(task.id);
-    var opts = ST.map(function(o) {
-      return '<option value=' + o.v + (o.v === (task.status || 'not-started').toLowerCase() ? ' selected' : '') + '>' + o.l + '</option>';
-    }).join('');
-    return '<select data-v20s=1 style="' + style + '" onchange="__v20_status(' + JSON.stringify(String(task.id)) + ',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
+    var opts = '';
+    var curVal = (task.status || 'not-started').toLowerCase();
+    ST.forEach(function(o) {
+      opts += '<option value="' + o.v + '"' + (o.v === curVal ? ' selected' : '') + '>' + o.l + '</option>';
+    });
+    return '<select data-v21s="1" style="' + st + '" onchange="__v21_status(\'' + sid + '\',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
   }
 
   function buildDetail(task, cols) {
@@ -223,112 +231,112 @@
     } else {
       var lbl = 'font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px';
       if (desc)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Instructions</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
-      if (video) inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Training Video</div><a href="' + video + '" target=_blank style="font-size:13px;color:#b5785a">' + video + '</a></div>';
-      if (file)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">File / Resource</div><a href="' + file + '" target=_blank style="font-size:13px;color:#b5785a">' + file + '</a></div>';
+      if (video) inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">Training Video</div><a href="' + video + '" target="_blank" style="font-size:13px;color:#b5785a">' + video + '</a></div>';
+      if (file)  inner += '<div style="margin-bottom:8px"><div style="' + lbl + '">File / Resource</div><a href="' + file + '" target="_blank" style="font-size:13px;color:#b5785a">' + file + '</a></div>';
       if (notes) inner += '<div><div style="' + lbl + '">Notes</div><div style="font-size:13px;color:#333;white-space:pre-wrap">' + notes.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div></div>';
     }
     var sid = safeId(task.id);
-    return '<tr id=v20d' + sid + ' data-v20det=1 style=display:none><td colspan=' + cols +
-      ' style="padding:14px 18px 16px 36px;background:#faf8f5;border-bottom:2px solid #ece8e3">' + inner + '</td></tr>';
+    return '<tr id="v21d' + sid + '" data-v21det="1" style="display:none"><td colspan="' + cols +
+      '" style="padding:14px 18px 16px 36px;background:#faf8f5;border-bottom:2px solid #ece8e3">' + inner + '</td></tr>';
   }
 
   function doPatch() {
     if (!window.tasks || !window.tasks.length) return;
-    document.querySelectorAll('table').forEach(function(table) {
-      if (table.dataset.v20skip) return;
+    var tables = document.querySelectorAll('table');
+    for (var ti = 0; ti < tables.length; ti++) {
+      var table = tables[ti];
+      if (table.dataset.v21skip) continue;
       var hrow = table.querySelector('thead tr') || table.querySelector('tr');
-      if (!hrow) return;
-      var ths = Array.from(hrow.querySelectorAll('th,td'));
-      var hdrs = ths.map(function(h) { return h.textContent.trim().toLowerCase(); });
-      var hasTask   = hdrs.some(function(h) { return h === 'task' || h === 'title'; });
-      var hasStatus = hdrs.some(function(h) { return h === 'status'; });
-      if (!hasTask || !hasStatus) { table.dataset.v20skip = 1; return; }
+      if (!hrow) continue;
+      var ths = hrow.querySelectorAll('th,td');
+      var hdrs = [];
+      for (var hi = 0; hi < ths.length; hi++) hdrs.push(ths[hi].textContent.trim().toLowerCase());
+      var hasTask = hdrs.indexOf('task') > -1 || hdrs.indexOf('title') > -1;
+      var hasStatus = hdrs.indexOf('status') > -1;
+      if (!hasTask || !hasStatus) { table.dataset.v21skip = '1'; continue; }
 
-      var priIdx  = hdrs.findIndex(function(h) { return h === 'priority'; });
-      var stIdx   = hdrs.findIndex(function(h) { return h === 'status'; });
-      var titIdx  = hdrs.findIndex(function(h) { return h === 'task' || h === 'title'; });
-      var notIdx  = hdrs.findIndex(function(h) { return h === 'notes'; });
-      var cols    = ths.length;
+      var priIdx = hdrs.indexOf('priority');
+      var stIdx  = hdrs.indexOf('status');
+      var titIdx = hdrs.indexOf('task') > -1 ? hdrs.indexOf('task') : hdrs.indexOf('title');
+      var notIdx = hdrs.indexOf('notes');
+      var cols   = ths.length;
 
-      // Hide priority TH
-      if (priIdx > -1) ths[priIdx].classList.add('v20pri');
-      // Widen notes TH
+      if (priIdx > -1) ths[priIdx].classList.add('v21pri');
       if (notIdx > -1) { ths[notIdx].style.minWidth = '200px'; ths[notIdx].style.width = '260px'; }
 
-      // Patch data rows
-      Array.from(table.querySelectorAll('tr')).forEach(function(row) {
-        if (row === hrow || row.dataset.v20det) return;
-        var cells = Array.from(row.querySelectorAll('td'));
-        if (cells.length < 3) return;
+      var rows = table.querySelectorAll('tr');
+      for (var ri = 0; ri < rows.length; ri++) {
+        var row = rows[ri];
+        if (row === hrow || row.dataset.v21det) continue;
+        var cells = row.querySelectorAll('td');
+        if (cells.length < 3) continue;
 
-        // Hide priority TD
-        if (priIdx > -1 && cells[priIdx]) cells[priIdx].classList.add('v20pri');
-        // Widen notes TD
+        if (priIdx > -1 && cells[priIdx]) cells[priIdx].classList.add('v21pri');
         if (notIdx > -1 && cells[notIdx]) {
           cells[notIdx].style.minWidth = '200px';
           cells[notIdx].style.whiteSpace = 'normal';
           cells[notIdx].style.wordBreak = 'break-word';
         }
 
-        // Find matching task by title
         var titCell = titIdx > -1 ? cells[titIdx] : cells[0];
-        if (!titCell) return;
+        if (!titCell) continue;
         var titleText = titCell.textContent.trim();
-        var task = (window.tasks || []).find(function(t) {
-          return (t.title || '').trim() === titleText;
-        });
-        if (!task) return;
+        var task = null;
+        for (var xi = 0; xi < (window.tasks || []).length; xi++) {
+          if ((window.tasks[xi].title || '').trim() === titleText) { task = window.tasks[xi]; break; }
+        }
+        if (!task) continue;
         var sid = safeId(task.id);
 
-        // Replace status cell with dropdown (only if not already done)
-        if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v20s]')) {
+        if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v21s]')) {
           cells[stIdx].innerHTML = buildSelect(task);
         }
 
-        // Make title clickable with expand caret (only once per row)
-        if (!titCell.dataset.v20c) {
-          titCell.dataset.v20c = 1;
+        if (!titCell.dataset.v21c) {
+          titCell.dataset.v21c = '1';
           titCell.style.cursor = 'pointer';
           var titleEsc = (task.title || titleText).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          titCell.innerHTML = '<span onclick="__v20_expand(' + JSON.stringify(sid) + ')" style="font-weight:600">' +
-            titleEsc + '<span id=v20c' + sid + ' style="font-size:9px;color:#ccc;margin-left:4px"> ▼</span></span>';
-          // Insert detail row after this row if not already there
-          if (!document.getElementById('v20d' + sid)) {
+          titCell.innerHTML = '<span onclick="__v21_expand(\'' + sid + '\')" style="font-weight:600">' +
+            titleEsc + '<span id="v21c' + sid + '" style="font-size:9px;color:#ccc;margin-left:4px"> \u25bc</span></span>';
+          if (!document.getElementById('v21d' + sid)) {
             row.insertAdjacentHTML('afterend', buildDetail(task, cols));
-            var dr = document.getElementById('v20d' + sid);
-            if (dr) dr.dataset.v20det = 1;
+            var dr = document.getElementById('v21d' + sid);
+            if (dr) dr.dataset.v21det = '1';
           }
         }
-      });
-    });
+      }
+    }
   }
 
   function watchTaskTable() {
     injectCSS();
     doPatch();
     var obs = new MutationObserver(function(muts) {
-      if (muts.some(function(m) { return m.addedNodes.length > 0; })) setTimeout(doPatch, 120);
+      for (var i = 0; i < muts.length; i++) {
+        if (muts[i].addedNodes.length > 0) { setTimeout(doPatch, 150); break; }
+      }
     });
     obs.observe(document.body, { childList: true, subtree: true });
     setInterval(doPatch, 900);
-    console.log('[v20] task table watcher active');
+    console.log('[v21] task table watcher active');
   }
-  // -- END TASK TABLE v20 --
+  // ── END TASK TABLE v21 ────────────────────────────────────
 
-  async function boot() {
-    console.log('[comms-fix] v20.0 booting...');
-    await new Promise(r => setTimeout(r, 2000));
-    interceptLogin();
-    interceptSendDm();
-    watchAppReloadForDMs();
-    if (window.curUser) filterDMsForUser(window.curUser.toLowerCase());
-    interceptSendGroupMsg();
-    await pollGroup();
-    setInterval(pollGroup, 5000);
-    fixRenderHiddenBoxFor();
-    fixUnhideTask();
-    watchTaskTable();
-    console.log('[comms-fix] v20.0 active');
+  function boot() {
+    console.log('[comms-fix] v21.0 booting...');
+    setTimeout(function() {
+      interceptLogin();
+      interceptSendDm();
+      watchAppReloadForDMs();
+      if (window.curUser) filterDMsForUser(window.curUser.toLowerCase());
+      interceptSendGroupMsg();
+      pollGroup();
+      setInterval(pollGroup, 5000);
+      fixRenderHiddenBoxFor();
+      fixUnhideTask();
+      watchTaskTable();
+      console.log('[comms-fix] v21.0 active');
+    }, 2000);
   }
 
   if (document.readyState === 'loading') {
