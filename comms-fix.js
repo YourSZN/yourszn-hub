@@ -58,7 +58,12 @@
     console.log = function() {
       origLog.apply(console, arguments);
       if (arguments[0] && String(arguments[0]).includes('cloud load successful')) {
-        setTimeout(function() { var user = window.curUser; if (user) filterDMsForUser(user.toLowerCase()); }, 200);
+        setTimeout(function() {
+          var user = window.curUser;
+          if (user) filterDMsForUser(user.toLowerCase());
+          // Re-render hidden tasks after cloud reload
+          if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+        }, 300);
       }
     };
   }
@@ -243,11 +248,12 @@
     if (typeof window.saveData === 'function') window.saveData();
   };
 
-  window.__v24_saveNote = function(taskId, sid) {
+  window.__v24_saveNote = function(sid, noteSid) {
+    // Find task by safeId
     var t = null;
-    (window.tasks || []).forEach(function(x) { if (String(x.id) === String(taskId)) t = x; });
+    (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) t = x; });
     if (!t) return;
-    var ta = document.getElementById('v24ta' + sid);
+    var ta = document.getElementById('v24ta' + noteSid);
     if (!ta) return;
     var noteVal = ta.value.trim();
     if ((window.curUser || '').toLowerCase() === 'latisha') {
@@ -261,15 +267,14 @@
     if (btn) { btn.textContent = 'Saved \u2713'; setTimeout(function() { btn.textContent = 'Save Note'; }, 1500); }
   };
 
-  window.__v24_openPanel = function(taskId, anchorEl) {
-    var sid = safeId(taskId);
-
+  window.__v24_openPanel = function(sid, anchorEl) {
     // If same panel already open, close it
     if (openPanelSid === sid) { closePanel(); return; }
     openPanelSid = sid;
 
+    // Find task by matching safeId
     var task = null;
-    (window.tasks || []).forEach(function(x) { if (String(x.id) === String(taskId)) task = x; });
+    (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
     if (!task) return;
 
     var isLatisha = (window.curUser || '').toLowerCase() === 'latisha';
@@ -288,7 +293,7 @@
     if (isLatisha) {
       html += '<div class="v24-lbl">My Notes (Owner)</div>';
       html += '<textarea id="v24ta' + sid + '">' + esc(task.notes || '') + '</textarea>';
-      html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button>';
+      html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
       var sNote = task.staffNotes || task.staff_notes || '';
       if (sNote) {
         var assignee = task.assignedTo || task.assigned_to || 'Staff';
@@ -298,7 +303,7 @@
     } else {
       html += '<div class="v24-lbl">My Notes</div>';
       html += '<textarea id="v24ta' + sid + '">' + esc(myNote) + '</textarea>';
-      html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + String(task.id) + '\',\'' + sid + '\')">Save Note</button>';
+      html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
     }
 
     var panel = getOrCreatePanel();
@@ -344,7 +349,7 @@
     var sid = safeId(task.id);
     var hasNote = !!(task.staffNotes || task.staff_notes || task.notes);
     var label = hasNote ? '\uD83D\uDCDD Note' : '+ Note';
-    return '<button class="v24-notes-btn" onclick="__v24_openPanel(\'' + String(task.id) + '\',this);event.stopPropagation()">' + label + '</button>';
+    return '<button class="v24-notes-btn" onclick="__v24_openPanel(\'' + sid + '\',this);event.stopPropagation()">' + label + '</button>';
   }
 
   function doPatch() {
@@ -414,7 +419,7 @@
           titCell.dataset.v24c = '1';
           titCell.style.cursor = 'pointer';
           var titleEsc = esc(task.title || titleText);
-          titCell.innerHTML = '<span onclick="__v24_openPanel(\'' + String(task.id) + '\',this);event.stopPropagation()" style="font-weight:600">' +
+          titCell.innerHTML = '<span onclick="__v24_openPanel(\'' + sid + '\',this);event.stopPropagation()" style="font-weight:600">' +
             titleEsc + '<span style="font-size:9px;color:#ccc;margin-left:4px"> \u25bc</span></span>';
         }
       }
