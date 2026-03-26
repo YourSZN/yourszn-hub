@@ -304,6 +304,12 @@
       html += '<div class="v24-lbl">My Notes</div>';
       html += '<textarea id="v24ta' + sid + '">' + esc(myNote) + '</textarea>';
       html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
+      // Show owner notes read-only if they exist
+      var ownerNote = task.notes || '';
+      if (ownerNote) {
+        html += '<div class="v24-lbl" style="margin-top:14px">Note from Latisha (Owner)</div>';
+        html += '<div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(ownerNote) + '</div>';
+      }
     }
 
     var panel = getOrCreatePanel();
