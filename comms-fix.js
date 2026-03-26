@@ -1,14 +1,12 @@
 /**
- * comms-fix.js v33
+ * comms-fix.js v34
  * v16 core: DM + Group + Hidden tasks UNCHANGED
- * v24: Complete rewrite of task table approach
- *   - NO MORE colspan/tr injection — uses floating div panel instead
- *   - This avoids the app's template engine choking on injected table rows
- *   - Priority column hidden via CSS class
- *   - Status dropdown inline
- *   - Notes button opens floating panel below the row
- *   - Panel rebuilds fresh on open based on curUser
- * v33: Fix __v24_status to use safeId lookup (fixes UUID-based task IDs)
+ * v24: Floating panel task table approach
+ * v33: safeId lookup fix for UUID task IDs
+ * v34:
+ *   - Hidden tasks reset weekly (not carried over to next week)
+ *   - Permanent delete: removes task for everyone immediately + adds to
+ *     deletedTasks blacklist so template tasks never respawn
  */
 (function () {
   'use strict';
@@ -62,7 +60,6 @@
         setTimeout(function() {
           var user = window.curUser;
           if (user) filterDMsForUser(user.toLowerCase());
-          // Re-render hidden tasks after cloud reload
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         }, 300);
       }
@@ -171,6 +168,125 @@
   }
   // ── END HIDDEN TASK FIX ───────────────────────────────────────────────────
 
+  // ── v34: WEEKLY HIDDEN RESET ──────────────────────────────────────────────
+  // Week number = number of complete 7-day periods since epoch (UTC Monday-based)
+  function currentWeekNumber() {
+    // Use Thursday to determine week (ISO week standard — stable across week boundaries)
+    return Math.floor((Date.now() - 4 * 24 * 60 * 60 * 1000) / (7 * 24 * 60 * 60 * 1000));
+  }
+
+  function clearStaleHiddenTasks() {
+    if (!window.hiddenTasks) return;
+    var wk = currentWeekNumber();
+    var changed = false;
+    Object.keys(window.hiddenTasks).forEach(function(id) {
+      var entry = window.hiddenTasks[id];
+      // If entry has no weekNumber stored, it predates this feature — clear it
+      if (!entry || entry.weekNumber === undefined || entry.weekNumber !== wk) {
+        delete window.hiddenTasks[id];
+        changed = true;
+      }
+    });
+    if (changed && typeof window.saveData === 'function') {
+      window.saveData();
+      console.log('[comms-fix] v34: cleared stale hidden tasks from previous week(s)');
+    }
+  }
+
+  // Patch window.hideTask to stamp the current week number when hiding
+  function patchHideTask() {
+    if (typeof window.hideTask !== 'function') return;
+    var orig = window.hideTask;
+    window.hideTask = function(taskId) {
+      var r = orig.call(this, taskId);
+      // After hiding, stamp the week number onto the entry
+      setTimeout(function() {
+        if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
+          window.hiddenTasks[String(taskId)].weekNumber = currentWeekNumber();
+          if (typeof window.saveData === 'function') window.saveData();
+        }
+      }, 100);
+      return r;
+    };
+    console.log('[comms-fix] v34: hideTask patched with weekly stamp');
+  }
+  // ── END WEEKLY HIDDEN RESET ───────────────────────────────────────────────
+
+  // ── v34: PERMANENT DELETE ─────────────────────────────────────────────────
+  // deletedTasks lives in window (synced to state blob via saveData)
+  // Structure: array of { id, title, freq } — blacklist
+  // We match on title+freq for template tasks (which reuse IDs) and on id for one-offs
+
+  function getDeletedTasks() {
+    return window.deletedTasks || [];
+  }
+
+  function isTaskDeleted(task) {
+    var deleted = getDeletedTasks();
+    return deleted.some(function(d) {
+      // Match by exact id first (works for UUIDs and unique IDs)
+      if (String(d.id) === String(task.id)) return true;
+      // For template tasks (is_template:true) also match by title+freq
+      // so the blacklist survives even if the template regenerates with a new ID
+      if (task.is_template && d.title && d.freq) {
+        return d.title === task.title && d.freq === task.freq;
+      }
+      return false;
+    });
+  }
+
+  function stripDeletedTasks() {
+    if (!window.tasks) return;
+    var before = window.tasks.length;
+    window.tasks = window.tasks.filter(function(t) { return !isTaskDeleted(t); });
+    if (window.tasks.length !== before) {
+      console.log('[comms-fix] v34: stripped', before - window.tasks.length, 'permanently deleted task(s)');
+    }
+  }
+
+  // Called when user confirms permanent delete from the panel
+  window.__v24_deleteTask = function(sid) {
+    // Find the task
+    var task = null;
+    (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
+    if (!task) return;
+
+    var confirmed = window.confirm(
+      'Are you sure you want to permanently delete "' + (task.title || 'this task') + '"?\n\nThis cannot be undone — the task will be removed for everyone and will not come back.'
+    );
+    if (!confirmed) return;
+
+    // Add to deletedTasks blacklist
+    if (!window.deletedTasks) window.deletedTasks = [];
+    window.deletedTasks.push({
+      id: task.id,
+      title: task.title || '',
+      freq: task.freq || ''
+    });
+
+    // Remove from live tasks array immediately
+    window.tasks = (window.tasks || []).filter(function(x) { return safeId(x.id) !== sid; });
+
+    // Also clear from hiddenTasks if it was hidden
+    if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) {
+      delete window.hiddenTasks[String(task.id)];
+    }
+
+    // Save everything
+    if (typeof window.saveData === 'function') window.saveData();
+
+    // Close panel and force re-patch so the row disappears immediately
+    closePanel();
+    // Mark all tables as needing re-patch by removing v24skip
+    document.querySelectorAll('table[data-v24skip]').forEach(function(t) {
+      delete t.dataset.v24skip;
+    });
+    setTimeout(doPatch, 100);
+
+    console.log('[comms-fix] v34: permanently deleted task:', task.title);
+  };
+  // ── END PERMANENT DELETE ──────────────────────────────────────────────────
+
   // ── TASK TABLE v24 — FLOATING PANEL APPROACH ─────────────────────────────
   var ST = [
     { v: 'not-started', l: 'Not Started', bg: '#f0f0f0', c: '#666' },
@@ -205,7 +321,7 @@
       'box-shadow:0 4px 20px rgba(0,0,0,.12);padding:18px 20px;max-width:480px;',
       'max-height:70vh;overflow-y:auto;font-family:inherit}',
       '#v24panel .v24-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}',
-      '#v24panel .v24-val{font-size:13px;color:#333;white-space:pre-wrap;margin-bottom:12py}',
+      '#v24panel .v24-val{font-size:13px;color:#333;white-space:pre-wrap;margin-bottom:12px}',
       '#v24panel textarea{width:100%;box-sizing:border-box;border:1px solid #d4c9bc;border-radius:8px;',
       'padding:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;margin-top:4px}',
       '#v24panel .v24-save{background:#c07a5a;border:none;color:#fff;font-size:12px;padding:5px 14px;',
@@ -215,7 +331,11 @@
       'font-size:18px;color:#aaa;cursor:pointer;line-height:1}',
       '.v24-notes-btn{background:#f5f0eb;border:1px solid #d4c9bc;color:#7a6a5a;font-size:11px;',
       'padding:3px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;display:inline-block;margin-top:3px}',
-      '.v24-notes-btn:hover{background:#ece4da}'
+      '.v24-notes-btn:hover{background:#ece4da}',
+      // v34: delete button styles
+      '#v24panel .v24-delete{background:none;border:1px solid #e0c0c0;color:#c62828;font-size:11px;',
+      'padding:4px 12px;border-radius:8px;cursor:pointer;margin-top:14px;display:block;width:100%;text-align:center}',
+      '#v24panel .v24-delete:hover{background:#fdecea}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -237,7 +357,7 @@
     openPanelSid = null;
   }
 
-  // v33 FIX: use safeId(x.id) === taskSid for lookup (taskSid IS already a safeId string)
+  // v33 FIX: use safeId(x.id) === taskSid for lookup
   window.__v24_status = function(taskSid, newVal, sel) {
     var t = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === taskSid) t = x; });
@@ -251,7 +371,6 @@
   };
 
   window.__v24_saveNote = function(sid, noteSid) {
-    // Find task by safeId
     var t = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) t = x; });
     if (!t) return;
@@ -270,11 +389,9 @@
   };
 
   window.__v24_openPanel = function(sid, anchorEl) {
-    // If same panel already open, close it
     if (openPanelSid === sid) { closePanel(); return; }
     openPanelSid = sid;
 
-    // Find task by matching safeId
     var task = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
     if (!task) return;
@@ -306,13 +423,15 @@
       html += '<div class="v24-lbl">My Notes</div>';
       html += '<textarea id="v24ta' + sid + '">' + esc(myNote) + '</textarea>';
       html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
-      // Show owner notes read-only if they exist
       var ownerNote = task.notes || '';
       if (ownerNote) {
         html += '<div class="v24-lbl" style="margin-top:14px">Note from Latisha (Owner)</div>';
         html += '<div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(ownerNote) + '</div>';
       }
     }
+
+    // v34: Permanent delete button — visible to everyone
+    html += '<button class="v24-delete" onclick="__v24_deleteTask(\'' + sid + '\')">\uD83D\uDDD1 Delete permanently</button>';
 
     var panel = getOrCreatePanel();
     panel.innerHTML = html;
@@ -323,12 +442,10 @@
     var panelW = Math.min(480, window.innerWidth * 0.9);
     var panelH = panel.offsetHeight || 350;
 
-    // Left: prefer aligning with anchor, but clamp so panel stays on screen
     var left = rect.left;
     if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
     if (left < 8) left = 8;
 
-    // Top: show below anchor if space, otherwise above
     var spaceBelow = window.innerHeight - rect.bottom;
     var top;
     if (spaceBelow >= panelH + 10) {
@@ -336,7 +453,6 @@
     } else {
       top = rect.top - panelH - 6;
     }
-    // Clamp vertically
     if (top + panelH > window.innerHeight - 8) top = window.innerHeight - panelH - 8;
     if (top < 8) top = 8;
 
@@ -344,7 +460,6 @@
     panel.style.top = top + 'px';
     panel.style.left = left + 'px';
 
-    // Close on outside click
     setTimeout(function() {
       document.addEventListener('click', function outsideClick(e) {
         var p = document.getElementById('v24panel');
@@ -380,6 +495,10 @@
 
   function doPatch() {
     if (!window.tasks || !window.tasks.length) return;
+
+    // v34: strip any deleted tasks from the live array before patching
+    stripDeletedTasks();
+
     var tables = document.querySelectorAll('table');
     for (var ti = 0; ti < tables.length; ti++) {
       var table = tables[ti];
@@ -418,18 +537,15 @@
 
         var titCell = titIdx > -1 ? cells[titIdx] : cells[0];
         if (!titCell) continue;
-        // Skip already-patched rows (title cell already has our span)
         if (titCell.dataset.v24c) continue;
         var titleText = titCell.textContent.trim();
 
-        // Get the current status text from the status cell to disambiguate duplicates
         var curStatusText = '';
         if (stIdx > -1 && cells[stIdx]) {
           curStatusText = cells[stIdx].textContent.trim().toLowerCase().replace(/\s+/g,'-');
         }
 
         var task = null;
-        // Try to match by title AND status to handle duplicate titles
         var titleMatches = [];
         for (var xi = 0; xi < (window.tasks || []).length; xi++) {
           if ((window.tasks[xi].title || '').trim() === titleText) titleMatches.push(window.tasks[xi]);
@@ -438,14 +554,12 @@
         if (titleMatches.length === 1) {
           task = titleMatches[0];
         } else {
-          // Multiple tasks with same title - try to match by status
           for (var mi = 0; mi < titleMatches.length; mi++) {
             var ts = (titleMatches[mi].status || 'not-started').toLowerCase();
             if (ts === curStatusText || curStatusText.indexOf(ts.replace(/-/g,'')) > -1) {
               task = titleMatches[mi]; break;
             }
           }
-          // If still not matched, just use first
           if (!task) task = titleMatches[0];
         }
         if (!task) continue;
@@ -456,7 +570,7 @@
           cells[stIdx].innerHTML = buildSelect(task);
         }
 
-        // Hours Allowed: if cell shows '—' but task has hrs_allowed (snake_case), fill it in
+        // Hours Allowed
         if (hrsIdx > -1 && cells[hrsIdx] && !cells[hrsIdx].dataset.v24h) {
           var hrsVal = task.hrs_allowed || task.hrsAllowed || '';
           if (hrsVal && String(hrsVal) !== '0' && cells[hrsIdx].textContent.trim() === '—') {
@@ -465,7 +579,7 @@
           }
         }
 
-        // Notes column: show existing note text + button
+        // Notes column
         if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v24n) {
           cells[notIdx].dataset.v24n = '1';
           var existingNote = task.staffNotes || task.staff_notes || task.notes || '';
@@ -475,7 +589,7 @@
           cells[notIdx].innerHTML = notePreview + buildNoteBtn(task);
         }
 
-        // Title: make clickable to open panel (same as note btn)
+        // Title: clickable to open panel
         titCell.dataset.v24c = '1';
         titCell.style.cursor = 'pointer';
         var titleEsc = esc(task.title || titleText);
@@ -498,7 +612,7 @@
     setInterval(doPatch, 900);
     console.log('[v24] task table watcher active');
   }
-  // ── END TASK TABLE v24 ───────────────────────────────────────────────────
+  // ── END TASK TABLE v24 ────────────────────────────────────────────────────
 
   function boot() {
     console.log('[comms-fix] v24.0 booting...');
@@ -512,6 +626,17 @@
       setInterval(pollGroup, 5000);
       fixRenderHiddenBoxFor();
       fixUnhideTask();
+
+      // v34: init deletedTasks if not present, then strip immediately
+      if (!window.deletedTasks) window.deletedTasks = [];
+      stripDeletedTasks();
+
+      // v34: clear any hidden tasks from a previous week
+      clearStaleHiddenTasks();
+
+      // v34: patch hideTask to stamp week number going forward
+      patchHideTask();
+
       watchTaskTable();
       console.log('[comms-fix] v24.0 active');
     }, 2000);
