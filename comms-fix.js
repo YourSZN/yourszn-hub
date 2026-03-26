@@ -382,6 +382,7 @@
       var stIdx  = hdrs.indexOf('status');
       var titIdx = hdrs.indexOf('task') > -1 ? hdrs.indexOf('task') : hdrs.indexOf('title');
       var notIdx = hdrs.indexOf('notes');
+      var hrsIdx = hdrs.indexOf('hours allowed');
 
       if (priIdx > -1) ths[priIdx].classList.add('v24pri');
       if (notIdx > -1) { ths[notIdx].style.minWidth = '200px'; ths[notIdx].style.width = '240px'; }
@@ -438,6 +439,15 @@
         // Status dropdown
         if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v24s]')) {
           cells[stIdx].innerHTML = buildSelect(task);
+        }
+
+        // Hours Allowed: if cell shows '—' but task has hrs_allowed (snake_case), fill it in
+        if (hrsIdx > -1 && cells[hrsIdx] && !cells[hrsIdx].dataset.v24h) {
+          var hrsVal = task.hrs_allowed || task.hrsAllowed || '';
+          if (hrsVal && String(hrsVal) !== '0' && cells[hrsIdx].textContent.trim() === '—') {
+            cells[hrsIdx].dataset.v24h = '1';
+            cells[hrsIdx].textContent = hrsVal + 'h';
+          }
         }
 
         // Notes column: show existing note text + button
