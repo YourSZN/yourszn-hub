@@ -1,16 +1,16 @@
 /**
- * comms-fix.js v36
+ * comms-fix.js v37
  * v16 core: DM + Group + Hidden tasks UNCHANGED
  * v24: Floating panel task table approach
  * v33: safeId lookup fix for UUID task IDs
  * v34: Permanent delete with blacklist
- * v36: Fix hidden task weekly reset — use DOM date range text as week key
- *      (window.metaWeekOff never changes on nav; DOM date label is reliable)
+ * v37: Fix hidden task weekly reset — correct DOM selector for date label
+ *      format is "This Week — 23 Mar to 29 Mar" / "Next Week — 30 Mar to 5 Apr"
  */
 (function () {
   'use strict';
   var U = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-  var K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhhYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+  var K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
   var H = { apikey: K, Authorization: 'Bearer ' + K, 'Content-Type': 'application/json' };
 
   function tk(a, b) { return [a, b].sort().join('_'); }
@@ -169,43 +169,34 @@
   }
   // ── END HIDDEN TASK FIX ───────────────────────────────────────────────────
 
-  // ── v36: WEEKLY HIDDEN RESET (DOM date label-based) ─────────────────────────
+  // ── v36: WEEKLY HIDDEN RESET (DOM date label-based) ──────────────────────
   // window.metaWeekOff never changes when clicking Prev/Next (stays 0 always).
   // Instead we read the date range text directly from the DOM — e.g. "26 Mar to 1 Apr".
   // This is the small text under "Tasks" heading that the app always updates on nav.
   // We stamp that label on each hiddenTask entry and compare on every render.
 
   function getCurrentWeekLabel() {
-    // The app renders a date range like "26 Mar to 1 Apr" or "30 Mar to 5 Apr"
-    // It appears as a <p> or <small> directly under the Tasks heading.
-    // Try several selectors to find it robustly.
-    var selectors = [
-      'h1 + p', 'h2 + p', 'h3 + p',
-      '.tasks-header p', '.week-label', '[class*="week"] p',
-      'h1 ~ p', 'h2 ~ p'
-    ];
-    for (var i = 0; i < selectors.length; i++) {
-      var el = document.querySelector(selectors[i]);
-      if (el) {
-        var text = el.textContent.trim();
-        // Must look like a date range — contains "Apr", "Mar", "May", etc.
-        if (/\d+\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(text)) {
-          return text;
-        }
+    // The app renders text like:
+    //   "This Week — 23 Mar to 29 Mar"
+    //   "Next Week — 30 Mar to 5 Apr"
+    //   "6 Apr to 12 Apr"  (further future weeks have no prefix)
+    // We scan all text nodes for the date range part (after the em-dash if present).
+    var all = document.querySelectorAll('p, small, span, h2, h3, div');
+    var datePattern = /(\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i;
+    for (var i = 0; i < all.length; i++) {
+      // Only look at direct text, not deeply nested
+      var el = all[i];
+      if (el.children.length > 2) continue; // skip containers with many children
+      var text = el.textContent.trim();
+      var match = text.match(datePattern);
+      if (match) {
+        return match[1]; // return just the date range e.g. "23 Mar to 29 Mar"
       }
     }
-    // Fallback: scan all small text elements for a date range pattern
-    var all = document.querySelectorAll('p, small, span');
-    for (var j = 0; j < all.length; j++) {
-      var t = all[j].textContent.trim();
-      if (/^\d+\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+/i.test(t)) {
-        return t;
-      }
-    }
-    // Last resort: use ISO week number so at minimum it changes weekly
+    // Fallback: ISO week
     var now = new Date();
     var startOfYear = new Date(now.getFullYear(), 0, 1);
-    var week = Math.ceil((((now - startOfYear) / 86400000) + startOfYear.getDay() + 1) / 7);
+    var week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
     return now.getFullYear() + '-W' + week;
   }
 
@@ -281,7 +272,10 @@
   function isTaskDeleted(task) {
     var deleted = getDeletedTasks();
     return deleted.some(function(d) {
+      // Match by exact id first (works for UUIDs and unique IDs)
       if (String(d.id) === String(task.id)) return true;
+      // For template tasks (is_template:true) also match by title+freq
+      // so the blacklist survives even if the template regenerates with a new ID
       if (task.is_template && d.title && d.freq) {
         return d.title === task.title && d.freq === task.freq;
       }
@@ -298,20 +292,45 @@
     }
   }
 
+  // Called when user confirms permanent delete from the panel
   window.__v24_deleteTask = function(sid) {
+    // Find the task
     var task = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
     if (!task) return;
-    var confirmed = window.confirm('Are you sure you want to permanently delete "' + (task.title || 'this task') + '"?\n\nThis cannot be undone — the task will be removed for everyone and will not come back.');
+
+    var confirmed = window.confirm(
+      'Are you sure you want to permanently delete "' + (task.title || 'this task') + '"?\n\nThis cannot be undone — the task will be removed for everyone and will not come back.'
+    );
     if (!confirmed) return;
+
+    // Add to deletedTasks blacklist
     if (!window.deletedTasks) window.deletedTasks = [];
-    window.deletedTasks.push({ id: task.id, title: task.title || '', freq: task.freq || '' });
+    window.deletedTasks.push({
+      id: task.id,
+      title: task.title || '',
+      freq: task.freq || ''
+    });
+
+    // Remove from live tasks array immediately
     window.tasks = (window.tasks || []).filter(function(x) { return safeId(x.id) !== sid; });
-    if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) delete window.hiddenTasks[String(task.id)];
+
+    // Also clear from hiddenTasks if it was hidden
+    if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) {
+      delete window.hiddenTasks[String(task.id)];
+    }
+
+    // Save everything
     if (typeof window.saveData === 'function') window.saveData();
+
+    // Close panel and force re-patch so the row disappears immediately
     closePanel();
-    document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
+    // Mark all tables as needing re-patch by removing v24skip
+    document.querySelectorAll('table[data-v24skip]').forEach(function(t) {
+      delete t.dataset.v24skip;
+    });
     setTimeout(doPatch, 100);
+
     console.log('[comms-fix] v34: permanently deleted task:', task.title);
   };
   // ── END PERMANENT DELETE ──────────────────────────────────────────────────
@@ -361,6 +380,7 @@
       '.v24-notes-btn{background:#f5f0eb;border:1px solid #d4c9bc;color:#7a6a5a;font-size:11px;',
       'padding:3px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;display:inline-block;margin-top:3px}',
       '.v24-notes-btn:hover{background:#ece4da}',
+      // v34: delete button styles
       '#v24panel .v24-delete{background:none;border:1px solid #e0c0c0;color:#c62828;font-size:11px;',
       'padding:4px 12px;border-radius:8px;cursor:pointer;margin-top:14px;display:block;width:100%;text-align:center}',
       '#v24panel .v24-delete:hover{background:#fdecea}'
@@ -385,6 +405,7 @@
     openPanelSid = null;
   }
 
+  // v33 FIX: use safeId(x.id) === taskSid for lookup
   window.__v24_status = function(taskSid, newVal, sel) {
     var t = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === taskSid) t = x; });
@@ -418,19 +439,24 @@
   window.__v24_openPanel = function(sid, anchorEl) {
     if (openPanelSid === sid) { closePanel(); return; }
     openPanelSid = sid;
+
     var task = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
     if (!task) return;
+
     var isLatisha = (window.curUser || '').toLowerCase() === 'latisha';
     var desc  = task.desc || task.description || '';
     var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
     var file  = task.fileUrl || task.file_url || '';
     var myNote = isLatisha ? (task.notes || '') : (task.staffNotes || task.staff_notes || '');
+
     var html = '<button class="v24-close" onclick="__v24_closePanel()">\u00d7</button>';
     html += '<div style="font-weight:700;font-size:14px;margin-bottom:12px;padding-right:20px">' + esc(task.title || '') + '</div>';
+
     if (desc)  html += '<div class="v24-lbl">Instructions</div><div class="v24-val">' + esc(desc) + '</div>';
     if (video) html += '<div class="v24-lbl">Training Video</div><div class="v24-val"><a href="' + esc(video) + '" target="_blank" style="color:#b5785a">' + esc(video) + '</a></div>';
     if (file)  html += '<div class="v24-lbl">File / Resource</div><div class="v24-val"><a href="' + esc(file) + '" target="_blank" style="color:#b5785a">' + esc(file) + '</a></div>';
+
     if (isLatisha) {
       html += '<div class="v24-lbl">My Notes (Owner)</div>';
       html += '<textarea id="v24ta' + sid + '">' + esc(task.notes || '') + '</textarea>';
@@ -451,25 +477,37 @@
         html += '<div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(ownerNote) + '</div>';
       }
     }
-    html += '<button class="v24-delete" onclick="__v24_deleteTask(\'' + sid + '\')">\uD83D\uDDD1 Delete permanently</button>';
+
+    // v34: Permanent delete button — visible to everyone
+    html += '<button class="v24-delete" onclick="__v24_deleteTask(\'' + sid + '\')">\uD83D\uDED1 Delete permanently</button>';
+
     var panel = getOrCreatePanel();
     panel.innerHTML = html;
     panel.style.display = 'block';
+
+    // Positioning: always keep panel fully within viewport
     var rect = anchorEl.getBoundingClientRect();
     var panelW = Math.min(480, window.innerWidth * 0.9);
     var panelH = panel.offsetHeight || 350;
+
     var left = rect.left;
     if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
     if (left < 8) left = 8;
+
     var spaceBelow = window.innerHeight - rect.bottom;
     var top;
-    if (spaceBelow >= panelH + 10) { top = rect.bottom + 6; }
-    else { top = rect.top - panelH - 6; }
+    if (spaceBelow >= panelH + 10) {
+      top = rect.bottom + 6;
+    } else {
+      top = rect.top - panelH - 6;
+    }
     if (top + panelH > window.innerHeight - 8) top = window.innerHeight - panelH - 8;
     if (top < 8) top = 8;
+
     panel.style.width = panelW + 'px';
     panel.style.top = top + 'px';
     panel.style.left = left + 'px';
+
     setTimeout(function() {
       document.addEventListener('click', function outsideClick(e) {
         var p = document.getElementById('v24panel');
