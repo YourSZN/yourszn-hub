@@ -1,12 +1,12 @@
 /**
- * comms-fix.js v34
+ * comms-fix.js v35
  * v16 core: DM + Group + Hidden tasks UNCHANGED
  * v24: Floating panel task table approach
  * v33: safeId lookup fix for UUID task IDs
- * v34:
- *   - Hidden tasks reset weekly (not carried over to next week)
- *   - Permanent delete: removes task for everyone immediately + adds to
- *     deletedTasks blacklist so template tasks never respawn
+ * v34: Permanent delete with blacklist
+ * v35: Fix hidden task weekly reset — use app's metaWeekOff (not calendar
+ *      week) so tasks hidden on week 0 stay hidden only when viewing week 0,
+ *      visible on week 1+, and restore correctly when navigating back
  */
 (function () {
   'use strict';
@@ -106,7 +106,9 @@
       var elId = view === 'owner' ? 'hidden-box-owner' : 'hidden-box-staff';
       var el = document.getElementById(elId);
       if (!el) return;
-      var hiddenIds = Object.keys(window.hiddenTasks || {});
+      var hiddenIds = Object.keys(window.hiddenTasks || {}).filter(function(id) {
+        return isHiddenThisWeek(window.hiddenTasks[id]);
+      });
       var myHidden;
       if (window.curUser === 'latisha') {
         myHidden = hiddenIds.map(function(id) {
@@ -168,47 +170,77 @@
   }
   // ── END HIDDEN TASK FIX ───────────────────────────────────────────────────
 
-  // ── v34: WEEKLY HIDDEN RESET ──────────────────────────────────────────────
-  // Week number = number of complete 7-day periods since epoch (UTC Monday-based)
-  function currentWeekNumber() {
-    // Use Thursday to determine week (ISO week standard — stable across week boundaries)
-    return Math.floor((Date.now() - 4 * 24 * 60 * 60 * 1000) / (7 * 24 * 60 * 60 * 1000));
+  // ── v35: WEEKLY HIDDEN RESET (metaWeekOff-based) ─────────────────────────
+  // The app uses window.metaWeekOff (0 = current week, 1 = next, -1 = prev).
+  // We stamp each hiddenTask entry with the weekOffset at the time of hiding.
+  // When checking visibility we compare entry.weekOffset === window.metaWeekOff.
+  // This means:
+  //   - Hide task on week 0 → hidden only when metaWeekOff === 0
+  //   - Click Next (metaWeekOff = 1) → task visible again
+  //   - Click Prev (metaWeekOff = 0) → task hidden again
+  //   - No entries are ever purged — they're kept per-week offset
+
+  function getWeekOff() {
+    // Default to 0 (current week) if not yet set
+    return (typeof window.metaWeekOff === 'number') ? window.metaWeekOff : 0;
   }
 
-  function clearStaleHiddenTasks() {
-    if (!window.hiddenTasks) return;
-    var wk = currentWeekNumber();
-    var changed = false;
-    Object.keys(window.hiddenTasks).forEach(function(id) {
-      var entry = window.hiddenTasks[id];
-      // If entry has no weekNumber stored, it predates this feature — clear it
-      if (!entry || entry.weekNumber === undefined || entry.weekNumber !== wk) {
-        delete window.hiddenTasks[id];
-        changed = true;
-      }
-    });
-    if (changed && typeof window.saveData === 'function') {
-      window.saveData();
-      console.log('[comms-fix] v34: cleared stale hidden tasks from previous week(s)');
-    }
+  // Check whether a hiddenTask entry applies to the current week view
+  function isHiddenThisWeek(entry) {
+    if (!entry) return false;
+    // v35: use weekOffset (metaWeekOff-based)
+    if (entry.weekOffset !== undefined) return entry.weekOffset === getWeekOff();
+    // Legacy entries (weekNumber from v34 calendar-based) — treat as stale, not hidden
+    return false;
   }
 
-  // Patch window.hideTask to stamp the current week number when hiding
+  // Patch window.hideTask to stamp the current metaWeekOff when hiding
   function patchHideTask() {
     if (typeof window.hideTask !== 'function') return;
     var orig = window.hideTask;
     window.hideTask = function(taskId) {
       var r = orig.call(this, taskId);
-      // After hiding, stamp the week number onto the entry
+      // After the app writes to hiddenTasks, stamp weekOffset
       setTimeout(function() {
         if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
-          window.hiddenTasks[String(taskId)].weekNumber = currentWeekNumber();
+          window.hiddenTasks[String(taskId)].weekOffset = getWeekOff();
+          // Remove stale calendar-based weekNumber if present
+          delete window.hiddenTasks[String(taskId)].weekNumber;
           if (typeof window.saveData === 'function') window.saveData();
         }
       }, 100);
       return r;
     };
-    console.log('[comms-fix] v34: hideTask patched with weekly stamp');
+    console.log('[comms-fix] v35: hideTask patched with metaWeekOff stamp');
+  }
+
+  // Also patch the Previous/Next week navigation so our doPatch re-runs
+  // and re-evaluates which tasks should show/hide for the new week offset.
+  // We hook into whatever function the app calls to change metaWeekOff.
+  function patchWeekNav() {
+    // The app likely calls something like changeWeek(+1) or setWeekOff(n).
+    // We watch for metaWeekOff changes via a polling interval and re-patch
+    // the task table whenever the week offset changes.
+    var lastWeekOff = getWeekOff();
+    setInterval(function() {
+      var current = getWeekOff();
+      if (current !== lastWeekOff) {
+        lastWeekOff = current;
+        console.log('[comms-fix] v35: week offset changed to', current, '— re-patching table');
+        // Reset all table patch markers so doPatch re-evaluates every row
+        document.querySelectorAll('table[data-v24skip]').forEach(function(t) {
+          delete t.dataset.v24skip;
+        });
+        document.querySelectorAll('[data-v24c]').forEach(function(el) {
+          delete el.dataset.v24c;
+        });
+        document.querySelectorAll('[data-v24n]').forEach(function(el) {
+          delete el.dataset.v24n;
+        });
+        setTimeout(doPatch, 200);
+      }
+    }, 500);
+    console.log('[comms-fix] v35: week nav watcher active');
   }
   // ── END WEEKLY HIDDEN RESET ───────────────────────────────────────────────
 
@@ -627,15 +659,15 @@
       fixRenderHiddenBoxFor();
       fixUnhideTask();
 
-      // v34: init deletedTasks if not present, then strip immediately
+      // v35: init deletedTasks if not present, then strip immediately
       if (!window.deletedTasks) window.deletedTasks = [];
       stripDeletedTasks();
 
-      // v34: clear any hidden tasks from a previous week
-      clearStaleHiddenTasks();
-
-      // v34: patch hideTask to stamp week number going forward
+      // v35: patch hideTask to stamp metaWeekOff when hiding
       patchHideTask();
+
+      // v35: watch for week navigation changes
+      patchWeekNav();
 
       watchTaskTable();
       console.log('[comms-fix] v24.0 active');
