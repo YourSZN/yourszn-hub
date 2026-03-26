@@ -1,5 +1,5 @@
 /**
- * comms-fix.js v24.0
+ * comms-fix.js v33
  * v16 core: DM + Group + Hidden tasks UNCHANGED
  * v24: Complete rewrite of task table approach
  *   - NO MORE colspan/tr injection — uses floating div panel instead
@@ -8,6 +8,7 @@
  *   - Status dropdown inline
  *   - Notes button opens floating panel below the row
  *   - Panel rebuilds fresh on open based on curUser
+ * v33: Fix __v24_status to use safeId lookup (fixes UUID-based task IDs)
  */
 (function () {
   'use strict';
@@ -20,7 +21,7 @@
     try { fetch(U + '/rest/v1/' + table, { method: 'POST', headers: Object.assign({}, H, { Prefer: 'return=minimal' }), body: JSON.stringify(data) }); } catch(e) {}
   }
 
-  // ── DM SECTION - DO NOT MODIFY ─────────────────────────────────
+  // ── DM SECTION - DO NOT MODIFY ────────────────────────────────────────────
   function filterDMsForUser(user) {
     if (!window.dmMsgs || !window.USERS || !user) return;
     var others = Object.keys(window.USERS).map(function(k) { return k.toLowerCase(); }).filter(function(k) { return k !== user; });
@@ -67,9 +68,9 @@
       }
     };
   }
-  // ── END DM SECTION ────────────────────────────────────────
+  // ── END DM SECTION ────────────────────────────────────────────────────────
 
-  // ── GROUP CHAT SECTION - DO NOT MODIFY ──────────────────────
+  // ── GROUP CHAT SECTION - DO NOT MODIFY ───────────────────────────────────
   function interceptSendGroupMsg() {
     if (typeof window.sendGroupMsg !== 'function') return;
     var orig = window.sendGroupMsg;
@@ -99,9 +100,9 @@
         if (typeof window.renderGroupThread === 'function') window.renderGroupThread();
       }).catch(function() {});
   }
-  // ── END GROUP CHAT SECTION ─────────────────────────────
+  // ── END GROUP CHAT SECTION ────────────────────────────────────────────────
 
-  // ── HIDDEN TASK FIX - EXACT v16 ──────────────────────────────
+  // ── HIDDEN TASK FIX - EXACT v16 ──────────────────────────────────────────
   function fixRenderHiddenBoxFor() {
     if (typeof window.renderHiddenBoxFor !== 'function') return;
     window.renderHiddenBoxFor = function(view) {
@@ -168,9 +169,9 @@
       if (typeof window.saveData === 'function') window.saveData();
     };
   }
-  // ── END HIDDEN TASK FIX ───────────────────────────────────
+  // ── END HIDDEN TASK FIX ───────────────────────────────────────────────────
 
-  // ── TASK TABLE v24 — FLOATING PANEL APPROACH ─────────────
+  // ── TASK TABLE v24 — FLOATING PANEL APPROACH ─────────────────────────────
   var ST = [
     { v: 'not-started', l: 'Not Started', bg: '#f0f0f0', c: '#666' },
     { v: 'in-progress', l: 'In Progress', bg: '#fff3e0', c: '#e65100' },
@@ -204,7 +205,7 @@
       'box-shadow:0 4px 20px rgba(0,0,0,.12);padding:18px 20px;max-width:480px;',
       'max-height:70vh;overflow-y:auto;font-family:inherit}',
       '#v24panel .v24-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}',
-      '#v24panel .v24-val{font-size:13px;color:#333;white-space:pre-wrap;margin-bottom:12px}',
+      '#v24panel .v24-val{font-size:13px;color:#333;white-space:pre-wrap;margin-bottom:12py}',
       '#v24panel textarea{width:100%;box-sizing:border-box;border:1px solid #d4c9bc;border-radius:8px;',
       'padding:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:70px;margin-top:4px}',
       '#v24panel .v24-save{background:#c07a5a;border:none;color:#fff;font-size:12px;padding:5px 14px;',
@@ -236,9 +237,10 @@
     openPanelSid = null;
   }
 
-  window.__v24_status = function(taskId, newVal, sel) {
+  // v33 FIX: use safeId(x.id) === taskSid for lookup (taskSid IS already a safeId string)
+  window.__v24_status = function(taskSid, newVal, sel) {
     var t = null;
-    (window.tasks || []).forEach(function(x) { if (String(x.id) === String(taskId)) t = x; });
+    (window.tasks || []).forEach(function(x) { if (safeId(x.id) === taskSid) t = x; });
     if (!t) return;
     t.status = newVal;
     var cfg = stCfg(newVal);
@@ -496,7 +498,7 @@
     setInterval(doPatch, 900);
     console.log('[v24] task table watcher active');
   }
-  // ── END TASK TABLE v24 ────────────────────────────────────
+  // ── END TASK TABLE v24 ───────────────────────────────────────────────────
 
   function boot() {
     console.log('[comms-fix] v24.0 booting...');
