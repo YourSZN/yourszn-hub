@@ -201,7 +201,7 @@
     s.textContent = [
       '.v24pri{display:none!important;width:0!important;padding:0!important;border:none!important}',
       '#v24panel{position:fixed;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:10px;',
-      'box-shadow:0 4px 20px rgba(0,0,0,.12);padding:18px 20px;max-width:480px;width:90vw;',
+      'box-shadow:0 4px 20px rgba(0,0,0,.12);padding:18px 20px;max-width:480px;',
       'max-height:70vh;overflow-y:auto;font-family:inherit}',
       '#v24panel .v24-lbl{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}',
       '#v24panel .v24-val{font-size:13px;color:#333;white-space:pre-wrap;margin-bottom:12px}',
@@ -310,22 +310,29 @@
     panel.innerHTML = html;
     panel.style.display = 'block';
 
-    // Smart positioning: show below anchor, but flip above if near bottom of viewport
+    // Positioning: always keep panel fully within viewport
     var rect = anchorEl.getBoundingClientRect();
-    var panelH = Math.min(panel.offsetHeight || 350, window.innerHeight * 0.7);
-    var spaceBelow = window.innerHeight - rect.bottom;
-    var left = Math.min(rect.left + window.scrollX, window.innerWidth - 500);
+    var panelW = Math.min(480, window.innerWidth * 0.9);
+    var panelH = panel.offsetHeight || 350;
+
+    // Left: prefer aligning with anchor, but clamp so panel stays on screen
+    var left = rect.left;
+    if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
     if (left < 8) left = 8;
+
+    // Top: show below anchor if space, otherwise above
+    var spaceBelow = window.innerHeight - rect.bottom;
     var top;
-    if (spaceBelow >= panelH + 10 || spaceBelow >= 200) {
-      // enough space below — show below anchor
-      top = rect.bottom + window.scrollY + 6;
+    if (spaceBelow >= panelH + 10) {
+      top = rect.bottom + 6;
     } else {
-      // not enough space below — show above anchor
-      top = rect.top + window.scrollY - panelH - 6;
+      top = rect.top - panelH - 6;
     }
-    // Clamp so panel never goes above viewport top
-    if (top < window.scrollY + 8) top = window.scrollY + 8;
+    // Clamp vertically
+    if (top + panelH > window.innerHeight - 8) top = window.innerHeight - panelH - 8;
+    if (top < 8) top = 8;
+
+    panel.style.width = panelW + 'px';
     panel.style.top = top + 'px';
     panel.style.left = left + 'px';
 
