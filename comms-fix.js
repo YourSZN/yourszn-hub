@@ -1,17 +1,16 @@
 /**
- * comms-fix.js v35
+ * comms-fix.js v36
  * v16 core: DM + Group + Hidden tasks UNCHANGED
  * v24: Floating panel task table approach
  * v33: safeId lookup fix for UUID task IDs
  * v34: Permanent delete with blacklist
- * v35: Fix hidden task weekly reset — use app's metaWeekOff (not calendar
- *      week) so tasks hidden on week 0 stay hidden only when viewing week 0,
- *      visible on week 1+, and restore correctly when navigating back
+ * v36: Fix hidden task weekly reset — use DOM date range text as week key
+ *      (window.metaWeekOff never changes on nav; DOM date label is reliable)
  */
 (function () {
   'use strict';
   var U = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-  var K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+  var K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhhYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
   var H = { apikey: K, Authorization: 'Bearer ' + K, 'Content-Type': 'application/json' };
 
   function tk(a, b) { return [a, b].sort().join('_'); }
@@ -170,64 +169,90 @@
   }
   // ── END HIDDEN TASK FIX ───────────────────────────────────────────────────
 
-  // ── v35: WEEKLY HIDDEN RESET (metaWeekOff-based) ─────────────────────────
-  // The app uses window.metaWeekOff (0 = current week, 1 = next, -1 = prev).
-  // We stamp each hiddenTask entry with the weekOffset at the time of hiding.
-  // When checking visibility we compare entry.weekOffset === window.metaWeekOff.
-  // This means:
-  //   - Hide task on week 0 → hidden only when metaWeekOff === 0
-  //   - Click Next (metaWeekOff = 1) → task visible again
-  //   - Click Prev (metaWeekOff = 0) → task hidden again
-  //   - No entries are ever purged — they're kept per-week offset
+  // ── v36: WEEKLY HIDDEN RESET (DOM date label-based) ─────────────────────────
+  // window.metaWeekOff never changes when clicking Prev/Next (stays 0 always).
+  // Instead we read the date range text directly from the DOM — e.g. "26 Mar to 1 Apr".
+  // This is the small text under "Tasks" heading that the app always updates on nav.
+  // We stamp that label on each hiddenTask entry and compare on every render.
 
-  function getWeekOff() {
-    // Default to 0 (current week) if not yet set
-    return (typeof window.metaWeekOff === 'number') ? window.metaWeekOff : 0;
+  function getCurrentWeekLabel() {
+    // The app renders a date range like "26 Mar to 1 Apr" or "30 Mar to 5 Apr"
+    // It appears as a <p> or <small> directly under the Tasks heading.
+    // Try several selectors to find it robustly.
+    var selectors = [
+      'h1 + p', 'h2 + p', 'h3 + p',
+      '.tasks-header p', '.week-label', '[class*="week"] p',
+      'h1 ~ p', 'h2 ~ p'
+    ];
+    for (var i = 0; i < selectors.length; i++) {
+      var el = document.querySelector(selectors[i]);
+      if (el) {
+        var text = el.textContent.trim();
+        // Must look like a date range — contains "Apr", "Mar", "May", etc.
+        if (/\d+\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(text)) {
+          return text;
+        }
+      }
+    }
+    // Fallback: scan all small text elements for a date range pattern
+    var all = document.querySelectorAll('p, small, span');
+    for (var j = 0; j < all.length; j++) {
+      var t = all[j].textContent.trim();
+      if (/^\d+\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+/i.test(t)) {
+        return t;
+      }
+    }
+    // Last resort: use ISO week number so at minimum it changes weekly
+    var now = new Date();
+    var startOfYear = new Date(now.getFullYear(), 0, 1);
+    var week = Math.ceil((((now - startOfYear) / 86400000) + startOfYear.getDay() + 1) / 7);
+    return now.getFullYear() + '-W' + week;
   }
 
   // Check whether a hiddenTask entry applies to the current week view
   function isHiddenThisWeek(entry) {
     if (!entry) return false;
-    // v35: use weekOffset (metaWeekOff-based)
-    if (entry.weekOffset !== undefined) return entry.weekOffset === getWeekOff();
-    // Legacy entries (weekNumber from v34 calendar-based) — treat as stale, not hidden
+    // v36: compare weekLabel (DOM date text)
+    if (entry.weekLabel !== undefined) {
+      return entry.weekLabel === getCurrentWeekLabel();
+    }
+    // Legacy entries (weekOffset/weekNumber from v34/v35) — treat as stale
     return false;
   }
 
-  // Patch window.hideTask to stamp the current metaWeekOff when hiding
+  // Patch window.hideTask to stamp the current week label when hiding
   function patchHideTask() {
     if (typeof window.hideTask !== 'function') return;
     var orig = window.hideTask;
     window.hideTask = function(taskId) {
       var r = orig.call(this, taskId);
-      // After the app writes to hiddenTasks, stamp weekOffset
+      // After the app writes to hiddenTasks, stamp weekLabel
       setTimeout(function() {
         if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
-          window.hiddenTasks[String(taskId)].weekOffset = getWeekOff();
-          // Remove stale calendar-based weekNumber if present
+          window.hiddenTasks[String(taskId)].weekLabel = getCurrentWeekLabel();
+          // Clean up legacy fields
+          delete window.hiddenTasks[String(taskId)].weekOffset;
           delete window.hiddenTasks[String(taskId)].weekNumber;
           if (typeof window.saveData === 'function') window.saveData();
+          console.log('[comms-fix] v36: stamped weekLabel:', getCurrentWeekLabel(), 'on task', taskId);
         }
-      }, 100);
+      }, 150);
       return r;
     };
-    console.log('[comms-fix] v35: hideTask patched with metaWeekOff stamp');
+    console.log('[comms-fix] v36: hideTask patched with DOM week label stamp');
   }
 
-  // Also patch the Previous/Next week navigation so our doPatch re-runs
-  // and re-evaluates which tasks should show/hide for the new week offset.
-  // We hook into whatever function the app calls to change metaWeekOff.
+  // Watch for week navigation — detect when the DOM date label changes
+  // and force re-render of the hidden box so visibility updates immediately
   function patchWeekNav() {
-    // The app likely calls something like changeWeek(+1) or setWeekOff(n).
-    // We watch for metaWeekOff changes via a polling interval and re-patch
-    // the task table whenever the week offset changes.
-    var lastWeekOff = getWeekOff();
+    var lastLabel = getCurrentWeekLabel();
     setInterval(function() {
-      var current = getWeekOff();
-      if (current !== lastWeekOff) {
-        lastWeekOff = current;
-        console.log('[comms-fix] v35: week offset changed to', current, '— re-patching table');
-        // Reset all table patch markers so doPatch re-evaluates every row
+      var current = getCurrentWeekLabel();
+      if (current !== lastLabel) {
+        lastLabel = current;
+        console.log('[comms-fix] v36: week label changed to', current, '— re-rendering hidden box');
+        if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+        // Also reset table patch markers so status dropdowns re-render
         document.querySelectorAll('table[data-v24skip]').forEach(function(t) {
           delete t.dataset.v24skip;
         });
@@ -240,7 +265,7 @@
         setTimeout(doPatch, 200);
       }
     }, 500);
-    console.log('[comms-fix] v35: week nav watcher active');
+    console.log('[comms-fix] v36: week nav watcher active');
   }
   // ── END WEEKLY HIDDEN RESET ───────────────────────────────────────────────
 
@@ -256,10 +281,7 @@
   function isTaskDeleted(task) {
     var deleted = getDeletedTasks();
     return deleted.some(function(d) {
-      // Match by exact id first (works for UUIDs and unique IDs)
       if (String(d.id) === String(task.id)) return true;
-      // For template tasks (is_template:true) also match by title+freq
-      // so the blacklist survives even if the template regenerates with a new ID
       if (task.is_template && d.title && d.freq) {
         return d.title === task.title && d.freq === task.freq;
       }
@@ -276,45 +298,20 @@
     }
   }
 
-  // Called when user confirms permanent delete from the panel
   window.__v24_deleteTask = function(sid) {
-    // Find the task
     var task = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
     if (!task) return;
-
-    var confirmed = window.confirm(
-      'Are you sure you want to permanently delete "' + (task.title || 'this task') + '"?\n\nThis cannot be undone — the task will be removed for everyone and will not come back.'
-    );
+    var confirmed = window.confirm('Are you sure you want to permanently delete "' + (task.title || 'this task') + '"?\n\nThis cannot be undone — the task will be removed for everyone and will not come back.');
     if (!confirmed) return;
-
-    // Add to deletedTasks blacklist
     if (!window.deletedTasks) window.deletedTasks = [];
-    window.deletedTasks.push({
-      id: task.id,
-      title: task.title || '',
-      freq: task.freq || ''
-    });
-
-    // Remove from live tasks array immediately
+    window.deletedTasks.push({ id: task.id, title: task.title || '', freq: task.freq || '' });
     window.tasks = (window.tasks || []).filter(function(x) { return safeId(x.id) !== sid; });
-
-    // Also clear from hiddenTasks if it was hidden
-    if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) {
-      delete window.hiddenTasks[String(task.id)];
-    }
-
-    // Save everything
+    if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) delete window.hiddenTasks[String(task.id)];
     if (typeof window.saveData === 'function') window.saveData();
-
-    // Close panel and force re-patch so the row disappears immediately
     closePanel();
-    // Mark all tables as needing re-patch by removing v24skip
-    document.querySelectorAll('table[data-v24skip]').forEach(function(t) {
-      delete t.dataset.v24skip;
-    });
+    document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
     setTimeout(doPatch, 100);
-
     console.log('[comms-fix] v34: permanently deleted task:', task.title);
   };
   // ── END PERMANENT DELETE ──────────────────────────────────────────────────
@@ -364,7 +361,6 @@
       '.v24-notes-btn{background:#f5f0eb;border:1px solid #d4c9bc;color:#7a6a5a;font-size:11px;',
       'padding:3px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;display:inline-block;margin-top:3px}',
       '.v24-notes-btn:hover{background:#ece4da}',
-      // v34: delete button styles
       '#v24panel .v24-delete{background:none;border:1px solid #e0c0c0;color:#c62828;font-size:11px;',
       'padding:4px 12px;border-radius:8px;cursor:pointer;margin-top:14px;display:block;width:100%;text-align:center}',
       '#v24panel .v24-delete:hover{background:#fdecea}'
@@ -389,7 +385,6 @@
     openPanelSid = null;
   }
 
-  // v33 FIX: use safeId(x.id) === taskSid for lookup
   window.__v24_status = function(taskSid, newVal, sel) {
     var t = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === taskSid) t = x; });
@@ -423,24 +418,19 @@
   window.__v24_openPanel = function(sid, anchorEl) {
     if (openPanelSid === sid) { closePanel(); return; }
     openPanelSid = sid;
-
     var task = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
     if (!task) return;
-
     var isLatisha = (window.curUser || '').toLowerCase() === 'latisha';
     var desc  = task.desc || task.description || '';
     var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
     var file  = task.fileUrl || task.file_url || '';
     var myNote = isLatisha ? (task.notes || '') : (task.staffNotes || task.staff_notes || '');
-
     var html = '<button class="v24-close" onclick="__v24_closePanel()">\u00d7</button>';
     html += '<div style="font-weight:700;font-size:14px;margin-bottom:12px;padding-right:20px">' + esc(task.title || '') + '</div>';
-
     if (desc)  html += '<div class="v24-lbl">Instructions</div><div class="v24-val">' + esc(desc) + '</div>';
     if (video) html += '<div class="v24-lbl">Training Video</div><div class="v24-val"><a href="' + esc(video) + '" target="_blank" style="color:#b5785a">' + esc(video) + '</a></div>';
     if (file)  html += '<div class="v24-lbl">File / Resource</div><div class="v24-val"><a href="' + esc(file) + '" target="_blank" style="color:#b5785a">' + esc(file) + '</a></div>';
-
     if (isLatisha) {
       html += '<div class="v24-lbl">My Notes (Owner)</div>';
       html += '<textarea id="v24ta' + sid + '">' + esc(task.notes || '') + '</textarea>';
@@ -461,37 +451,25 @@
         html += '<div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(ownerNote) + '</div>';
       }
     }
-
-    // v34: Permanent delete button — visible to everyone
     html += '<button class="v24-delete" onclick="__v24_deleteTask(\'' + sid + '\')">\uD83D\uDDD1 Delete permanently</button>';
-
     var panel = getOrCreatePanel();
     panel.innerHTML = html;
     panel.style.display = 'block';
-
-    // Positioning: always keep panel fully within viewport
     var rect = anchorEl.getBoundingClientRect();
     var panelW = Math.min(480, window.innerWidth * 0.9);
     var panelH = panel.offsetHeight || 350;
-
     var left = rect.left;
     if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
     if (left < 8) left = 8;
-
     var spaceBelow = window.innerHeight - rect.bottom;
     var top;
-    if (spaceBelow >= panelH + 10) {
-      top = rect.bottom + 6;
-    } else {
-      top = rect.top - panelH - 6;
-    }
+    if (spaceBelow >= panelH + 10) { top = rect.bottom + 6; }
+    else { top = rect.top - panelH - 6; }
     if (top + panelH > window.innerHeight - 8) top = window.innerHeight - panelH - 8;
     if (top < 8) top = 8;
-
     panel.style.width = panelW + 'px';
     panel.style.top = top + 'px';
     panel.style.left = left + 'px';
-
     setTimeout(function() {
       document.addEventListener('click', function outsideClick(e) {
         var p = document.getElementById('v24panel');
@@ -527,10 +505,7 @@
 
   function doPatch() {
     if (!window.tasks || !window.tasks.length) return;
-
-    // v34: strip any deleted tasks from the live array before patching
     stripDeletedTasks();
-
     var tables = document.querySelectorAll('table');
     for (var ti = 0; ti < tables.length; ti++) {
       var table = tables[ti];
@@ -543,40 +518,33 @@
       var hasTask   = hdrs.indexOf('task') > -1 || hdrs.indexOf('title') > -1;
       var hasStatus = hdrs.indexOf('status') > -1;
       if (!hasTask || !hasStatus) { table.dataset.v24skip = '1'; continue; }
-
       var priIdx = hdrs.indexOf('priority');
       var stIdx  = hdrs.indexOf('status');
       var titIdx = hdrs.indexOf('task') > -1 ? hdrs.indexOf('task') : hdrs.indexOf('title');
       var notIdx = hdrs.indexOf('notes');
       var hrsIdx = hdrs.indexOf('hours allowed');
-
       if (priIdx > -1) ths[priIdx].classList.add('v24pri');
       if (notIdx > -1) { ths[notIdx].style.minWidth = '200px'; ths[notIdx].style.width = '240px'; }
-
       var rows = table.querySelectorAll('tr');
       for (var ri = 0; ri < rows.length; ri++) {
         var row = rows[ri];
         if (row === hrow) continue;
         var cells = row.querySelectorAll('td');
         if (cells.length < 3) continue;
-
         if (priIdx > -1 && cells[priIdx]) cells[priIdx].classList.add('v24pri');
         if (notIdx > -1 && cells[notIdx]) {
           cells[notIdx].style.minWidth = '200px';
           cells[notIdx].style.whiteSpace = 'normal';
           cells[notIdx].style.wordBreak = 'break-word';
         }
-
         var titCell = titIdx > -1 ? cells[titIdx] : cells[0];
         if (!titCell) continue;
         if (titCell.dataset.v24c) continue;
         var titleText = titCell.textContent.trim();
-
         var curStatusText = '';
         if (stIdx > -1 && cells[stIdx]) {
           curStatusText = cells[stIdx].textContent.trim().toLowerCase().replace(/\s+/g,'-');
         }
-
         var task = null;
         var titleMatches = [];
         for (var xi = 0; xi < (window.tasks || []).length; xi++) {
@@ -596,13 +564,9 @@
         }
         if (!task) continue;
         var sid = safeId(task.id);
-
-        // Status dropdown
         if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v24s]')) {
           cells[stIdx].innerHTML = buildSelect(task);
         }
-
-        // Hours Allowed
         if (hrsIdx > -1 && cells[hrsIdx] && !cells[hrsIdx].dataset.v24h) {
           var hrsVal = task.hrs_allowed || task.hrsAllowed || '';
           if (hrsVal && String(hrsVal) !== '0' && cells[hrsIdx].textContent.trim() === '—') {
@@ -610,8 +574,6 @@
             cells[hrsIdx].textContent = hrsVal + 'h';
           }
         }
-
-        // Notes column
         if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v24n) {
           cells[notIdx].dataset.v24n = '1';
           var existingNote = task.staffNotes || task.staff_notes || task.notes || '';
@@ -620,8 +582,6 @@
             : '';
           cells[notIdx].innerHTML = notePreview + buildNoteBtn(task);
         }
-
-        // Title: clickable to open panel
         titCell.dataset.v24c = '1';
         titCell.style.cursor = 'pointer';
         var titleEsc = esc(task.title || titleText);
@@ -644,7 +604,6 @@
     setInterval(doPatch, 900);
     console.log('[v24] task table watcher active');
   }
-  // ── END TASK TABLE v24 ────────────────────────────────────────────────────
 
   function boot() {
     console.log('[comms-fix] v24.0 booting...');
@@ -658,17 +617,13 @@
       setInterval(pollGroup, 5000);
       fixRenderHiddenBoxFor();
       fixUnhideTask();
-
-      // v35: init deletedTasks if not present, then strip immediately
+      // v36: init deletedTasks if not present, then strip immediately
       if (!window.deletedTasks) window.deletedTasks = [];
       stripDeletedTasks();
-
-      // v35: patch hideTask to stamp metaWeekOff when hiding
+      // v36: patch hideTask to stamp DOM week label when hiding
       patchHideTask();
-
-      // v35: watch for week navigation changes
+      // v36: watch for week navigation changes via DOM label
       patchWeekNav();
-
       watchTaskTable();
       console.log('[comms-fix] v24.0 active');
     }, 2000);
