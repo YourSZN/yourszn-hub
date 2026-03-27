@@ -59,6 +59,8 @@
         setTimeout(function() {
           var user = window.curUser;
           if (user) filterDMsForUser(user.toLowerCase());
+          // v38b: re-sync after cloud load so hidden tasks filter applies to freshly loaded data
+          syncHiddenTasksToWeek(getCurrentWeekLabel());
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         }, 300);
       }
