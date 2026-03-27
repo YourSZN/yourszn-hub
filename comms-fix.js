@@ -1,11 +1,12 @@
 /**
- * comms-fix.js v37
+ * comms-fix.js v38
  * v16 core: DM + Group + Hidden tasks UNCHANGED
  * v24: Floating panel task table approach
  * v33: safeId lookup fix for UUID task IDs
  * v34: Permanent delete with blacklist
- * v37: Fix hidden task weekly reset — correct DOM selector for date label
- *      format is "This Week — 23 Mar to 29 Mar" / "Next Week — 30 Mar to 5 Apr"
+ * v37: DOM date label selector fix
+ * v38: Fix hidden tasks not reappearing on other weeks — manage window.hiddenTasks
+ *      to only contain current-week entries so the app's row rendering respects week scope
  */
 (function () {
   'use strict';
@@ -169,94 +170,125 @@
   }
   // ── END HIDDEN TASK FIX ───────────────────────────────────────────────────
 
-  // ── v36: WEEKLY HIDDEN RESET (DOM date label-based) ──────────────────────
-  // window.metaWeekOff never changes when clicking Prev/Next (stays 0 always).
-  // Instead we read the date range text directly from the DOM — e.g. "26 Mar to 1 Apr".
-  // This is the small text under "Tasks" heading that the app always updates on nav.
-  // We stamp that label on each hiddenTask entry and compare on every render.
+  // ── v38: WEEKLY HIDDEN RESET (manages window.hiddenTasks per week) ──────────
+  // The app reads window.hiddenTasks when rendering table rows — if a task ID is
+  // in there, it hides the row regardless of which week you're viewing.
+  // Fix: keep ALL hidden entries in window.__allHiddenTasks (our master store).
+  // window.hiddenTasks is always filtered to only the current week's entries.
+  // When the week changes, we swap window.hiddenTasks to match — so the app
+  // naturally shows/hides the right rows for each week.
 
   function getCurrentWeekLabel() {
-    // The app renders text like:
-    //   "This Week — 23 Mar to 29 Mar"
-    //   "Next Week — 30 Mar to 5 Apr"
-    //   "6 Apr to 12 Apr"  (further future weeks have no prefix)
-    // We scan all text nodes for the date range part (after the em-dash if present).
     var all = document.querySelectorAll('p, small, span, h2, h3, div');
     var datePattern = /(\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i;
     for (var i = 0; i < all.length; i++) {
-      // Only look at direct text, not deeply nested
       var el = all[i];
-      if (el.children.length > 2) continue; // skip containers with many children
+      if (el.children.length > 2) continue;
       var text = el.textContent.trim();
       var match = text.match(datePattern);
-      if (match) {
-        return match[1]; // return just the date range e.g. "23 Mar to 29 Mar"
-      }
+      if (match) return match[1];
     }
-    // Fallback: ISO week
     var now = new Date();
     var startOfYear = new Date(now.getFullYear(), 0, 1);
     var week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
     return now.getFullYear() + '-W' + week;
   }
 
-  // Check whether a hiddenTask entry applies to the current week view
-  function isHiddenThisWeek(entry) {
-    if (!entry) return false;
-    // v36: compare weekLabel (DOM date text)
-    if (entry.weekLabel !== undefined) {
-      return entry.weekLabel === getCurrentWeekLabel();
+  // Sync window.hiddenTasks to only contain entries for the current week label.
+  // All entries are always preserved in window.__allHiddenTasks.
+  function syncHiddenTasksToCurrentWeek() {
+    var label = getCurrentWeekLabel();
+    var all = window.__allHiddenTasks || window.hiddenTasks || {};
+
+    // Merge current window.hiddenTasks into __allHiddenTasks (in case app added new ones)
+    if (window.hiddenTasks) {
+      Object.keys(window.hiddenTasks).forEach(function(id) {
+        all[id] = window.hiddenTasks[id];
+      });
     }
-    // Legacy entries (weekOffset/weekNumber from v34/v35) — treat as stale
-    return false;
+    window.__allHiddenTasks = all;
+
+    // Build the week-filtered view for the app
+    var filtered = {};
+    Object.keys(all).forEach(function(id) {
+      var entry = all[id];
+      if (entry && entry.weekLabel === label) {
+        filtered[id] = entry;
+      }
+    });
+    window.hiddenTasks = filtered;
+    console.log('[comms-fix] v38: synced hiddenTasks for week', label, '— showing', Object.keys(filtered).length, 'of', Object.keys(all).length, 'entries');
   }
 
-  // Patch window.hideTask to stamp the current week label when hiding
+  // Patch window.hideTask to stamp weekLabel and sync
   function patchHideTask() {
     if (typeof window.hideTask !== 'function') return;
     var orig = window.hideTask;
     window.hideTask = function(taskId) {
       var r = orig.call(this, taskId);
-      // After the app writes to hiddenTasks, stamp weekLabel
       setTimeout(function() {
+        var label = getCurrentWeekLabel();
+        // Stamp weekLabel on the entry in window.hiddenTasks (app just wrote it)
         if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
-          window.hiddenTasks[String(taskId)].weekLabel = getCurrentWeekLabel();
-          // Clean up legacy fields
+          window.hiddenTasks[String(taskId)].weekLabel = label;
           delete window.hiddenTasks[String(taskId)].weekOffset;
           delete window.hiddenTasks[String(taskId)].weekNumber;
-          if (typeof window.saveData === 'function') window.saveData();
-          console.log('[comms-fix] v36: stamped weekLabel:', getCurrentWeekLabel(), 'on task', taskId);
         }
+        // Also stamp in __allHiddenTasks
+        if (!window.__allHiddenTasks) window.__allHiddenTasks = {};
+        if (window.__allHiddenTasks[String(taskId)]) {
+          window.__allHiddenTasks[String(taskId)].weekLabel = label;
+        }
+        // Re-sync so the filtered view is correct
+        syncHiddenTasksToCurrentWeek();
+        if (typeof window.saveData === 'function') window.saveData();
+        console.log('[comms-fix] v38: stamped weekLabel:', label, 'on task', taskId);
       }, 150);
       return r;
     };
-    console.log('[comms-fix] v36: hideTask patched with DOM week label stamp');
+    console.log('[comms-fix] v38: hideTask patched');
   }
 
-  // Watch for week navigation — detect when the DOM date label changes
-  // and force re-render of the hidden box so visibility updates immediately
+  // Also patch unhideTask to clean up from __allHiddenTasks
+  function patchUnhideTask() {
+    if (typeof window.unhideTask !== 'function') return;
+    var orig = window.unhideTask;
+    window.unhideTask = function(taskId) {
+      var r = orig.call(this, taskId);
+      // Remove from master store too
+      if (window.__allHiddenTasks) delete window.__allHiddenTasks[String(taskId)];
+      if (typeof window.saveData === 'function') window.saveData();
+      return r;
+    };
+  }
+
+  // Watch for week navigation — when DOM label changes, re-sync hiddenTasks
   function patchWeekNav() {
     var lastLabel = getCurrentWeekLabel();
     setInterval(function() {
       var current = getCurrentWeekLabel();
       if (current !== lastLabel) {
         lastLabel = current;
-        console.log('[comms-fix] v36: week label changed to', current, '— re-rendering hidden box');
+        console.log('[comms-fix] v38: week changed to', current, '— re-syncing hiddenTasks');
+        syncHiddenTasksToCurrentWeek();
+        // Force the app to re-render everything
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-        // Also reset table patch markers so status dropdowns re-render
-        document.querySelectorAll('table[data-v24skip]').forEach(function(t) {
-          delete t.dataset.v24skip;
-        });
-        document.querySelectorAll('[data-v24c]').forEach(function(el) {
-          delete el.dataset.v24c;
-        });
-        document.querySelectorAll('[data-v24n]').forEach(function(el) {
-          delete el.dataset.v24n;
-        });
-        setTimeout(doPatch, 200);
+        if (typeof window.renderTasks === 'function') window.renderTasks();
+        // Reset our patch markers so doPatch re-runs on the fresh DOM
+        document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
+        document.querySelectorAll('[data-v24c]').forEach(function(el) { delete el.dataset.v24c; });
+        document.querySelectorAll('[data-v24n]').forEach(function(el) { delete el.dataset.v24n; });
+        setTimeout(doPatch, 300);
       }
     }, 500);
-    console.log('[comms-fix] v36: week nav watcher active');
+    console.log('[comms-fix] v38: week nav watcher active');
+  }
+
+  // isHiddenThisWeek is still used by renderHiddenBoxFor
+  function isHiddenThisWeek(entry) {
+    if (!entry) return false;
+    if (entry.weekLabel !== undefined) return entry.weekLabel === getCurrentWeekLabel();
+    return false;
   }
   // ── END WEEKLY HIDDEN RESET ───────────────────────────────────────────────
 
@@ -479,7 +511,7 @@
     }
 
     // v34: Permanent delete button — visible to everyone
-    html += '<button class="v24-delete" onclick="__v24_deleteTask(\'' + sid + '\')">\uD83D\uDED1 Delete permanently</button>';
+    html += '<button class="v24-delete" onclick="__v24_deleteTask(\'' + sid + '\')">\uD83D\uDDD1 Delete permanently</button>';
 
     var panel = getOrCreatePanel();
     panel.innerHTML = html;
@@ -543,7 +575,10 @@
 
   function doPatch() {
     if (!window.tasks || !window.tasks.length) return;
+
+    // v34: strip any deleted tasks from the live array before patching
     stripDeletedTasks();
+
     var tables = document.querySelectorAll('table');
     for (var ti = 0; ti < tables.length; ti++) {
       var table = tables[ti];
@@ -556,33 +591,40 @@
       var hasTask   = hdrs.indexOf('task') > -1 || hdrs.indexOf('title') > -1;
       var hasStatus = hdrs.indexOf('status') > -1;
       if (!hasTask || !hasStatus) { table.dataset.v24skip = '1'; continue; }
+
       var priIdx = hdrs.indexOf('priority');
       var stIdx  = hdrs.indexOf('status');
       var titIdx = hdrs.indexOf('task') > -1 ? hdrs.indexOf('task') : hdrs.indexOf('title');
       var notIdx = hdrs.indexOf('notes');
       var hrsIdx = hdrs.indexOf('hours allowed');
+
       if (priIdx > -1) ths[priIdx].classList.add('v24pri');
       if (notIdx > -1) { ths[notIdx].style.minWidth = '200px'; ths[notIdx].style.width = '240px'; }
+
       var rows = table.querySelectorAll('tr');
       for (var ri = 0; ri < rows.length; ri++) {
         var row = rows[ri];
         if (row === hrow) continue;
         var cells = row.querySelectorAll('td');
         if (cells.length < 3) continue;
+
         if (priIdx > -1 && cells[priIdx]) cells[priIdx].classList.add('v24pri');
         if (notIdx > -1 && cells[notIdx]) {
           cells[notIdx].style.minWidth = '200px';
           cells[notIdx].style.whiteSpace = 'normal';
           cells[notIdx].style.wordBreak = 'break-word';
         }
+
         var titCell = titIdx > -1 ? cells[titIdx] : cells[0];
         if (!titCell) continue;
         if (titCell.dataset.v24c) continue;
         var titleText = titCell.textContent.trim();
+
         var curStatusText = '';
         if (stIdx > -1 && cells[stIdx]) {
           curStatusText = cells[stIdx].textContent.trim().toLowerCase().replace(/\s+/g,'-');
         }
+
         var task = null;
         var titleMatches = [];
         for (var xi = 0; xi < (window.tasks || []).length; xi++) {
@@ -602,9 +644,13 @@
         }
         if (!task) continue;
         var sid = safeId(task.id);
+
+        // Status dropdown
         if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v24s]')) {
           cells[stIdx].innerHTML = buildSelect(task);
         }
+
+        // Hours Allowed
         if (hrsIdx > -1 && cells[hrsIdx] && !cells[hrsIdx].dataset.v24h) {
           var hrsVal = task.hrs_allowed || task.hrsAllowed || '';
           if (hrsVal && String(hrsVal) !== '0' && cells[hrsIdx].textContent.trim() === '—') {
@@ -612,6 +658,8 @@
             cells[hrsIdx].textContent = hrsVal + 'h';
           }
         }
+
+        // Notes column
         if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v24n) {
           cells[notIdx].dataset.v24n = '1';
           var existingNote = task.staffNotes || task.staff_notes || task.notes || '';
@@ -620,6 +668,8 @@
             : '';
           cells[notIdx].innerHTML = notePreview + buildNoteBtn(task);
         }
+
+        // Title: clickable to open panel
         titCell.dataset.v24c = '1';
         titCell.style.cursor = 'pointer';
         var titleEsc = esc(task.title || titleText);
@@ -655,13 +705,22 @@
       setInterval(pollGroup, 5000);
       fixRenderHiddenBoxFor();
       fixUnhideTask();
-      // v36: init deletedTasks if not present, then strip immediately
+
+      // v38: init deletedTasks if not present, then strip immediately
       if (!window.deletedTasks) window.deletedTasks = [];
       stripDeletedTasks();
-      // v36: patch hideTask to stamp DOM week label when hiding
+
+      // v38: init __allHiddenTasks from current hiddenTasks, then sync to current week
+      window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
+      syncHiddenTasksToCurrentWeek();
+
+      // v38: patch hide/unhide to stamp weekLabel and manage the two stores
       patchHideTask();
-      // v36: watch for week navigation changes via DOM label
+      patchUnhideTask();
+
+      // v38: watch for week navigation changes via DOM label
       patchWeekNav();
+
       watchTaskTable();
       console.log('[comms-fix] v24.0 active');
     }, 2000);
