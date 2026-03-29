@@ -427,6 +427,15 @@
       // v38: init master store from current hiddenTasks, sync to current week
       window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
       syncHiddenTasksToWeek(getCurrentWeekLabel());
+      // v38c: intercept loadData to re-sync after every reload
+      if (typeof window.loadData === 'function') {
+        var origLoadData = window.loadData;
+        window.loadData = function() {
+          var r = origLoadData.apply(this, arguments);
+          setTimeout(function() { syncHiddenTasksToWeek(getCurrentWeekLabel()); }, 100);
+          return r;
+        };
+      }
       watchTaskTable();
     }, 2000);
   }
