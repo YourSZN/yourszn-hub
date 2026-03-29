@@ -61,6 +61,8 @@
           if (user) filterDMsForUser(user.toLowerCase());
           // v38b: re-sync after cloud load so hidden tasks filter applies to freshly loaded data
           syncHiddenTasksToWeek(getCurrentWeekLabel());
+          // v38d: apply to DOM
+          setTimeout(applyHiddenToDOM, 200);
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         }, 300);
       }
@@ -228,7 +230,26 @@
       return r;
     };
   }
-  function patchWeekNav() {
+  // v38d: hide DOM rows that match hidden tasks for current week
+  function applyHiddenToDOM() {
+    var hiddenTitles = {};
+    Object.keys(window.hiddenTasks || {}).forEach(function(id) {
+      var task = (window.tasks || []).find(function(t) { return String(t.id) === String(id); });
+      if (task && task.title) hiddenTitles[task.title.trim()] = true;
+    });
+    document.querySelectorAll('.ttbl tbody tr').forEach(function(row) {
+      var firstCell = row.querySelector('td');
+      if (!firstCell) return;
+      var title = firstCell.textContent.trim().split('▼')[0].trim();
+      if (hiddenTitles[title]) {
+        row.style.display = 'none';
+      } else {
+        if (row.style.display === 'none') row.style.display = '';
+      }
+    });
+  }
+
+    function patchWeekNav() {
     var lastLabel = getCurrentWeekLabel();
     setInterval(function() {
       var current = getCurrentWeekLabel();
@@ -236,6 +257,8 @@
         lastLabel = current;
         // v38: resync hiddenTasks to new week
         syncHiddenTasksToWeek(current);
+        // v38d: hide/show DOM rows to match
+        setTimeout(applyHiddenToDOM, 200);
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
         document.querySelectorAll('[data-v24c]').forEach(function(el) { delete el.dataset.v24c; });
@@ -432,7 +455,7 @@
         var origLoadData = window.loadData;
         window.loadData = function() {
           var r = origLoadData.apply(this, arguments);
-          setTimeout(function() { syncHiddenTasksToWeek(getCurrentWeekLabel()); }, 100);
+          setTimeout(function() { syncHiddenTasksToWeek(getCurrentWeekLabel()); applyHiddenToDOM(); }, 100);
           return r;
         };
       }
