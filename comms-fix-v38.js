@@ -238,8 +238,9 @@
       if (task && task.title) hiddenTitles[task.title.trim()] = true;
     });
     document.querySelectorAll('.ttbl tbody tr').forEach(function(row) {
-      var firstCell = row.querySelector('td');
-      if (!firstCell) return;
+      var cells = row.querySelectorAll('td');
+      if (cells.length < 2) return;
+      var firstCell = cells[1];
       var title = firstCell.textContent.trim().split('▼')[0].trim();
       if (hiddenTitles[title]) {
         row.style.display = 'none';
