@@ -440,6 +440,106 @@
     setInterval(doPatch, 900);
   }
 
+
+  // v39: Client table — TIME column + day colour coding
+  function buildTimeOptions(currentVal) {
+    var times = [];
+    var h = 7, m = 45;
+    while (h < 15 || (h === 15 && m === 0)) {
+      var ampm = h < 12 ? 'am' : 'pm';
+      var displayH = h <= 12 ? h : h - 12;
+      var displayM = m === 0 ? '00' : String(m);
+      var label = displayH + ':' + displayM + ' ' + ampm;
+      times.push('<option value="' + label + '"' + (currentVal === label ? ' selected' : '') + '>' + label + '</option>');
+      m += 15;
+      if (m >= 60) { m = 0; h++; }
+    }
+    return '<option value="">— time —</option>' + times.join('');
+  }
+
+  var DAY_COLOURS = {
+    'monday':    'background:#FECACA',
+    'tuesday':   'background:#BBF7D0',
+    'wednesday': 'background:#E9D5FF',
+    'thursday':  'background:#FEF08A',
+    'friday':    'background:#FBCFE8',
+    'saturday':  'background:#BFDBFE',
+    'sunday':    'background:#FED7AA'
+  };
+
+  function applyClientTable() {
+    var table = document.querySelector('#pg-clients table');
+    if (!table) return;
+
+    // Inject TIME header after DATE (th index 4) if not already done
+    var thead = table.querySelector('thead tr');
+    if (thead && !thead.querySelector('th[data-v39time]')) {
+      var ths = thead.querySelectorAll('th');
+      if (ths[4]) {
+        var th = document.createElement('th');
+        th.setAttribute('data-v39time', '1');
+        th.style.minWidth = '120px';
+        th.textContent = 'Time';
+        ths[4].insertAdjacentElement('afterend', th);
+      }
+    }
+
+    // Process each body row
+    var rows = table.querySelectorAll('tbody tr');
+    rows.forEach(function(row, i) {
+      var cells = row.querySelectorAll('td');
+      if (cells.length < 5) return;
+
+      // Colour row by day
+      var daySelect = cells[3] ? cells[3].querySelector('select') : null;
+      var dayVal = daySelect ? daySelect.value.toLowerCase().trim() : '';
+      var bg = DAY_COLOURS[dayVal] || '';
+      row.style.background = bg ? bg.replace('background:', '') : '';
+
+      // Inject TIME cell after date cell (index 4) if not already present
+      if (!row.querySelector('td[data-v39time]')) {
+        var savedTime = (window.cRows && window.cRows[i]) ? (window.cRows[i].time || '') : '';
+        var td = document.createElement('td');
+        td.setAttribute('data-v39time', '1');
+        var sel = document.createElement('select');
+        sel.className = 'csel';
+        sel.style.minWidth = '105px';
+        sel.innerHTML = buildTimeOptions(savedTime);
+        sel.addEventListener('change', (function(idx) {
+          return function() {
+            if (window.cRows && window.cRows[idx]) {
+              window.cRows[idx].time = this.value;
+              if (typeof window.saveData === 'function') window.saveData();
+            }
+          };
+        })(i));
+        td.appendChild(sel);
+        cells[4].insertAdjacentElement('afterend', td);
+      }
+    });
+  }
+
+  function watchClientTable() {
+    applyClientTable();
+    // Watch for re-renders inside the clients page
+    var obs = new MutationObserver(function() { applyClientTable(); });
+    var pg = document.getElementById('pg-clients');
+    if (pg) obs.observe(pg, { childList: true, subtree: true });
+    // Poll for day colour changes
+    setInterval(function() {
+      var table = document.querySelector('#pg-clients table');
+      if (!table) return;
+      table.querySelectorAll('tbody tr').forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        if (cells.length < 4) return;
+        var daySelect = cells[3] ? cells[3].querySelector('select') : null;
+        var dayVal = daySelect ? daySelect.value.toLowerCase().trim() : '';
+        var bg = DAY_COLOURS[dayVal] ? DAY_COLOURS[dayVal].replace('background:', '') : '';
+        if (row.style.background !== bg) row.style.background = bg;
+      });
+    }, 800);
+    console.log('[comms-fix] v39: client table watcher active');
+  }
   function boot() {
     setTimeout(function() {
       interceptLogin(); interceptSendDm(); watchAppReloadForDMs();
@@ -447,7 +547,7 @@
       interceptSendGroupMsg(); pollGroup(); setInterval(pollGroup, 5000);
       fixRenderHiddenBoxFor(); fixUnhideTask();
       if (!window.deletedTasks) window.deletedTasks = [];
-      stripDeletedTasks(); patchHideTask(); patchWeekNav();
+      stripDeletedTasks(); patchHideTask(); patchWeekNav(); watchClientTable();
       // v38: init master store from current hiddenTasks, sync to current week
       window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
       syncHiddenTasksToWeek(getCurrentWeekLabel());
