@@ -153,6 +153,23 @@
       obs.observe(document.body, { childList: true, subtree: true });
 
       // Poll for tasks page bubbles
+      
+      // Watch for week label changes and update bubbles directly
+      var lastWeekLabel = getWeekLabel();
+      setInterval(function() {
+        var current = getWeekLabel();
+        if (current !== lastWeekLabel) {
+          lastWeekLabel = current;
+          // Update all existing bubble containers directly
+          document.querySelectorAll('[data-daily-tid]').forEach(function(el) {
+            var tid = el.getAttribute('data-daily-tid');
+            var task = null;
+            (window.tasks || []).forEach(function(t) { if (String(t.id) === String(tid)) task = t; });
+            if (task) el.innerHTML = buildBubbles(task);
+          });
+          patchHub();
+        }
+      }, 600);
       setInterval(patchTasksPage, 1500);
 
       console.log('[comms-fix-daily] active');
