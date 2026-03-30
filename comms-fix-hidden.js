@@ -45,7 +45,11 @@
     var filtered = {};
     Object.keys(all).forEach(function(id) {
       var entry = all[id];
-      if (entry && entry.weekLabel === label) filtered[id] = entry;
+      // Extract date part from stored weekLabel (may have prefix like "This Week — ")
+      var storedLabel = entry.weekLabel || '';
+      var dateMatch = storedLabel.match(/(d+s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)s+tos+d+s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i);
+      var normalised = dateMatch ? dateMatch[1] : storedLabel;
+      if (entry && normalised === label) filtered[id] = entry;
     });
     window.hiddenTasks = filtered;
     console.log('[comms-fix-hidden] synced for week', label, '— showing', Object.keys(filtered).length, 'of', Object.keys(all).length);
