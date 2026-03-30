@@ -209,7 +209,7 @@
       if (current !== lastLabel) {
         lastLabel = current;
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-        document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
+        // v37b: removed to prevent status flicker
         
         
         
@@ -313,7 +313,7 @@
     if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) delete window.hiddenTasks[String(task.id)];
     if (typeof window.saveData === 'function') window.saveData();
     closePanel();
-    document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
+    // v37b: removed to prevent status flicker
     setTimeout(doPatch, 100);
   };
 
