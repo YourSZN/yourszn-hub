@@ -1,10 +1,10 @@
 /**
- * comms-fix-hidden.js v7
+ * comms-fix-hidden.js v8
  * ONLY responsibility: hide task rows in the DOM for the currently viewed week.
- * Does NOT touch window.hiddenTasks at all -- v37 owns that fully.
+ * Does NOT touch window.hiddenTasks at all -- v39 owns that fully.
  *
- * Fix over v5: strip day names (Mon/Tue/etc) appended by comms-fix-daily.js
- * before matching cell text to task titles.
+ * v7 fix: strip day names (Mon/Tue/etc) appended by comms-fix-daily.js
+ * v8 fix: correct regex escaping (\d → \\d in RegExp constructor)
  */
 (function () {
   'use strict';
@@ -13,7 +13,8 @@
 
   function extractDateRange(label) {
     if (!label) return null;
-    var re = new RegExp('(\d+\s+(?:' + MONTHS + ')\s+to\s+\d+\s+(?:' + MONTHS + '))', 'i');
+    // v8 FIX: Use \\d instead of \d in RegExp string constructor
+    var re = new RegExp('(\\d+\\s+(?:' + MONTHS + ')\\s+to\\s+\\d+\\s+(?:' + MONTHS + '))', 'i');
     var m = label.match(re);
     return m ? m[1] : null;
   }
