@@ -209,10 +209,10 @@
       if (current !== lastLabel) {
         lastLabel = current;
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-        document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
-        document.querySelectorAll('[data-v24c]').forEach(function(el) { delete el.dataset.v24c; });
-        document.querySelectorAll('[data-v24n]').forEach(function(el) { delete el.dataset.v24n; });
-        setTimeout(doPatch, 200);
+        // v37b: flicker fix
+        
+        
+        
       }
     }, 500);
   }
@@ -313,7 +313,7 @@
     if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) delete window.hiddenTasks[String(task.id)];
     if (typeof window.saveData === 'function') window.saveData();
     closePanel();
-    document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
+    // v37b: flicker fix
     setTimeout(doPatch, 100);
   };
 
@@ -382,7 +382,7 @@
   function watchTaskTable() {
     injectCSS(); getOrCreatePanel(); doPatch();
     var obs = new MutationObserver(function(muts) {
-      for (var i = 0; i < muts.length; i++) { if (muts[i].addedNodes.length > 0) { setTimeout(doPatch, 150); break; } }
+      for (var i = 0; i < muts.length; i++) { if (muts[i].addedNodes.length > 0) { setTimeout(doPatch, 50); break; } }
     });
     obs.observe(document.body, { childList: true, subtree: true });
     setInterval(doPatch, 900);
