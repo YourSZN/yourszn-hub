@@ -1,11 +1,11 @@
 /**
- * comms-fix-hidden.js v5
+ * comms-fix-hidden.js v6
  * ONLY responsibility: hide task rows in the DOM for the currently viewed week.
  * Does NOT touch window.hiddenTasks at all -- v37 owns that fully.
  *
- * Uses #staff-task-week-label as the authoritative week source (not
- * getCurrentWeekLabel() from v37 which scans broadly and can return
- * the wrong date when multiple week sections are in the DOM).
+ * Fix over v5: re-run applyHiddenToDOM after cloud load completes,
+ * since week navigation triggers a full data reload which temporarily
+ * empties window.hiddenTasks before v37 repopulates it.
  */
 (function () {
   'use strict';
@@ -59,20 +59,18 @@
   }
 
   function init() {
-    console.log('[comms-fix-hidden] v5 booting...');
+    console.log('[comms-fix-hidden] v6 booting...');
     setTimeout(function () {
       applyHiddenToDOM();
-      var lastLabel = '';
-      setInterval(function () {
-        var el = document.getElementById('staff-task-week-label');
-        var current = el ? el.textContent.trim() : '';
-        applyHiddenToDOM();
-        if (current && current !== lastLabel) {
-          lastLabel = current;
-          console.log('[comms-fix-hidden] week changed to:', current);
+      setInterval(applyHiddenToDOM, 600);
+      var origLog = console.log;
+      console.log = function () {
+        origLog.apply(console, arguments);
+        if (arguments[0] && String(arguments[0]).includes('cloud load successful')) {
+          setTimeout(applyHiddenToDOM, 350);
         }
-      }, 600);
-      console.log('[comms-fix-hidden] v5 active');
+      };
+      console.log('[comms-fix-hidden] v6 active');
     }, 3500);
   }
 
