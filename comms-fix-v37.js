@@ -382,7 +382,7 @@
   function watchTaskTable() {
     injectCSS(); getOrCreatePanel(); doPatch();
     var obs = new MutationObserver(function(muts) {
-      for (var i = 0; i < muts.length; i++) { if (muts[i].addedNodes.length > 0) { setTimeout(doPatch, 150); break; } }
+      for (var i = 0; i < muts.length; i++) { if (muts[i].addedNodes.length > 0) { setTimeout(doPatch, 0); break; } }
     });
     obs.observe(document.body, { childList: true, subtree: true });
     setInterval(doPatch, 900);
