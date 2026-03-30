@@ -1,7 +1,10 @@
 /**
- * comms-fix-hidden.js v5
+ * comms-fix-hidden.js v7
  * ONLY responsibility: hide task rows in the DOM for the currently viewed week.
  * Does NOT touch window.hiddenTasks at all -- v37 owns that fully.
+ *
+ * Fix over v5: strip day names (Mon/Tue/etc) appended by comms-fix-daily.js
+ * before matching cell text to task titles.
  */
 (function () {
   'use strict';
@@ -42,7 +45,10 @@
       if (cells.length < 2) return;
       var title = null;
       for (var i = 0; i < cells.length; i++) {
-        var text = cells[i].textContent.trim().split('▼')[0].trim();
+        var text = cells[i].textContent.trim()
+          .split('▼')[0]
+          .replace(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun))*/gi, '')
+          .trim();
         if (text && text.length > 0 && text.length < 120) { title = text; break; }
       }
       if (!title) return;
@@ -55,7 +61,7 @@
   }
 
   function init() {
-    console.log('[comms-fix-hidden] v5 booting...');
+    console.log('[comms-fix-hidden] v7 booting...');
     setTimeout(function () {
       applyHiddenToDOM();
       var lastLabel = '';
@@ -68,7 +74,7 @@
           console.log('[comms-fix-hidden] week changed to:', current);
         }
       }, 600);
-      console.log('[comms-fix-hidden] v5 active');
+      console.log('[comms-fix-hidden] v7 active');
     }, 3500);
   }
 
