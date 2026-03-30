@@ -2,6 +2,7 @@
  * comms-fix-hidden.js
  * Filters window.hiddenTasks to viewed week + hides DOM rows
  * Does NOT patch any app functions
+ * v2 — normalise strings before comparison to handle invisible unicode chars
  */
 (function() {
   'use strict';
@@ -14,11 +15,24 @@
     return null;
   }
 
+  function normalise(str) {
+    if (!str) return '';
+    return str
+      .replace(/\u00a0/g, ' ')
+      .replace(/\u2013/g, '-')
+      .replace(/\u2014/g, '-')
+      .replace(/\u2012/g, '-')
+      .replace(/\u2010/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function extractDatePart(label) {
     if (!label) return null;
-    var re = new RegExp('(\d+\s+(?:' + MONTHS + ')\s+to\s+\d+\s+(?:' + MONTHS + '))', 'i');
-    var m = label.match(re);
-    return m ? m[1] : label;
+    var norm = normalise(label);
+    var re = new RegExp('(\\d+\\s+(?:' + MONTHS + ')\\s+to\\s+\\d+\\s+(?:' + MONTHS + '))', 'i');
+    var m = norm.match(re);
+    return m ? normalise(m[1]) : normalise(norm);
   }
 
   function applyHiddenToDOM() {
@@ -36,12 +50,12 @@
       for (var i = 0; i < cells.length; i++) {
         var text = cells[i].textContent.trim();
         if (text && text.length > 0 && text.length < 100) {
-          var clean = text.split('▼')[0].trim();
+          var clean = text.split('\u25bc')[0].trim();
           if (hiddenTitles[clean] !== undefined) { titleCell = cells[i]; break; }
         }
       }
       if (!titleCell) return;
-      var title = titleCell.textContent.trim().split('▼')[0].trim();
+      var title = titleCell.textContent.trim().split('\u25bc')[0].trim();
       if (hiddenTitles[title]) {
         row.style.display = 'none';
       } else {
@@ -59,21 +73,25 @@
     if (!viewedLabel) return;
     var viewedDate = extractDatePart(viewedLabel);
     var all = window.__allHiddenTasks || {};
-    if (window.hiddenTasks) {
-      Object.keys(window.hiddenTasks).forEach(function(id) {
-        if (window.hiddenTasks[id]) all[id] = window.hiddenTasks[id];
-      });
-    }
+    var current = window.__preFilterHiddenTasks || {};
+    Object.keys(current).forEach(function(id) {
+      if (current[id]) all[id] = current[id];
+    });
+    Object.keys(window.hiddenTasks || {}).forEach(function(id) {
+      if (window.hiddenTasks[id]) all[id] = window.hiddenTasks[id];
+    });
     window.__allHiddenTasks = all;
     var filtered = {};
     Object.keys(all).forEach(function(id) {
       var entry = all[id];
       if (!entry) return;
       var entryDate = extractDatePart(entry.weekLabel || '');
-      if (entryDate && viewedDate && entryDate === viewedDate) filtered[id] = entry;
+      var match = (entryDate && viewedDate && entryDate === viewedDate);
+      if (match) filtered[id] = entry;
+      console.log('[comms-fix-hidden] id=' + id + ' entryDate=' + JSON.stringify(entryDate) + ' viewedDate=' + JSON.stringify(viewedDate) + ' match=' + match);
     });
     window.hiddenTasks = filtered;
-    console.log('[comms-fix-hidden] week:', viewedDate, '— showing', Object.keys(filtered).length, 'of', Object.keys(all).length);
+    console.log('[comms-fix-hidden] week:', viewedDate, '\u2014 showing', Object.keys(filtered).length, 'of', Object.keys(all).length);
     applyHiddenToDOM();
   }
 
@@ -81,6 +99,7 @@
     console.log('[comms-fix-hidden] booting...');
     setTimeout(function() {
       window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
+      window.__preFilterHiddenTasks = Object.assign({}, window.hiddenTasks || {});
       var label = getViewedWeekLabel();
       syncHiddenToWeek(label);
       var lastLabel = label;
@@ -99,11 +118,12 @@
         origLog.apply(console, arguments);
         if (arguments[0] && String(arguments[0]).includes('cloud load successful')) {
           setTimeout(function() {
-            if (window.hiddenTasks) {
-              Object.keys(window.hiddenTasks).forEach(function(id) {
-                if (window.hiddenTasks[id]) window.__allHiddenTasks[id] = window.hiddenTasks[id];
-              });
-            }
+            Object.keys(window.hiddenTasks || {}).forEach(function(id) {
+              if (window.hiddenTasks[id]) {
+                window.__allHiddenTasks[id] = window.hiddenTasks[id];
+                window.__preFilterHiddenTasks[id] = window.hiddenTasks[id];
+              }
+            });
             syncHiddenToWeek(getViewedWeekLabel());
             if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
           }, 300);
