@@ -540,6 +540,120 @@
     }, 800);
     console.log('[comms-fix] v39: client table watcher active');
   }
+
+  // v40: Daily task day bubbles — Tasks page + Hub
+  var DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  function getCurrentWeekKey() {
+    return getCurrentWeekLabel();
+  }
+
+  function getDailyDays(task) {
+    var key = getCurrentWeekKey();
+    if (!task.days) task.days = {};
+    if (!task.days[key]) task.days[key] = {};
+    return task.days[key];
+  }
+
+  function toggleDailyDay(taskId, day) {
+    var task = (window.tasks || []).find(function(t) { return String(t.id) === String(taskId); });
+    if (!task) return;
+    var dayData = getDailyDays(task);
+    dayData[day] = !dayData[day];
+    if (typeof window.saveData === 'function') window.saveData();
+    renderAllDailyBubbles();
+  }
+  window.__toggleDailyDay = toggleDailyDay;
+
+  function buildDailyBubbles(task) {
+    var dayData = getDailyDays(task);
+    var tid = String(task.id);
+    return DAYS.map(function(d) {
+      var done = dayData[d];
+      var style = done
+        ? 'background:#22C55E;border-color:#22C55E;color:white;'
+        : 'background:white;border-color:#ccc;color:#555;';
+      return '<span class="day-chip' + (done?' done':'') + '" style="cursor:pointer;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;border:1px solid #ccc;margin-right:3px;' + style + '" onclick="__toggleDailyDay('' + tid + '','' + d + '')">'+d+'</span>';
+    }).join('');
+  }
+
+  function renderAllDailyBubbles() {
+    document.querySelectorAll('[data-v40daily]').forEach(function(el) {
+      var tid = el.getAttribute('data-v40daily');
+      var task = (window.tasks || []).find(function(t) { return String(t.id) === String(tid); });
+      if (task) el.innerHTML = buildDailyBubbles(task);
+    });
+    patchHubRecur();
+  }
+
+  function patchTasksDailyRows() {
+    (window.tasks || []).forEach(function(task) {
+      if (task.freq !== 'daily') return;
+      var tid = String(task.id);
+      document.querySelectorAll('.ttbl tbody tr').forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        if (cells.length < 2) return;
+        var titleCell = cells[1];
+        if (!titleCell) return;
+        var rowTitle = titleCell.textContent.trim().split('▼')[0].trim();
+        if (rowTitle !== (task.title || '').trim()) return;
+        if (!row.querySelector('[data-v40daily]')) {
+          var bubbleDiv = document.createElement('div');
+          bubbleDiv.setAttribute('data-v40daily', tid);
+          bubbleDiv.style.marginTop = '4px';
+          bubbleDiv.innerHTML = buildDailyBubbles(task);
+          titleCell.appendChild(bubbleDiv);
+        }
+      });
+    });
+  }
+
+  function patchHubRecur() {
+    var recur = document.getElementById('myhub-recur');
+    if (!recur) return;
+    var user = (window.curUser || '').toLowerCase();
+    var myDailyTasks = (window.tasks || []).filter(function(t) {
+      return t.freq === 'daily' && (t.assignedTo || t.assigned_to || '').toLowerCase() === user;
+    });
+    if (!myDailyTasks.length) {
+      // Hide weekly day chips from hub if no daily tasks
+      recur.querySelectorAll('.day-chip').forEach(function(chip) {
+        if (!chip.hasAttribute('data-v40daily')) chip.style.display = 'none';
+      });
+      return;
+    }
+    var html = myDailyTasks.map(function(task) {
+      var tid = String(task.id);
+      var statusCol = task.status || 'not-started';
+      var statusLabel = statusCol === 'complete' ? 'Complete' : statusCol === 'in-progress' ? 'In Progress' : 'Not Started';
+      var statusBg = statusCol === 'complete' ? '#22C55E' : statusCol === 'in-progress' ? '#F97316' : '#94A3B8';
+      var dayData = getDailyDays(task);
+      var chips = DAYS.map(function(d) {
+        var done = dayData[d];
+        var style = done
+          ? 'background:#22C55E;border-color:#22C55E;color:white;'
+          : 'background:white;border-color:#ccc;color:#555;';
+        return '<span class="day-chip' + (done?' done':'') + '" style="cursor:pointer;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;border:1px solid #ccc;margin-right:3px;' + style + '" onclick="__toggleDailyDay('' + tid + '','' + d + '')">' + d + '</span>';
+      }).join('');
+      return '<div class="rtask-row" id="v40-' + tid + '">'
+        + '<div class="rtask-title">' + (task.title||'') + ' <span style="font-size:10px;padding:2px 6px;border-radius:8px;color:white;background:' + statusBg + '">' + statusLabel + '</span></div>'
+        + '<div style="margin-top:4px">' + chips + '</div>'
+        + '</div>';
+    }).join('');
+    recur.innerHTML = html;
+  }
+
+  function watchDailyBubbles() {
+    patchTasksDailyRows();
+    patchHubRecur();
+    var obs = new MutationObserver(function() {
+      patchTasksDailyRows();
+      patchHubRecur();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setInterval(function() { patchTasksDailyRows(); }, 1200);
+    console.log('[comms-fix] v40: daily bubble watcher active');
+  }
   function boot() {
     setTimeout(function() {
       interceptLogin(); interceptSendDm(); watchAppReloadForDMs();
@@ -547,7 +661,7 @@
       interceptSendGroupMsg(); pollGroup(); setInterval(pollGroup, 5000);
       fixRenderHiddenBoxFor(); fixUnhideTask();
       if (!window.deletedTasks) window.deletedTasks = [];
-      stripDeletedTasks(); patchHideTask(); patchWeekNav(); watchClientTable();
+      stripDeletedTasks(); patchHideTask(); patchWeekNav(); watchClientTable(); watchDailyBubbles();
       // v38: init master store from current hiddenTasks, sync to current week
       window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
       syncHiddenTasksToWeek(getCurrentWeekLabel());
