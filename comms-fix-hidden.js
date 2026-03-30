@@ -1,154 +1,116 @@
 /**
  * comms-fix-hidden.js
- * Standalone script — hidden task week scoping
- * - Keeps ALL hidden tasks in window.__allHiddenTasks (master store)
- * - window.hiddenTasks only contains entries for the VIEWED week
- * - When week changes, swaps window.hiddenTasks to match viewed week
- * - Restoring a task removes it from master store
- * - Never touches comms-fix-v37.js or any existing functionality
+ * Filters window.hiddenTasks to viewed week + hides DOM rows
+ * Does NOT patch any app functions
  */
 (function() {
   'use strict';
 
-  // Get the viewed week label from the Tasks page element
+  var MONTHS = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec';
+
   function getViewedWeekLabel() {
-    var el = document.getElementById('staff-task-week-label') ||
-             document.getElementById('tasks-week-label');
+    var el = document.getElementById('staff-task-week-label');
     if (el && el.textContent.trim()) return el.textContent.trim();
-    // Fallback: owner view
-    var all = document.querySelectorAll('.psub, [class*="week"]');
-    for (var i = 0; i < all.length; i++) {
-      var text = all[i].textContent.trim();
-      var m = text.match(/(\d+\s+\w+\s+to\s+\d+\s+\w+)/);
-      if (m) return m[1];
-    }
-    // Final fallback: ISO week
-    var now = new Date();
-    var d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-    var day = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - day);
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return d.getUTCFullYear() + '-W' + Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return null;
   }
 
-  // Sync window.hiddenTasks to only show entries for the viewed week
-  function syncHiddenToWeek(label) {
+  function extractDatePart(label) {
+    if (!label) return null;
+    var re = new RegExp('(\d+\s+(?:' + MONTHS + ')\s+to\s+\d+\s+(?:' + MONTHS + '))', 'i');
+    var m = label.match(re);
+    return m ? m[1] : label;
+  }
+
+  function applyHiddenToDOM() {
+    var hidden = window.hiddenTasks || {};
+    var hiddenIds = Object.keys(hidden);
+    var hiddenTitles = {};
+    hiddenIds.forEach(function(id) {
+      var task = (window.tasks || []).find(function(t) { return String(t.id) === String(id); });
+      if (task && task.title) hiddenTitles[task.title.trim()] = true;
+    });
+    document.querySelectorAll('table tbody tr').forEach(function(row) {
+      var cells = row.querySelectorAll('td');
+      if (cells.length < 2) return;
+      var titleCell = null;
+      for (var i = 0; i < cells.length; i++) {
+        var text = cells[i].textContent.trim();
+        if (text && text.length > 0 && text.length < 100) {
+          var clean = text.split('▼')[0].trim();
+          if (hiddenTitles[clean] !== undefined) { titleCell = cells[i]; break; }
+        }
+      }
+      if (!titleCell) return;
+      var title = titleCell.textContent.trim().split('▼')[0].trim();
+      if (hiddenTitles[title]) {
+        row.style.display = 'none';
+      } else {
+        if (row.style.display === 'none') row.style.display = '';
+      }
+    });
+    if (hiddenIds.length === 0) {
+      document.querySelectorAll('table tbody tr').forEach(function(row) {
+        if (row.style.display === 'none') row.style.display = '';
+      });
+    }
+  }
+
+  function syncHiddenToWeek(viewedLabel) {
+    if (!viewedLabel) return;
+    var viewedDate = extractDatePart(viewedLabel);
     var all = window.__allHiddenTasks || {};
-    // Merge anything currently in hiddenTasks into master store
     if (window.hiddenTasks) {
       Object.keys(window.hiddenTasks).forEach(function(id) {
-        all[id] = window.hiddenTasks[id];
+        if (window.hiddenTasks[id]) all[id] = window.hiddenTasks[id];
       });
     }
     window.__allHiddenTasks = all;
-    // Build filtered view for this week only
     var filtered = {};
     Object.keys(all).forEach(function(id) {
       var entry = all[id];
-      // Extract date part from stored weekLabel (may have prefix like "This Week — ")
-      var storedLabel = entry.weekLabel || '';
-      var dateMatch = storedLabel.match(/(d+s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)s+tos+d+s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i);
-      var normalised = dateMatch ? dateMatch[1] : storedLabel;
-      if (entry && normalised === label) filtered[id] = entry;
+      if (!entry) return;
+      var entryDate = extractDatePart(entry.weekLabel || '');
+      if (entryDate && viewedDate && entryDate === viewedDate) filtered[id] = entry;
     });
     window.hiddenTasks = filtered;
-    console.log('[comms-fix-hidden] synced for week', label, '— showing', Object.keys(filtered).length, 'of', Object.keys(all).length);
-  }
-
-  // Patch hideTask to stamp weekLabel when hiding
-  function patchHideTask() {
-    if (typeof window.hideTask !== 'function') return;
-    if (window.__hiddenPatchApplied) return;
-    window.__hiddenPatchApplied = true;
-    var orig = window.hideTask;
-    window.hideTask = function(taskId) {
-      var r = orig.call(this, taskId);
-      setTimeout(function() {
-        var label = getViewedWeekLabel();
-        if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
-          window.hiddenTasks[String(taskId)].weekLabel = label;
-          delete window.hiddenTasks[String(taskId)].weekOffset;
-          delete window.hiddenTasks[String(taskId)].weekNumber;
-        }
-        if (!window.__allHiddenTasks) window.__allHiddenTasks = {};
-        if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
-          window.__allHiddenTasks[String(taskId)] = window.hiddenTasks[String(taskId)];
-        }
-        if (typeof window.saveData === 'function') window.saveData();
-      }, 150);
-      return r;
-    };
-    console.log('[comms-fix-hidden] hideTask patched');
-  }
-
-  // Patch unhideTask to remove from master store
-  function patchUnhideTask() {
-    if (typeof window.unhideTask !== 'function') return;
-    if (window.__unhiddenPatchApplied) return;
-    window.__unhiddenPatchApplied = true;
-    var orig = window.unhideTask;
-    window.unhideTask = function(taskId) {
-      orig.call(this, taskId);
-      if (window.__allHiddenTasks) delete window.__allHiddenTasks[String(taskId)];
-      if (typeof window.saveData === 'function') window.saveData();
-    };
-    console.log('[comms-fix-hidden] unhideTask patched');
-  }
-
-  // Patch loadData to re-sync after every reload
-  function patchLoadData() {
-    if (typeof window.loadData !== 'function') return;
-    if (window.__loadDataHiddenPatch) return;
-    window.__loadDataHiddenPatch = true;
-    var orig = window.loadData;
-    window.loadData = function() {
-      var r = orig.apply(this, arguments);
-      setTimeout(function() {
-        syncHiddenToWeek(getViewedWeekLabel());
-      }, 150);
-      return r;
-    };
-    console.log('[comms-fix-hidden] loadData patched');
+    console.log('[comms-fix-hidden] week:', viewedDate, '— showing', Object.keys(filtered).length, 'of', Object.keys(all).length);
+    applyHiddenToDOM();
   }
 
   function init() {
     console.log('[comms-fix-hidden] booting...');
     setTimeout(function() {
-      // Init master store from current hiddenTasks
       window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
-      // Sync to current viewed week
-      syncHiddenToWeek(getViewedWeekLabel());
-      // Patch functions
-      patchHideTask();
-      patchUnhideTask();
-      patchLoadData();
-
-      // Watch for week label changes
-      var lastLabel = getViewedWeekLabel();
+      var label = getViewedWeekLabel();
+      syncHiddenToWeek(label);
+      var lastLabel = label;
       setInterval(function() {
         var current = getViewedWeekLabel();
+        if (!current) return;
         if (current !== lastLabel) {
           lastLabel = current;
           syncHiddenToWeek(current);
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         }
-      }, 500);
-
-      // Re-sync after cloud load
+        applyHiddenToDOM();
+      }, 600);
       var origLog = console.log;
       console.log = function() {
         origLog.apply(console, arguments);
         if (arguments[0] && String(arguments[0]).includes('cloud load successful')) {
           setTimeout(function() {
-            window.__allHiddenTasks = Object.assign({}, window.__allHiddenTasks || {}, window.hiddenTasks || {});
+            if (window.hiddenTasks) {
+              Object.keys(window.hiddenTasks).forEach(function(id) {
+                if (window.hiddenTasks[id]) window.__allHiddenTasks[id] = window.hiddenTasks[id];
+              });
+            }
             syncHiddenToWeek(getViewedWeekLabel());
             if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-          }, 200);
+          }, 300);
         }
       };
-
       console.log('[comms-fix-hidden] active');
-    }, 3000);
+    }, 3500);
   }
 
   if (document.readyState === 'loading') {
