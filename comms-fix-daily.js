@@ -13,14 +13,9 @@
 
   // Get current week label from DOM (same logic as v37)
   function getWeekLabel() {
-    var all = document.querySelectorAll('p,small,span,h2,h3,div');
-    var pat = /(\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i;
-    for (var i = 0; i < all.length; i++) {
-      var el = all[i];
-      if (el.children.length > 2) continue;
-      var m = el.textContent.trim().match(pat);
-      if (m) return m[1];
-    }
+    // Read the viewed week label directly from the Tasks page element
+    var el = document.getElementById('staff-task-week-label');
+    if (el && el.textContent.trim()) return el.textContent.trim();
     // Fallback: ISO week
     var now = new Date();
     var d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
