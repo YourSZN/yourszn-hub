@@ -247,17 +247,43 @@
   function patchWeekNav() {
     var lastLabel = getCurrentWeekLabel();
     
-    // v40: Intercept Prev/Next button clicks to sync BEFORE the page updates
+    // v41: Force show all rows that aren't in current week's hidden list
+    function forceApplyVisibility() {
+      var hidden = window.hiddenTasks || {};
+      var hiddenTitles = {};
+      Object.keys(hidden).forEach(function(id) {
+        var task = (window.tasks || []).find(function(t) { return String(t.id) === String(id); });
+        if (task && task.title) hiddenTitles[task.title.trim()] = true;
+      });
+      
+      document.querySelectorAll('table tbody tr').forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        if (cells.length < 2) return;
+        var title = null;
+        for (var i = 0; i < cells.length; i++) {
+          var text = cells[i].textContent.trim()
+            .split('▼')[0]
+            .replace(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun))*/gi, '')
+            .trim();
+          if (text && text.length > 0 && text.length < 120) { title = text; break; }
+        }
+        if (!title) return;
+        if (hiddenTitles[title]) {
+          row.style.display = 'none';
+        } else {
+          row.style.display = '';
+        }
+      });
+    }
+    
+    // v41: Intercept Prev/Next button clicks
     document.addEventListener('click', function(e) {
       var btn = e.target.closest('button');
       if (!btn) return;
       var text = btn.textContent.trim().toLowerCase();
       if (text.includes('prev') || text.includes('next')) {
-        // Pre-emptively clear all row visibility so nothing flashes
-        document.querySelectorAll('table tbody tr').forEach(function(row) {
-          row.style.opacity = '0';
-        });
-        // After a brief delay, the week label will update and we'll sync
+        // Wait for the app to update the week label and re-render
+        // Then sync and apply visibility
         setTimeout(function() {
           var newLabel = getCurrentWeekLabel();
           if (newLabel !== lastLabel) {
@@ -265,11 +291,23 @@
             syncHiddenTasksToWeek(newLabel);
             if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
           }
-          // Restore visibility
-          document.querySelectorAll('table tbody tr').forEach(function(row) {
-            row.style.opacity = '';
-          });
-        }, 100);
+          forceApplyVisibility();
+        }, 150);
+        
+        // Run again after a longer delay in case app is slow to render
+        setTimeout(function() {
+          var newLabel = getCurrentWeekLabel();
+          if (newLabel !== lastLabel) {
+            lastLabel = newLabel;
+            syncHiddenTasksToWeek(newLabel);
+          }
+          forceApplyVisibility();
+        }, 400);
+        
+        // And once more for good measure
+        setTimeout(function() {
+          forceApplyVisibility();
+        }, 800);
       }
     }, true);
     
@@ -287,6 +325,8 @@
         document.querySelectorAll('[data-v24c]').forEach(function(el) { delete el.dataset.v24c; });
         document.querySelectorAll('[data-v24n]').forEach(function(el) { delete el.dataset.v24n; });
         setTimeout(doPatch, 200);
+        // v41: Also force visibility
+        setTimeout(forceApplyVisibility, 250);
       }
     }, 500);
   }
