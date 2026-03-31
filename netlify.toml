@@ -1,3 +1,9 @@
+[build]
+  publish = "."
+
+[context.staging]
+  publish = "."
+
 [[headers]]
   for = "/*"
   [headers.values]
