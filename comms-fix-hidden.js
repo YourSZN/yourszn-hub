@@ -1,10 +1,10 @@
 /**
- * comms-fix-hidden.js v8
+ * comms-fix-hidden.js v9
  * ONLY responsibility: hide task rows in the DOM for the currently viewed week.
- * Does NOT touch window.hiddenTasks at all -- v39 owns that fully.
- *
+ * 
  * v7 fix: strip day names (Mon/Tue/etc) appended by comms-fix-daily.js
  * v8 fix: correct regex escaping (\d → \\d in RegExp constructor)
+ * v9 fix: check weekLabel ourselves instead of relying on filtered hiddenTasks
  */
 (function () {
   'use strict';
@@ -13,31 +13,38 @@
 
   function extractDateRange(label) {
     if (!label) return null;
-    // v8 FIX: Use \\d instead of \d in RegExp string constructor
     var re = new RegExp('(\\d+\\s+(?:' + MONTHS + ')\\s+to\\s+\\d+\\s+(?:' + MONTHS + '))', 'i');
     var m = label.match(re);
     return m ? m[1] : null;
   }
 
-  function getViewedDateRange() {
-    var el = document.getElementById('staff-task-week-label');
-    if (!el) return null;
-    return extractDateRange(el.textContent.trim());
+  function getCurrentWeekLabel() {
+    // Look for date range in the page
+    var all = document.querySelectorAll('p, small, span, h2, h3, div');
+    var datePattern = /(\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i;
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (el.children.length > 2) continue;
+      var text = el.textContent.trim();
+      var match = text.match(datePattern);
+      if (match) return match[1];
+    }
+    return null;
   }
 
   function applyHiddenToDOM() {
-    // v8 FIX: window.hiddenTasks is already filtered by v39 to only contain
-    // entries for the CURRENT viewed week. So we just hide anything in there.
-    // On other weeks, window.hiddenTasks will be empty (or not contain this task),
-    // so the task will show normally.
     var hidden = window.hiddenTasks || {};
-    var hiddenIds = Object.keys(hidden);
-
-    // Build set of titles to hide (only tasks hidden for THIS week are in window.hiddenTasks)
+    var currentWeek = getCurrentWeekLabel();
+    
+    // Build set of titles to hide - only for entries matching current week
     var hiddenTitles = {};
-    hiddenIds.forEach(function (id) {
-      var task = (window.tasks || []).find(function (t) { return String(t.id) === String(id); });
-      if (task && task.title) hiddenTitles[task.title.trim()] = true;
+    Object.keys(hidden).forEach(function (id) {
+      var entry = hidden[id];
+      // Only hide if weekLabel matches current week
+      if (entry && entry.weekLabel === currentWeek) {
+        var task = (window.tasks || []).find(function (t) { return String(t.id) === String(id); });
+        if (task && task.title) hiddenTitles[task.title.trim()] = true;
+      }
     });
 
     document.querySelectorAll('table tbody tr').forEach(function (row) {
@@ -55,14 +62,13 @@
       if (hiddenTitles[title]) {
         row.style.display = 'none';
       } else {
-        // v8: Always restore visibility if not in current week's hidden list
         if (row.style.display === 'none') row.style.display = '';
       }
     });
   }
 
   function init() {
-    console.log('[comms-fix-hidden] v7 booting...');
+    console.log('[comms-fix-hidden] v9 booting...');
     setTimeout(function () {
       applyHiddenToDOM();
       var lastLabel = '';
@@ -75,7 +81,7 @@
           console.log('[comms-fix-hidden] week changed to:', current);
         }
       }, 600);
-      console.log('[comms-fix-hidden] v7 active');
+      console.log('[comms-fix-hidden] v9 active');
     }, 3500);
   }
 
