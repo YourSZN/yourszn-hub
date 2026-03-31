@@ -217,11 +217,16 @@
     window.hideTask = function(taskId) {
       var r = orig.call(this, taskId);
       setTimeout(function() {
-        if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
-          window.hiddenTasks[String(taskId)].weekLabel = getCurrentWeekLabel();
-          delete window.hiddenTasks[String(taskId)].weekOffset;
-          delete window.hiddenTasks[String(taskId)].weekNumber;
+        // Try both the original key type and string version
+        var entry = window.hiddenTasks[taskId] || window.hiddenTasks[String(taskId)];
+        if (entry) {
+          entry.weekLabel = getCurrentWeekLabel();
+          delete entry.weekOffset;
+          delete entry.weekNumber;
+          console.log('[comms-fix] v47: tagged task', taskId, 'with weekLabel:', entry.weekLabel);
           if (typeof window.saveData === 'function') window.saveData();
+        } else {
+          console.log('[comms-fix] v47: WARNING - could not find hidden task entry for', taskId);
         }
       }, 150);
       return r;
@@ -437,6 +442,50 @@
     }
   }
 
+  /**
+   * v47c: Patch _applyLoadedData to also load hiddenTasks from saved data.
+   * The original app saves hiddenTasks but NEVER loads it back!
+   * This MUST run early before loadData() completes.
+   */
+  function patchApplyLoadedData() {
+    if (typeof window._applyLoadedData !== 'function') return false;
+    if (window._applyLoadedData.__patched) return true; // Already patched
+    
+    var orig = window._applyLoadedData;
+    window._applyLoadedData = function(d) {
+      // Call original first
+      var result = orig.call(this, d);
+      // Now load hiddenTasks (which the original forgot to do!)
+      if (d && d.hiddenTasks) {
+        window.hiddenTasks = d.hiddenTasks;
+        console.log('[comms-fix] v47c: loaded', Object.keys(d.hiddenTasks).length, 'hidden tasks from cloud');
+      }
+      // Re-render hidden box and task board after loading
+      setTimeout(function() {
+        if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+        if (typeof window.renderTaskBoard === 'function') window.renderTaskBoard();
+      }, 100);
+      return result;
+    };
+    window._applyLoadedData.__patched = true;
+    console.log('[comms-fix] v47c: patched _applyLoadedData to load hiddenTasks');
+    return true;
+  }
+
+  // Try to patch IMMEDIATELY - before the 2 second delay
+  // This is critical because loadData() runs very early
+  (function earlyPatch() {
+    if (patchApplyLoadedData()) return;
+    // If not ready yet, keep trying every 50ms
+    var attempts = 0;
+    var interval = setInterval(function() {
+      attempts++;
+      if (patchApplyLoadedData() || attempts > 40) { // Give up after 2 seconds
+        clearInterval(interval);
+      }
+    }, 50);
+  })();
+
   function watchTaskTable() {
     injectCSS(); getOrCreatePanel(); doPatch();
     var obs = new MutationObserver(function(muts) {
@@ -455,8 +504,9 @@
       if (!window.deletedTasks) window.deletedTasks = [];
       stripDeletedTasks(); patchHideTask(); patchWeekNav();
       patchBuildTaskTablesHTML(); // v47: week-aware hiding in main table
+      patchApplyLoadedData(); // v47c: fix hiddenTasks not being loaded
       watchTaskTable();
-      console.log('[comms-fix] v47 booted');
+      console.log('[comms-fix] v47c booted');
     }, 2000);
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { setTimeout(boot, 500); }
