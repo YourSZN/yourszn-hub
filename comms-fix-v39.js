@@ -294,14 +294,24 @@
     window.hideTask = function(taskId) {
       var r = orig.call(this, taskId);
       setTimeout(function() {
-        // Access the real object to set the weekLabel
-        var realObj = window.__realHiddenTasks || window.hiddenTasks.__target || window.hiddenTasks;
-        if (realObj && realObj[String(taskId)]) {
-          realObj[String(taskId)].weekLabel = getCurrentWeekLabel();
-          delete realObj[String(taskId)].weekOffset;
-          delete realObj[String(taskId)].weekNumber;
+        // v46: Must access the REAL object directly, not through proxy
+        // window.__realHiddenTasks is set by installHiddenTasksProxy
+        var realObj = window.__realHiddenTasks;
+        if (!realObj) {
+          // Proxy not installed yet, fallback
+          realObj = window.hiddenTasks;
+        }
+        
+        var taskIdStr = String(taskId);
+        if (realObj && realObj[taskIdStr]) {
+          realObj[taskIdStr].weekLabel = getCurrentWeekLabel();
+          delete realObj[taskIdStr].weekOffset;
+          delete realObj[taskIdStr].weekNumber;
+          console.log('[comms-fix] v46: tagged task', taskId, 'with weekLabel', getCurrentWeekLabel());
+          console.log('[comms-fix] v46: realObj now has', Object.keys(realObj).length, 'entries');
           if (typeof window.saveData === 'function') window.saveData();
-          console.log('[comms-fix] v46: hid task', taskId, 'for week', getCurrentWeekLabel());
+        } else {
+          console.log('[comms-fix] v46: WARNING - could not find task', taskId, 'in realObj');
         }
       }, 150);
       return r;
@@ -524,7 +534,12 @@
         window.saveData = function() {
           // Temporarily swap hiddenTasks with the real object for saving
           var proxy = window.hiddenTasks;
-          var realObj = window.__realHiddenTasks || (proxy && proxy.__target) || proxy;
+          var realObj = window.__realHiddenTasks;
+          if (!realObj) {
+            console.log('[comms-fix] v46: WARNING - __realHiddenTasks not found, using proxy directly');
+            realObj = proxy;
+          }
+          console.log('[comms-fix] v46: saveData - saving', Object.keys(realObj).length, 'hidden tasks');
           window.hiddenTasks = realObj;
           var result = origSaveData.apply(this, arguments);
           // Restore the proxy
