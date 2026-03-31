@@ -62,8 +62,8 @@
         setTimeout(function() {
           var user = window.curUser;
           if (user) filterDMsForUser(user.toLowerCase());
-          // v39: re-sync after cloud load so hidden tasks filter applies to freshly loaded data
-          syncHiddenTasksToWeek(getCurrentWeekLabel());
+          // v46: Re-install proxy after cloud load
+          installHiddenTasksProxy();
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         }, 300);
       }
@@ -110,7 +110,7 @@
       var elId = view === 'owner' ? 'hidden-box-owner' : 'hidden-box-staff';
       var el = document.getElementById(elId);
       if (!el) return;
-      // v39: window.hiddenTasks is already filtered to current week by syncHiddenTasksToWeek
+      // v46: The Proxy's ownKeys trap returns only current week's hidden task IDs
       var hiddenIds = Object.keys(window.hiddenTasks || {});
       var myHidden;
       if (window.curUser === 'latisha') {
@@ -166,9 +166,10 @@
     if (typeof window.unhideTask !== 'function') return;
     var orig = window.unhideTask;
     window.unhideTask = function(taskId) {
+      // v46: Remove from the real object (original unhideTask removes from window.hiddenTasks which is the proxy)
+      var realObj = window.__realHiddenTasks;
+      if (realObj) delete realObj[String(taskId)];
       orig.call(this, taskId);
-      // v39: also remove from master store so it doesn't reappear
-      if (window.__allHiddenTasks) delete window.__allHiddenTasks[String(taskId)];
       if (typeof window.saveData === 'function') window.saveData();
     };
   }
@@ -192,33 +193,99 @@
   }
 
   /**
-   * v39 CORE FIX: Sync window.hiddenTasks to only show entries for the CURRENT week.
-   * All entries are always preserved in window.__allHiddenTasks (master store).
-   * This is the key function that makes hiding week-specific.
+   * v46 NEW APPROACH: Use a Proxy to make hiddenTasks week-aware at ACCESS time.
+   * 
+   * Instead of filtering hiddenTasks (which breaks timing and/or persistence),
+   * we wrap it in a Proxy that:
+   * - Returns the entry ONLY if its weekLabel matches current week
+   * - Otherwise returns undefined (so !hiddenTasks[id] is true = not hidden)
+   * - The underlying object always contains ALL entries (persistence works)
    */
-  function syncHiddenTasksToWeek(label) {
-    // First, merge any existing hiddenTasks into the master store
-    var all = window.__allHiddenTasks || {};
-    if (window.hiddenTasks) {
-      Object.keys(window.hiddenTasks).forEach(function(id) {
-        // Only add to master if it has a weekLabel (properly tagged)
-        if (window.hiddenTasks[id]) {
-          all[id] = window.hiddenTasks[id];
+  
+  function extractDateFromWeekLabel(label) {
+    // Extract just the date range part "30 Mar to 5 Apr" from "This Week — 30 Mar to 5 Apr"
+    if (!label) return null;
+    var match = label.match(/(\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i);
+    return match ? match[1] : label;
+  }
+  
+  function createHiddenTasksProxy(target) {
+    return new Proxy(target, {
+      get: function(obj, prop) {
+        // Handle special properties that shouldn't be proxied
+        if (prop === '__isProxy') return true;
+        if (prop === '__target') return obj;
+        if (typeof prop === 'symbol') return obj[prop];
+        
+        // For Object methods like hasOwnProperty, return the function bound to obj
+        if (prop === 'hasOwnProperty') return obj.hasOwnProperty.bind(obj);
+        
+        var entry = obj[prop];
+        if (!entry) return undefined;
+        
+        // Check if this entry's weekLabel matches current week
+        var currentWeek = extractDateFromWeekLabel(getCurrentWeekLabel());
+        var entryWeek = extractDateFromWeekLabel(entry.weekLabel);
+        
+        if (entryWeek === currentWeek) {
+          return entry; // Hidden for this week
         }
-      });
-    }
-    window.__allHiddenTasks = all;
-
-    // Now filter: only show entries where weekLabel matches current week
-    var filtered = {};
-    Object.keys(all).forEach(function(id) {
-      var entry = all[id];
-      if (entry && entry.weekLabel === label) {
-        filtered[id] = entry;
+        return undefined; // Not hidden for this week
+      },
+      set: function(obj, prop, value) {
+        obj[prop] = value;
+        return true;
+      },
+      deleteProperty: function(obj, prop) {
+        delete obj[prop];
+        return true;
+      },
+      has: function(obj, prop) {
+        // For 'in' operator - check if hidden for current week
+        var entry = obj[prop];
+        if (!entry) return false;
+        var currentWeek = extractDateFromWeekLabel(getCurrentWeekLabel());
+        var entryWeek = extractDateFromWeekLabel(entry.weekLabel);
+        return entryWeek === currentWeek;
+      },
+      ownKeys: function(obj) {
+        // Return only keys for current week (for Object.keys, for...in, etc.)
+        var currentWeek = extractDateFromWeekLabel(getCurrentWeekLabel());
+        return Object.keys(obj).filter(function(key) {
+          var entry = obj[key];
+          if (!entry) return false;
+          var entryWeek = extractDateFromWeekLabel(entry.weekLabel);
+          return entryWeek === currentWeek;
+        });
+      },
+      getOwnPropertyDescriptor: function(obj, prop) {
+        // Needed for ownKeys to work properly
+        var entry = obj[prop];
+        if (!entry) return undefined;
+        var currentWeek = extractDateFromWeekLabel(getCurrentWeekLabel());
+        var entryWeek = extractDateFromWeekLabel(entry.weekLabel);
+        if (entryWeek === currentWeek) {
+          return { enumerable: true, configurable: true, value: entry };
+        }
+        return undefined;
       }
     });
-    window.hiddenTasks = filtered;
-    console.log('[comms-fix] v39: synced hiddenTasks for week "' + label + '" — showing ' + Object.keys(filtered).length + ' of ' + Object.keys(all).length + ' total hidden');
+  }
+  
+  function installHiddenTasksProxy() {
+    // Don't double-wrap
+    if (window.hiddenTasks && window.hiddenTasks.__isProxy) {
+      console.log('[comms-fix] v46: hiddenTasks proxy already installed');
+      return;
+    }
+    
+    // Store the real object
+    var realHiddenTasks = window.hiddenTasks || {};
+    window.__realHiddenTasks = realHiddenTasks;
+    
+    // Replace with proxy
+    window.hiddenTasks = createHiddenTasksProxy(realHiddenTasks);
+    console.log('[comms-fix] v46: installed hiddenTasks proxy with', Object.keys(realHiddenTasks).length, 'total entries');
   }
 
   function patchHideTask() {
@@ -227,17 +294,14 @@
     window.hideTask = function(taskId) {
       var r = orig.call(this, taskId);
       setTimeout(function() {
-        if (window.hiddenTasks && window.hiddenTasks[String(taskId)]) {
-          // Tag with current week label
-          window.hiddenTasks[String(taskId)].weekLabel = getCurrentWeekLabel();
-          // Clean up any old week tracking fields
-          delete window.hiddenTasks[String(taskId)].weekOffset;
-          delete window.hiddenTasks[String(taskId)].weekNumber;
-          // v39: copy to master store
-          if (!window.__allHiddenTasks) window.__allHiddenTasks = {};
-          window.__allHiddenTasks[String(taskId)] = window.hiddenTasks[String(taskId)];
+        // Access the real object to set the weekLabel
+        var realObj = window.__realHiddenTasks || window.hiddenTasks.__target || window.hiddenTasks;
+        if (realObj && realObj[String(taskId)]) {
+          realObj[String(taskId)].weekLabel = getCurrentWeekLabel();
+          delete realObj[String(taskId)].weekOffset;
+          delete realObj[String(taskId)].weekNumber;
           if (typeof window.saveData === 'function') window.saveData();
-          console.log('[comms-fix] v39: hid task', taskId, 'for week', getCurrentWeekLabel());
+          console.log('[comms-fix] v46: hid task', taskId, 'for week', getCurrentWeekLabel());
         }
       }, 150);
       return r;
@@ -245,83 +309,28 @@
   }
 
   function patchWeekNav() {
-    var lastLabel = getCurrentWeekLabel();
-    
-    // v42: THE REAL FIX - intercept changeTaskWeek and changeStaffTaskWeek
-    // These are called BEFORE renderTaskBoard(), so we sync hiddenTasks first
+    // v46: No need to sync - the Proxy handles everything automatically!
+    // Just re-render the hidden box when week changes
     
     if (typeof window.changeTaskWeek === 'function') {
       var origChangeTaskWeek = window.changeTaskWeek;
       window.changeTaskWeek = function(d) {
-        // v45: Sync BEFORE the render
-        window.taskWeekOff = (window.taskWeekOff || 0) + d;
-        var newLabel = getCurrentWeekLabel();
-        window.taskWeekOff = (window.taskWeekOff || 0) - d;
-        
-        if (newLabel !== lastLabel) {
-          lastLabel = newLabel;
-          syncHiddenTasksToWeek(newLabel);
-        }
-        
         var result = origChangeTaskWeek.call(this, d);
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         return result;
       };
-      console.log('[comms-fix] v45: patched changeTaskWeek (sync BEFORE render)');
     }
     
     if (typeof window.changeStaffTaskWeek === 'function') {
       var origChangeStaffTaskWeek = window.changeStaffTaskWeek;
       window.changeStaffTaskWeek = function(d) {
-        // v45: We need to predict what the new week label will be BEFORE rendering
-        // The original function increments staffTaskWeekOff then renders
-        // So we increment it ourselves first, sync, then let original run
-        
-        // Temporarily increment to get the new week label
-        window.staffTaskWeekOff = (window.staffTaskWeekOff || 0) + d;
-        var newLabel = getCurrentWeekLabel();
-        // Revert so original can do it properly
-        window.staffTaskWeekOff = (window.staffTaskWeekOff || 0) - d;
-        
-        // Now sync BEFORE the render happens
-        if (newLabel !== lastLabel) {
-          lastLabel = newLabel;
-          syncHiddenTasksToWeek(newLabel);
-        }
-        
-        // Now let original run (it will increment and render with correct hiddenTasks)
         var result = origChangeStaffTaskWeek.call(this, d);
-        
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         return result;
       };
-      console.log('[comms-fix] v45: patched changeStaffTaskWeek (sync BEFORE render)');
     }
     
-    // Also patch renderTaskBoard to always sync first
-    if (typeof window.renderTaskBoard === 'function') {
-      var origRenderTaskBoard = window.renderTaskBoard;
-      window.renderTaskBoard = function() {
-        var currentLabel = getCurrentWeekLabel();
-        if (currentLabel !== lastLabel) {
-          lastLabel = currentLabel;
-          syncHiddenTasksToWeek(currentLabel);
-        }
-        return origRenderTaskBoard.apply(this, arguments);
-      };
-      console.log('[comms-fix] v42: patched renderTaskBoard');
-    }
-    
-    // Fallback interval check
-    setInterval(function() {
-      var current = getCurrentWeekLabel();
-      if (current !== lastLabel) {
-        console.log('[comms-fix] v42: week changed from "' + lastLabel + '" to "' + current + '"');
-        lastLabel = current;
-        syncHiddenTasksToWeek(current);
-        if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-      }
-    }, 500);
+    console.log('[comms-fix] v46: week navigation patched');
   }
 
   // ── END HIDDEN TASK FIX ──────────────────────────────────────────────────
@@ -506,40 +515,41 @@
       if (!window.deletedTasks) window.deletedTasks = [];
       stripDeletedTasks(); patchHideTask(); patchWeekNav();
 
-      // v39: Initialize master store from current hiddenTasks, then sync to current week
-      window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
-      syncHiddenTasksToWeek(getCurrentWeekLabel());
+      // v46: Install the Proxy - this makes hiddenTasks week-aware automatically
+      installHiddenTasksProxy();
 
-      // v44: Patch saveData to save ALL hidden tasks (from master store), not just current week
+      // v46: Patch saveData to save the REAL object (all entries), not the proxy
       if (typeof window.saveData === 'function') {
         var origSaveData = window.saveData;
         window.saveData = function() {
-          // Temporarily swap hiddenTasks with the full master store for saving
-          var currentFiltered = window.hiddenTasks;
-          window.hiddenTasks = window.__allHiddenTasks || currentFiltered;
+          // Temporarily swap hiddenTasks with the real object for saving
+          var proxy = window.hiddenTasks;
+          var realObj = window.__realHiddenTasks || (proxy && proxy.__target) || proxy;
+          window.hiddenTasks = realObj;
           var result = origSaveData.apply(this, arguments);
-          // Restore the filtered version for display
-          window.hiddenTasks = currentFiltered;
+          // Restore the proxy
+          window.hiddenTasks = proxy;
           return result;
         };
-        console.log('[comms-fix] v44: patched saveData to persist all hidden tasks');
+        console.log('[comms-fix] v46: patched saveData to persist all hidden tasks');
       }
 
-      // v39: Intercept loadData to re-sync after every cloud reload
+      // v46: Intercept loadData to re-install proxy after cloud reload
       if (typeof window.loadData === 'function') {
         var origLoadData = window.loadData;
         window.loadData = function() {
           var r = origLoadData.apply(this, arguments);
           setTimeout(function() {
-            // Merge loaded hiddenTasks into master, then filter for current week
-            syncHiddenTasksToWeek(getCurrentWeekLabel());
+            // Re-install proxy on the newly loaded hiddenTasks
+            installHiddenTasksProxy();
+            if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
           }, 100);
           return r;
         };
       }
 
       watchTaskTable();
-      console.log('[comms-fix] v39 booted — week-scoped hiding active');
+      console.log('[comms-fix] v46 booted — Proxy-based week-scoped hiding active');
     }, 2000);
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { setTimeout(boot, 500); }
