@@ -19,16 +19,39 @@
   }
 
   function getCurrentWeekLabel() {
-    // Look for date range in the page
-    var all = document.querySelectorAll('p, small, span, h2, h3, div');
     var datePattern = /(\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i;
-    for (var i = 0; i < all.length; i++) {
-      var el = all[i];
-      if (el.children.length > 2) continue;
-      var text = el.textContent.trim();
-      var match = text.match(datePattern);
+    
+    // First, try the specific task week label elements
+    var staffLabel = document.getElementById('staff-task-week-label');
+    var ownerLabel = document.getElementById('task-week-label');
+    
+    // Use staff label if visible, otherwise owner label
+    var el = null;
+    if (staffLabel && staffLabel.offsetParent !== null) {
+      el = staffLabel;
+    } else if (ownerLabel && ownerLabel.offsetParent !== null) {
+      el = ownerLabel;
+    } else if (staffLabel) {
+      el = staffLabel;
+    } else if (ownerLabel) {
+      el = ownerLabel;
+    }
+    
+    if (el) {
+      var match = el.textContent.trim().match(datePattern);
       if (match) return match[1];
     }
+    
+    // Fallback: scan all elements
+    var all = document.querySelectorAll('p, small, span, h2, h3, div');
+    for (var i = 0; i < all.length; i++) {
+      var elem = all[i];
+      if (elem.children.length > 2) continue;
+      var text = elem.textContent.trim();
+      var m = text.match(datePattern);
+      if (m) return m[1];
+    }
+    
     return null;
   }
 

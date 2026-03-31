@@ -167,15 +167,40 @@
   }
 
   function getCurrentWeekLabel() {
-    var all = document.querySelectorAll('p, small, span, h2, h3, div');
     var datePattern = /(\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+to\s+\d+\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/i;
-    for (var i = 0; i < all.length; i++) {
-      var el = all[i];
-      if (el.children.length > 2) continue;
-      var text = el.textContent.trim();
-      var match = text.match(datePattern);
+    
+    // First, try the specific task week label elements
+    var staffLabel = document.getElementById('staff-task-week-label');
+    var ownerLabel = document.getElementById('task-week-label');
+    
+    // Use staff label if visible, otherwise owner label
+    var el = null;
+    if (staffLabel && staffLabel.offsetParent !== null) {
+      el = staffLabel;
+    } else if (ownerLabel && ownerLabel.offsetParent !== null) {
+      el = ownerLabel;
+    } else if (staffLabel) {
+      el = staffLabel;
+    } else if (ownerLabel) {
+      el = ownerLabel;
+    }
+    
+    if (el) {
+      var match = el.textContent.trim().match(datePattern);
       if (match) return match[1];
     }
+    
+    // Fallback: scan all elements
+    var all = document.querySelectorAll('p, small, span, h2, h3, div');
+    for (var i = 0; i < all.length; i++) {
+      var elem = all[i];
+      if (elem.children.length > 2) continue;
+      var text = elem.textContent.trim();
+      var m = text.match(datePattern);
+      if (m) return m[1];
+    }
+    
+    // Final fallback: compute week number
     var now = new Date();
     var startOfYear = new Date(now.getFullYear(), 0, 1);
     var week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
@@ -234,8 +259,9 @@
       
       Object.keys(originalHiddenTasks || {}).forEach(function(id) {
         var entry = originalHiddenTasks[id];
-        // Include if weekLabel matches OR if no weekLabel (legacy)
-        if (entry && (entry.weekLabel === currentWeek || entry.weekLabel === undefined)) {
+        // Only include if weekLabel matches current week
+        // Legacy entries (no weekLabel) are NOT hidden — they should reappear
+        if (entry && entry.weekLabel === currentWeek) {
           filteredHiddenTasks[id] = entry;
         }
       });
