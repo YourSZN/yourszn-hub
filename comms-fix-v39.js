@@ -247,86 +247,71 @@
   function patchWeekNav() {
     var lastLabel = getCurrentWeekLabel();
     
-    // v41: Force show all rows that aren't in current week's hidden list
-    function forceApplyVisibility() {
-      var hidden = window.hiddenTasks || {};
-      var hiddenTitles = {};
-      Object.keys(hidden).forEach(function(id) {
-        var task = (window.tasks || []).find(function(t) { return String(t.id) === String(id); });
-        if (task && task.title) hiddenTitles[task.title.trim()] = true;
-      });
-      
-      document.querySelectorAll('table tbody tr').forEach(function(row) {
-        var cells = row.querySelectorAll('td');
-        if (cells.length < 2) return;
-        var title = null;
-        for (var i = 0; i < cells.length; i++) {
-          var text = cells[i].textContent.trim()
-            .split('▼')[0]
-            .replace(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun))*/gi, '')
-            .trim();
-          if (text && text.length > 0 && text.length < 120) { title = text; break; }
+    // v42: THE REAL FIX - intercept changeTaskWeek and changeStaffTaskWeek
+    // These are called BEFORE renderTaskBoard(), so we sync hiddenTasks first
+    
+    if (typeof window.changeTaskWeek === 'function') {
+      var origChangeTaskWeek = window.changeTaskWeek;
+      window.changeTaskWeek = function(d) {
+        // The week offset will change, so predict the new week label
+        // We need to let the offset change first, then sync
+        var result = origChangeTaskWeek.call(this, d);
+        // Sync immediately after the offset changes but the DOM render uses hiddenTasks
+        var newLabel = getCurrentWeekLabel();
+        if (newLabel !== lastLabel) {
+          lastLabel = newLabel;
+          syncHiddenTasksToWeek(newLabel);
+          if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+          // Force re-render with correct hiddenTasks
+          if (typeof window.renderTaskBoard === 'function') {
+            setTimeout(function() { window.renderTaskBoard(); }, 50);
+          }
         }
-        if (!title) return;
-        if (hiddenTitles[title]) {
-          row.style.display = 'none';
-        } else {
-          row.style.display = '';
-        }
-      });
+        return result;
+      };
+      console.log('[comms-fix] v42: patched changeTaskWeek');
     }
     
-    // v41: Intercept Prev/Next button clicks
-    document.addEventListener('click', function(e) {
-      var btn = e.target.closest('button');
-      if (!btn) return;
-      var text = btn.textContent.trim().toLowerCase();
-      if (text.includes('prev') || text.includes('next')) {
-        // Wait for the app to update the week label and re-render
-        // Then sync and apply visibility
-        setTimeout(function() {
-          var newLabel = getCurrentWeekLabel();
-          if (newLabel !== lastLabel) {
-            lastLabel = newLabel;
-            syncHiddenTasksToWeek(newLabel);
-            if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+    if (typeof window.changeStaffTaskWeek === 'function') {
+      var origChangeStaffTaskWeek = window.changeStaffTaskWeek;
+      window.changeStaffTaskWeek = function(d) {
+        var result = origChangeStaffTaskWeek.call(this, d);
+        var newLabel = getCurrentWeekLabel();
+        if (newLabel !== lastLabel) {
+          lastLabel = newLabel;
+          syncHiddenTasksToWeek(newLabel);
+          if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+          if (typeof window.renderTaskBoard === 'function') {
+            setTimeout(function() { window.renderTaskBoard(); }, 50);
           }
-          forceApplyVisibility();
-        }, 150);
-        
-        // Run again after a longer delay in case app is slow to render
-        setTimeout(function() {
-          var newLabel = getCurrentWeekLabel();
-          if (newLabel !== lastLabel) {
-            lastLabel = newLabel;
-            syncHiddenTasksToWeek(newLabel);
-          }
-          forceApplyVisibility();
-        }, 400);
-        
-        // And once more for good measure
-        setTimeout(function() {
-          forceApplyVisibility();
-        }, 800);
-      }
-    }, true);
+        }
+        return result;
+      };
+      console.log('[comms-fix] v42: patched changeStaffTaskWeek');
+    }
     
+    // Also patch renderTaskBoard to always sync first
+    if (typeof window.renderTaskBoard === 'function') {
+      var origRenderTaskBoard = window.renderTaskBoard;
+      window.renderTaskBoard = function() {
+        var currentLabel = getCurrentWeekLabel();
+        if (currentLabel !== lastLabel) {
+          lastLabel = currentLabel;
+          syncHiddenTasksToWeek(currentLabel);
+        }
+        return origRenderTaskBoard.apply(this, arguments);
+      };
+      console.log('[comms-fix] v42: patched renderTaskBoard');
+    }
+    
+    // Fallback interval check
     setInterval(function() {
       var current = getCurrentWeekLabel();
       if (current !== lastLabel) {
-        console.log('[comms-fix] v39: week changed from "' + lastLabel + '" to "' + current + '"');
+        console.log('[comms-fix] v42: week changed from "' + lastLabel + '" to "' + current + '"');
         lastLabel = current;
-        // v39: THE KEY FIX — resync hiddenTasks to new week
         syncHiddenTasksToWeek(current);
-        // Re-render the hidden tasks box
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-        // Reset table patching so it re-runs with updated hidden tasks
-        document.querySelectorAll('table[data-v24skip]').forEach(function(t) { delete t.dataset.v24skip; });
-        document.querySelectorAll('[data-v24c]').forEach(function(el) { delete el.dataset.v24c; });
-        document.querySelectorAll('[data-v24n]').forEach(function(el) { delete el.dataset.v24n; });
-        setTimeout(doPatch, 200);
-        // v41: Also force visibility
-        setTimeout(forceApplyVisibility, 250);
       }
     }, 500);
   }
