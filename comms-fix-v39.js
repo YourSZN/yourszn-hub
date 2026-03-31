@@ -283,9 +283,16 @@
     var realHiddenTasks = window.hiddenTasks || {};
     window.__realHiddenTasks = realHiddenTasks;
     
+    // Log what we're capturing
+    console.log('[comms-fix] v46: capturing hiddenTasks with', Object.keys(realHiddenTasks).length, 'entries');
+    Object.keys(realHiddenTasks).forEach(function(key) {
+      var entry = realHiddenTasks[key];
+      console.log('[comms-fix] v46:   -', key, ':', entry ? entry.weekLabel : 'NO ENTRY');
+    });
+    
     // Replace with proxy
     window.hiddenTasks = createHiddenTasksProxy(realHiddenTasks);
-    console.log('[comms-fix] v46: installed hiddenTasks proxy with', Object.keys(realHiddenTasks).length, 'total entries');
+    console.log('[comms-fix] v46: installed hiddenTasks proxy');
   }
 
   function patchHideTask() {
@@ -302,16 +309,20 @@
           realObj = window.hiddenTasks;
         }
         
-        var taskIdStr = String(taskId);
-        if (realObj && realObj[taskIdStr]) {
-          realObj[taskIdStr].weekLabel = getCurrentWeekLabel();
-          delete realObj[taskIdStr].weekOffset;
-          delete realObj[taskIdStr].weekNumber;
-          console.log('[comms-fix] v46: tagged task', taskId, 'with weekLabel', getCurrentWeekLabel());
+        // Try both the original key and string version (in case of type mismatch)
+        var entry = realObj[taskId] || realObj[String(taskId)];
+        var actualKey = realObj[taskId] ? taskId : String(taskId);
+        
+        if (entry) {
+          entry.weekLabel = getCurrentWeekLabel();
+          delete entry.weekOffset;
+          delete entry.weekNumber;
+          console.log('[comms-fix] v46: tagged task', taskId, '(key:', actualKey, ') with weekLabel', getCurrentWeekLabel());
+          console.log('[comms-fix] v46: entry is now:', JSON.stringify(entry));
           console.log('[comms-fix] v46: realObj now has', Object.keys(realObj).length, 'entries');
           if (typeof window.saveData === 'function') window.saveData();
         } else {
-          console.log('[comms-fix] v46: WARNING - could not find task', taskId, 'in realObj');
+          console.log('[comms-fix] v46: WARNING - could not find task', taskId, 'in realObj. Keys:', Object.keys(realObj));
         }
       }, 150);
       return r;
