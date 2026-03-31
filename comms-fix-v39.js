@@ -253,41 +253,49 @@
     if (typeof window.changeTaskWeek === 'function') {
       var origChangeTaskWeek = window.changeTaskWeek;
       window.changeTaskWeek = function(d) {
-        // The week offset will change, so predict the new week label
-        // We need to let the offset change first, then sync
-        var result = origChangeTaskWeek.call(this, d);
-        // Sync immediately after the offset changes but the DOM render uses hiddenTasks
+        // v45: Sync BEFORE the render
+        window.taskWeekOff = (window.taskWeekOff || 0) + d;
         var newLabel = getCurrentWeekLabel();
+        window.taskWeekOff = (window.taskWeekOff || 0) - d;
+        
         if (newLabel !== lastLabel) {
           lastLabel = newLabel;
           syncHiddenTasksToWeek(newLabel);
-          if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-          // Force re-render with correct hiddenTasks
-          if (typeof window.renderTaskBoard === 'function') {
-            setTimeout(function() { window.renderTaskBoard(); }, 50);
-          }
         }
+        
+        var result = origChangeTaskWeek.call(this, d);
+        if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         return result;
       };
-      console.log('[comms-fix] v42: patched changeTaskWeek');
+      console.log('[comms-fix] v45: patched changeTaskWeek (sync BEFORE render)');
     }
     
     if (typeof window.changeStaffTaskWeek === 'function') {
       var origChangeStaffTaskWeek = window.changeStaffTaskWeek;
       window.changeStaffTaskWeek = function(d) {
-        var result = origChangeStaffTaskWeek.call(this, d);
+        // v45: We need to predict what the new week label will be BEFORE rendering
+        // The original function increments staffTaskWeekOff then renders
+        // So we increment it ourselves first, sync, then let original run
+        
+        // Temporarily increment to get the new week label
+        window.staffTaskWeekOff = (window.staffTaskWeekOff || 0) + d;
         var newLabel = getCurrentWeekLabel();
+        // Revert so original can do it properly
+        window.staffTaskWeekOff = (window.staffTaskWeekOff || 0) - d;
+        
+        // Now sync BEFORE the render happens
         if (newLabel !== lastLabel) {
           lastLabel = newLabel;
           syncHiddenTasksToWeek(newLabel);
-          if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-          if (typeof window.renderTaskBoard === 'function') {
-            setTimeout(function() { window.renderTaskBoard(); }, 50);
-          }
         }
+        
+        // Now let original run (it will increment and render with correct hiddenTasks)
+        var result = origChangeStaffTaskWeek.call(this, d);
+        
+        if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
         return result;
       };
-      console.log('[comms-fix] v42: patched changeStaffTaskWeek');
+      console.log('[comms-fix] v45: patched changeStaffTaskWeek (sync BEFORE render)');
     }
     
     // Also patch renderTaskBoard to always sync first
