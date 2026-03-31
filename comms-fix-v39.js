@@ -62,9 +62,9 @@
         setTimeout(function() {
           var user = window.curUser;
           if (user) filterDMsForUser(user.toLowerCase());
-          // v43: Just re-render, the week-aware filtering will handle it
+          // v39: re-sync after cloud load so hidden tasks filter applies to freshly loaded data
+          syncHiddenTasksToWeek(getCurrentWeekLabel());
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-          if (typeof window.renderTaskBoard === 'function') window.renderTaskBoard();
         }, 300);
       }
     };
@@ -110,13 +110,8 @@
       var elId = view === 'owner' ? 'hidden-box-owner' : 'hidden-box-staff';
       var el = document.getElementById(elId);
       if (!el) return;
-      
-      // v43: Filter to only tasks hidden for CURRENT week
-      var currentWeekLabel = getCurrentWeekLabel();
-      var hiddenIds = Object.keys(window.hiddenTasks || {}).filter(function(id) {
-        return isHiddenForWeek(id, currentWeekLabel);
-      });
-      
+      // v39: window.hiddenTasks is already filtered to current week by syncHiddenTasksToWeek
+      var hiddenIds = Object.keys(window.hiddenTasks || {});
       var myHidden;
       if (window.curUser === 'latisha') {
         myHidden = hiddenIds.map(function(id) {
@@ -172,7 +167,8 @@
     var orig = window.unhideTask;
     window.unhideTask = function(taskId) {
       orig.call(this, taskId);
-      // v43: Just save - hiddenTasks is the source of truth now
+      // v39: also remove from master store so it doesn't reappear
+      if (window.__allHiddenTasks) delete window.__allHiddenTasks[String(taskId)];
       if (typeof window.saveData === 'function') window.saveData();
     };
   }
@@ -196,25 +192,34 @@
   }
 
   /**
-   * v43 NEW APPROACH: Don't filter window.hiddenTasks at all.
-   * Keep ALL hidden tasks in it so they persist to cloud storage.
-   * Instead, we make the filtering logic week-aware.
+   * v39 CORE FIX: Sync window.hiddenTasks to only show entries for the CURRENT week.
+   * All entries are always preserved in window.__allHiddenTasks (master store).
+   * This is the key function that makes hiding week-specific.
    */
-  
-  // Helper: check if a task should be hidden for a specific week
-  function isHiddenForWeek(taskId, weekLabel) {
-    var entry = window.hiddenTasks && window.hiddenTasks[String(taskId)];
-    if (!entry) return false;
-    // If entry has a weekLabel, only hide if it matches
-    if (entry.weekLabel) {
-      return entry.weekLabel === weekLabel;
+  function syncHiddenTasksToWeek(label) {
+    // First, merge any existing hiddenTasks into the master store
+    var all = window.__allHiddenTasks || {};
+    if (window.hiddenTasks) {
+      Object.keys(window.hiddenTasks).forEach(function(id) {
+        // Only add to master if it has a weekLabel (properly tagged)
+        if (window.hiddenTasks[id]) {
+          all[id] = window.hiddenTasks[id];
+        }
+      });
     }
-    // Legacy entries without weekLabel: treat as hidden for all weeks (backward compat)
-    return true;
+    window.__allHiddenTasks = all;
+
+    // Now filter: only show entries where weekLabel matches current week
+    var filtered = {};
+    Object.keys(all).forEach(function(id) {
+      var entry = all[id];
+      if (entry && entry.weekLabel === label) {
+        filtered[id] = entry;
+      }
+    });
+    window.hiddenTasks = filtered;
+    console.log('[comms-fix] v39: synced hiddenTasks for week "' + label + '" — showing ' + Object.keys(filtered).length + ' of ' + Object.keys(all).length + ' total hidden');
   }
-  
-  // Expose globally so patched functions can use it
-  window.__isHiddenForWeek = isHiddenForWeek;
 
   function patchHideTask() {
     if (typeof window.hideTask !== 'function') return;
@@ -228,8 +233,11 @@
           // Clean up any old week tracking fields
           delete window.hiddenTasks[String(taskId)].weekOffset;
           delete window.hiddenTasks[String(taskId)].weekNumber;
+          // v39: copy to master store
+          if (!window.__allHiddenTasks) window.__allHiddenTasks = {};
+          window.__allHiddenTasks[String(taskId)] = window.hiddenTasks[String(taskId)];
           if (typeof window.saveData === 'function') window.saveData();
-          console.log('[comms-fix] v43: hid task', taskId, 'for week', getCurrentWeekLabel());
+          console.log('[comms-fix] v39: hid task', taskId, 'for week', getCurrentWeekLabel());
         }
       }, 150);
       return r;
@@ -239,73 +247,29 @@
   function patchWeekNav() {
     var lastLabel = getCurrentWeekLabel();
     
-    // v43: Patch tasksForWeek or the filter to be week-aware
-    // The original filter is: !hiddenTasks[t.id]
-    // We need it to be: !isHiddenForWeek(t.id, currentWeekLabel)
+    // v42: THE REAL FIX - intercept changeTaskWeek and changeStaffTaskWeek
+    // These are called BEFORE renderTaskBoard(), so we sync hiddenTasks first
     
-    // Patch buildTaskTablesHTML by intercepting it
-    if (typeof window.buildTaskTablesHTML === 'function') {
-      var origBuildTaskTablesHTML = window.buildTaskTablesHTML;
-      window.buildTaskTablesHTML = function(uid, weekOff, isStaff) {
-        // Temporarily replace hiddenTasks check
-        var currentWeekLabel = window.weekLabel ? window.weekLabel(weekOff) : getCurrentWeekLabel();
-        var origHiddenTasks = window.hiddenTasks;
-        
-        // Create a filtered view for just this week
-        var weekFilteredHidden = {};
-        Object.keys(origHiddenTasks || {}).forEach(function(id) {
-          if (isHiddenForWeek(id, currentWeekLabel)) {
-            weekFilteredHidden[id] = origHiddenTasks[id];
-          }
-        });
-        
-        // Temporarily swap
-        window.hiddenTasks = weekFilteredHidden;
-        var result = origBuildTaskTablesHTML.call(this, uid, weekOff, isStaff);
-        // Restore
-        window.hiddenTasks = origHiddenTasks;
-        
-        return result;
-      };
-      console.log('[comms-fix] v43: patched buildTaskTablesHTML for week-aware hiding');
-    }
-    
-    // Also patch renderHiddenBoxFor to only show tasks hidden for current week
-    if (typeof window.renderHiddenBoxFor === 'function') {
-      var origRenderHiddenBoxFor = window.renderHiddenBoxFor;
-      window.renderHiddenBoxFor = function(view) {
-        var currentWeekLabel = getCurrentWeekLabel();
-        var origHiddenTasks = window.hiddenTasks;
-        
-        // Filter to just current week
-        var weekFilteredHidden = {};
-        Object.keys(origHiddenTasks || {}).forEach(function(id) {
-          if (isHiddenForWeek(id, currentWeekLabel)) {
-            weekFilteredHidden[id] = origHiddenTasks[id];
-          }
-        });
-        
-        window.hiddenTasks = weekFilteredHidden;
-        var result = origRenderHiddenBoxFor.call(this, view);
-        window.hiddenTasks = origHiddenTasks;
-        
-        return result;
-      };
-      console.log('[comms-fix] v43: patched renderHiddenBoxFor for week-aware display');
-    }
-    
-    // Track week changes for re-rendering
     if (typeof window.changeTaskWeek === 'function') {
       var origChangeTaskWeek = window.changeTaskWeek;
       window.changeTaskWeek = function(d) {
+        // The week offset will change, so predict the new week label
+        // We need to let the offset change first, then sync
         var result = origChangeTaskWeek.call(this, d);
+        // Sync immediately after the offset changes but the DOM render uses hiddenTasks
         var newLabel = getCurrentWeekLabel();
         if (newLabel !== lastLabel) {
           lastLabel = newLabel;
+          syncHiddenTasksToWeek(newLabel);
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+          // Force re-render with correct hiddenTasks
+          if (typeof window.renderTaskBoard === 'function') {
+            setTimeout(function() { window.renderTaskBoard(); }, 50);
+          }
         }
         return result;
       };
+      console.log('[comms-fix] v42: patched changeTaskWeek');
     }
     
     if (typeof window.changeStaffTaskWeek === 'function') {
@@ -315,13 +279,41 @@
         var newLabel = getCurrentWeekLabel();
         if (newLabel !== lastLabel) {
           lastLabel = newLabel;
+          syncHiddenTasksToWeek(newLabel);
           if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+          if (typeof window.renderTaskBoard === 'function') {
+            setTimeout(function() { window.renderTaskBoard(); }, 50);
+          }
         }
         return result;
       };
+      console.log('[comms-fix] v42: patched changeStaffTaskWeek');
     }
     
-    console.log('[comms-fix] v43: week navigation patched');
+    // Also patch renderTaskBoard to always sync first
+    if (typeof window.renderTaskBoard === 'function') {
+      var origRenderTaskBoard = window.renderTaskBoard;
+      window.renderTaskBoard = function() {
+        var currentLabel = getCurrentWeekLabel();
+        if (currentLabel !== lastLabel) {
+          lastLabel = currentLabel;
+          syncHiddenTasksToWeek(currentLabel);
+        }
+        return origRenderTaskBoard.apply(this, arguments);
+      };
+      console.log('[comms-fix] v42: patched renderTaskBoard');
+    }
+    
+    // Fallback interval check
+    setInterval(function() {
+      var current = getCurrentWeekLabel();
+      if (current !== lastLabel) {
+        console.log('[comms-fix] v42: week changed from "' + lastLabel + '" to "' + current + '"');
+        lastLabel = current;
+        syncHiddenTasksToWeek(current);
+        if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+      }
+    }, 500);
   }
 
   // ── END HIDDEN TASK FIX ──────────────────────────────────────────────────
@@ -506,8 +498,40 @@
       if (!window.deletedTasks) window.deletedTasks = [];
       stripDeletedTasks(); patchHideTask(); patchWeekNav();
 
+      // v39: Initialize master store from current hiddenTasks, then sync to current week
+      window.__allHiddenTasks = Object.assign({}, window.hiddenTasks || {});
+      syncHiddenTasksToWeek(getCurrentWeekLabel());
+
+      // v44: Patch saveData to save ALL hidden tasks (from master store), not just current week
+      if (typeof window.saveData === 'function') {
+        var origSaveData = window.saveData;
+        window.saveData = function() {
+          // Temporarily swap hiddenTasks with the full master store for saving
+          var currentFiltered = window.hiddenTasks;
+          window.hiddenTasks = window.__allHiddenTasks || currentFiltered;
+          var result = origSaveData.apply(this, arguments);
+          // Restore the filtered version for display
+          window.hiddenTasks = currentFiltered;
+          return result;
+        };
+        console.log('[comms-fix] v44: patched saveData to persist all hidden tasks');
+      }
+
+      // v39: Intercept loadData to re-sync after every cloud reload
+      if (typeof window.loadData === 'function') {
+        var origLoadData = window.loadData;
+        window.loadData = function() {
+          var r = origLoadData.apply(this, arguments);
+          setTimeout(function() {
+            // Merge loaded hiddenTasks into master, then filter for current week
+            syncHiddenTasksToWeek(getCurrentWeekLabel());
+          }, 100);
+          return r;
+        };
+      }
+
       watchTaskTable();
-      console.log('[comms-fix] v43 booted — week-scoped hiding active, persistence fixed');
+      console.log('[comms-fix] v39 booted — week-scoped hiding active');
     }, 2000);
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { setTimeout(boot, 500); }
