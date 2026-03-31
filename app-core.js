@@ -65,3 +65,47 @@ function goBack() {
   pin = ''; updDots(); selUid = null;
   document.getElementById('perr').textContent = '';
 }
+
+// ══════════════════════════════════════════════════
+// SHARED HELPER FUNCTIONS
+// These are used across all modules — must load first
+// ══════════════════════════════════════════════════
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+function statusLabel(s){ return {'n':'Not Started','not-started':'Not Started','in-progress':'In Progress','blocked':'Blocked','done':'Done'}[s]||'Not Started'; }
+function fmtDate(d){ return d.toLocaleDateString('en-AU',{day:'numeric',month:'short'}); }
+function weekLabel(off) {
+  var s=getWeekStart(off); var e=new Date(s); e.setDate(s.getDate()+6);
+  if(off===0) return 'This Week — '+fmtDate(s)+' to '+fmtDate(e);
+  if(off===-1) return 'Last Week — '+fmtDate(s)+' to '+fmtDate(e);
+  if(off===1) return 'Next Week — '+fmtDate(s)+' to '+fmtDate(e);
+  return fmtDate(s)+' to '+fmtDate(e);
+}
+function getWeekStart(off) {
+  var d=new Date(); var day=d.getDay(); var diff=d.getDate()-day+(day===0?-6:1);
+  var mon=new Date(d.setDate(diff)); mon.setHours(0,0,0,0);
+  mon.setDate(mon.getDate()+(off||0)*7); return mon;
+}
+function buildTable(title, rows, headers, rowFn, uid, isStaff, emptyMsg) {
+  var h = '<div class="ttable-wrap">'+
+    '<div class="ttable-hd">'+
+      '<div><div class="ttable-title">'+title+'</div></div>'+
+      '<span class="ttable-count">'+(rows?rows.length:0)+'</span>'+
+    '</div>'+
+    '<div style="overflow-x:auto"><table class="ttbl">'+
+    '<thead><tr>'+headers.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead>'+
+    '<tbody>';
+  if (!rows || !rows.length) {
+    h += '<tr><td colspan="'+headers.length+'" style="color:var(--muted);text-align:center;padding:20px">'+emptyMsg+'</td></tr>';
+  } else {
+    rows.forEach(function(t){
+      var fn = isStaff ? 'openStaffTaskModal' : 'openTaskModal';
+      var isNew = (window.taskNotifs||[]).some(function(n){ return n.taskId===t.id && n.forUser===curUser && n.type==='assigned' && !n.seen; });
+      var rowStyle = isNew ? ' class="task-row-new"' : '';
+      h += '<tr'+rowStyle+' onclick="'+fn+'('+t.id+')">'+rowFn(t)+'</tr>';
+    });
+  }
+  h += '</tbody></table></div></div>';
+  return h;
+}
