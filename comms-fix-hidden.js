@@ -26,17 +26,16 @@
   }
 
   function applyHiddenToDOM() {
+    // v8 FIX: window.hiddenTasks is already filtered by v39 to only contain
+    // entries for the CURRENT viewed week. So we just hide anything in there.
+    // On other weeks, window.hiddenTasks will be empty (or not contain this task),
+    // so the task will show normally.
     var hidden = window.hiddenTasks || {};
     var hiddenIds = Object.keys(hidden);
-    var viewedDate = getViewedDateRange();
 
+    // Build set of titles to hide (only tasks hidden for THIS week are in window.hiddenTasks)
     var hiddenTitles = {};
     hiddenIds.forEach(function (id) {
-      var entry = hidden[id];
-      if (!entry) return;
-      var entryDate = extractDateRange(entry.weekLabel || '') || entry.weekLabel;
-      if (!entryDate || !viewedDate) return;
-      if (entryDate !== viewedDate) return;
       var task = (window.tasks || []).find(function (t) { return String(t.id) === String(id); });
       if (task && task.title) hiddenTitles[task.title.trim()] = true;
     });
@@ -56,6 +55,7 @@
       if (hiddenTitles[title]) {
         row.style.display = 'none';
       } else {
+        // v8: Always restore visibility if not in current week's hidden list
         if (row.style.display === 'none') row.style.display = '';
       }
     });

@@ -246,6 +246,33 @@
 
   function patchWeekNav() {
     var lastLabel = getCurrentWeekLabel();
+    
+    // v40: Intercept Prev/Next button clicks to sync BEFORE the page updates
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var text = btn.textContent.trim().toLowerCase();
+      if (text.includes('prev') || text.includes('next')) {
+        // Pre-emptively clear all row visibility so nothing flashes
+        document.querySelectorAll('table tbody tr').forEach(function(row) {
+          row.style.opacity = '0';
+        });
+        // After a brief delay, the week label will update and we'll sync
+        setTimeout(function() {
+          var newLabel = getCurrentWeekLabel();
+          if (newLabel !== lastLabel) {
+            lastLabel = newLabel;
+            syncHiddenTasksToWeek(newLabel);
+            if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
+          }
+          // Restore visibility
+          document.querySelectorAll('table tbody tr').forEach(function(row) {
+            row.style.opacity = '';
+          });
+        }, 100);
+      }
+    }, true);
+    
     setInterval(function() {
       var current = getCurrentWeekLabel();
       if (current !== lastLabel) {
