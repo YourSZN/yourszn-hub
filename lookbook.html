@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HUB — Vietnam Inspiration Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F5F0EB;
+  --bg-card: #FFFFFF;
+  --bg-input: #FAF8F5;
+  --border: #E5DDD4;
+  --border-light: #EDE8E1;
+  --text: #2C2420;
+  --text-mid: #6B5E53;
+  --text-light: #9B8E82;
+  --accent: #3C3229;
+  --accent-hover: #2C2420;
+  --accent-soft: #D4C8BB;
+  --tag-bg: #EDE8E1;
+  --danger: #C4685A;
+  --danger-bg: #FDF0EE;
+  --success: #6B8F71;
+  --success-bg: #EEF5EF;
+  --blue: #5B7FA6;
+  --blue-bg: #EDF2F7;
+  --amber: #B8923E;
+  --amber-bg: #FBF5E9;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(44,36,32,0.06);
+  --shadow-md: 0 4px 12px rgba(44,36,32,0.08);
+}
+
+body {
+  font-family: 'Jost', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.site-header {
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.logo span { font-weight: 400; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-sub { font-size: 13px; color: var(--text-light); letter-spacing: 0.5px; }
+
+/* ── Layout ── */
+.container { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.tab {
+  padding: 9px 22px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  background: var(--bg-card);
+  color: var(--text-mid);
+  transition: all 0.2s;
+}
+.tab:hover { border-color: var(--accent-soft); }
+.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── Search ── */
+.search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.search-bar input {
+  flex: 1;
+  min-width: 220px;
+  padding: 11px 18px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-card);
+  outline: none;
+}
+.search-bar input:focus { border-color: var(--accent); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 24px;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border-light); }
+.btn-sm { padding: 7px 16px; font-size: 12px; }
+.btn-back {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-mid);
+  padding: 8px 18px;
+  border-radius: 24px;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: all 0.2s;
+}
+.btn-back:hover { border-color: var(--accent); color: var(--text); }
+
+/* ── Client List ── */
+.client-table {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.client-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 80px 120px 60px;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.client-row:hover { background: var(--bg-input); }
+.client-row:last-child { border-bottom: none; }
+.client-row.header {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-light);
+  cursor: default;
+  background: var(--bg-input);
+}
+.client-row.header:hover { background: var(--bg-input); }
+.client-name { font-weight: 500; }
+.client-email { color: var(--text-mid); font-size: 14px; }
+.client-count {
+  font-size: 13px;
+  color: var(--text-mid);
+  text-align: center;
+}
+
+/* ── Status Badge ── */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.status-new { background: var(--blue-bg); color: var(--blue); }
+.status-reviewing { background: var(--amber-bg); color: var(--amber); }
+.status-sourced { background: var(--success-bg); color: var(--success); }
+.status-completed { background: #E8E8E8; color: #555; }
+.status-not-available { background: var(--danger-bg); color: var(--danger); }
+
+/* ── Client Detail ── */
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.detail-header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 500;
+}
+.detail-header .meta {
+  font-size: 14px;
+  color: var(--text-light);
+}
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* ── Tile Grid (Admin) ── */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.item-tile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  position: relative;
+}
+.item-tile:hover { box-shadow: var(--shadow-md); border-color: var(--accent-soft); }
+.item-tile.active { border-color: var(--accent); box-shadow: var(--shadow-md); }
+.tile-thumb {
+  aspect-ratio: 3/4;
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.tile-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tile-thumb .placeholder {
+  color: var(--text-light);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tile-info {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tile-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tile-category {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-mid);
+  background: var(--tag-bg);
+  padding: 4px 12px;
+  border-radius: 16px;
+}
+.tile-arrow {
+  font-size: 14px;
+  color: var(--text-light);
+  transition: transform 0.2s;
+}
+.item-tile.active .tile-arrow { transform: rotate(180deg); }
+
+/* ── Admin Shelf ── */
+.admin-shelf {
+  grid-column: 1 / -1;
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  animation: shelfOpen 0.25s ease;
+}
+@keyframes shelfOpen {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.admin-shelf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-input);
+}
+.admin-shelf-body { padding: 24px; }
+.shelf-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.admin-photos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.admin-photo-slot {
+  aspect-ratio: 3/4;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-photo-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+.admin-photo-slot .empty-label {
+  font-size: 11px;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.admin-photo-slot .slot-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 12px;
+  background: rgba(44,36,32,0.65);
+  color: #fff;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  text-align: center;
+}
+.admin-photo-slot .dl-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(44,36,32,0.65);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.admin-photo-slot:hover .dl-btn { display: flex; }
+
+/* ── Prompts Display ── */
+.prompt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.prompt-item {
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+.prompt-item.full { grid-column: 1 / -1; }
+.prompt-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+.prompt-value {
+  font-size: 14px;
+  color: var(--text);
+}
+.prompt-value.empty { color: var(--text-light); font-style: italic; }
+
+/* ── Admin Controls ── */
+.admin-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+.admin-controls .form-group { margin-bottom: 0; }
+.admin-controls .form-group.full { grid-column: 1 / -1; }
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  margin-bottom: 6px;
+}
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-input);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+/* ── Measurements ── */
+.measurements-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+  margin-top: 32px;
+}
+.measure-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.measure-item label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-mid);
+  margin-bottom: 4px;
+}
+.measure-item input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-input);
+  outline: none;
+}
+.measure-item input:focus { border-color: var(--accent); }
+.measure-item .unit {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+/* ── Lightbox ── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+.lightbox.open { display: flex; }
+.lightbox img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 14px 24px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  font-size: 14px;
+  z-index: 200;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { border-color: var(--danger); color: var(--danger); }
+
+.save-indicator {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  z-index: 100;
+  pointer-events: none;
+}
+.save-indicator.show { opacity: 1; transform: translateY(0); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .site-header { padding: 16px 20px; }
+  .container { padding: 20px 16px 80px; }
+  .client-row { grid-template-columns: 1fr 1fr 60px; font-size: 14px; padding: 14px 16px; }
+  .client-row .client-email { display: none; }
+  .tile-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .admin-photos { grid-template-columns: repeat(2, 1fr); }
+  .prompt-grid { grid-template-columns: 1fr; }
+  .admin-controls { grid-template-columns: 1fr; }
+  .measure-grid { grid-template-columns: repeat(2, 1fr); }
+  .detail-header { flex-direction: column; align-items: flex-start; }
+  .admin-shelf-body { padding: 16px; }
+}
+@media (max-width: 480px) {
+  .measure-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.body.classList.add('in-iframe');</script>
+<style>
+  body.in-iframe .site-header { display: none; }
+  body.in-iframe .container { padding-top: 8px; }
+</style>
+
+<header class="site-header">
+  <div>
+    <div class="logo">YOUR <span>SZN</span></div>
+    <div class="header-sub">Vietnam Tailoring Tour · Inspiration Admin</div>
+  </div>
+</header>
+
+<!-- Client List View -->
+<div id="listView" class="container">
+  <div class="tabs">
+    <div class="tab active">All Clients</div>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search by name or email…" oninput="filterClients()">
+  </div>
+  <div id="clientList"></div>
+</div>
+
+<!-- Client Detail View -->
+<div id="detailView" class="container" style="display:none">
+  <button class="btn-back" onclick="goBack()">← All Clients</button>
+  <div class="detail-header">
+    <div>
+      <h1 id="detailName"></h1>
+      <div class="meta" id="detailEmail"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="downloadAllPhotos()">↓ Download All Photos</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadClientReport()">📋 Download Report</button>
+    </div>
+  </div>
+
+  <h3 class="section-title">Inspiration Items</h3>
+  <div id="detailItems"></div>
+
+  <!-- Measurements -->
+  <div class="measurements-card" id="measurementsCard">
+    <h3 class="section-title" style="margin-top:0">Measurements (cm)</h3>
+    <div class="measure-grid" id="measureGrid"></div>
+    <div class="form-group" style="margin-top:16px">
+      <label>Fit / Tailoring Notes</label>
+      <textarea id="fitNotes" oninput="saveMeasurements()" placeholder="e.g. Prefers relaxed fit, uneven shoulders…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="">
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="save-indicator" id="saveIndicator">✓ Saved</div>
+
+<script>
+const SB_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+const STORAGE_BUCKET = 'inspiration-photos';
+
+let allClients = [];
+let currentClient = null;
+let currentItems = [];
+let currentMeasurements = null;
+let saveTimers = {};
+let openedAdminItem = null;
+
+// ── Supabase ──
+async function sb(path, opts = {}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: opts.prefer || '' },
+    ...opts
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function photoUrl(path) {
+  return `${SB_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function flashSaved() {
+  const s = document.getElementById('saveIndicator');
+  s.classList.add('show');
+  setTimeout(() => s.classList.remove('show'), 1800);
+}
+
+// ── Load Clients ──
+async function loadClients() {
+  allClients = await sb('inspiration_clients?order=created_at.desc&select=*,inspiration_items(id)');
+  renderClients();
+}
+
+function filterClients() {
+  renderClients();
+}
+
+function renderClients() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = allClients.filter(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
+
+  const list = document.getElementById('clientList');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:48px;color:var(--text-light)">No clients found</div>';
+    return;
+  }
+
+  list.innerHTML = `
+    <div class="client-table">
+      <div class="client-row header">
+        <div>Name</div>
+        <div>Email</div>
+        <div style="text-align:center">Items</div>
+        <div>Joined</div>
+        <div></div>
+      </div>
+      ${filtered.map(c => `
+        <div class="client-row" onclick="openClient('${c.id}')">
+          <div class="client-name">${c.name}</div>
+          <div class="client-email">${c.email}</div>
+          <div class="client-count">${(c.inspiration_items || []).length}</div>
+          <div style="font-size:13px;color:var(--text-light)">${new Date(c.created_at).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}</div>
+          <div style="text-align:right;color:var(--text-light)">→</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ── Open Client ──
+async function openClient(clientId) {
+  openedAdminItem = null;
+  currentClient = allClients.find(c => c.id === clientId);
+  document.getElementById('detailName').textContent = currentClient.name;
+  document.getElementById('detailEmail').textContent = currentClient.email;
+
+  // Load items with photos and admin notes
+  currentItems = await sb(`inspiration_items?client_id=eq.${clientId}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*)`);
+
+  // Load measurements
+  const meas = await sb(`inspiration_measurements?client_id=eq.${clientId}&select=*`);
+  currentMeasurements = meas.length > 0 ? meas[0] : null;
+
+  renderDetail();
+  renderMeasurements();
+
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detailView').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('listView').style.display = 'block';
+  loadClients();
+}
+
+// ── Render Detail ──
+function toggleAdminShelf(itemId) {
+  if (openedAdminItem === itemId) {
+    openedAdminItem = null;
+  } else {
+    openedAdminItem = itemId;
+  }
+  renderDetail();
+  if (openedAdminItem) {
+    setTimeout(() => {
+      const shelf = document.getElementById(`admin-shelf-${itemId}`);
+      if (shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+}
+
+function renderAdminPhotoSlots(item) {
+  const photos = item.inspiration_photos || [];
+  const photoMap = {};
+  photos.forEach(p => photoMap[p.slot] = p);
+
+  return ['front','back','side_left','side_right'].map(slot => {
+    const p = photoMap[slot];
+    const label = slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+    if (p) {
+      const url = photoUrl(p.storage_path);
+      return `
+      <div class="admin-photo-slot">
+        <img src="${url}" alt="${label}" onclick="openLightbox('${url}')">
+        <span class="slot-label">${label}</span>
+        <button class="dl-btn" onclick="event.stopPropagation();downloadPhoto('${url}','${item.category}_${label}')" title="Download">↓</button>
+      </div>`;
+    }
+    return `<div class="admin-photo-slot"><span class="empty-label">${label}</span></div>`;
+  }).join('');
+}
+
+function renderDetail() {
+  const container = document.getElementById('detailItems');
+  if (currentItems.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:48px;color:var(--text-light)">No inspiration items submitted yet</div>';
+    return;
+  }
+
+  let html = '<div class="tile-grid">';
+  currentItems.forEach(item => {
+    const photos = item.inspiration_photos || [];
+    const frontPhoto = photos.find(p => p.slot === 'front');
+    const adminNote = (item.inspiration_admin_notes || [])[0] || { status: 'New', notes: '' };
+    const statusClass = {
+      'New': 'status-new',
+      'Reviewing': 'status-reviewing',
+      'Sourced': 'status-sourced',
+      'Completed': 'status-completed',
+      'Not Available': 'status-not-available'
+    }[adminNote.status] || 'status-new';
+    const isOpen = openedAdminItem === item.id;
+
+    // Tile
+    html += `
+      <div class="item-tile ${isOpen ? 'active' : ''}" onclick="toggleAdminShelf('${item.id}')">
+        <div class="tile-thumb">
+          ${frontPhoto ? `<img src="${photoUrl(frontPhoto.storage_path)}" alt="${item.category}">` : `<div class="placeholder">No photo</div>`}
+        </div>
+        <div class="tile-info">
+          <div class="tile-status">
+            <span class="status-badge ${statusClass}" style="font-size:10px;padding:2px 8px">${adminNote.status || 'New'}</span>
+            <span class="tile-category">${item.category}</span>
+          </div>
+          <span class="tile-arrow">▾</span>
+        </div>
+      </div>`;
+
+    // Shelf (if open)
+    if (isOpen) {
+      html += `
+      <div class="admin-shelf" id="admin-shelf-${item.id}">
+        <div class="admin-shelf-header">
+          <div class="tile-status">
+            <span class="status-badge ${statusClass}">${adminNote.status || 'New'}</span>
+            <span style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-mid)">${item.category}</span>
+          </div>
+          <div class="shelf-actions">
+            <button class="icon-btn" onclick="event.stopPropagation();toggleAdminShelf('${item.id}')" title="Close">✕</button>
+          </div>
+        </div>
+        <div class="admin-shelf-body">
+          <!-- Photos -->
+          <div class="admin-photos">
+            ${renderAdminPhotoSlots(item)}
+          </div>
+
+          <!-- Client Responses -->
+          <div class="prompt-grid">
+            ${promptField('What they love', item.prompt_love, true)}
+            ${promptField('Colour / Fabric', item.prompt_colour_fabric, true)}
+            ${promptField('Occasion', item.prompt_occasion)}
+            ${promptField('Replica or Inspired', item.prompt_exact_or_inspired)}
+            ${promptField('Fit Preference', item.prompt_fit, true)}
+            ${promptField('Changes', item.prompt_changes, true)}
+            ${promptField('Priority', item.prompt_priority)}
+            ${promptField('Reference', item.prompt_source_url, false, true)}
+          </div>
+
+          <!-- Admin Controls -->
+          <div class="admin-controls">
+            <div class="form-group">
+              <label>Status (Admin Only)</label>
+              <select onchange="updateAdminNote('${item.id}','${adminNote.id || ''}','status',this.value)">
+                ${['New','Reviewing','Sourced','Completed','Not Available'].map(s => `<option ${adminNote.status===s?'selected':''}>${s}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">&nbsp;</div>
+            <div class="form-group full">
+              <label>Admin Notes (Private)</label>
+              <textarea oninput="debouncedAdminNote('${item.id}','${adminNote.id || ''}',this.value)" placeholder="Your private notes…">${adminNote.notes || ''}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function promptField(label, value, full, isLink) {
+  const cls = full ? 'prompt-item full' : 'prompt-item';
+  let display = value || '';
+  if (!display) return `<div class="${cls}"><div class="prompt-label">${label}</div><div class="prompt-value empty">Not provided</div></div>`;
+  if (isLink && display) display = `<a href="${display}" target="_blank" style="color:var(--blue);word-break:break-all">${display}</a>`;
+  return `<div class="${cls}"><div class="prompt-label">${label}</div><div class="prompt-value">${display}</div></div>`;
+}
+
+// ── Admin Notes ──
+async function updateAdminNote(itemId, noteId, field, value) {
+  try {
+    if (noteId) {
+      await sb(`inspiration_admin_notes?id=eq.${noteId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ [field]: value, updated_at: new Date().toISOString() })
+      });
+    } else {
+      await sb('inspiration_admin_notes', {
+        method: 'POST',
+        body: JSON.stringify({ item_id: itemId, [field]: value }),
+        prefer: 'return=representation'
+      });
+    }
+    flashSaved();
+    // Reload items to get fresh admin note IDs, but preserve shelf state
+    if (!noteId) {
+      currentItems = await sb(`inspiration_items?client_id=eq.${currentClient.id}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*)`);
+      renderDetail();
+    }
+  } catch (e) {
+    showToast('Failed to save', true);
+  }
+}
+
+function debouncedAdminNote(itemId, noteId, value) {
+  const key = `admin-${itemId}`;
+  clearTimeout(saveTimers[key]);
+  saveTimers[key] = setTimeout(() => updateAdminNote(itemId, noteId, 'notes', value), 800);
+}
+
+// ── Measurements ──
+const MEASURE_FIELDS = ['chest','waist','hips','shoulder_width','sleeve_length','neck','inseam','outseam','thigh','back_length','wrist'];
+
+function renderMeasurements() {
+  const grid = document.getElementById('measureGrid');
+  grid.innerHTML = MEASURE_FIELDS.map(f => {
+    const label = f.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    const val = currentMeasurements ? (currentMeasurements[f] || '') : '';
+    return `
+    <div class="measure-item">
+      <label>${label}</label>
+      <input type="number" step="0.1" value="${val}" data-field="${f}" oninput="debouncedMeasure()">
+      <div class="unit">cm</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('fitNotes').value = currentMeasurements?.fit_notes || '';
+}
+
+function debouncedMeasure() {
+  clearTimeout(saveTimers['measure']);
+  saveTimers['measure'] = setTimeout(() => saveMeasurements(), 800);
+}
+
+async function saveMeasurements() {
+  const data = { client_id: currentClient.id, updated_at: new Date().toISOString() };
+  MEASURE_FIELDS.forEach(f => {
+    const inp = document.querySelector(`#measureGrid input[data-field="${f}"]`);
+    data[f] = inp && inp.value ? parseFloat(inp.value) : null;
+  });
+  data.fit_notes = document.getElementById('fitNotes').value;
+
+  try {
+    if (currentMeasurements) {
+      await sb(`inspiration_measurements?id=eq.${currentMeasurements.id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    } else {
+      const created = await sb('inspiration_measurements', { method: 'POST', body: JSON.stringify(data), prefer: 'return=representation' });
+      currentMeasurements = created[0];
+    }
+    flashSaved();
+  } catch (e) {
+    showToast('Failed to save measurements', true);
+  }
+}
+
+// ── Photo Actions ──
+function openLightbox(url) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+function downloadPhoto(url, name) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function downloadAllPhotos() {
+  // Collect all photo URLs
+  const photos = [];
+  currentItems.forEach(item => {
+    (item.inspiration_photos || []).forEach(p => {
+      const label = p.slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+      photos.push({ url: photoUrl(p.storage_path), name: `${item.category}_${label}` });
+    });
+  });
+  if (photos.length === 0) { showToast('No photos to download', true); return; }
+
+  // Download each (browser will handle)
+  showToast(`Downloading ${photos.length} photos…`);
+  for (const p of photos) {
+    downloadPhoto(p.url, p.name);
+    await new Promise(r => setTimeout(r, 300));
+  }
+}
+
+function downloadClientReport() {
+  if (!currentClient || currentItems.length === 0) { showToast('No items to export', true); return; }
+
+  const clientName = currentClient.name;
+  const clientEmail = currentClient.email;
+  const date = new Date().toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
+
+  let itemsHtml = '';
+  currentItems.forEach((item, idx) => {
+    const photos = item.inspiration_photos || [];
+    const photoMap = {};
+    photos.forEach(p => photoMap[p.slot] = p);
+    const adminNote = (item.inspiration_admin_notes || [])[0] || { status: 'New', notes: '' };
+
+    // Photos row
+    let photosHtml = ['front','back','side_left','side_right'].map(slot => {
+      const p = photoMap[slot];
+      const label = slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+      if (p) {
+        return '<div style="text-align:center"><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:200px;object-fit:cover;border-radius:6px;margin-bottom:4px"><div style="font-size:10px;color:#9B8E82;text-transform:uppercase">' + label + '</div></div>';
+      }
+      return '<div style="text-align:center;height:200px;background:#FAF8F5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9B8E82;font-size:11px">' + label + '</div>';
+    }).join('');
+
+    // Prompts
+    function pf(label, val) {
+      if (!val) return '';
+      return '<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:#9B8E82;margin-bottom:2px">' + label + '</div><div style="font-size:13px;color:#2C2420">' + val + '</div></div>';
+    }
+
+    itemsHtml += '<div style="page-break-inside:avoid;border:1px solid #E5DDD4;border-radius:10px;padding:20px;margin-bottom:24px">';
+    itemsHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><span style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:#6B5E53">' + item.category + '</span><span style="font-size:11px;padding:3px 10px;border-radius:12px;background:#EDE8E1;color:#6B5E53">' + (adminNote.status || 'New') + '</span></div>';
+    itemsHtml += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">' + photosHtml + '</div>';
+    itemsHtml += pf('What they love', item.prompt_love);
+    itemsHtml += pf('Colour / Fabric', item.prompt_colour_fabric);
+    itemsHtml += pf('Occasion', item.prompt_occasion);
+    itemsHtml += pf('Replica or Inspired', item.prompt_exact_or_inspired);
+    itemsHtml += pf('Fit Preference', item.prompt_fit);
+    itemsHtml += pf('Changes', item.prompt_changes);
+    itemsHtml += pf('Priority', item.prompt_priority);
+    itemsHtml += pf('Reference', item.prompt_source_url);
+    if (adminNote.notes) {
+      itemsHtml += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #EDE8E1">' + pf('Admin Notes', adminNote.notes) + '</div>';
+    }
+    itemsHtml += '</div>';
+  });
+
+  // Measurements
+  let measHtml = '';
+  if (currentMeasurements) {
+    const fields = ['chest','waist','hips','shoulder_width','sleeve_length','neck','inseam','outseam','thigh','back_length','wrist'];
+    const filled = fields.filter(f => currentMeasurements[f]);
+    if (filled.length > 0) {
+      measHtml = '<div style="page-break-inside:avoid;border:1px solid #E5DDD4;border-radius:10px;padding:20px;margin-bottom:24px">';
+      measHtml += '<div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:#6B5E53;margin-bottom:12px">Measurements (cm)</div>';
+      measHtml += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+      filled.forEach(f => {
+        const label = f.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+        measHtml += '<div><span style="font-size:10px;color:#9B8E82;text-transform:uppercase">' + label + '</span><div style="font-size:14px;font-weight:500">' + currentMeasurements[f] + '</div></div>';
+      });
+      measHtml += '</div>';
+      if (currentMeasurements.fit_notes) {
+        measHtml += '<div style="margin-top:12px;font-size:10px;color:#9B8E82;text-transform:uppercase">Fit Notes</div><div style="font-size:13px">' + currentMeasurements.fit_notes + '</div>';
+      }
+      measHtml += '</div>';
+    }
+  }
+
+  const reportHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + clientName + ' — Look Book</title>'
+    + '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">'
+    + '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Jost",sans-serif;color:#2C2420;padding:32px;max-width:900px;margin:0 auto;background:#fff}'
+    + '@media print{body{padding:16px}button{display:none!important}}</style></head><body>'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #E5DDD4">'
+    + '<div><div style="font-family:Cormorant Garamond,serif;font-size:24px;font-weight:600;letter-spacing:2px">YOUR <span style="font-weight:400">SZN</span></div>'
+    + '<div style="font-size:12px;color:#9B8E82;margin-top:2px">Vietnam Tailoring Tour — Client Look Book</div></div>'
+    + '<div style="text-align:right"><div style="font-size:18px;font-weight:500">' + clientName + '</div>'
+    + '<div style="font-size:13px;color:#9B8E82">' + clientEmail + '</div>'
+    + '<div style="font-size:12px;color:#9B8E82;margin-top:4px">Generated ' + date + '</div></div></div>'
+    + '<div style="margin-bottom:16px;font-size:14px;color:#6B5E53">' + currentItems.length + ' inspiration item' + (currentItems.length !== 1 ? 's' : '') + '</div>'
+    + itemsHtml + measHtml
+    + '<div style="text-align:center;margin-top:32px"><button onclick="window.print()" style="font-family:Jost,sans-serif;padding:10px 28px;background:#3C3229;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Print / Save as PDF</button></div>'
+    + '</body></html>';
+
+  const win = window.open('', '_blank');
+  win.document.write(reportHtml);
+  win.document.close();
+}
+
+// ── Keyboard ──
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ── Init ──
+loadClients();
+</script>
+</body>
+</html>
