@@ -591,7 +591,7 @@ async function submitForm(){
   try{
     var res=await fetch('https://ntqemlkwsymdxhaonfdv.supabase.co/rest/v1/szn_submissions',{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':'YOUR_ANON_KEY','Prefer':'return=minimal'},
+      headers:{'Content-Type':'application/json','apikey':'sb_publishable_H4rfs0yY0d8A30Qr0ckmfQ_D_JVaGNJ','Prefer':'return=minimal'},
       body:JSON.stringify(payload)
     });
     if(!res.ok)throw new Error(res.status);
