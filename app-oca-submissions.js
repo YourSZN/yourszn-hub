@@ -87,7 +87,7 @@ async function ocaSubLoadDetail(id) {
     var resultsRes = await db.from('szn_results').select('*').eq('submission_id', id).order('created_at', { ascending: false });
     ocaSubDetailResults = (resultsRes.data || []);
 
-    var photosRes = await db.from('szn_photos').select('*').eq('submission_id', id).order('created_at', { ascending: true });
+    var photosRes = await db.from('szn_photos').select('*').eq('submission_id', id).order('uploaded_at', { ascending: true });
     ocaSubDetailPhotos = (photosRes.data || []);
   } catch(e) {
     console.warn('Failed to load submission detail:', e);
@@ -441,7 +441,7 @@ function renderOcaSubDetail() {
       + '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px;margin-bottom:12px">📸 CLIENT PHOTOS</div>'
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">';
     ocaSubDetailPhotos.forEach(function(p) {
-      var label = (p.slot_key || '').replace(/_/g, ' ');
+      var label = (p.slot_label || '').replace(/_/g, ' ');
       html += '<div style="cursor:pointer" onclick="ocaSubOpenLightbox(\'' + (p.file_url||'').replace(/'/g,"\\'") + '\',\'' + escHtml(label).replace(/'/g,"\\'") + '\')">'
         + '<img src="' + p.file_url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08)" alt="' + escHtml(label) + '">'
         + '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">' + escHtml(label) + '</div>'

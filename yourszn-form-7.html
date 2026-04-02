@@ -605,7 +605,7 @@ function handlePhotoSelect(slotKey){
       });
       if(!upRes.ok){var err=await upRes.text();throw new Error(err);}
       var publicUrl=SUPA_URL+'/storage/v1/object/public/online-clients-photos/'+path;
-      photoState[slotKey]={url:publicUrl,path:path,name:file.name,type:file.type};
+      photoState[slotKey]={url:publicUrl,path:path,name:file.name,type:file.type,size:file.size};
       div.classList.remove('photo-uploading');
       renderSlotFilled(div,slot);
       updatePhotoStatus();
@@ -788,7 +788,8 @@ headers:{'Content-Type':'application/json','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI
     var photoRows=[];
     Object.keys(photoState).forEach(function(key){
       var p=photoState[key];
-      photoRows.push({submission_id:submissionUUID,slot_key:key,file_url:p.url,file_path:p.path,file_name:p.name,file_type:p.type});
+      var idx=PHOTO_SLOTS.findIndex(function(s){return s.key===key;});
+      photoRows.push({submission_id:submissionUUID,slot_number:idx+1,slot_label:key,file_url:p.url,file_name:p.name,file_type:p.type,file_size:p.size||0});
     });
     if(photoRows.length>0){
       await fetch('https://ntqemlkwsymdxhaonfdv.supabase.co/rest/v1/szn_photos',{
