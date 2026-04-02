@@ -1058,10 +1058,7 @@ function downloadClientReport() {
     }
   }
 
-  const reportHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + clientName + ' — Look Book</title>'
-    + '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">'
-    + '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Jost",sans-serif;color:#2C2420;padding:32px;max-width:900px;margin:0 auto;background:#fff}'
-    + '@media print{body{padding:16px}.no-print{display:none!important}img{max-width:100%}}</style></head><body>'
+  const bodyContent = ''
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #E5DDD4">'
     + '<div><div style="font-family:Cormorant Garamond,serif;font-size:24px;font-weight:600;letter-spacing:2px">YOUR <span style="font-weight:400">SZN</span></div>'
     + '<div style="font-size:12px;color:#9B8E82;margin-top:2px">Vietnam Tailoring Tour — Client Look Book</div></div>'
@@ -1069,28 +1066,58 @@ function downloadClientReport() {
     + '<div style="font-size:13px;color:#9B8E82">' + clientEmail + '</div>'
     + '<div style="font-size:12px;color:#9B8E82;margin-top:4px">Generated ' + date + '</div></div></div>'
     + '<div style="margin-bottom:16px;font-size:14px;color:#6B5E53">' + currentItems.length + ' inspiration item' + (currentItems.length !== 1 ? 's' : '') + '</div>'
-    + itemsHtml + measHtml
-    + '<div class="no-print" id="printControls" style="text-align:center;margin-top:32px">'
-    + '<div id="loadMsg" style="font-size:13px;color:#9B8E82;margin-bottom:8px">Loading images…</div>'
-    + '<button id="printBtn" disabled onclick="window.print()" style="font-family:Jost,sans-serif;padding:10px 28px;background:#ccc;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:not-allowed">Print / Save as PDF</button></div>'
-    + '<script>'
-    + 'var imgs=document.querySelectorAll("img");var total=imgs.length;var loaded=0;'
-    + 'function check(){loaded++;if(loaded>=total){document.getElementById("loadMsg").textContent="Ready!";'
-    + 'var b=document.getElementById("printBtn");b.disabled=false;b.style.background="#3C3229";b.style.cursor="pointer";}}'
-    + 'if(total===0){check();}else{imgs.forEach(function(i){if(i.complete){check();}else{i.addEventListener("load",check);i.addEventListener("error",check);}});}'
-    + 'setTimeout(function(){var b=document.getElementById("printBtn");if(b.disabled){b.disabled=false;b.style.background="#3C3229";b.style.cursor="pointer";'
-    + 'document.getElementById("loadMsg").textContent="Ready";}},5000);'
-    + '<\/script>'
-    + '</body></html>';
+    + itemsHtml + measHtml;
 
-  const win = window.open('about:blank', '_blank');
-  if (!win) {
-    showToast('Pop-up blocked — please allow pop-ups for this site', true);
-    return;
+  // Remove old overlay if present
+  let old = document.getElementById('report-print-overlay');
+  if (old) old.remove();
+
+  // Create full-page overlay on current page (no popup needed)
+  const overlay = document.createElement('div');
+  overlay.id = 'report-print-overlay';
+  overlay.innerHTML = ''
+    + '<style>'
+    + '#report-print-overlay{position:fixed;inset:0;z-index:10000;background:#fff;overflow-y:auto;font-family:"Jost",sans-serif;color:#2C2420}'
+    + '#report-print-overlay .rp-toolbar{position:sticky;top:0;background:#FAF8F5;border-bottom:1px solid #E5DDD4;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;z-index:1}'
+    + '#report-print-overlay .rp-body{max-width:900px;margin:0 auto;padding:32px}'
+    + '@media print{body>*:not(#report-print-overlay){display:none!important}'
+    + '#report-print-overlay .rp-toolbar{display:none!important}'
+    + '#report-print-overlay{position:static;overflow:visible}'
+    + '#report-print-overlay .rp-body{padding:16px}'
+    + '#report-print-overlay img{max-width:100%}}'
+    + '</style>'
+    + '<div class="rp-toolbar">'
+    + '<button onclick="document.getElementById(\'report-print-overlay\').remove()" style="font-family:Jost,sans-serif;padding:8px 20px;background:none;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;color:#6B5E53">\u2190 Close</button>'
+    + '<span id="rp-status" style="font-size:12px;color:#9B8E82">Loading images\u2026</span>'
+    + '<button id="rp-print-btn" disabled style="font-family:Jost,sans-serif;padding:8px 24px;background:#ccc;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:not-allowed">Save as PDF</button>'
+    + '</div>'
+    + '<div class="rp-body">' + bodyContent + '</div>';
+
+  document.body.appendChild(overlay);
+  overlay.scrollTop = 0;
+
+  // Wait for images to load, then enable print
+  const imgs = overlay.querySelectorAll('img');
+  let loaded = 0;
+  const total = imgs.length;
+  function imgReady() {
+    loaded++;
+    if (loaded >= total) enablePrint();
   }
-  win.document.open();
-  win.document.write(reportHtml);
-  win.document.close();
+  function enablePrint() {
+    const btn = document.getElementById('rp-print-btn');
+    const status = document.getElementById('rp-status');
+    if (btn && btn.disabled) {
+      btn.disabled = false;
+      btn.style.background = '#3C3229';
+      btn.style.cursor = 'pointer';
+      btn.onclick = function(){ window.print(); };
+    }
+    if (status) status.textContent = 'Ready \u2014 click Save as PDF';
+  }
+  if (total === 0) { enablePrint(); }
+  else { imgs.forEach(i => { if (i.complete) imgReady(); else { i.addEventListener('load', imgReady); i.addEventListener('error', imgReady); } }); }
+  setTimeout(enablePrint, 6000);
 }
 
 // ── Keyboard ──
