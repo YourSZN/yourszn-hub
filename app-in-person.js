@@ -94,8 +94,10 @@ function renderInPersonTab() {
 }
 
 /* ==========================================================
-   LIST VIEW
+   LIST VIEW  (searchable, monthly-grouped table)
    ========================================================== */
+
+var _ipAllBookings = [];
 
 async function renderInPersonList() {
   var panel = document.getElementById('clients-inperson-panel');
@@ -119,45 +121,135 @@ async function renderInPersonList() {
     return;
   }
 
-  if (!data || data.length === 0) {
-    panel.innerHTML =
-      '<div style="padding:60px 40px;text-align:center;">' +
-        '<div style="color:var(--muted);font-size:15px;margin-bottom:16px;">No in-person bookings yet</div>' +
-        '<button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button>' +
+  _ipAllBookings = data || [];
+  ipRenderFilteredList('');
+}
+
+function ipRenderFilteredList(query) {
+  var panel = document.getElementById('clients-inperson-panel');
+  if (!panel) return;
+
+  var q = (query || '').toLowerCase().trim();
+  var filtered = _ipAllBookings.filter(function(b) {
+    if (!q) return true;
+    var hay = ((b.client_name || '') + ' ' + (b.client_email || '') + ' ' + (b.status || '') + ' ' + (b.notes || '')).toLowerCase();
+    return hay.indexOf(q) !== -1;
+  });
+
+  /* Search bar */
+  var html =
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">' +
+      '<div style="position:relative;flex:1;min-width:220px;max-width:400px;">' +
+        '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">&#128269;</span>' +
+        '<input type="text" id="ip-search-input" placeholder="Search clients..." value="' + (q || '') + '"' +
+        ' oninput="ipRenderFilteredList(this.value)"' +
+        ' style="width:100%;padding:10px 12px 10px 36px;border-radius:8px;border:1px solid var(--sand);font-size:13px;background:white;box-sizing:border-box;" />' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--muted);">' + filtered.length + ' booking' + (filtered.length !== 1 ? 's' : '') + '</div>' +
+    '</div>';
+
+  if (filtered.length === 0) {
+    html +=
+      '<div style="padding:40px;text-align:center;">' +
+        '<div style="color:var(--muted);font-size:14px;margin-bottom:12px;">' + (q ? 'No results for "' + q + '"' : 'No in-person bookings yet') + '</div>' +
+        (!q ? '<button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button>' : '') +
       '</div>';
+    panel.innerHTML = html;
     return;
   }
 
-  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:16px 0;">';
-
-  for (var i = 0; i < data.length; i++) {
-    var b = data[i];
-    var personCount = b.in_person_persons ? b.in_person_persons.length : 0;
-    var sc = ipStatusColor(b.status);
-
-    html +=
-      '<div class="card" onclick="showBookingDetail(\'' + b.id + '\')" style="cursor:pointer;transition:transform 0.15s;"' +
-      ' onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'none\'">' +
-        '<div class="cb" style="padding:20px;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">' +
-            '<div>' +
-              '<div style="font-weight:600;font-size:15px;color:var(--charcoal);">' + (b.client_name || 'Unnamed') + '</div>' +
-              '<div style="font-size:12px;color:var(--muted);margin-top:2px;">' + (b.client_email || '') + '</div>' +
-            '</div>' +
-            '<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:' + sc + ';color:white;text-transform:capitalize;">' +
-              (b.status || 'pending') +
-            '</span>' +
-          '</div>' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--brown);">' +
-            '<span>' + ipFormatDate(b.appointment_date) + '</span>' +
-            '<span>' + personCount + ' person' + (personCount !== 1 ? 's' : '') + '</span>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+  /* Group by month */
+  var months = {};
+  var monthOrder = [];
+  for (var i = 0; i < filtered.length; i++) {
+    var b = filtered[i];
+    var d = b.appointment_date ? new Date(b.appointment_date) : new Date(b.created_at);
+    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    var label = d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+    if (!months[key]) {
+      months[key] = { label: label, items: [] };
+      monthOrder.push(key);
+    }
+    months[key].items.push(b);
   }
 
-  html += '</div>';
+  /* Render monthly tiles */
+  for (var m = 0; m < monthOrder.length; m++) {
+    var grp = months[monthOrder[m]];
+
+    html +=
+      '<div style="margin-bottom:24px;">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--charcoal);padding:8px 0;border-bottom:2px solid var(--sand);margin-bottom:2px;">' +
+          grp.label + ' <span style="font-weight:400;color:var(--muted);font-size:12px;">(' + grp.items.length + ')</span>' +
+        '</div>' +
+        '<div style="background:white;border:1px solid var(--sand);border-radius:10px;overflow:hidden;">';
+
+    /* Table header */
+    html +=
+      '<div style="display:grid;grid-template-columns:40px 1.5fr 2fr 1fr 1fr 80px;gap:0;padding:8px 16px;background:var(--warm);border-bottom:1px solid var(--sand);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">' +
+        '<div></div>' +
+        '<div>Name</div>' +
+        '<div>Email</div>' +
+        '<div>Date</div>' +
+        '<div>Status</div>' +
+        '<div style="text-align:center;">People</div>' +
+      '</div>';
+
+    /* Rows */
+    for (var r = 0; r < grp.items.length; r++) {
+      var bk = grp.items[r];
+      var personCount = bk.in_person_persons ? bk.in_person_persons.length : 0;
+      var sc = ipStatusColor(bk.status);
+      var initials = ipInitials(bk.client_name);
+      var initialsCol = ipInitialsColor(bk.client_name);
+      var isLast = r === grp.items.length - 1;
+
+      html +=
+        '<div onclick="showBookingDetail(\'' + bk.id + '\')" style="display:grid;grid-template-columns:40px 1.5fr 2fr 1fr 1fr 80px;gap:0;padding:10px 16px;align-items:center;cursor:pointer;transition:background 0.1s;' +
+        (!isLast ? 'border-bottom:1px solid var(--sand);' : '') + '"' +
+        ' onmouseover="this.style.background=\'var(--warm)\'" onmouseout="this.style.background=\'transparent\'">' +
+          /* initials avatar */
+          '<div><div style="width:30px;height:30px;border-radius:50%;background:' + initialsCol + ';color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">' + initials + '</div></div>' +
+          /* name */
+          '<div style="font-size:13px;font-weight:600;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk.client_name || 'Unnamed') + '</div>' +
+          /* email */
+          '<div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk.client_email || '—') + '</div>' +
+          /* date */
+          '<div style="font-size:12px;color:var(--brown);">' + ipFormatDate(bk.appointment_date) + '</div>' +
+          /* status pill */
+          '<div><span style="font-size:10px;padding:3px 10px;border-radius:20px;background:' + sc + ';color:white;text-transform:capitalize;">' + (bk.status || 'pending') + '</span></div>' +
+          /* person count */
+          '<div style="text-align:center;font-size:12px;color:var(--brown);">' + personCount + '</div>' +
+        '</div>';
+    }
+
+    html += '</div></div>';
+  }
+
   panel.innerHTML = html;
+
+  /* Restore focus to search if typing */
+  if (q) {
+    var inp = document.getElementById('ip-search-input');
+    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  }
+}
+
+/* Initials from name */
+function ipInitials(name) {
+  if (!name) return '?';
+  var parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return name.substring(0, 2).toUpperCase();
+}
+
+/* Deterministic colour from name */
+function ipInitialsColor(name) {
+  var colours = ['#E05555','#5578E0','#42A85F','#D4853B','#8B5CF6','#E0559B','#0EA5A9','#6366F1','#CA8A04','#DC2626'];
+  var hash = 0;
+  var s = name || '';
+  for (var i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
+  return colours[Math.abs(hash) % colours.length];
 }
 
 /* ==========================================================
