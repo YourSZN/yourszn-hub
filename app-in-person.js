@@ -293,8 +293,17 @@ async function ipAddGuest(bookingId) {
 }
 
 /* ==========================================================
-   PER-PERSON CONTRAST ANALYSER
+   PER-PERSON CONTRAST ANALYSER  (matches client-page widget)
    ========================================================== */
+
+/* Per-person scoped state (not global) */
+var ipCTags = {
+  skin: { label:'SKIN', val:5, x:0, y:0,   col:'#E05555' },
+  hair: { label:'HAIR', val:3, x:0, y:40,  col:'#5578E0' },
+  eyes: { label:'EYES', val:7, x:0, y:80,  col:'#42A85F' }
+};
+var ipCDragKey = null, ipCDragOX = 0, ipCDragOY = 0;
+var ipCPersonId = null, ipCBookingId = null;
 
 async function showPersonContrast(personId, bookingId) {
   var panel = document.getElementById('clients-inperson-panel');
@@ -308,89 +317,75 @@ async function showPersonContrast(personId, bookingId) {
     .eq('id', personId)
     .single();
 
-  if (error || !person) {
-    alert('Person not found');
-    return;
-  }
+  if (error || !person) { alert('Person not found'); return; }
 
-  var skinVal = person.skin_value || 5;
-  var hairVal = person.hair_value || 5;
-  var eyesVal = person.eyes_value || 5;
-  var cl = ipContrastLevel(skinVal, hairVal, eyesVal);
+  /* Store IDs for drag/save callbacks */
+  ipCPersonId = personId;
+  ipCBookingId = bookingId;
+
+  /* Reset tag state from DB values */
+  ipCTags.skin.val = person.skin_value || 5;
+  ipCTags.hair.val = person.hair_value || 5;
+  ipCTags.eyes.val = person.eyes_value || 5;
+  ipCTags.skin.x = 0; ipCTags.skin.y = 0;
+  ipCTags.hair.x = 0; ipCTags.hair.y = 40;
+  ipCTags.eyes.x = 0; ipCTags.eyes.y = 80;
 
   var seasonOpts = '<option value="">— Select Season —</option>';
   for (var s = 0; s < IP_SEASONS.length; s++) {
     seasonOpts += '<option value="' + IP_SEASONS[s] + '"' + (person.season === IP_SEASONS[s] ? ' selected' : '') + '>' + IP_SEASONS[s] + '</option>';
   }
 
-  /* Build greyscale bars for each slider */
-  function greyBar(id, label, val) {
-    var bar = '<div style="margin-bottom:20px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-        '<span style="font-size:12px;font-weight:600;color:var(--brown);text-transform:uppercase;letter-spacing:0.5px;">' + label + '</span>' +
-        '<span id="ip-val-' + id + '" style="font-size:12px;color:var(--muted);">' + val + '</span>' +
-      '</div>' +
-      '<div style="display:flex;gap:2px;margin-bottom:6px;">';
-    for (var g = 0; g < IP_GREY_VALS.length; g++) {
-      var idx = g + 1;
-      var active = idx === val;
-      bar += '<div onclick="ipSetSlider(\'' + id + '\',' + idx + ',\'' + personId + '\',\'' + bookingId + '\')"' +
-        ' style="flex:1;height:32px;background:' + IP_GREY_VALS[g].bg + ';cursor:pointer;border-radius:' +
-        (g === 0 ? '4px 0 0 4px' : g === 9 ? '0 4px 4px 0' : '0') + ';' +
-        (active ? 'box-shadow:0 0 0 2px var(--charcoal);transform:scaleY(1.15);z-index:1;position:relative;' : '') +
-        '"></div>';
-    }
-    bar += '</div>' +
-      '<input type="range" min="1" max="10" value="' + val + '" id="ip-slider-' + id + '"' +
-      ' oninput="ipSetSlider(\'' + id + '\',parseInt(this.value),\'' + personId + '\',\'' + bookingId + '\')"' +
-      ' style="width:100%;accent-color:var(--charcoal);" />' +
-      '</div>';
-    return bar;
-  }
-
-  var photoSection = person.photo_url
-    ? '<img src="' + person.photo_url + '" style="width:100%;max-width:300px;border-radius:12px;filter:grayscale(100%);margin-bottom:12px;" />'
-    : '<div style="width:100%;max-width:300px;height:200px;border-radius:12px;background:var(--sand);display:flex;align-items:center;justify-content:center;color:var(--muted);margin-bottom:12px;">No photo yet</div>';
-
   var html =
     '<div style="padding:8px 0;">' +
+      /* back + name */
       '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">' +
         '<button class="btn btns" onclick="showBookingDetail(\'' + bookingId + '\')" style="font-size:12px;padding:6px 12px;">← Back</button>' +
         '<div style="font-weight:600;font-size:17px;color:var(--charcoal);">' + (person.name || 'Unnamed') + ' — Contrast Analysis</div>' +
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" id="ip-contrast-grid">' +
-        /* left: photo + upload */
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;" id="ip-contrast-grid">' +
+
+        /* ── LEFT COLUMN: photo preview with draggable tags ── */
+        '<div class="card"><div class="ch">' +
+          '<div class="ct">Contrast</div>' +
+          '<div style="font-size:11px;color:var(--muted)">Drag each tag over the matching feature.</div>' +
+          '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">' +
+            '<label style="display:inline-flex;align-items:center;gap:6px;background:var(--deep);color:#fff;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;letter-spacing:.3px">' +
+              '<span>&#128247;</span> Upload Photo' +
+              '<input type="file" accept="image/*" id="ip-photo-input" style="display:none" onchange="ipUploadPhoto(this.files[0],\'' + personId + '\',\'' + bookingId + '\')">' +
+            '</label>' +
+            '<button onclick="ipClearPhoto(\'' + personId + '\',\'' + bookingId + '\')" style="background:none;border:1px solid var(--sand);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">Clear</button>' +
+          '</div>' +
+        '</div><div class="cb">' +
+          '<div id="ip-contrast-preview" style="position:relative;width:100%;padding-top:115%;border-radius:8px;overflow:hidden;background:var(--sand)"></div>' +
+        '</div></div>' +
+
+        /* ── RIGHT COLUMN: sliders + result ── */
         '<div>' +
-          photoSection +
-          '<label class="btn btns" style="font-size:12px;padding:8px 16px;display:inline-block;cursor:pointer;">' +
-            'Upload Photo' +
-            '<input type="file" accept="image/*" onchange="ipUploadPhoto(this.files[0],\'' + personId + '\',\'' + bookingId + '\')" style="display:none;" />' +
-          '</label>' +
-          '<div style="margin-top:20px;">' +
+          '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Feature Values</div>' +
+          '<div id="ip-contrast-controls"></div>' +
+          '<div style="background:var(--warm);border-radius:10px;padding:10px 14px;border:1px solid var(--sand)">' +
+            '<div style="font-size:11px;font-weight:600;color:var(--deep);margin-bottom:6px">Contrast Range</div>' +
+            '<div id="ip-contrast-result" style="font-size:12px;color:var(--brown);line-height:1.5"></div>' +
+          '</div>' +
+
+          /* season */
+          '<div style="margin-top:16px;">' +
             '<label style="font-size:12px;font-weight:600;color:var(--brown);display:block;margin-bottom:6px;">SEASON</label>' +
             '<select id="ip-season-select" onchange="ipSaveSeason(\'' + personId + '\',this.value)"' +
-            ' style="font-size:13px;padding:8px 12px;border-radius:8px;border:1px solid var(--sand);background:var(--warm);color:var(--brown);width:100%;max-width:260px;">' +
+            ' style="font-size:13px;padding:8px 12px;border-radius:8px;border:1px solid var(--sand);background:var(--warm);color:var(--brown);width:100%;">' +
               seasonOpts +
             '</select>' +
           '</div>' +
+
+          /* delete */
+          '<div style="margin-top:16px;text-align:right;">' +
+            '<button class="btn" onclick="ipDeletePerson(\'' + personId + '\',\'' + bookingId + '\')" ' +
+            'style="font-size:12px;padding:6px 14px;color:var(--rose);border:1px solid var(--rose);">Delete Person</button>' +
+          '</div>' +
         '</div>' +
 
-        /* right: sliders + result */
-        '<div>' +
-          greyBar('skin', 'Skin', skinVal) +
-          greyBar('hair', 'Hair', hairVal) +
-          greyBar('eyes', 'Eyes', eyesVal) +
-          '<div id="ip-contrast-result" style="padding:16px;border-radius:12px;background:var(--warm);border:1px solid var(--sand);text-align:center;">' +
-            '<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Contrast Level</div>' +
-            '<div style="font-size:22px;font-weight:700;color:' + ipContrastColor(cl.level) + ';">' + cl.level + '</div>' +
-            '<div style="font-size:12px;color:var(--muted);margin-top:4px;">Range: ' + cl.range + '</div>' +
-          '</div>' +
-          '<div style="margin-top:16px;text-align:right;">' +
-            '<button class="btn btnp" onclick="ipDeletePerson(\'' + personId + '\',\'' + bookingId + '\')" ' +
-            'style="font-size:12px;padding:6px 14px;background:var(--rose);border-color:var(--rose);">Delete Person</button>' +
-          '</div>' +
-        '</div>' +
       '</div>' +
     '</div>';
 
@@ -401,48 +396,124 @@ async function showPersonContrast(personId, bookingId) {
     var grid = document.getElementById('ip-contrast-grid');
     if (grid) grid.style.gridTemplateColumns = '1fr';
   }
+
+  /* Render the interactive widget */
+  ipRenderContrast(person.photo_url);
 }
 
-/* slider interaction */
-var _ipSliderTimer = null;
+/* ── Render photo preview + tags + sliders (mirrors renderClientContrast) ── */
 
-function ipSetSlider(key, val, personId, bookingId) {
-  /* update display */
-  var valEl = document.getElementById('ip-val-' + key);
-  if (valEl) valEl.textContent = val;
-  var slider = document.getElementById('ip-slider-' + key);
-  if (slider) slider.value = val;
+function ipRenderContrast(photoUrl) {
+  var preview = document.getElementById('ip-contrast-preview');
+  var controls = document.getElementById('ip-contrast-controls');
+  if (!preview || !controls) return;
 
-  /* re-render grey bar active state — just rebuild contrast result for speed */
-  var skinV = parseInt(document.getElementById('ip-slider-skin') ? document.getElementById('ip-slider-skin').value : 5);
-  var hairV = parseInt(document.getElementById('ip-slider-hair') ? document.getElementById('ip-slider-hair').value : 5);
-  var eyesV = parseInt(document.getElementById('ip-slider-eyes') ? document.getElementById('ip-slider-eyes').value : 5);
+  var greyVals = IP_GREY_VALS;
+  var clip = 'polygon(0% 0%, 100% 0%, 100% 20%, 75% 20%, 75% 80%, 100% 80%, 100% 100%, 0% 100%)';
 
-  var cl = ipContrastLevel(skinV, hairV, eyesV);
-  var resultEl = document.getElementById('ip-contrast-result');
-  if (resultEl) {
-    resultEl.innerHTML =
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Contrast Level</div>' +
-      '<div style="font-size:22px;font-weight:700;color:' + ipContrastColor(cl.level) + ';">' + cl.level + '</div>' +
-      '<div style="font-size:12px;color:var(--muted);margin-top:4px;">Range: ' + cl.range + '</div>';
-  }
+  /* Photo */
+  var photoHtml = photoUrl
+    ? '<img src="'+photoUrl+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(100%);display:block;">'
+    : '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px"><div style="font-size:32px">&#128247;</div><div style="font-size:13px">Upload a photo above</div></div>';
 
-  /* debounced save */
-  clearTimeout(_ipSliderTimer);
-  _ipSliderTimer = setTimeout(function() {
-    ipSaveContrast(personId, skinV, hairV, eyesV, cl);
+  /* Draggable tags */
+  var tagHtml = Object.keys(ipCTags).map(function(key) {
+    var t = ipCTags[key];
+    var greyBg = greyVals[t.val - 1].bg;
+    var numCol = t.val > 6 ? '#333' : '#fff';
+    return '<div id="ip-tag-'+key+'" style="position:absolute;left:'+t.x+'px;top:'+t.y+'px;z-index:10;cursor:move;user-select:none;touch-action:none;display:flex;align-items:center;gap:5px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35))"'
+      +' onmousedown="ipDragStart(event,\''+key+'\')" ontouchstart="ipTouchStart(event,\''+key+'\')">'
+      +'<span style="font-size:8px;font-weight:800;color:'+t.col+';letter-spacing:1.5px;text-transform:uppercase;text-shadow:0 1px 3px rgba(0,0,0,0.6);white-space:nowrap;flex-shrink:0">'+t.label+'</span>'
+      +'<div id="ip-swatch-'+key+'" style="position:relative;width:80px;height:36px;border-radius:6px 0 0 6px;background:'+greyBg+';clip-path:'+clip+'">'
+      +'<div id="ip-num-'+key+'" style="position:absolute;top:50%;left:35%;transform:translate(-50%,-50%);font-size:10px;font-weight:800;color:'+numCol+';pointer-events:none">'+t.val+'</div>'
+      +'</div></div>';
+  }).join('');
+
+  preview.innerHTML = photoHtml + tagHtml;
+
+  /* Slider controls (card-style, matching existing) */
+  controls.innerHTML = Object.keys(ipCTags).map(function(key) {
+    var t = ipCTags[key];
+    var greyBg = greyVals[t.val - 1].bg;
+    return '<div style="background:white;border:1px solid var(--sand);border-radius:10px;padding:14px 16px;margin-bottom:10px">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+      +'<div style="width:14px;height:14px;border-radius:50%;background:'+t.col+';flex-shrink:0"></div>'
+      +'<div style="font-size:12px;font-weight:600;color:var(--deep)">'+t.label+'</div>'
+      +'<div id="ip-ctrl-swatch-'+key+'" style="margin-left:auto;width:32px;height:20px;border-radius:4px;background:'+greyBg+';border:1px solid var(--sand)"></div>'
+      +'<div id="ip-ctrl-num-'+key+'" style="font-size:12px;font-weight:700;color:var(--deep);min-width:16px;text-align:right">'+t.val+'</div>'
+      +'</div>'
+      +'<input type="range" min="1" max="10" value="'+t.val+'" style="width:100%;accent-color:'+t.col+';cursor:pointer" oninput="ipSetVal(\''+key+'\',this.value)">'
+      +'<div style="display:flex;justify-content:space-between;margin-top:3px">'
+      +'<span style="font-size:9px;color:var(--muted)">Dark 1</span>'
+      +'<span style="font-size:9px;color:var(--muted)">Light 10</span>'
+      +'</div></div>';
+  }).join('');
+
+  ipUpdateResult();
+}
+
+/* ── Slider value change ── */
+
+var _ipSaveTimer = null;
+
+function ipSetVal(key, val) {
+  val = parseInt(val);
+  ipCTags[key].val = val;
+  var greyVals = IP_GREY_VALS;
+  var greyBg = greyVals[val - 1].bg;
+  var numCol = val > 6 ? '#333' : '#fff';
+
+  /* Update tag on photo */
+  var sw = document.getElementById('ip-swatch-'+key);
+  var nm = document.getElementById('ip-num-'+key);
+  var csw = document.getElementById('ip-ctrl-swatch-'+key);
+  var cnm = document.getElementById('ip-ctrl-num-'+key);
+  if (sw) sw.style.background = greyBg;
+  if (nm) { nm.textContent = val; nm.style.color = numCol; }
+  if (csw) csw.style.background = greyBg;
+  if (cnm) cnm.textContent = val;
+
+  ipUpdateResult();
+
+  /* Debounced save to DB */
+  clearTimeout(_ipSaveTimer);
+  _ipSaveTimer = setTimeout(function() {
+    ipSaveContrast();
   }, 500);
 }
 
-async function ipSaveContrast(personId, skin, hair, eyes, cl) {
+function ipUpdateResult() {
+  var vals = Object.keys(ipCTags).map(function(k){ return ipCTags[k].val; });
+  var range = Math.max.apply(null,vals) - Math.min.apply(null,vals);
+  var level;
+  if (range >= 8) level = 'High';
+  else if (range >= 6) level = 'Medium-High';
+  else if (range >= 4) level = 'Medium';
+  else if (range >= 2) level = 'Medium-Low';
+  else level = 'Low';
+  var t = ipCTags;
+  var el = document.getElementById('ip-contrast-result');
+  if (el) el.innerHTML = 'Skin: '+t.skin.val+' · Hair: '+t.hair.val+' · Eyes: '+t.eyes.val+'<br>Range: '+Math.min.apply(null,vals)+'–'+Math.max.apply(null,vals)+' ('+range+' steps) — <strong>'+level+' Contrast</strong>';
+}
+
+async function ipSaveContrast() {
+  if (!ipCPersonId) return;
   var db = getSupa(); if (!db) return;
+  var vals = Object.keys(ipCTags).map(function(k){ return ipCTags[k].val; });
+  var range = Math.max.apply(null,vals) - Math.min.apply(null,vals);
+  var level;
+  if (range >= 8) level = 'High';
+  else if (range >= 6) level = 'Medium-High';
+  else if (range >= 4) level = 'Medium';
+  else if (range >= 2) level = 'Medium-Low';
+  else level = 'Low';
   await db.from('in_person_persons').update({
-    skin_value: skin,
-    hair_value: hair,
-    eyes_value: eyes,
-    contrast_range: cl.range,
-    contrast_level: cl.level
-  }).eq('id', personId);
+    skin_value: ipCTags.skin.val,
+    hair_value: ipCTags.hair.val,
+    eyes_value: ipCTags.eyes.val,
+    contrast_range: range,
+    contrast_level: level
+  }).eq('id', ipCPersonId);
 }
 
 async function ipSaveSeason(personId, season) {
@@ -450,12 +521,77 @@ async function ipSaveSeason(personId, season) {
   await db.from('in_person_persons').update({ season: season || null }).eq('id', personId);
 }
 
-/* photo upload */
+/* ── Dragging (mouse) ── */
+
+function ipDragStart(e, key) {
+  e.preventDefault();
+  ipCDragKey = key;
+  var el = document.getElementById('ip-tag-'+key);
+  var prev = document.getElementById('ip-contrast-preview');
+  if (!el || !prev) return;
+  var pr = prev.getBoundingClientRect();
+  ipCDragOX = e.clientX - pr.left - ipCTags[key].x;
+  ipCDragOY = e.clientY - pr.top - ipCTags[key].y;
+  document.addEventListener('mousemove', ipDragMove);
+  document.addEventListener('mouseup', ipDragEnd);
+}
+function ipDragMove(e) {
+  if (!ipCDragKey) return;
+  var prev = document.getElementById('ip-contrast-preview');
+  if (!prev) return;
+  var pr = prev.getBoundingClientRect();
+  var nx = e.clientX - pr.left - ipCDragOX;
+  var ny = e.clientY - pr.top - ipCDragOY;
+  ipCTags[ipCDragKey].x = nx;
+  ipCTags[ipCDragKey].y = ny;
+  var el = document.getElementById('ip-tag-'+ipCDragKey);
+  if (el) { el.style.left = nx+'px'; el.style.top = ny+'px'; }
+}
+function ipDragEnd() {
+  ipCDragKey = null;
+  document.removeEventListener('mousemove', ipDragMove);
+  document.removeEventListener('mouseup', ipDragEnd);
+}
+
+/* ── Dragging (touch) ── */
+
+function ipTouchStart(e, key) {
+  var touch = e.touches[0];
+  ipCDragKey = key;
+  var prev = document.getElementById('ip-contrast-preview');
+  if (!prev) return;
+  var pr = prev.getBoundingClientRect();
+  ipCDragOX = touch.clientX - pr.left - ipCTags[key].x;
+  ipCDragOY = touch.clientY - pr.top - ipCTags[key].y;
+  document.addEventListener('touchmove', ipTouchMove, {passive:false});
+  document.addEventListener('touchend', ipTouchEnd);
+}
+function ipTouchMove(e) {
+  e.preventDefault();
+  if (!ipCDragKey) return;
+  var touch = e.touches[0];
+  var prev = document.getElementById('ip-contrast-preview');
+  if (!prev) return;
+  var pr = prev.getBoundingClientRect();
+  var nx = touch.clientX - pr.left - ipCDragOX;
+  var ny = touch.clientY - pr.top - ipCDragOY;
+  ipCTags[ipCDragKey].x = nx;
+  ipCTags[ipCDragKey].y = ny;
+  var el = document.getElementById('ip-tag-'+ipCDragKey);
+  if (el) { el.style.left = nx+'px'; el.style.top = ny+'px'; }
+}
+function ipTouchEnd() {
+  ipCDragKey = null;
+  document.removeEventListener('touchmove', ipTouchMove);
+  document.removeEventListener('touchend', ipTouchEnd);
+}
+
+/* ── Photo upload & clear ── */
+
 async function ipUploadPhoto(file, personId, bookingId) {
   if (!file) return;
   var db = getSupa(); if (!db) return;
 
-  /* get booking_id for path */
   var path = 'booking_' + bookingId + '/person_' + personId + '_' + Date.now() + '.jpg';
 
   var { data, error } = await db.storage.from('in-person-photos').upload(path, file, {
@@ -463,10 +599,7 @@ async function ipUploadPhoto(file, personId, bookingId) {
     upsert: false
   });
 
-  if (error) {
-    alert('Upload failed: ' + error.message);
-    return;
-  }
+  if (error) { alert('Upload failed: ' + error.message); return; }
 
   var { data: urlData } = db.storage.from('in-person-photos').getPublicUrl(path);
   var photoUrl = urlData ? urlData.publicUrl : '';
@@ -476,11 +609,17 @@ async function ipUploadPhoto(file, personId, bookingId) {
     photo_url: photoUrl
   }).eq('id', personId);
 
-  /* refresh view */
   showPersonContrast(personId, bookingId);
 }
 
-/* delete person */
+function ipClearPhoto(personId, bookingId) {
+  var inp = document.getElementById('ip-photo-input');
+  if (inp) inp.value = '';
+  ipRenderContrast(null);
+}
+
+/* ── Delete person ── */
+
 async function ipDeletePerson(personId, bookingId) {
   if (!confirm('Delete this person?')) return;
   var db = getSupa(); if (!db) return;
