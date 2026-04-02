@@ -645,8 +645,12 @@ let openedAdminItem = null;
 
 // ── Supabase ──
 async function sb(path, opts = {}) {
+  const prefer = opts.prefer || '';
+  delete opts.prefer;
+  const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+  if (prefer) headers['Prefer'] = prefer;
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
-    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: opts.prefer || '' },
+    headers,
     ...opts
   });
   if (!res.ok) throw new Error(await res.text());
@@ -721,7 +725,7 @@ async function openClient(clientId) {
   document.getElementById('detailEmail').textContent = currentClient.email;
 
   // Load items with photos and admin notes
-  currentItems = await sb(`inspiration_items?client_id=eq.${clientId}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*)`);
+  currentItems = await sb(`inspiration_items?client_id=eq.${clientId}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)`);
 
   // Load measurements
   const meas = await sb(`inspiration_measurements?client_id=eq.${clientId}&select=*`);
@@ -799,6 +803,18 @@ function renderDetail() {
     }[adminNote.status] || 'status-new';
     const isOpen = openedAdminItem === item.id;
 
+    // Tile colour swatches
+    const tileColours = (item.inspiration_item_colours || []).filter(c => c.primary_colour);
+    const tileSwatches = tileColours.length > 0
+      ? '<div style="display:flex;gap:3px;margin-top:2px">' + tileColours.map(c =>
+          '<div style="width:14px;height:14px;border-radius:3px;background:' + c.primary_colour + ';border:1px solid rgba(0,0,0,0.1)"></div>'
+          + (c.backup_colour ? '<div style="width:14px;height:14px;border-radius:3px;background:' + c.backup_colour + ';border:1px solid rgba(0,0,0,0.08);opacity:0.6"></div>' : '')
+        ).join('') + '</div>'
+      : '';
+    const qtyBadge = (item.quantity || 1) > 1
+      ? '<span style="font-size:9px;font-weight:700;background:var(--charcoal);color:#fff;padding:1px 6px;border-radius:10px;margin-left:4px">×' + item.quantity + '</span>'
+      : '';
+
     // Tile
     html += `
       <div class="item-tile ${isOpen ? 'active' : ''}" onclick="toggleAdminShelf('${item.id}')">
@@ -808,7 +824,8 @@ function renderDetail() {
         <div class="tile-info">
           <div class="tile-status">
             <span class="status-badge ${statusClass}" style="font-size:10px;padding:2px 8px">${adminNote.status || 'New'}</span>
-            <span class="tile-category">${item.category}</span>
+            <span class="tile-category">${item.category}${qtyBadge}</span>
+            ${tileSwatches}
           </div>
           <span class="tile-arrow">▾</span>
         </div>
@@ -835,15 +852,18 @@ function renderDetail() {
 
           <!-- Client Responses -->
           <div class="prompt-grid">
-            ${promptField('What they love', item.prompt_love, true)}
-            ${promptField('Colour / Fabric', item.prompt_colour_fabric, true)}
-            ${promptField('Occasion', item.prompt_occasion)}
-            ${promptField('Replica or Inspired', item.prompt_exact_or_inspired)}
-            ${promptField('Fit Preference', item.prompt_fit, true)}
-            ${promptField('Changes', item.prompt_changes, true)}
-            ${promptField('Priority', item.prompt_priority)}
-            ${promptField('Reference', item.prompt_source_url, false, true)}
+            ${promptField('What they love', item.prompt_love, true, false, item.id, 'prompt_love')}
+            ${promptField('Fabric', item.prompt_colour_fabric, true, false, item.id, 'prompt_colour_fabric')}
+            ${promptField('Occasion', item.prompt_occasion, false, false, item.id, 'prompt_occasion')}
+            ${promptField('Replica or Inspired', item.prompt_exact_or_inspired, false, false, item.id, 'prompt_exact_or_inspired')}
+            ${promptField('Fit Preference', item.prompt_fit, true, false, item.id, 'prompt_fit')}
+            ${promptField('Changes', item.prompt_changes, true, false, item.id, 'prompt_changes')}
+            ${promptField('Priority', item.prompt_priority, false, false, item.id, 'prompt_priority')}
+            ${promptField('Reference', item.prompt_source_url, false, true, item.id, 'prompt_source_url')}
           </div>
+
+          <!-- Quantity & Colours -->
+          ${renderQuantityAndColours(item)}
 
           <!-- Admin Controls -->
           <div class="admin-controls">
@@ -867,12 +887,13 @@ function renderDetail() {
   container.innerHTML = html;
 }
 
-function promptField(label, value, full, isLink) {
+function promptField(label, value, full, isLink, itemId, dbField) {
   const cls = full ? 'prompt-item full' : 'prompt-item';
   let display = value || '';
-  if (!display) return `<div class="${cls}"><div class="prompt-label">${label}</div><div class="prompt-value empty">Not provided</div></div>`;
+  const editBtn = itemId && dbField ? `<button class="pf-edit-btn" onclick="event.stopPropagation();startEditField('${itemId}','${dbField}',this)" title="Edit">✎</button>` : '';
+  if (!display) return `<div class="${cls}"><div class="prompt-label">${label}${editBtn}</div><div class="prompt-value empty" id="pf-${itemId}-${dbField}">Not provided</div></div>`;
   if (isLink && display) display = `<a href="${display}" target="_blank" style="color:var(--blue);word-break:break-all">${display}</a>`;
-  return `<div class="${cls}"><div class="prompt-label">${label}</div><div class="prompt-value">${display}</div></div>`;
+  return `<div class="${cls}"><div class="prompt-label">${label}${editBtn}</div><div class="prompt-value" id="pf-${itemId}-${dbField}">${display}</div></div>`;
 }
 
 // ── Admin Notes ──
@@ -893,7 +914,7 @@ async function updateAdminNote(itemId, noteId, field, value) {
     flashSaved();
     // Reload items to get fresh admin note IDs, but preserve shelf state
     if (!noteId) {
-      currentItems = await sb(`inspiration_items?client_id=eq.${currentClient.id}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*)`);
+      currentItems = await sb(`inspiration_items?client_id=eq.${currentClient.id}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)`);
       renderDetail();
     }
   } catch (e) {
@@ -1022,7 +1043,7 @@ function downloadClientReport() {
 
     const promptsArr = [
       pf('What They Love', item.prompt_love),
-      pf('Colour / Fabric', item.prompt_colour_fabric),
+      pf('Fabric', item.prompt_colour_fabric),
       pf('Occasion', item.prompt_occasion),
       pf('Replica or Inspired', item.prompt_exact_or_inspired),
       pf('Fit Preference', item.prompt_fit),
@@ -1047,6 +1068,27 @@ function downloadClientReport() {
     itemsHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">' + photosHtml + '</div>';
     // Prompts in two columns
     itemsHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px;padding:16px 20px;background:#FDFCFA;border-radius:10px;border:1px solid #F0ECE6">' + col1 + col2 + '</div>';
+    // Quantity & Colours
+    var qty = item.quantity || 1;
+    var itemColours = item.inspiration_item_colours || [];
+    if (qty > 1 || itemColours.length > 0) {
+      itemsHtml += '<div style="margin-top:14px;padding:12px 16px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6;display:flex;align-items:center;gap:16px;flex-wrap:wrap">';
+      if (qty > 1) {
+        itemsHtml += '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A">Qty: <span style="font-size:13px;font-weight:700;color:#3C3229">' + qty + '</span></div>';
+      }
+      for (var u = 1; u <= qty; u++) {
+        var uc = itemColours.find(function(x){ return x.unit_number === u; }) || {};
+        if (uc.primary_colour || uc.backup_colour) {
+          itemsHtml += '<div style="display:flex;align-items:center;gap:6px">';
+          if (qty > 1) itemsHtml += '<span style="font-size:9px;color:#B5A99A;font-weight:600">' + u + '.</span>';
+          if (uc.primary_colour) itemsHtml += '<div style="width:20px;height:20px;border-radius:4px;background:' + uc.primary_colour + ';border:1px solid rgba(0,0,0,0.1)" title="Primary"></div>';
+          if (uc.backup_colour) itemsHtml += '<div style="width:20px;height:20px;border-radius:4px;background:' + uc.backup_colour + ';border:1px solid rgba(0,0,0,0.1);opacity:0.7" title="Backup"></div>';
+          itemsHtml += '</div>';
+        }
+      }
+      itemsHtml += '</div>';
+    }
+
     // Admin notes
     if (adminNote.notes) {
       itemsHtml += '<div style="margin-top:12px;padding:12px 16px;background:#FFF9F0;border-radius:8px;border-left:3px solid #D4A040">'
@@ -1128,7 +1170,30 @@ function downloadClientReport() {
     + '#report-print-overlay .rp-body{padding:0;max-width:none}'
     + '#report-print-overlay .rp-item{page-break-inside:avoid}'
     + '#report-print-overlay img{max-width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
-    + '</style>'
+    + '
+/* Edit buttons */
+.pf-edit-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-light);margin-left:6px;padding:2px 4px;border-radius:4px;opacity:0.5;transition:opacity .15s;vertical-align:middle}
+.pf-edit-btn:hover{opacity:1;color:var(--rose)}
+.pf-edit-input{width:100%;padding:8px 10px;border:1px solid var(--rose);border-radius:6px;font-family:inherit;font-size:12px;resize:vertical;outline:none;background:#fff}
+.pf-edit-actions{display:flex;gap:6px;margin-top:6px}
+.pf-edit-actions button{padding:4px 12px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-family:inherit}
+.pf-save-btn{background:var(--charcoal);color:#fff}
+.pf-cancel-btn{background:var(--sand);color:var(--text-mid)}
+
+/* Quantity & Colours */
+.qc-section{margin-top:16px;padding:16px;background:var(--sand);border-radius:10px}
+.qc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.qc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-light)}
+.qc-qty{display:flex;align-items:center;gap:8px}
+.qc-qty input{width:50px;padding:5px 8px;border:1px solid rgba(0,0,0,0.1);border-radius:6px;font-size:13px;text-align:center;font-family:inherit}
+.colour-unit{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid rgba(0,0,0,0.05)}
+.colour-unit-label{font-size:11px;font-weight:600;color:var(--text-mid);min-width:50px}
+.colour-pick{display:flex;align-items:center;gap:6px}
+.colour-pick label{font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px}
+.colour-swatch{width:32px;height:32px;border-radius:6px;border:2px solid rgba(0,0,0,0.1);cursor:pointer;padding:0;overflow:hidden;position:relative}
+.colour-swatch input[type=color]{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);border:none;cursor:pointer;padding:0}
+.colour-swatch.empty{border-style:dashed;background:repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50%/12px 12px}
+</style>'
     + '<div class="rp-toolbar">'
     + '<button onclick="document.getElementById(\'report-print-overlay\').remove()" style="font-family:Jost,sans-serif;padding:8px 20px;background:none;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;color:#6B5E53">\u2190 Close</button>'
     + '<span id="rp-status" style="font-size:12px;color:#9B8E82">Loading images\u2026</span>'
@@ -1161,6 +1226,141 @@ function downloadClientReport() {
   if (total === 0) { enablePrint(); }
   else { imgs.forEach(i => { if (i.complete) imgReady(); else { i.addEventListener('load', imgReady); i.addEventListener('error', imgReady); } }); }
   setTimeout(enablePrint, 6000);
+}
+
+
+// ── Inline Edit Prompts ──
+function startEditField(itemId, field, btn) {
+  const item = currentItems.find(i => i.id === itemId);
+  if (!item) return;
+  const el = document.getElementById('pf-' + itemId + '-' + field);
+  if (!el) return;
+  const current = item[field] || '';
+  const isLong = ['prompt_love','prompt_colour_fabric','prompt_fit','prompt_changes'].includes(field);
+  el.innerHTML = (isLong
+    ? '<textarea class="pf-edit-input" rows="3">' + current.replace(/</g,'&lt;') + '</textarea>'
+    : '<input class="pf-edit-input" type="text" value="' + current.replace(/"/g,'&quot;') + '">')
+    + '<div class="pf-edit-actions">'
+    + '<button class="pf-save-btn" onclick="saveEditField(\'' + itemId + '\',\'' + field + '\')">Save</button>'
+    + '<button class="pf-cancel-btn" onclick="renderDetail()">Cancel</button>'
+    + '</div>';
+  el.querySelector('.pf-edit-input').focus();
+}
+
+async function saveEditField(itemId, field) {
+  const el = document.getElementById('pf-' + itemId + '-' + field);
+  if (!el) return;
+  const input = el.querySelector('.pf-edit-input');
+  if (!input) return;
+  const value = input.value.trim();
+  try {
+    await sb('inspiration_items?id=eq.' + itemId, {
+      method: 'PATCH',
+      body: JSON.stringify({ [field]: value || null, updated_at: new Date().toISOString() })
+    });
+    const item = currentItems.find(i => i.id === itemId);
+    if (item) item[field] = value || null;
+    flashSaved();
+    renderDetail();
+  } catch(e) {
+    showToast('Failed to save', true);
+  }
+}
+
+// ── Quantity & Colours ──
+function renderQuantityAndColours(item) {
+  const qty = item.quantity || 1;
+  const colours = item.inspiration_item_colours || [];
+  let unitsHtml = '';
+  for (let u = 1; u <= qty; u++) {
+    const c = colours.find(x => x.unit_number === u) || {};
+    unitsHtml += '<div class="colour-unit">'
+      + '<div class="colour-unit-label">' + (qty > 1 ? 'Unit ' + u : 'Colours') + '</div>'
+      + '<div class="colour-pick">'
+      + '<label>Primary</label>'
+      + colourSwatch(item.id, u, 'primary_colour', c.primary_colour)
+      + '</div>'
+      + '<div class="colour-pick">'
+      + '<label>Backup</label>'
+      + colourSwatch(item.id, u, 'backup_colour', c.backup_colour)
+      + '</div>'
+      + '</div>';
+  }
+  return '<div class="qc-section">'
+    + '<div class="qc-header">'
+    + '<div class="qc-label">Quantity & Colours</div>'
+    + '<div class="qc-qty">'
+    + '<label style="font-size:11px;color:var(--text-mid)">Qty:</label>'
+    + '<input type="number" min="1" max="10" value="' + qty + '" onchange="updateQuantity(\'' + item.id + '\',parseInt(this.value))">'
+    + '</div>'
+    + '</div>'
+    + unitsHtml
+    + '</div>';
+}
+
+function colourSwatch(itemId, unitNum, colField, currentVal) {
+  const hasColour = currentVal && currentVal !== '';
+  const bg = hasColour ? currentVal : 'transparent';
+  const cls = hasColour ? 'colour-swatch' : 'colour-swatch empty';
+  return '<div class="' + cls + '" style="background:' + bg + '">'
+    + '<input type="color" value="' + (currentVal || '#cccccc') + '" '
+    + 'onchange="saveItemColour(\'' + itemId + '\',' + unitNum + ',\'' + colField + '\',this.value)">'
+    + '</div>';
+}
+
+async function updateQuantity(itemId, qty) {
+  if (qty < 1) qty = 1;
+  if (qty > 10) qty = 10;
+  try {
+    await sb('inspiration_items?id=eq.' + itemId, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity: qty, updated_at: new Date().toISOString() })
+    });
+    const item = currentItems.find(i => i.id === itemId);
+    if (item) item.quantity = qty;
+    // Remove colour rows for units > qty
+    const colours = item.inspiration_item_colours || [];
+    const toDelete = colours.filter(c => c.unit_number > qty);
+    for (const c of toDelete) {
+      await sb('inspiration_item_colours?id=eq.' + c.id, { method: 'DELETE' });
+    }
+    item.inspiration_item_colours = colours.filter(c => c.unit_number <= qty);
+    flashSaved();
+    renderDetail();
+  } catch(e) {
+    showToast('Failed to update quantity', true);
+  }
+}
+
+async function saveItemColour(itemId, unitNum, colField, value) {
+  const item = currentItems.find(i => i.id === itemId);
+  if (!item) return;
+  const colours = item.inspiration_item_colours || [];
+  const existing = colours.find(c => c.unit_number === unitNum);
+  try {
+    if (existing) {
+      await sb('inspiration_item_colours?id=eq.' + existing.id, {
+        method: 'PATCH',
+        body: JSON.stringify({ [colField]: value })
+      });
+      existing[colField] = value;
+    } else {
+      const body = { item_id: itemId, unit_number: unitNum, [colField]: value };
+      const res = await sb('inspiration_item_colours', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        prefer: 'return=representation'
+      });
+      if (!item.inspiration_item_colours) item.inspiration_item_colours = [];
+      if (Array.isArray(res)) item.inspiration_item_colours.push(res[0]);
+      else item.inspiration_item_colours.push(res);
+    }
+    flashSaved();
+    renderDetail();
+  } catch(e) {
+    showToast('Failed to save colour', true);
+    console.warn(e);
+  }
 }
 
 // ── Keyboard ──
