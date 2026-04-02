@@ -357,42 +357,88 @@ textarea{resize:vertical;min-height:110px}
 <div class="step" id="s9">
   <div class="card">
     <div class="intro-h">Upload Your Photos</div>
-    <div class="intro-p">We need at least <strong>6 photos</strong> to accurately determine your colour season. Please follow the guidelines below.</div>
+    <div class="intro-p">Your colour analysis is completed by a human, NOT AI. That is why we require multiple images — we want to analyse you correctly.</div>
   </div>
   <div id="photoStatusBar" class="photo-status-bar">
     <span class="dot orange"></span>
     <span id="photoStatusText">0 of 6 required photos uploaded</span>
   </div>
+
+  <!-- Video instructions -->
   <div class="card">
-    <div class="qbadge">Instructions</div>
+    <div class="qbadge">Video Guide</div>
     <div class="qlabel" style="margin-bottom:14px">Watch this quick video for the best results:</div>
-    <div id="instrVideo" style="margin-bottom:16px">
+    <div style="margin-bottom:0">
       <video controls playsinline preload="metadata" style="width:100%;border-radius:10px;max-height:300px;background:#000"
-        poster="" src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Online%20Example%20Video-3.mp4">
+        src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Online%20Example%20Video-3.mp4">
         Your browser does not support the video tag.
       </video>
     </div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:13px;font-weight:600;color:#3a5a3a;margin-bottom:8px">✅ Good Examples</div>
-      <div id="goodExamples" style="display:flex;gap:8px;flex-wrap:wrap">
+  </div>
+
+  <!-- Good vs Bad photos -->
+  <div class="card">
+    <div class="qbadge">Best Photos for Accurate Results</div>
+
+    <div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:700;color:#3a5a3a;margin-bottom:8px">✅ GOOD PHOTOS</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Good%20Example%201.jpg" style="width:48%;border-radius:8px;border:2px solid #a0c8a0" alt="Good example 1">
         <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Good%20Example%202.jpg" style="width:48%;border-radius:8px;border:2px solid #a0c8a0" alt="Good example 2">
       </div>
+      <div style="font-size:13px;color:#3a3a3a;line-height:2">
+        <div>✅ Natural / neutral lighting</div>
+        <div>✅ Your skin is a true reflection of how it looks</div>
+        <div>✅ Straight on, not from above or under the face</div>
+        <div>✅ Only shows face and neck, not shoulders</div>
+      </div>
     </div>
-    <div>
-      <div style="font-size:13px;font-weight:600;color:#b07070;margin-bottom:8px">❌ Avoid</div>
-      <div id="badExamples" style="display:flex;gap:6px;flex-wrap:wrap">
+
+    <div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:700;color:#b07070;margin-bottom:8px">❌ BAD PHOTOS</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
         <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Bad%20example%201.jpg" style="width:31%;border-radius:8px;border:2px solid #e0a0a0" alt="Bad example 1">
         <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Bad%20example%202.jpg" style="width:31%;border-radius:8px;border:2px solid #e0a0a0" alt="Bad example 2">
         <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Bad%20example%203.jpg" style="width:31%;border-radius:8px;border:2px solid #e0a0a0" alt="Bad example 3">
       </div>
+      <div style="font-size:13px;color:#3a3a3a;line-height:2">
+        <div>❌ Wearing make-up, fake tan or sunglasses</div>
+        <div>❌ Warm lighting</div>
+        <div>❌ Blurry or low quality</div>
+        <div>❌ Shadows on the face &amp; bad angle</div>
+      </div>
     </div>
   </div>
+
+  <!-- Passport shot instructions -->
+  <div class="card">
+    <div class="qbadge">Taking the Passport Shots</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:#888;margin-bottom:8px">PLEASE FOLLOW THESE SPECIFIC INSTRUCTIONS:</div>
+    <div style="font-size:13px;color:#3a3a3a;line-height:1.9;padding-left:4px">
+      <div style="margin-bottom:4px">• <strong>Makeup &amp; fake tan free</strong></div>
+      <div style="margin-bottom:4px">• Take photos of your face in filtered daylight. Neutral lighting. Do not use flash.</div>
+      <div style="margin-bottom:4px">• Stand against a white wall if lighting allows.</div>
+      <div style="margin-bottom:4px">• Make sure the photo is clear (not blurry) and has no shadows across your face.</div>
+      <div style="margin-bottom:4px">• Wear a white top or hold a sheet of white paper up under your chin.</div>
+      <div style="margin-bottom:4px">• Take a close-up head and shoulders photo. Please do not crop a photo taken further away.</div>
+      <div style="margin-bottom:4px">• Look at the photos to ensure they accurately represent your colouring.</div>
+      <div style="margin-bottom:0">• Please gently tie hair up. We need to be able to see a tiny bit of the colouring.</div>
+    </div>
+  </div>
+
+  <!-- Photo upload grid -->
   <div class="card">
     <div class="qbadge">Your Photos</div>
-    <div class="qlabel">Tap a slot to upload. First 6 are required.</div>
+    <div style="font-size:13px;color:#3a3a3a;line-height:1.8;margin-bottom:14px">
+      <div>📸 <strong>2 passport-style photos</strong> of your face in filtered daylight</div>
+      <div>👶 <strong>1 photo aged 4–8 years old</strong> <span style="color:#888;font-size:12px">(Not a problem if you don't have one — just let us know)</span></div>
+      <div>🧑 <strong>1 photo in your early 20s</strong></div>
+      <div>👗 <strong>2 recent photos</strong> wearing colours that you like and feel you look good in</div>
+      <div style="font-size:12px;color:#888;font-style:italic;margin-top:6px">The more images in colours you can provide, the better!</div>
+    </div>
     <div class="photo-grid" id="photoGrid"></div>
   </div>
+
   <div class="card" style="background:#fff8f0;border:1.5px solid #e8d8c0">
     <div style="font-size:13px;color:#8a6a3a;line-height:1.6">⚠️ <strong>Important:</strong> Please make sure all 6 required photos are uploaded before submitting. You cannot add photos after submission.</div>
   </div>
@@ -419,14 +465,14 @@ var NAMES = ['Client Info','Skin','Eyes','Hair','Style & Ancestry','Colour Prefe
 var SUPA_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
 var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
 var PHOTO_SLOTS = [
-  {key:'face_front',label:'Face (front)',required:true},
-  {key:'face_left',label:'Face (left)',required:true},
-  {key:'face_right',label:'Face (right)',required:true},
-  {key:'eyes_close',label:'Eyes (close-up)',required:true},
-  {key:'hair_natural',label:'Hair (natural light)',required:true},
-  {key:'full_body',label:'Full body',required:true},
-  {key:'extra_1',label:'Extra 1',required:false},
-  {key:'extra_2',label:'Extra 2',required:false}
+  {key:'passport_1',label:'Passport photo 1',required:true},
+  {key:'passport_2',label:'Passport photo 2',required:true},
+  {key:'childhood',label:'Aged 4–8',required:true},
+  {key:'early_20s',label:'Early 20s',required:true},
+  {key:'colour_1',label:'In colours you love',required:true},
+  {key:'colour_2',label:'In colours you love',required:true},
+  {key:'extra_1',label:'Extra (optional)',required:false},
+  {key:'extra_2',label:'Extra (optional)',required:false}
 ];
 var PHOTO_ACCEPT = 'image/jpeg,image/png,image/heic,image/heif,image/webp';
 var PHOTO_MAX = 10 * 1024 * 1024;
