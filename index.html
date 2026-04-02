@@ -63,7 +63,13 @@
     }
   }
 </script>
-</head>
+
+    <style>
+      .clients-subtab{background:var(--warm);border:1px solid var(--sand);color:var(--brown);font-size:12px;padding:6px 16px;border-radius:8px;cursor:pointer;transition:all .15s}
+      .clients-subtab:hover{background:var(--sand)}
+      .clients-subtab.on{background:var(--charcoal);color:white;border-color:var(--charcoal)}
+    </style>
+  </head>
 <body>
 
 <!-- ═══ LOGIN ═══ -->
@@ -256,9 +262,14 @@
     <!-- CLIENTS -->
     <div class="page" id="pg-clients">
       <div class="ph">
-        <div><div class="ptitle">Clients</div><div class="psub">30 slots · drag to reorder · track appointments and invoices</div></div>
-        <button class="btn btnp" onclick="clearClients()">Clear All</button>
+        <div><div class="ptitle">Clients</div><div class="psub" id="clients-psub">30 slots · drag to reorder · track appointments and invoices</div></div>
+        <div id="clients-header-actions"><button class="btn btnp" onclick="clearClients()">Clear All</button></div>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn clients-subtab on" id="cst-slots" onclick="showClientsTab('slots')">Appointment Slots</button>
+        <button class="btn clients-subtab" id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
+      </div>
+      <div id="clients-slots-panel">
       <div class="csumrow">
         <div class="csum"><strong id="cs-tot">0</strong>Total</div>
         <div class="csum"><strong id="cs-inv">0</strong>Invoiced</div>
@@ -314,6 +325,8 @@
           </div>
         </div>
       </div>
+      </div><!-- /clients-slots-panel -->
+      <div id="clients-inperson-panel" style="display:none"></div>
     </div>
 
     <!-- TASKS PAGE -->
@@ -2026,6 +2039,7 @@
       </div>
     </div>
   </div>
+<script src="app-in-person.js"></script>
 <script src="comms-fix-v39.js"></script>
 <script src="comms-fix-daily.js"></script>
 <script src="comms-fix-hidden.js"></script>
