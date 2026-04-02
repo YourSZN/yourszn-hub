@@ -173,24 +173,24 @@ function ipRenderFilteredList(query) {
     months[key].items.push(b);
   }
 
-  /* Render monthly groups — collapsible with card tiles */
+  /* Render monthly groups — collapsible, with weekly sub-groups */
   for (var m = 0; m < monthOrder.length; m++) {
     var grp = months[monthOrder[m]];
     var mKey = monthOrder[m];
 
     html +=
       '<div style="margin-bottom:20px;">' +
-        /* Collapsible header */
-        '<div onclick="ipToggleMonth(\'' + mKey + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--warm);border:1px solid var(--sand);border-radius:10px;cursor:pointer;user-select:none;transition:background 0.1s;"' +
+        /* Collapsible month header */
+        '<div onclick="ipToggleSection(\'' + mKey + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--warm);border:1px solid var(--sand);border-radius:10px;cursor:pointer;user-select:none;transition:background 0.1s;"' +
         ' onmouseover="this.style.background=\'var(--sand)\'" onmouseout="this.style.background=\'var(--warm)\'">' +
           '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<span id="ip-chevron-' + mKey + '" style="font-size:12px;color:var(--muted);transition:transform 0.2s;display:inline-block;">▼</span>' +
+            '<span id="ip-chev-' + mKey + '" style="font-size:12px;color:var(--muted);transition:transform 0.2s;display:inline-block;">▼</span>' +
             '<span style="font-size:14px;font-weight:700;color:var(--charcoal);">' + grp.label + '</span>' +
             '<span style="font-size:12px;color:var(--muted);font-weight:400;">' + grp.items.length + ' booking' + (grp.items.length !== 1 ? 's' : '') + '</span>' +
           '</div>' +
           '<div style="display:flex;gap:6px;">';
 
-    /* Mini status summary dots */
+    /* Mini status summary */
     var statusCounts = {};
     for (var sc2 = 0; sc2 < grp.items.length; sc2++) {
       var st = grp.items[sc2].status || 'pending';
@@ -204,35 +204,70 @@ function ipRenderFilteredList(query) {
     html +=
           '</div>' +
         '</div>' +
-        /* Tile grid (visible by default) */
-        '<div id="ip-month-' + mKey + '" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:12px 0;">';
+        /* Month body (collapsible) */
+        '<div id="ip-sec-' + mKey + '" style="padding:4px 0 0 0;">';
 
-    /* Card tiles */
-    for (var r = 0; r < grp.items.length; r++) {
-      var bk = grp.items[r];
-      var personCount = bk.in_person_persons ? bk.in_person_persons.length : 0;
-      var sc = ipStatusColor(bk.status);
-      var initials = ipInitials(bk.client_name);
-      var initialsCol = ipInitialsColor(bk.client_name);
+    /* ── Group items into weeks (Monday-start) ── */
+    var weeks = {};
+    var weekOrder = [];
+    for (var wi = 0; wi < grp.items.length; wi++) {
+      var bk = grp.items[wi];
+      var bd = bk.appointment_date ? new Date(bk.appointment_date) : new Date(bk.created_at);
+      var mon = ipWeekStart(bd);
+      var sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+      var wKey = mKey + '-w' + mon.toISOString().split('T')[0];
+      if (!weeks[wKey]) {
+        weeks[wKey] = {
+          label: ipShortDate(mon) + ' – ' + ipShortDate(sun),
+          items: []
+        };
+        weekOrder.push(wKey);
+      }
+      weeks[wKey].items.push(bk);
+    }
+
+    for (var wk = 0; wk < weekOrder.length; wk++) {
+      var wGrp = weeks[weekOrder[wk]];
+      var wId = weekOrder[wk];
 
       html +=
-        '<div onclick="showBookingDetail(\'' + bk.id + '\')" style="background:white;border:1px solid var(--sand);border-radius:10px;padding:16px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"' +
-        ' onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.08)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'none\'">' +
-          /* Top: avatar + name + status */
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
-            '<div style="width:36px;height:36px;border-radius:50%;background:' + initialsCol + ';color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + initials + '</div>' +
-            '<div style="flex:1;min-width:0;">' +
-              '<div style="font-weight:600;font-size:14px;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk.client_name || 'Unnamed') + '</div>' +
-              '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk.client_email || '—') + '</div>' +
+        '<div style="margin-bottom:8px;">' +
+          /* Week sub-header */
+          '<div onclick="ipToggleSection(\'' + wId + '\')" style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;user-select:none;">' +
+            '<span id="ip-chev-' + wId + '" style="font-size:10px;color:var(--muted);transition:transform 0.2s;display:inline-block;">▼</span>' +
+            '<span style="font-size:12px;font-weight:600;color:var(--brown);">Week of ' + wGrp.label + '</span>' +
+            '<span style="font-size:11px;color:var(--muted);">(' + wGrp.items.length + ')</span>' +
+          '</div>' +
+          /* Week tile grid */
+          '<div id="ip-sec-' + wId + '" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:4px 12px 8px 12px;">';
+
+      /* Card tiles */
+      for (var r = 0; r < wGrp.items.length; r++) {
+        var bk2 = wGrp.items[r];
+        var personCount = bk2.in_person_persons ? bk2.in_person_persons.length : 0;
+        var sc = ipStatusColor(bk2.status);
+        var initials = ipInitials(bk2.client_name);
+        var initialsCol = ipInitialsColor(bk2.client_name);
+
+        html +=
+          '<div onclick="showBookingDetail(\'' + bk2.id + '\')" style="background:white;border:1px solid var(--sand);border-radius:10px;padding:16px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"' +
+          ' onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.08)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'none\'">' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
+              '<div style="width:36px;height:36px;border-radius:50%;background:' + initialsCol + ';color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + initials + '</div>' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div style="font-weight:600;font-size:14px;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk2.client_name || 'Unnamed') + '</div>' +
+                '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk2.client_email || '—') + '</div>' +
+              '</div>' +
+              '<span style="font-size:10px;padding:3px 10px;border-radius:20px;background:' + sc + ';color:white;text-transform:capitalize;flex-shrink:0;">' + (bk2.status || 'pending') + '</span>' +
             '</div>' +
-            '<span style="font-size:10px;padding:3px 10px;border-radius:20px;background:' + sc + ';color:white;text-transform:capitalize;flex-shrink:0;">' + (bk.status || 'pending') + '</span>' +
-          '</div>' +
-          /* Bottom: date + people */
-          '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--brown);">' +
-            '<span>' + ipFormatDate(bk.appointment_date) + '</span>' +
-            '<span>' + personCount + ' person' + (personCount !== 1 ? 's' : '') + '</span>' +
-          '</div>' +
-        '</div>';
+            '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--brown);">' +
+              '<span>' + ipFormatDate(bk2.appointment_date) + '</span>' +
+              '<span>' + personCount + ' person' + (personCount !== 1 ? 's' : '') + '</span>' +
+            '</div>' +
+          '</div>';
+      }
+
+      html += '</div></div>';
     }
 
     html += '</div></div>';
@@ -247,16 +282,32 @@ function ipRenderFilteredList(query) {
   }
 }
 
-/* Toggle month section */
-function ipToggleMonth(key) {
-  var grid = document.getElementById('ip-month-' + key);
-  var chevron = document.getElementById('ip-chevron-' + key);
-  if (!grid) return;
-  if (grid.style.display === 'none') {
-    grid.style.display = 'grid';
+/* Get Monday of the week for a given date */
+function ipWeekStart(d) {
+  var dt = new Date(d);
+  var day = dt.getDay();
+  var diff = (day === 0 ? -6 : 1) - day; // Monday = 1
+  dt.setDate(dt.getDate() + diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+/* Short date like "30 Mar" */
+function ipShortDate(d) {
+  return d.getDate() + ' ' + d.toLocaleDateString('en-AU', { month: 'short' });
+}
+
+/* Toggle any collapsible section (month or week) */
+function ipToggleSection(key) {
+  var el = document.getElementById('ip-sec-' + key);
+  var chevron = document.getElementById('ip-chev-' + key);
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = el.dataset.displayMode || 'block';
     if (chevron) chevron.style.transform = 'rotate(0deg)';
   } else {
-    grid.style.display = 'none';
+    el.dataset.displayMode = el.style.display || 'block';
+    el.style.display = 'none';
     if (chevron) chevron.style.transform = 'rotate(-90deg)';
   }
 }
