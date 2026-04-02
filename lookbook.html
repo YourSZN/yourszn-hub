@@ -1061,7 +1061,7 @@ function downloadClientReport() {
   const reportHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + clientName + ' — Look Book</title>'
     + '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">'
     + '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Jost",sans-serif;color:#2C2420;padding:32px;max-width:900px;margin:0 auto;background:#fff}'
-    + '@media print{body{padding:16px}button{display:none!important}}</style></head><body>'
+    + '@media print{body{padding:16px}.no-print{display:none!important}img{max-width:100%}}</style></head><body>'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #E5DDD4">'
     + '<div><div style="font-family:Cormorant Garamond,serif;font-size:24px;font-weight:600;letter-spacing:2px">YOUR <span style="font-weight:400">SZN</span></div>'
     + '<div style="font-size:12px;color:#9B8E82;margin-top:2px">Vietnam Tailoring Tour — Client Look Book</div></div>'
@@ -1070,10 +1070,25 @@ function downloadClientReport() {
     + '<div style="font-size:12px;color:#9B8E82;margin-top:4px">Generated ' + date + '</div></div></div>'
     + '<div style="margin-bottom:16px;font-size:14px;color:#6B5E53">' + currentItems.length + ' inspiration item' + (currentItems.length !== 1 ? 's' : '') + '</div>'
     + itemsHtml + measHtml
-    + '<div style="text-align:center;margin-top:32px"><button onclick="window.print()" style="font-family:Jost,sans-serif;padding:10px 28px;background:#3C3229;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Print / Save as PDF</button></div>'
+    + '<div class="no-print" id="printControls" style="text-align:center;margin-top:32px">'
+    + '<div id="loadMsg" style="font-size:13px;color:#9B8E82;margin-bottom:8px">Loading images…</div>'
+    + '<button id="printBtn" disabled onclick="window.print()" style="font-family:Jost,sans-serif;padding:10px 28px;background:#ccc;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:not-allowed">Print / Save as PDF</button></div>'
+    + '<script>'
+    + 'var imgs=document.querySelectorAll("img");var total=imgs.length;var loaded=0;'
+    + 'function check(){loaded++;if(loaded>=total){document.getElementById("loadMsg").textContent="Ready!";'
+    + 'var b=document.getElementById("printBtn");b.disabled=false;b.style.background="#3C3229";b.style.cursor="pointer";}}'
+    + 'if(total===0){check();}else{imgs.forEach(function(i){if(i.complete){check();}else{i.addEventListener("load",check);i.addEventListener("error",check);}});}'
+    + 'setTimeout(function(){var b=document.getElementById("printBtn");if(b.disabled){b.disabled=false;b.style.background="#3C3229";b.style.cursor="pointer";'
+    + 'document.getElementById("loadMsg").textContent="Ready";}},5000);'
+    + '<\/script>'
     + '</body></html>';
 
-  const win = window.open('', '_blank');
+  const win = window.open('about:blank', '_blank');
+  if (!win) {
+    showToast('Pop-up blocked — please allow pop-ups for this site', true);
+    return;
+  }
+  win.document.open();
   win.document.write(reportHtml);
   win.document.close();
 }
