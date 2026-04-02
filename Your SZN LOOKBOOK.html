@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SZN — Vietnam Inspiration Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F5F0EB;
+  --bg-card: #FFFFFF;
+  --bg-input: #FAF8F5;
+  --border: #E5DDD4;
+  --border-light: #EDE8E1;
+  --text: #2C2420;
+  --text-mid: #6B5E53;
+  --text-light: #9B8E82;
+  --accent: #3C3229;
+  --accent-hover: #2C2420;
+  --accent-soft: #D4C8BB;
+  --tag-bg: #EDE8E1;
+  --danger: #C4685A;
+  --danger-bg: #FDF0EE;
+  --success: #6B8F71;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(44,36,32,0.06);
+  --shadow-md: 0 4px 12px rgba(44,36,32,0.08);
+}
+
+body {
+  font-family: 'Jost', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-weight: 400;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.site-header {
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.logo span { font-weight: 400; }
+.header-sub {
+  font-size: 13px;
+  color: var(--text-light);
+  letter-spacing: 0.5px;
+}
+.client-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-mid);
+  background: var(--bg);
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+.client-badge .avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Container ── */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* ── Entry Screen ── */
+.entry-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+}
+.entry-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px 40px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+.entry-card .logo { font-size: 28px; margin-bottom: 8px; }
+.entry-card h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.entry-card .subtitle {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 32px;
+}
+.form-group {
+  text-align: left;
+  margin-bottom: 18px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  margin-bottom: 6px;
+}
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-input);
+  transition: border-color 0.2s;
+  outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--accent);
+}
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 24px;
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  width: 100%;
+  margin-top: 8px;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border-light); }
+.btn-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid #EACDC8;
+}
+.btn-danger:hover { background: #F5DDD8; }
+.btn-sm { padding: 8px 18px; font-size: 13px; }
+
+/* ── Board ── */
+.board-header {
+  margin-bottom: 32px;
+}
+.board-header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.board-header p {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.add-item-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.add-item-bar select {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-card);
+  outline: none;
+  cursor: pointer;
+  min-width: 180px;
+}
+.add-item-bar select:focus { border-color: var(--accent); }
+
+/* ── Category Filter Tabs ── */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.filter-tab {
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  background: var(--bg-card);
+  color: var(--text-mid);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.filter-tab:hover { border-color: var(--accent-soft); }
+.filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.filter-tab .count {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* ── Tile Grid ── */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.item-tile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  position: relative;
+}
+.item-tile:hover { box-shadow: var(--shadow-md); border-color: var(--accent-soft); }
+.item-tile.active { border-color: var(--accent); box-shadow: var(--shadow-md); }
+.tile-thumb {
+  aspect-ratio: 3/4;
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.tile-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tile-thumb .placeholder {
+  color: var(--text-light);
+  font-size: 13px;
+  text-align: center;
+  padding: 12px;
+}
+.tile-thumb .placeholder .plus {
+  font-size: 32px;
+  line-height: 1;
+  display: block;
+  margin-bottom: 4px;
+  opacity: 0.5;
+}
+.tile-info {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.item-category {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-mid);
+  background: var(--tag-bg);
+  padding: 4px 12px;
+  border-radius: 16px;
+}
+.tile-arrow {
+  font-size: 14px;
+  color: var(--text-light);
+  transition: transform 0.2s;
+}
+.item-tile.active .tile-arrow { transform: rotate(180deg); }
+
+/* ── Shelf (expands below row) ── */
+.item-shelf {
+  grid-column: 1 / -1;
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow-md);
+  animation: shelfOpen 0.25s ease;
+  position: relative;
+}
+@keyframes shelfOpen {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.shelf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.shelf-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--text); }
+.icon-btn.delete:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+
+/* ── Photo Upload (inside shelf) ── */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.photo-slot {
+  aspect-ratio: 3/4;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--bg-input);
+}
+.photo-slot:hover { border-color: var(--accent-soft); background: #F0EBE5; }
+.photo-slot .label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-light);
+  margin-top: 8px;
+}
+.photo-slot .plus {
+  font-size: 24px;
+  color: var(--text-light);
+  line-height: 1;
+}
+.photo-slot img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-slot.has-photo { border-style: solid; border-color: var(--border); }
+.photo-slot .remove-photo {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(44,36,32,0.7);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.photo-slot.has-photo:hover .remove-photo { display: flex; }
+.photo-slot input[type="file"] { display: none; }
+
+/* ── Prompts ── */
+.prompts-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.prompts-section .form-group.full { grid-column: 1 / -1; }
+
+/* ── Save Indicator ── */
+.save-indicator {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  z-index: 100;
+  pointer-events: none;
+}
+.save-indicator.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 14px 24px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  font-size: 14px;
+  z-index: 200;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { border-color: var(--danger); color: var(--danger); }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-mid);
+  margin-bottom: 8px;
+}
+.empty-state p { font-size: 14px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .site-header { padding: 16px 20px; }
+  .container { padding: 20px 16px 80px; }
+  .entry-card { padding: 32px 24px; }
+  .tile-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .photo-grid { grid-template-columns: repeat(2, 1fr); }
+  .prompts-section { grid-template-columns: 1fr; }
+  .add-item-bar { flex-direction: column; }
+  .add-item-bar select, .add-item-bar .btn { width: 100%; }
+  .item-shelf { padding: 20px; }
+}
+@media (max-width: 420px) {
+  .tile-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div>
+    <div class="logo">YOUR <span>SZN</span></div>
+    <div class="header-sub">Vietnam Tailoring Tour · Inspiration Board</div>
+  </div>
+  <div id="clientBadge" class="client-badge" style="display:none">
+    <div class="avatar" id="clientAvatar"></div>
+    <span id="clientName"></span>
+  </div>
+</header>
+
+<!-- Entry Screen -->
+<div id="entryScreen" class="entry-screen">
+  <div class="entry-card">
+    <div class="logo">YOUR <span>SZN</span></div>
+    <h2>Inspiration Board</h2>
+    <p class="subtitle">Upload your style inspiration for the Vietnam Tailoring Tour</p>
+    <div class="form-group">
+      <label>Your Name</label>
+      <input type="text" id="entryName" placeholder="Full name" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="entryEmail" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <button class="btn btn-primary" onclick="enterBoard()">Open My Board</button>
+  </div>
+</div>
+
+<!-- Board -->
+<div id="boardScreen" style="display:none">
+  <div class="container">
+    <div class="board-header">
+      <h1>Your Inspiration Board</h1>
+      <p>Add items you love — we'll bring them to life in Vietnam</p>
+    </div>
+
+    <div class="add-item-bar">
+      <select id="newCategory">
+        <option value="">Choose a category…</option>
+        <option>Tops</option>
+        <option>Pants</option>
+        <option>Shorts</option>
+        <option>Jackets / Blazers</option>
+        <option>Suits</option>
+        <option>Shoes</option>
+        <option>Accessories</option>
+        <option>Dresses</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="addItem()" style="width:auto">+ Add Item</button>
+    </div>
+
+    <div id="filterTabs" class="filter-tabs" style="display:none"></div>
+
+    <div id="itemsList"></div>
+
+    <div id="emptyState" class="empty-state">
+      <div class="icon">✦</div>
+      <h3>No items yet</h3>
+      <p>Select a category above and add your first inspiration piece</p>
+    </div>
+  </div>
+</div>
+
+<div class="save-indicator" id="saveIndicator">✓ Saved</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+const STORAGE_BUCKET = 'inspiration-photos';
+
+let currentClient = null;
+let items = [];
+let saveTimers = {};
+let activeFilter = 'All';
+let openedItemId = null;
+
+// ── Supabase Helpers ──
+async function sb(path, opts = {}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: opts.prefer || '' },
+    ...opts
+  });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function uploadPhoto(file, clientId, itemId, slot) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${clientId}/${itemId}/${slot}_${Date.now()}.${ext}`;
+  const res = await fetch(`${SB_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, {
+    method: 'POST',
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': file.type },
+    body: file
+  });
+  if (!res.ok) throw new Error('Upload failed');
+  return path;
+}
+
+async function deletePhoto(path) {
+  await fetch(`${SB_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, {
+    method: 'DELETE',
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+  });
+}
+
+function photoUrl(path) {
+  return `${SB_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+}
+
+// ── Toast / Save indicator ──
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+function flashSaved() {
+  const s = document.getElementById('saveIndicator');
+  s.classList.add('show');
+  setTimeout(() => s.classList.remove('show'), 1800);
+}
+
+// ── Entry ──
+async function enterBoard() {
+  const name = document.getElementById('entryName').value.trim();
+  const email = document.getElementById('entryEmail').value.trim().toLowerCase();
+  if (!name || !email) { showToast('Please enter your name and email', true); return; }
+
+  try {
+    // Check existing
+    let clients = await sb(`inspiration_clients?email=eq.${encodeURIComponent(email)}&select=*`);
+    if (clients.length > 0) {
+      currentClient = clients[0];
+      // Update name if changed
+      if (currentClient.name !== name) {
+        await sb(`inspiration_clients?id=eq.${currentClient.id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+        currentClient.name = name;
+      }
+    } else {
+      const created = await sb('inspiration_clients', {
+        method: 'POST', body: JSON.stringify({ name, email }),
+        prefer: 'return=representation'
+      });
+      currentClient = created[0];
+    }
+
+    document.getElementById('clientAvatar').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('clientName').textContent = name;
+    document.getElementById('clientBadge').style.display = 'flex';
+    document.getElementById('entryScreen').style.display = 'none';
+    document.getElementById('boardScreen').style.display = 'block';
+    await loadItems();
+  } catch (e) {
+    showToast('Something went wrong. Please try again.', true);
+    console.error(e);
+  }
+}
+
+// ── Load Items ──
+async function loadItems() {
+  items = await sb(`inspiration_items?client_id=eq.${currentClient.id}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*)`);
+  renderItems();
+}
+
+// ── Render ──
+function renderFilterTabs() {
+  const cats = {};
+  items.forEach(i => { cats[i.category] = (cats[i.category] || 0) + 1; });
+  const tabContainer = document.getElementById('filterTabs');
+  if (items.length <= 1) { tabContainer.style.display = 'none'; return; }
+  tabContainer.style.display = 'flex';
+
+  const allActive = activeFilter === 'All' ? 'active' : '';
+  let html = `<div class="filter-tab ${allActive}" onclick="setFilter('All')">All <span class="count">${items.length}</span></div>`;
+  Object.keys(cats).sort().forEach(cat => {
+    const active = activeFilter === cat ? 'active' : '';
+    html += `<div class="filter-tab ${active}" onclick="setFilter('${cat.replace(/'/g, "\\'")}')">${cat} <span class="count">${cats[cat]}</span></div>`;
+  });
+  tabContainer.innerHTML = html;
+}
+
+function setFilter(cat) {
+  activeFilter = cat;
+  openedItemId = null;
+  renderFilterTabs();
+  renderItems();
+}
+
+function renderPhotoSlots(itemId, photoMap) {
+  return ['front','back','side_left','side_right'].map(function(slot) {
+    var p = photoMap[slot];
+    var slotLabel = slot.replace('_',' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    var cls = 'photo-slot' + (p ? ' has-photo' : '');
+    var inner = '';
+    if (p) {
+      inner = '<img src="' + photoUrl(p.storage_path) + '" alt="' + slotLabel + '">' +
+        '<button class="remove-photo" onclick="event.stopPropagation();removePhoto(\'' + itemId + '\',\'' + p.id + '\',\'' + p.storage_path + '\')">✕</button>';
+    } else {
+      inner = '<span class="plus">+</span>';
+    }
+    return '<div class="' + cls + '" onclick="event.stopPropagation();triggerUpload(\'' + itemId + '\',\'' + slot + '\')">' +
+      inner +
+      '<span class="label">' + slotLabel + '</span>' +
+      '<input type="file" id="file-' + itemId + '-' + slot + '" accept="image/*" onchange="handlePhoto(event,\'' + itemId + '\',\'' + slot + '\')">' +
+      '</div>';
+  }).join('');
+}
+
+function toggleShelf(itemId) {
+  if (openedItemId === itemId) {
+    openedItemId = null;
+  } else {
+    openedItemId = itemId;
+  }
+  renderItems();
+  if (openedItemId) {
+    setTimeout(() => {
+      const shelf = document.getElementById(`shelf-${itemId}`);
+      if (shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+}
+
+function renderItems() {
+  renderFilterTabs();
+  const list = document.getElementById('itemsList');
+  const empty = document.getElementById('emptyState');
+  if (items.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  const filtered = activeFilter === 'All' ? items : items.filter(i => i.category === activeFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-light);font-size:14px">No items in this category</div>';
+    return;
+  }
+
+  let html = '<div class="tile-grid">';
+  filtered.forEach(item => {
+    const photos = item.inspiration_photos || [];
+    const frontPhoto = photos.find(p => p.slot === 'front');
+    const isOpen = openedItemId === item.id;
+
+    // Tile
+    html += `
+      <div class="item-tile ${isOpen ? 'active' : ''}" onclick="toggleShelf('${item.id}')">
+        <div class="tile-thumb">
+          ${frontPhoto ? `<img src="${photoUrl(frontPhoto.storage_path)}" alt="${item.category}">` : `<div class="placeholder"><span class="plus">+</span>No photo yet</div>`}
+        </div>
+        <div class="tile-info">
+          <span class="item-category">${item.category}</span>
+          <span class="tile-arrow">▾</span>
+        </div>
+      </div>`;
+
+    // Shelf (if open)
+    if (isOpen) {
+      const photoMap = {};
+      photos.forEach(p => photoMap[p.slot] = p);
+
+      html += `
+      <div class="item-shelf" id="shelf-${item.id}">
+        <div class="shelf-header">
+          <span class="item-category">${item.category}</span>
+          <div class="shelf-actions">
+            <button class="icon-btn" onclick="event.stopPropagation();toggleShelf('${item.id}')" title="Close">✕</button>
+            <button class="icon-btn delete" onclick="event.stopPropagation();deleteItem('${item.id}')" title="Delete">🗑</button>
+          </div>
+        </div>
+        <div class="photo-grid">
+          ${renderPhotoSlots(item.id, photoMap)}
+        </div>
+        <div class="prompts-section">
+          <div class="form-group full">
+            <label>What do you love about this piece?</label>
+            <textarea data-field="prompt_love" oninput="autoSave('${item.id}',this)">${item.prompt_love || ''}</textarea>
+          </div>
+          <div class="form-group full">
+            <label>What colour(s) and fabric/material are you after?</label>
+            <textarea data-field="prompt_colour_fabric" oninput="autoSave('${item.id}',this)">${item.prompt_colour_fabric || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Occasion or use?</label>
+            <select data-field="prompt_occasion" onchange="handleOccasion('${item.id}',this)">
+              <option value="">Select…</option>
+              ${['Casual','Work','Event','Travel','Wedding'].map(o => `<option ${item.prompt_occasion===o?'selected':''}>${o}</option>`).join('')}
+              <option ${item.prompt_occasion && !['Casual','Work','Event','Travel','Wedding',''].includes(item.prompt_occasion)?'selected':''} value="__other">Other</option>
+            </select>
+            ${item.prompt_occasion && !['Casual','Work','Event','Travel','Wedding',''].includes(item.prompt_occasion) ? `<input type="text" style="margin-top:8px" value="${item.prompt_occasion}" data-field="prompt_occasion" oninput="autoSave('${item.id}',this)" placeholder="Describe the occasion…">` : ''}
+          </div>
+          <div class="form-group">
+            <label>Exact replica or inspired by it?</label>
+            <select data-field="prompt_exact_or_inspired" onchange="autoSave('${item.id}',this)">
+              <option value="">Select…</option>
+              ${['Exact replica','Inspired by it','Not sure yet'].map(o => `<option ${item.prompt_exact_or_inspired===o?'selected':''}>${o}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>What fit do you prefer?</label>
+            <textarea data-field="prompt_fit" oninput="autoSave('${item.id}',this)" placeholder="e.g. Slim through the chest, relaxed in the body…">${item.prompt_fit || ''}</textarea>
+          </div>
+          <div class="form-group full">
+            <label>Anything you'd change about this piece?</label>
+            <textarea data-field="prompt_changes" oninput="autoSave('${item.id}',this)">${item.prompt_changes || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>How important is this piece?</label>
+            <select data-field="prompt_priority" onchange="autoSave('${item.id}',this)">
+              <option value="">Select…</option>
+              ${['Must-have','Nice-to-have','Just browsing'].map(o => `<option ${item.prompt_priority===o?'selected':''}>${o}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Reference link (optional)</label>
+            <input type="url" data-field="prompt_source_url" value="${item.prompt_source_url || ''}" oninput="autoSave('${item.id}',this)" placeholder="https://…">
+          </div>
+        </div>
+      </div>`;
+    }
+  });
+  html += '</div>';
+  list.innerHTML = html;
+}
+
+// ── Add Item ──
+async function addItem() {
+  const cat = document.getElementById('newCategory').value;
+  if (!cat) { showToast('Please select a category first', true); return; }
+  try {
+    const created = await sb('inspiration_items', {
+      method: 'POST',
+      body: JSON.stringify({ client_id: currentClient.id, category: cat, sort_order: items.length }),
+      prefer: 'return=representation'
+    });
+    document.getElementById('newCategory').value = '';
+    openedItemId = created[0].id;
+    await loadItems();
+    setTimeout(() => {
+      const shelf = document.getElementById(`shelf-${created[0].id}`);
+      if (shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  } catch (e) {
+    showToast('Failed to add item', true);
+    console.error(e);
+  }
+}
+
+// ── Delete Item ──
+async function deleteItem(itemId) {
+  if (!confirm('Delete this item and all its photos?')) return;
+  try {
+    const item = items.find(i => i.id === itemId);
+    if (item && item.inspiration_photos) {
+      for (const p of item.inspiration_photos) {
+        await deletePhoto(p.storage_path).catch(() => {});
+      }
+    }
+    await sb(`inspiration_photos?item_id=eq.${itemId}`, { method: 'DELETE' });
+    await sb(`inspiration_admin_notes?item_id=eq.${itemId}`, { method: 'DELETE' });
+    await sb(`inspiration_items?id=eq.${itemId}`, { method: 'DELETE' });
+    if (openedItemId === itemId) openedItemId = null;
+    await loadItems();
+    showToast('Item deleted');
+  } catch (e) {
+    showToast('Failed to delete', true);
+  }
+}
+
+// ── Auto-save ──
+function autoSave(itemId, el) {
+  const field = el.dataset.field;
+  const value = el.value;
+  const key = `${itemId}-${field}`;
+  clearTimeout(saveTimers[key]);
+  saveTimers[key] = setTimeout(async () => {
+    try {
+      await sb(`inspiration_items?id=eq.${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ [field]: value, updated_at: new Date().toISOString() })
+      });
+      // Update local
+      const item = items.find(i => i.id === itemId);
+      if (item) item[field] = value;
+      flashSaved();
+    } catch (e) {
+      showToast('Save failed — please try again', true);
+    }
+  }, 600);
+}
+
+// ── Occasion handler ──
+function handleOccasion(itemId, el) {
+  if (el.value === '__other') {
+    // Re-render to show text input
+    const item = items.find(i => i.id === itemId);
+    if (item) item.prompt_occasion = '';
+    renderItems();
+    // Focus the new input
+    setTimeout(() => {
+      const shelf = document.getElementById(`shelf-${itemId}`);
+      if (shelf) {
+        const inp = shelf.querySelector('input[data-field="prompt_occasion"]');
+        if (inp) inp.focus();
+      }
+    }, 50);
+  } else {
+    autoSave(itemId, el);
+  }
+}
+
+// ── Photo Upload ──
+function triggerUpload(itemId, slot) {
+  document.getElementById(`file-${itemId}-${slot}`).click();
+}
+
+async function handlePhoto(e, itemId, slot) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Photo must be under 5MB', true); return; }
+
+  const item = items.find(i => i.id === itemId);
+  const existing = (item?.inspiration_photos || []).find(p => p.slot === slot);
+
+  try {
+    // Remove old photo if exists
+    if (existing) {
+      await deletePhoto(existing.storage_path).catch(() => {});
+      await sb(`inspiration_photos?id=eq.${existing.id}`, { method: 'DELETE' });
+    }
+    // Upload new
+    const path = await uploadPhoto(file, currentClient.id, itemId, slot);
+    await sb('inspiration_photos', {
+      method: 'POST',
+      body: JSON.stringify({ item_id: itemId, slot, storage_path: path })
+    });
+    await loadItems();
+    flashSaved();
+  } catch (e) {
+    showToast('Photo upload failed', true);
+    console.error(e);
+  }
+}
+
+async function removePhoto(itemId, photoId, path) {
+  try {
+    await deletePhoto(path).catch(() => {});
+    await sb(`inspiration_photos?id=eq.${photoId}`, { method: 'DELETE' });
+    await loadItems();
+    flashSaved();
+  } catch (e) {
+    showToast('Failed to remove photo', true);
+  }
+}
+
+// Enter on email field
+document.getElementById('entryEmail').addEventListener('keydown', e => { if (e.key === 'Enter') enterBoard(); });
+document.getElementById('entryName').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('entryEmail').focus(); });
+</script>
+</body>
+</html>
