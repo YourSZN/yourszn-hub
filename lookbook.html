@@ -568,6 +568,28 @@ body {
 @media (max-width: 480px) {
   .measure-grid { grid-template-columns: 1fr; }
 }
+
+/* Edit buttons */
+.pf-edit-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-light);margin-left:6px;padding:2px 4px;border-radius:4px;opacity:0.5;transition:opacity .15s;vertical-align:middle}
+.pf-edit-btn:hover{opacity:1;color:var(--rose)}
+.pf-edit-input{width:100%;padding:8px 10px;border:1px solid var(--rose);border-radius:6px;font-family:inherit;font-size:12px;resize:vertical;outline:none;background:#fff}
+.pf-edit-actions{display:flex;gap:6px;margin-top:6px}
+.pf-edit-actions button{padding:4px 12px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-family:inherit}
+.pf-save-btn{background:var(--charcoal);color:#fff}
+.pf-cancel-btn{background:var(--sand);color:var(--text-mid)}
+/* Quantity & Colours */
+.qc-section{margin-top:16px;padding:16px;background:var(--sand);border-radius:10px}
+.qc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.qc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-light)}
+.qc-qty{display:flex;align-items:center;gap:8px}
+.qc-qty input{width:50px;padding:5px 8px;border:1px solid rgba(0,0,0,0.1);border-radius:6px;font-size:13px;text-align:center;font-family:inherit}
+.colour-unit{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid rgba(0,0,0,0.05)}
+.colour-unit-label{font-size:11px;font-weight:600;color:var(--text-mid);min-width:50px}
+.colour-pick{display:flex;align-items:center;gap:6px}
+.colour-pick label{font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px}
+.colour-swatch{width:32px;height:32px;border-radius:6px;border:2px solid rgba(0,0,0,0.1);cursor:pointer;padding:0;overflow:hidden;position:relative}
+.colour-swatch input[type=color]{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);border:none;cursor:pointer;padding:0}
+.colour-swatch.empty{border-style:dashed;background:repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50%/12px 12px}
 </style>
 </head>
 <body>
@@ -1170,30 +1192,7 @@ function downloadClientReport() {
     + '#report-print-overlay .rp-body{padding:0;max-width:none}'
     + '#report-print-overlay .rp-item{page-break-inside:avoid}'
     + '#report-print-overlay img{max-width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
-    + '
-/* Edit buttons */
-.pf-edit-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-light);margin-left:6px;padding:2px 4px;border-radius:4px;opacity:0.5;transition:opacity .15s;vertical-align:middle}
-.pf-edit-btn:hover{opacity:1;color:var(--rose)}
-.pf-edit-input{width:100%;padding:8px 10px;border:1px solid var(--rose);border-radius:6px;font-family:inherit;font-size:12px;resize:vertical;outline:none;background:#fff}
-.pf-edit-actions{display:flex;gap:6px;margin-top:6px}
-.pf-edit-actions button{padding:4px 12px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-family:inherit}
-.pf-save-btn{background:var(--charcoal);color:#fff}
-.pf-cancel-btn{background:var(--sand);color:var(--text-mid)}
-
-/* Quantity & Colours */
-.qc-section{margin-top:16px;padding:16px;background:var(--sand);border-radius:10px}
-.qc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.qc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-light)}
-.qc-qty{display:flex;align-items:center;gap:8px}
-.qc-qty input{width:50px;padding:5px 8px;border:1px solid rgba(0,0,0,0.1);border-radius:6px;font-size:13px;text-align:center;font-family:inherit}
-.colour-unit{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid rgba(0,0,0,0.05)}
-.colour-unit-label{font-size:11px;font-weight:600;color:var(--text-mid);min-width:50px}
-.colour-pick{display:flex;align-items:center;gap:6px}
-.colour-pick label{font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px}
-.colour-swatch{width:32px;height:32px;border-radius:6px;border:2px solid rgba(0,0,0,0.1);cursor:pointer;padding:0;overflow:hidden;position:relative}
-.colour-swatch input[type=color]{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);border:none;cursor:pointer;padding:0}
-.colour-swatch.empty{border-style:dashed;background:repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50%/12px 12px}
-</style>'
+    + '</style>'
     + '<div class="rp-toolbar">'
     + '<button onclick="document.getElementById(\'report-print-overlay\').remove()" style="font-family:Jost,sans-serif;padding:8px 20px;background:none;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;color:#6B5E53">\u2190 Close</button>'
     + '<span id="rp-status" style="font-size:12px;color:#9B8E82">Loading images\u2026</span>'
