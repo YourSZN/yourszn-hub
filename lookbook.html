@@ -391,6 +391,11 @@ body {
   justify-content: center;
 }
 .admin-photo-slot:hover .dl-btn { display: flex; }
+.admin-photo-slot.empty-slot { cursor: pointer; border: 2px dashed var(--border); flex-direction: column; gap: 4px; transition: border-color 0.2s, background 0.2s; }
+.admin-photo-slot.empty-slot:hover { border-color: var(--accent-soft); background: #F0EBE5; }
+.admin-photo-slot .plus-icon { font-size: 28px; color: var(--text-light); line-height: 1; opacity: 0.5; }
+.admin-photo-slot .rm-btn { position: absolute; top: 8px; left: 8px; width: 30px; height: 30px; border-radius: 50%; background: rgba(180,60,50,0.75); color: #fff; border: none; cursor: pointer; font-size: 13px; display: none; align-items: center; justify-content: center; }
+.admin-photo-slot.has-photo:hover .rm-btn { display: flex; }
 
 /* ── Prompts Display ── */
 .prompt-grid {
@@ -794,13 +799,19 @@ function renderAdminPhotoSlots(item) {
     if (p) {
       const url = photoUrl(p.storage_path);
       return `
-      <div class="admin-photo-slot">
+      <div class="admin-photo-slot has-photo">
         <img src="${url}" alt="${label}" onclick="openLightbox('${url}')">
         <span class="slot-label">${label}</span>
         <button class="dl-btn" onclick="event.stopPropagation();downloadPhoto('${url}','${item.category}_${label}')" title="Download">↓</button>
+        <button class="rm-btn" onclick="event.stopPropagation();adminRemovePhoto('${item.id}','${p.id}','${p.storage_path}')" title="Remove">✕</button>
+        <input type="file" id="admin-file-${item.id}-${slot}" accept="image/*" style="display:none" onchange="adminHandlePhoto(event,'${item.id}','${slot}')">
       </div>`;
     }
-    return `<div class="admin-photo-slot"><span class="empty-label">${label}</span></div>`;
+    return `<div class="admin-photo-slot empty-slot" onclick="event.stopPropagation();adminTriggerUpload('${item.id}','${slot}')">
+      <span class="plus-icon">+</span>
+      <span class="empty-label">${label}</span>
+      <input type="file" id="admin-file-${item.id}-${slot}" accept="image/*" style="display:none" onchange="adminHandlePhoto(event,'${item.id}','${slot}')">
+    </div>`;
   }).join('');
 }
 
@@ -1357,6 +1368,50 @@ async function saveItemColour(itemId, unitNum, colField, value) {
   } catch(e) {
     showToast('Failed to save colour', true);
     console.warn(e);
+  }
+}
+
+// ── Admin Photo Upload/Remove ──
+function adminTriggerUpload(itemId, slot) {
+  document.getElementById('admin-file-' + itemId + '-' + slot).click();
+}
+
+async function adminHandlePhoto(e, itemId, slot) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Photo must be under 5MB', true); return; }
+  const item = currentItems.find(i => i.id === itemId);
+  if (!item) return;
+  const existing = (item.inspiration_photos || []).find(p => p.slot === slot);
+  try {
+    if (existing) {
+      await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + existing.storage_path, { method: 'DELETE', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }).catch(() => {});
+      await sb('inspiration_photos?id=eq.' + existing.id, { method: 'DELETE' });
+    }
+    const ext = file.name.split('.').pop().toLowerCase();
+    const path = currentClient.id + '/' + itemId + '/' + slot + '_' + Date.now() + '.' + ext;
+    const upRes = await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': file.type }, body: file });
+    if (!upRes.ok) throw new Error('Upload failed');
+    await sb('inspiration_photos', { method: 'POST', body: JSON.stringify({ item_id: itemId, slot: slot, storage_path: path }) });
+    currentItems = await sb('inspiration_items?client_id=eq.' + currentClient.id + '&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)');
+    renderDetail();
+    flashSaved();
+  } catch (err) {
+    showToast('Photo upload failed', true);
+    console.error(err);
+  }
+}
+
+async function adminRemovePhoto(itemId, photoId, path) {
+  if (!confirm('Remove this photo?')) return;
+  try {
+    await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, { method: 'DELETE', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }).catch(() => {});
+    await sb('inspiration_photos?id=eq.' + photoId, { method: 'DELETE' });
+    currentItems = await sb('inspiration_items?client_id=eq.' + currentClient.id + '&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)');
+    renderDetail();
+    flashSaved();
+  } catch (err) {
+    showToast('Failed to remove photo', true);
   }
 }
 
