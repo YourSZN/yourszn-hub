@@ -498,6 +498,29 @@ body {
 @media (max-width: 420px) {
   .tile-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
 }
+
+/* Quantity & Colour Picker */
+.qty-colour-section{margin-top:20px;padding:20px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border-light)}
+.qc-title{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-mid);margin-bottom:16px}
+.qc-qty-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.qc-qty-row label{font-size:13px;color:var(--text-mid);font-weight:500}
+.qc-stepper{display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:24px;overflow:hidden;background:var(--bg-card)}
+.qc-stepper button{width:36px;height:36px;border:none;background:none;cursor:pointer;font-size:18px;color:var(--text-mid);font-family:inherit;transition:background .15s}
+.qc-stepper button:hover{background:var(--border-light)}
+.qc-stepper span{min-width:32px;text-align:center;font-size:15px;font-weight:600;color:var(--text)}
+.colour-unit{display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--bg-card);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border-light)}
+.colour-unit-num{font-size:12px;font-weight:600;color:var(--text-mid);min-width:44px}
+.colour-pick-group{display:flex;align-items:center;gap:10px}
+.colour-pick-label{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-light);font-weight:500}
+.colour-circle{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s;flex-shrink:0}
+.colour-circle:hover{border-color:var(--accent-soft)}
+.colour-circle.empty{border-style:dashed;background:var(--bg-input)}
+.colour-circle.empty::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-light)}
+.colour-circle input[type=color]{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);border:none;cursor:pointer;padding:0;opacity:0}
+.colour-circle.filled input[type=color]{opacity:1}
+.qc-hint{font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;font-style:italic}
+.tile-swatches{display:flex;gap:3px;align-items:center}
+.tile-swatch{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,0.1);flex-shrink:0}
 </style>
 </head>
 <body>
@@ -667,7 +690,7 @@ async function enterBoard() {
 
 // ── Load Items ──
 async function loadItems() {
-  items = await sb(`inspiration_items?client_id=eq.${currentClient.id}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*)`);
+  items = await sb(`inspiration_items?client_id=eq.${currentClient.id}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_item_colours(*)`);
   renderItems();
 }
 
@@ -757,7 +780,8 @@ function renderItems() {
           ${frontPhoto ? `<img src="${photoUrl(frontPhoto.storage_path)}" alt="${item.category}">` : `<div class="placeholder"><span class="plus">+</span>No photo yet</div>`}
         </div>
         <div class="tile-info">
-          <span class="item-category">${item.category}</span>
+          <span class="item-category">${item.category}${(item.quantity||1)>1?' <span style="font-weight:700;margin-left:2px">×'+(item.quantity)+'</span>':''}</span>
+          ${renderTileSwatches(item)}
           <span class="tile-arrow">▾</span>
         </div>
       </div>`;
@@ -785,8 +809,8 @@ function renderItems() {
             <textarea data-field="prompt_love" oninput="autoSave('${item.id}',this)">${item.prompt_love || ''}</textarea>
           </div>
           <div class="form-group full">
-            <label>What colour(s) and fabric/material are you after?</label>
-            <textarea data-field="prompt_colour_fabric" oninput="autoSave('${item.id}',this)">${item.prompt_colour_fabric || ''}</textarea>
+            <label>What fabric/material are you after?</label>
+            <textarea data-field="prompt_colour_fabric" oninput="autoSave('${item.id}',this)" placeholder="e.g. Silk, linen, cotton…">${item.prompt_colour_fabric || ''}</textarea>
           </div>
           <div class="form-group">
             <label>Occasion or use?</label>
@@ -823,6 +847,22 @@ function renderItems() {
             <label>Reference link (optional)</label>
             <input type="url" data-field="prompt_source_url" value="${item.prompt_source_url || ''}" oninput="autoSave('${item.id}',this)" placeholder="https://…">
           </div>
+        </div>
+        <!-- Quantity & Colours -->
+        <div class="qty-colour-section">
+          <div class="qc-title">How many do you want made & in what colours?</div>
+          <div class="qc-qty-row">
+            <label>Quantity</label>
+            <div class="qc-stepper">
+              <button onclick="event.stopPropagation();changeQty('${item.id}',-1)">−</button>
+              <span id="qty-display-${item.id}">${item.quantity || 1}</span>
+              <button onclick="event.stopPropagation();changeQty('${item.id}',1)">+</button>
+            </div>
+          </div>
+          <div id="colour-units-${item.id}">
+            ${renderColourUnits(item)}
+          </div>
+          <div class="qc-hint">Tap each circle to pick a colour</div>
         </div>
       </div>`;
     }
@@ -866,6 +906,7 @@ async function deleteItem(itemId) {
     }
     await sb(`inspiration_photos?item_id=eq.${itemId}`, { method: 'DELETE' });
     await sb(`inspiration_admin_notes?item_id=eq.${itemId}`, { method: 'DELETE' });
+    await sb(`inspiration_item_colours?item_id=eq.${itemId}`, { method: 'DELETE' });
     await sb(`inspiration_items?id=eq.${itemId}`, { method: 'DELETE' });
     if (openedItemId === itemId) openedItemId = null;
     await loadItems();
@@ -958,6 +999,109 @@ async function removePhoto(itemId, photoId, path) {
     flashSaved();
   } catch (e) {
     showToast('Failed to remove photo', true);
+  }
+}
+
+
+// ── Quantity & Colour Functions ──
+function renderColourUnits(item) {
+  const qty = item.quantity || 1;
+  const colours = item.inspiration_item_colours || [];
+  let html = '';
+  for (let u = 1; u <= qty; u++) {
+    const c = colours.find(x => x.unit_number === u) || {};
+    const unitLabel = qty > 1 ? 'Unit ' + u : 'Colours';
+    html += '<div class="colour-unit">'
+      + '<div class="colour-unit-num">' + unitLabel + '</div>'
+      + '<div class="colour-pick-group">'
+      + '<span class="colour-pick-label">Primary</span>'
+      + renderColourCircle(item.id, u, 'primary_colour', c.primary_colour)
+      + '</div>'
+      + '<div class="colour-pick-group">'
+      + '<span class="colour-pick-label">Backup</span>'
+      + renderColourCircle(item.id, u, 'backup_colour', c.backup_colour)
+      + '</div>'
+      + '</div>';
+  }
+  return html;
+}
+
+function renderColourCircle(itemId, unitNum, colField, val) {
+  const filled = val && val !== '';
+  const cls = filled ? 'colour-circle filled' : 'colour-circle empty';
+  const bg = filled ? 'background:' + val + ';' : '';
+  return '<div class="' + cls + '" style="' + bg + '">'
+    + '<input type="color" value="' + (val || '#cccccc') + '" '
+    + 'onchange="saveColour(\'' + itemId + '\',' + unitNum + ',\'' + colField + '\',this.value)">'
+    + '</div>';
+}
+
+function renderTileSwatches(item) {
+  const colours = item.inspiration_item_colours || [];
+  if (colours.length === 0) return '';
+  let dots = '';
+  colours.sort((a,b) => a.unit_number - b.unit_number).forEach(c => {
+    if (c.primary_colour) dots += '<div class="tile-swatch" style="background:' + c.primary_colour + '"></div>';
+    if (c.backup_colour) dots += '<div class="tile-swatch" style="background:' + c.backup_colour + ';opacity:0.6"></div>';
+  });
+  if (!dots) return '';
+  return '<div class="tile-swatches">' + dots + '</div>';
+}
+
+async function changeQty(itemId, delta) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  let qty = (item.quantity || 1) + delta;
+  if (qty < 1) qty = 1;
+  if (qty > 10) qty = 10;
+  try {
+    await sb('inspiration_items?id=eq.' + itemId, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity: qty, updated_at: new Date().toISOString() })
+    });
+    item.quantity = qty;
+    // Remove colour rows for units > qty
+    const colours = item.inspiration_item_colours || [];
+    const toDelete = colours.filter(c => c.unit_number > qty);
+    for (const c of toDelete) {
+      await sb('inspiration_item_colours?id=eq.' + c.id, { method: 'DELETE' });
+    }
+    item.inspiration_item_colours = colours.filter(c => c.unit_number <= qty);
+    flashSaved();
+    renderItems();
+  } catch(e) {
+    showToast('Failed to update quantity', true);
+  }
+}
+
+async function saveColour(itemId, unitNum, colField, value) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  const colours = item.inspiration_item_colours || [];
+  const existing = colours.find(c => c.unit_number === unitNum);
+  try {
+    if (existing) {
+      await sb('inspiration_item_colours?id=eq.' + existing.id, {
+        method: 'PATCH',
+        body: JSON.stringify({ [colField]: value })
+      });
+      existing[colField] = value;
+    } else {
+      const body = { item_id: itemId, unit_number: unitNum, [colField]: value };
+      const res = await sb('inspiration_item_colours', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        prefer: 'return=representation'
+      });
+      if (!item.inspiration_item_colours) item.inspiration_item_colours = [];
+      if (Array.isArray(res)) item.inspiration_item_colours.push(res[0]);
+      else item.inspiration_item_colours.push(res);
+    }
+    flashSaved();
+    renderItems();
+  } catch(e) {
+    showToast('Failed to save colour', true);
+    console.error(e);
   }
 }
 
