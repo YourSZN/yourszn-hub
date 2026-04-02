@@ -574,7 +574,7 @@ function renderSlotFilled(div,slot){
   div.classList.add('filled');
   div.onclick=null;
   div.innerHTML='<img class="ps-thumb" src="'+photoState[slot.key].url+'" alt="'+slot.label+'">'
-    +'<button class="ps-remove" onclick="event.stopPropagation();removePhoto(''+slot.key+'')">&times;</button>';
+    +'<button class="ps-remove" onclick="event.stopPropagation();removePhoto(\''+slot.key+'\')">&times;</button>';
 }
 
 function renderSlotEmpty(div,slot){
