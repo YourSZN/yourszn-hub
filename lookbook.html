@@ -1052,7 +1052,7 @@ function downloadClientReport() {
       const p = photoMap[slot];
       const label = slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
       if (p) {
-        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:220px;object-fit:cover;border-radius:8px;margin-bottom:6px"><div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A;text-align:center">' + label + '</div></div>';
+        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:220px;object-fit:cover;border-radius:8px;margin-bottom:6px"><div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;text-align:center">' + label + '</div></div>';
       }
       return '<div><div style="height:220px;background:#F7F4F0;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px dashed #DDD5CC"><span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#C5BAB0">' + label + '</span></div></div>';
     }).join('');
@@ -1060,7 +1060,7 @@ function downloadClientReport() {
     // Prompts — two-column grid for details
     function pf(label, val) {
       if (!val) return '';
-      return '<div style="margin-bottom:14px"><div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A;margin-bottom:4px">' + label + '</div><div style="font-size:12px;color:#3C3229;line-height:1.6">' + val + '</div></div>';
+      return '<div style="margin-bottom:14px"><div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;margin-bottom:4px">' + label + '</div><div style="font-size:12px;color:#3C3229;line-height:1.6">' + val + '</div></div>';
     }
 
     const promptsArr = [
@@ -1093,18 +1093,16 @@ function downloadClientReport() {
     // Quantity & Colours
     var qty = item.quantity || 1;
     var itemColours = item.inspiration_item_colours || [];
-    if (qty > 1 || itemColours.length > 0) {
-      itemsHtml += '<div style="margin-top:14px;padding:12px 16px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6;display:flex;align-items:center;gap:16px;flex-wrap:wrap">';
-      if (qty > 1) {
-        itemsHtml += '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A">Qty: <span style="font-size:13px;font-weight:700;color:#3C3229">' + qty + '</span></div>';
-      }
+    if (qty > 0) {
+      itemsHtml += '<div style="margin-top:14px;padding:12px 16px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6;display:flex;align-items:center;gap:16px;flex-wrap:wrap;-webkit-print-color-adjust:exact;print-color-adjust:exact">';
+      itemsHtml += '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62">Qty: <span style="font-size:13px;font-weight:700;color:#3C3229">' + qty + '</span></div>';
       for (var u = 1; u <= qty; u++) {
         var uc = itemColours.find(function(x){ return x.unit_number === u; }) || {};
         if (uc.primary_colour || uc.backup_colour) {
           itemsHtml += '<div style="display:flex;align-items:center;gap:6px">';
-          if (qty > 1) itemsHtml += '<span style="font-size:9px;color:#B5A99A;font-weight:600">' + u + '.</span>';
-          if (uc.primary_colour) itemsHtml += '<div style="width:20px;height:20px;border-radius:4px;background:' + uc.primary_colour + ';border:1px solid rgba(0,0,0,0.1)" title="Primary"></div>';
-          if (uc.backup_colour) itemsHtml += '<div style="width:20px;height:20px;border-radius:4px;background:' + uc.backup_colour + ';border:1px solid rgba(0,0,0,0.1);opacity:0.7" title="Backup"></div>';
+          if (qty > 1) itemsHtml += '<span style="font-size:9px;color:#7A6E62;font-weight:600">' + u + '.</span>';
+          if (uc.primary_colour) itemsHtml += '<div style="width:24px;height:24px;border-radius:6px;background:' + uc.primary_colour + ';border:1px solid rgba(0,0,0,0.1);-webkit-print-color-adjust:exact;print-color-adjust:exact" title="Primary"></div>';
+          if (uc.backup_colour) itemsHtml += '<div style="width:24px;height:24px;border-radius:6px;background:' + uc.backup_colour + ';border:1px solid rgba(0,0,0,0.15);-webkit-print-color-adjust:exact;print-color-adjust:exact" title="Backup"></div>';
           itemsHtml += '</div>';
         }
       }
@@ -1136,13 +1134,13 @@ function downloadClientReport() {
       filled.forEach(f => {
         const label = f.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
         measHtml += '<div style="text-align:center;padding:14px 8px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6">'
-          + '<div style="font-size:22px;font-weight:600;color:#3C3229;margin-bottom:4px">' + currentMeasurements[f] + '<span style="font-size:11px;font-weight:400;color:#B5A99A"> cm</span></div>'
-          + '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A">' + label + '</div></div>';
+          + '<div style="font-size:22px;font-weight:600;color:#3C3229;margin-bottom:4px">' + currentMeasurements[f] + '<span style="font-size:11px;font-weight:400;color:#7A6E62"> cm</span></div>'
+          + '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62">' + label + '</div></div>';
       });
       measHtml += '</div>';
       if (currentMeasurements.fit_notes) {
         measHtml += '<div style="margin-top:14px;padding:12px 16px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6">'
-          + '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A;margin-bottom:4px">Fit Notes</div>'
+          + '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;margin-bottom:4px">Fit Notes</div>'
           + '<div style="font-size:12px;color:#3C3229;line-height:1.6">' + currentMeasurements.fit_notes + '</div></div>';
       }
       measHtml += '</div>';
@@ -1154,17 +1152,17 @@ function downloadClientReport() {
     // Header
     + '<div style="text-align:center;margin-bottom:40px;padding-bottom:28px;border-bottom:1px solid #E5DDD4">'
     + '<div style="font-family:Cormorant Garamond,serif;font-size:32px;font-weight:600;letter-spacing:4px;color:#3C3229;margin-bottom:4px">YOUR <span style="font-weight:400">SZN</span></div>'
-    + '<div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:#B5A99A;margin-bottom:20px">Vietnam Tailoring Tour</div>'
+    + '<div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:#7A6E62;margin-bottom:20px">Vietnam Tailoring Tour</div>'
     + '<div style="width:40px;height:1px;background:#D4C8BC;margin:0 auto 20px"></div>'
     + '<div style="font-family:Cormorant Garamond,serif;font-size:22px;font-weight:500;color:#3C3229">' + clientName + '</div>'
-    + '<div style="font-size:11px;color:#B5A99A;margin-top:4px">' + clientEmail + '</div>'
+    + '<div style="font-size:11px;color:#7A6E62;margin-top:4px">' + clientEmail + '</div>'
     + '<div style="font-size:10px;color:#C5BAB0;margin-top:8px">Prepared ' + date + '</div>'
     + '</div>'
     // Items count
     + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">'
     + '<div style="font-family:Cormorant Garamond,serif;font-size:20px;font-weight:600;color:#3C3229">Inspiration Items</div>'
     + '<div style="flex:1;height:1px;background:#EDE8E1"></div>'
-    + '<div style="font-size:11px;color:#B5A99A;font-weight:500">' + currentItems.length + ' item' + (currentItems.length !== 1 ? 's' : '') + '</div>'
+    + '<div style="font-size:11px;color:#7A6E62;font-weight:500">' + currentItems.length + ' item' + (currentItems.length !== 1 ? 's' : '') + '</div>'
     + '</div>'
     + itemsHtml + measHtml
     // Footer
@@ -1191,7 +1189,8 @@ function downloadClientReport() {
     + '#report-print-overlay{position:static;overflow:visible}'
     + '#report-print-overlay .rp-body{padding:0;max-width:none}'
     + '#report-print-overlay .rp-item{page-break-inside:avoid}'
-    + '#report-print-overlay img{max-width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+    + '#report-print-overlay img{max-width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    #report-print-overlay div{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
     + '</style>'
     + '<div class="rp-toolbar">'
     + '<button onclick="document.getElementById(\'report-print-overlay\').remove()" style="font-family:Jost,sans-serif;padding:8px 20px;background:none;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;color:#6B5E53">\u2190 Close</button>'
