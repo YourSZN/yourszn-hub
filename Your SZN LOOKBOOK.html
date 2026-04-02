@@ -515,9 +515,7 @@ body {
 .colour-circle{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s;flex-shrink:0}
 .colour-circle:hover{border-color:var(--accent-soft)}
 .colour-circle.empty{border-style:dashed;background:var(--bg-input)}
-.colour-circle.empty::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-light)}
-.colour-circle input[type=color]{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);border:none;cursor:pointer;padding:0;opacity:0}
-.colour-circle.filled input[type=color]{opacity:1}
+.colour-circle input[type=color]{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);border:none;cursor:pointer;padding:0}
 .qc-hint{font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;font-style:italic}
 .tile-swatches{display:flex;gap:3px;align-items:center}
 .tile-swatch{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,0.1);flex-shrink:0}
@@ -1027,10 +1025,8 @@ function renderColourUnits(item) {
 }
 
 function renderColourCircle(itemId, unitNum, colField, val) {
-  const filled = val && val !== '';
-  const cls = filled ? 'colour-circle filled' : 'colour-circle empty';
-  const bg = filled ? 'background:' + val + ';' : '';
-  return '<div class="' + cls + '" style="' + bg + '">'
+  const bg = val ? 'background:' + val + ';' : '';
+  return '<div class="colour-circle" style="' + bg + '">'
     + '<input type="color" value="' + (val || '#cccccc') + '" '
     + 'onchange="saveColour(\'' + itemId + '\',' + unitNum + ',\'' + colField + '\',this.value)">'
     + '</div>';
