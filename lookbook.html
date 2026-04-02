@@ -1004,35 +1004,58 @@ function downloadClientReport() {
     photos.forEach(p => photoMap[p.slot] = p);
     const adminNote = (item.inspiration_admin_notes || [])[0] || { status: 'New', notes: '' };
 
-    // Photos row
+    // Photos — 2-column layout, larger images
     let photosHtml = ['front','back','side_left','side_right'].map(slot => {
       const p = photoMap[slot];
       const label = slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
       if (p) {
-        return '<div style="text-align:center"><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:200px;object-fit:cover;border-radius:6px;margin-bottom:4px"><div style="font-size:10px;color:#9B8E82;text-transform:uppercase">' + label + '</div></div>';
+        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:220px;object-fit:cover;border-radius:8px;margin-bottom:6px"><div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A;text-align:center">' + label + '</div></div>';
       }
-      return '<div style="text-align:center;height:200px;background:#FAF8F5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9B8E82;font-size:11px">' + label + '</div>';
+      return '<div><div style="height:220px;background:#F7F4F0;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px dashed #DDD5CC"><span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#C5BAB0">' + label + '</span></div></div>';
     }).join('');
 
-    // Prompts
+    // Prompts — two-column grid for details
     function pf(label, val) {
       if (!val) return '';
-      return '<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:#9B8E82;margin-bottom:2px">' + label + '</div><div style="font-size:13px;color:#2C2420">' + val + '</div></div>';
+      return '<div style="margin-bottom:14px"><div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A;margin-bottom:4px">' + label + '</div><div style="font-size:12px;color:#3C3229;line-height:1.6">' + val + '</div></div>';
     }
 
-    itemsHtml += '<div style="page-break-inside:avoid;border:1px solid #E5DDD4;border-radius:10px;padding:20px;margin-bottom:24px">';
-    itemsHtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><span style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:#6B5E53">' + item.category + '</span><span style="font-size:11px;padding:3px 10px;border-radius:12px;background:#EDE8E1;color:#6B5E53">' + (adminNote.status || 'New') + '</span></div>';
-    itemsHtml += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">' + photosHtml + '</div>';
-    itemsHtml += pf('What they love', item.prompt_love);
-    itemsHtml += pf('Colour / Fabric', item.prompt_colour_fabric);
-    itemsHtml += pf('Occasion', item.prompt_occasion);
-    itemsHtml += pf('Replica or Inspired', item.prompt_exact_or_inspired);
-    itemsHtml += pf('Fit Preference', item.prompt_fit);
-    itemsHtml += pf('Changes', item.prompt_changes);
-    itemsHtml += pf('Priority', item.prompt_priority);
-    itemsHtml += pf('Reference', item.prompt_source_url);
+    const promptsArr = [
+      pf('What They Love', item.prompt_love),
+      pf('Colour / Fabric', item.prompt_colour_fabric),
+      pf('Occasion', item.prompt_occasion),
+      pf('Replica or Inspired', item.prompt_exact_or_inspired),
+      pf('Fit Preference', item.prompt_fit),
+      pf('Changes', item.prompt_changes),
+      pf('Priority', item.prompt_priority),
+      pf('Reference', item.prompt_source_url)
+    ].filter(Boolean);
+
+    // Split prompts into two columns
+    const half = Math.ceil(promptsArr.length / 2);
+    const col1 = promptsArr.slice(0, half).join('');
+    const col2 = promptsArr.slice(half).join('');
+
+    itemsHtml += '<div class="rp-item" style="page-break-inside:avoid;margin-bottom:36px">';
+    // Item header with number and category
+    itemsHtml += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
+      + '<div style="width:28px;height:28px;border-radius:50%;background:#3C3229;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">' + (idx+1) + '</div>'
+      + '<div style="flex:1"><div style="font-family:Cormorant Garamond,serif;font-size:18px;font-weight:600;color:#3C3229;letter-spacing:0.5px">' + item.category + '</div></div>'
+      + '<span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;padding:4px 12px;border-radius:20px;background:#F0ECE6;color:#7A6E62">' + (adminNote.status || 'New') + '</span>'
+      + '</div>';
+    // Photos grid
+    itemsHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">' + photosHtml + '</div>';
+    // Prompts in two columns
+    itemsHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px;padding:16px 20px;background:#FDFCFA;border-radius:10px;border:1px solid #F0ECE6">' + col1 + col2 + '</div>';
+    // Admin notes
     if (adminNote.notes) {
-      itemsHtml += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #EDE8E1">' + pf('Admin Notes', adminNote.notes) + '</div>';
+      itemsHtml += '<div style="margin-top:12px;padding:12px 16px;background:#FFF9F0;border-radius:8px;border-left:3px solid #D4A040">'
+        + '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#C49030;margin-bottom:4px">Tailor Notes</div>'
+        + '<div style="font-size:12px;color:#3C3229;line-height:1.6">' + adminNote.notes + '</div></div>';
+    }
+    // Divider between items
+    if (idx < currentItems.length - 1) {
+      itemsHtml += '<div style="border-bottom:1px solid #EDE8E1;margin-top:32px"></div>';
     }
     itemsHtml += '</div>';
   });
@@ -1043,30 +1066,48 @@ function downloadClientReport() {
     const fields = ['chest','waist','hips','shoulder_width','sleeve_length','neck','inseam','outseam','thigh','back_length','wrist'];
     const filled = fields.filter(f => currentMeasurements[f]);
     if (filled.length > 0) {
-      measHtml = '<div style="page-break-inside:avoid;border:1px solid #E5DDD4;border-radius:10px;padding:20px;margin-bottom:24px">';
-      measHtml += '<div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:#6B5E53;margin-bottom:12px">Measurements (cm)</div>';
-      measHtml += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+      measHtml = '<div style="page-break-inside:avoid;margin-top:40px;padding-top:28px;border-top:2px solid #E5DDD4">';
+      measHtml += '<div style="font-family:Cormorant Garamond,serif;font-size:20px;font-weight:600;color:#3C3229;margin-bottom:20px">Measurements</div>';
+      measHtml += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">';
       filled.forEach(f => {
         const label = f.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-        measHtml += '<div><span style="font-size:10px;color:#9B8E82;text-transform:uppercase">' + label + '</span><div style="font-size:14px;font-weight:500">' + currentMeasurements[f] + '</div></div>';
+        measHtml += '<div style="text-align:center;padding:14px 8px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6">'
+          + '<div style="font-size:22px;font-weight:600;color:#3C3229;margin-bottom:4px">' + currentMeasurements[f] + '<span style="font-size:11px;font-weight:400;color:#B5A99A"> cm</span></div>'
+          + '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A">' + label + '</div></div>';
       });
       measHtml += '</div>';
       if (currentMeasurements.fit_notes) {
-        measHtml += '<div style="margin-top:12px;font-size:10px;color:#9B8E82;text-transform:uppercase">Fit Notes</div><div style="font-size:13px">' + currentMeasurements.fit_notes + '</div>';
+        measHtml += '<div style="margin-top:14px;padding:12px 16px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6">'
+          + '<div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#B5A99A;margin-bottom:4px">Fit Notes</div>'
+          + '<div style="font-size:12px;color:#3C3229;line-height:1.6">' + currentMeasurements.fit_notes + '</div></div>';
       }
       measHtml += '</div>';
     }
   }
 
+  // Premium header
   const bodyContent = ''
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #E5DDD4">'
-    + '<div><div style="font-family:Cormorant Garamond,serif;font-size:24px;font-weight:600;letter-spacing:2px">YOUR <span style="font-weight:400">SZN</span></div>'
-    + '<div style="font-size:12px;color:#9B8E82;margin-top:2px">Vietnam Tailoring Tour — Client Look Book</div></div>'
-    + '<div style="text-align:right"><div style="font-size:18px;font-weight:500">' + clientName + '</div>'
-    + '<div style="font-size:13px;color:#9B8E82">' + clientEmail + '</div>'
-    + '<div style="font-size:12px;color:#9B8E82;margin-top:4px">Generated ' + date + '</div></div></div>'
-    + '<div style="margin-bottom:16px;font-size:14px;color:#6B5E53">' + currentItems.length + ' inspiration item' + (currentItems.length !== 1 ? 's' : '') + '</div>'
-    + itemsHtml + measHtml;
+    // Header
+    + '<div style="text-align:center;margin-bottom:40px;padding-bottom:28px;border-bottom:1px solid #E5DDD4">'
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:32px;font-weight:600;letter-spacing:4px;color:#3C3229;margin-bottom:4px">YOUR <span style="font-weight:400">SZN</span></div>'
+    + '<div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:3px;color:#B5A99A;margin-bottom:20px">Vietnam Tailoring Tour</div>'
+    + '<div style="width:40px;height:1px;background:#D4C8BC;margin:0 auto 20px"></div>'
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:22px;font-weight:500;color:#3C3229">' + clientName + '</div>'
+    + '<div style="font-size:11px;color:#B5A99A;margin-top:4px">' + clientEmail + '</div>'
+    + '<div style="font-size:10px;color:#C5BAB0;margin-top:8px">Prepared ' + date + '</div>'
+    + '</div>'
+    // Items count
+    + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">'
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:20px;font-weight:600;color:#3C3229">Inspiration Items</div>'
+    + '<div style="flex:1;height:1px;background:#EDE8E1"></div>'
+    + '<div style="font-size:11px;color:#B5A99A;font-weight:500">' + currentItems.length + ' item' + (currentItems.length !== 1 ? 's' : '') + '</div>'
+    + '</div>'
+    + itemsHtml + measHtml
+    // Footer
+    + '<div style="text-align:center;margin-top:48px;padding-top:24px;border-top:1px solid #EDE8E1">'
+    + '<div style="font-family:Cormorant Garamond,serif;font-size:14px;letter-spacing:2px;color:#C5BAB0">YOUR SZN</div>'
+    + '<div style="font-size:9px;color:#D4C8BC;margin-top:4px">yourszn.com.au</div>'
+    + '</div>';
 
   // Remove old overlay if present
   let old = document.getElementById('report-print-overlay');
@@ -1079,12 +1120,14 @@ function downloadClientReport() {
     + '<style>'
     + '#report-print-overlay{position:fixed;inset:0;z-index:10000;background:#fff;overflow-y:auto;font-family:"Jost",sans-serif;color:#2C2420}'
     + '#report-print-overlay .rp-toolbar{position:sticky;top:0;background:#FAF8F5;border-bottom:1px solid #E5DDD4;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;z-index:1}'
-    + '#report-print-overlay .rp-body{max-width:900px;margin:0 auto;padding:32px}'
-    + '@media print{body>*:not(#report-print-overlay){display:none!important}'
+    + '#report-print-overlay .rp-body{max-width:820px;margin:0 auto;padding:40px 32px}'
+    + '@media print{@page{margin:20mm 16mm}'
+    + 'body>*:not(#report-print-overlay){display:none!important}'
     + '#report-print-overlay .rp-toolbar{display:none!important}'
     + '#report-print-overlay{position:static;overflow:visible}'
-    + '#report-print-overlay .rp-body{padding:16px}'
-    + '#report-print-overlay img{max-width:100%}}'
+    + '#report-print-overlay .rp-body{padding:0;max-width:none}'
+    + '#report-print-overlay .rp-item{page-break-inside:avoid}'
+    + '#report-print-overlay img{max-width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
     + '</style>'
     + '<div class="rp-toolbar">'
     + '<button onclick="document.getElementById(\'report-print-overlay\').remove()" style="font-family:Jost,sans-serif;padding:8px 20px;background:none;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer;color:#6B5E53">\u2190 Close</button>'
