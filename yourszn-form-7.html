@@ -134,6 +134,26 @@ textarea{resize:vertical;min-height:110px}
 .btn-n{background:#3d3540;color:#fff;min-width:108px}
 .navinfo{font-size:12px;color:#888}
 
+
+/* PHOTO UPLOAD */
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.photo-slot{aspect-ratio:1;border:2px dashed #d0c8c0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#faf8f5;transition:all .15s;position:relative;overflow:hidden}
+.photo-slot:hover{border-color:#9b8ea0;background:#f5f0eb}
+.photo-slot.filled{border-style:solid;border-color:#a0c8a0;cursor:default}
+.photo-slot.required{border-color:#d4a040}
+.photo-slot.required.filled{border-color:#a0c8a0}
+.ps-label{font-size:9px;color:#999;text-align:center;margin-top:4px;line-height:1.2}
+.ps-icon{font-size:22px;color:#ccc}
+.ps-thumb{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.ps-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:13px;line-height:20px;text-align:center;z-index:2}
+.photo-uploading{opacity:.5;pointer-events:none}
+.photo-uploading::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center}
+.photo-status-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#f5f0eb;border-radius:8px;margin-bottom:12px;font-size:13px}
+.photo-status-bar .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.photo-status-bar .dot.green{background:#7aad7a}
+.photo-status-bar .dot.orange{background:#e0a030}
+@media(max-width:400px){.photo-grid{grid-template-columns:repeat(3,1fr)}}
+
 .step{display:none}.step.on{display:block}
 @media(max-width:400px){.hgrid{grid-template-columns:repeat(3,1fr)}.cgrid{grid-template-columns:repeat(5,1fr)}.row3{grid-template-columns:1fr 1fr}}
 </style>
@@ -332,26 +352,86 @@ textarea{resize:vertical;min-height:110px}
   <div id="summaryOut"></div>
 </div>
 
+
+<!-- STEP 9: PHOTOS -->
+<div class="step" id="s9">
+  <div class="card">
+    <div class="intro-h">Upload Your Photos</div>
+    <div class="intro-p">We need at least <strong>6 photos</strong> to accurately determine your colour season. Please follow the guidelines below.</div>
+  </div>
+  <div id="photoStatusBar" class="photo-status-bar">
+    <span class="dot orange"></span>
+    <span id="photoStatusText">0 of 6 required photos uploaded</span>
+  </div>
+  <div class="card">
+    <div class="qbadge">Instructions</div>
+    <div class="qlabel" style="margin-bottom:14px">Watch this quick video for the best results:</div>
+    <div id="instrVideo" style="margin-bottom:16px">
+      <video controls playsinline preload="metadata" style="width:100%;border-radius:10px;max-height:300px;background:#000"
+        poster="" src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Online%20Example%20Video-3.mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;color:#3a5a3a;margin-bottom:8px">✅ Good Examples</div>
+      <div id="goodExamples" style="display:flex;gap:8px;flex-wrap:wrap">
+        <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Good%20Example%201.jpg" style="width:48%;border-radius:8px;border:2px solid #a0c8a0" alt="Good example 1">
+        <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Good%20Example%202.jpg" style="width:48%;border-radius:8px;border:2px solid #a0c8a0" alt="Good example 2">
+      </div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#b07070;margin-bottom:8px">❌ Avoid</div>
+      <div id="badExamples" style="display:flex;gap:6px;flex-wrap:wrap">
+        <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Bad%20example%201.jpg" style="width:31%;border-radius:8px;border:2px solid #e0a0a0" alt="Bad example 1">
+        <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Bad%20example%202.jpg" style="width:31%;border-radius:8px;border:2px solid #e0a0a0" alt="Bad example 2">
+        <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/online-examples/Bad%20example%203.jpg" style="width:31%;border-radius:8px;border:2px solid #e0a0a0" alt="Bad example 3">
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="qbadge">Your Photos</div>
+    <div class="qlabel">Tap a slot to upload. First 6 are required.</div>
+    <div class="photo-grid" id="photoGrid"></div>
+  </div>
+  <div class="card" style="background:#fff8f0;border:1.5px solid #e8d8c0">
+    <div style="font-size:13px;color:#8a6a3a;line-height:1.6">⚠️ <strong>Important:</strong> Please make sure all 6 required photos are uploaded before submitting. You cannot add photos after submission.</div>
+  </div>
+</div>
+
 <!-- SUCCESS -->
 <div class="success" id="successScreen">
   <div class="suc-ico">🌸</div>
   <div class="suc-h">Thank you!</div>
-  <div class="suc-p">Your colour analysis form is complete. Please email it along with your 6 photos to:</div>
-  <div class="suc-email">hello@yourszn.com.au</div>
-  <div class="suc-p">Include your full name in the subject line. Results within <strong>7–14 business days</strong> (or 72 hours for Priority).<br><br><em style="color:#9b8ea0">Colour analysis is a guide, not a rulebook. Trust the process 🌿</em></div>
+  <div class="suc-p">Your questionnaire and photos have been submitted successfully!<br><br>Results within <strong>7–14 business days</strong> (or 72 hours for Priority).<br><br><em style="color:#9b8ea0">Colour analysis is a guide, not a rulebook. Trust the process 🌿</em></div>
 </div>
 
 </main>
 
 <div class="nav" id="navBar">
   <button class="btn btn-b" id="btnBack">&#8592; Back</button>
-  <span class="navinfo" id="navInfo">Step 1 of 8</span>
+  <span class="navinfo" id="navInfo">Step 1 of 9</span>
   <button class="btn btn-n" id="btnNext">Next &#8594;</button>
 </div>
 
 <script>
-var TOTAL = 8;
-var NAMES = ['Client Info','Skin','Eyes','Hair','Style & Ancestry','Colour Preferences','Final Notes','Review'];
+var TOTAL = 9;
+var NAMES = ['Client Info','Skin','Eyes','Hair','Style & Ancestry','Colour Preferences','Final Notes','Review','Photos'];
+var SUPA_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+var PHOTO_SLOTS = [
+  {key:'face_front',label:'Face (front)',required:true},
+  {key:'face_left',label:'Face (left)',required:true},
+  {key:'face_right',label:'Face (right)',required:true},
+  {key:'eyes_close',label:'Eyes (close-up)',required:true},
+  {key:'hair_natural',label:'Hair (natural light)',required:true},
+  {key:'full_body',label:'Full body',required:true},
+  {key:'extra_1',label:'Extra 1',required:false},
+  {key:'extra_2',label:'Extra 2',required:false}
+];
+var PHOTO_ACCEPT = 'image/jpeg,image/png,image/heic,image/heif,image/webp';
+var PHOTO_MAX = 10 * 1024 * 1024;
+var photoState = {};
+var submissionUUID = null;
 var SAVE_KEY = 'yourszn_v2';
 var cur = 1;
 var selCols = new Set();
@@ -464,6 +544,112 @@ c150.forEach(function(c,i){
   cg.appendChild(d);
 });
 
+
+// ── PHOTO UPLOAD ──
+function generateUUID(){
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+    var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+}
+
+function initPhotoGrid(){
+  var grid=document.getElementById('photoGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  PHOTO_SLOTS.forEach(function(slot){
+    var div=document.createElement('div');
+    div.className='photo-slot'+(slot.required?' required':'');
+    div.id='slot-'+slot.key;
+    if(photoState[slot.key]){
+      renderSlotFilled(div,slot);
+    }else{
+      renderSlotEmpty(div,slot);
+    }
+    grid.appendChild(div);
+  });
+  updatePhotoStatus();
+}
+
+function renderSlotFilled(div,slot){
+  div.classList.add('filled');
+  div.onclick=null;
+  div.innerHTML='<img class="ps-thumb" src="'+photoState[slot.key].url+'" alt="'+slot.label+'">'
+    +'<button class="ps-remove" onclick="event.stopPropagation();removePhoto(''+slot.key+'')">&times;</button>';
+}
+
+function renderSlotEmpty(div,slot){
+  div.classList.remove('filled');
+  div.innerHTML='<div class="ps-icon">+</div><div class="ps-label">'+slot.label+(slot.required?'<br><span style="color:#d4a040;font-weight:600">required</span>':'')+'</div>';
+  div.onclick=function(){handlePhotoSelect(slot.key);};
+}
+
+function handlePhotoSelect(slotKey){
+  var input=document.createElement('input');
+  input.type='file';
+  input.accept=PHOTO_ACCEPT;
+  input.onchange=async function(){
+    if(!input.files||!input.files[0])return;
+    var file=input.files[0];
+    if(file.size>PHOTO_MAX){alert('Photo must be under 10 MB.');return;}
+    var slot=PHOTO_SLOTS.find(function(s){return s.key===slotKey;});
+    var div=document.getElementById('slot-'+slotKey);
+    div.classList.add('photo-uploading');
+    try{
+      var ext=file.name.split('.').pop()||'jpg';
+      var path=submissionUUID+'/'+slotKey+'.'+ext;
+      // Upload to Supabase Storage
+      var upRes=await fetch(SUPA_URL+'/storage/v1/object/online-clients-photos/'+path,{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+ANON_KEY,'apikey':ANON_KEY,'Content-Type':file.type,'x-upsert':'true'},
+        body:file
+      });
+      if(!upRes.ok){var err=await upRes.text();throw new Error(err);}
+      var publicUrl=SUPA_URL+'/storage/v1/object/public/online-clients-photos/'+path;
+      photoState[slotKey]={url:publicUrl,path:path,name:file.name,type:file.type};
+      div.classList.remove('photo-uploading');
+      renderSlotFilled(div,slot);
+      updatePhotoStatus();
+      scheduleSave();
+    }catch(e){
+      console.warn('Photo upload failed:',e);
+      div.classList.remove('photo-uploading');
+      alert('Upload failed. Please try again.');
+    }
+  };
+  input.click();
+}
+
+async function removePhoto(slotKey){
+  if(!photoState[slotKey])return;
+  var info=photoState[slotKey];
+  try{
+    await fetch(SUPA_URL+'/storage/v1/object/online-clients-photos/'+info.path,{
+      method:'DELETE',headers:{'Authorization':'Bearer '+ANON_KEY,'apikey':ANON_KEY}
+    });
+  }catch(e){console.warn('Delete failed:',e);}
+  delete photoState[slotKey];
+  var slot=PHOTO_SLOTS.find(function(s){return s.key===slotKey;});
+  var div=document.getElementById('slot-'+slotKey);
+  renderSlotEmpty(div,slot);
+  updatePhotoStatus();
+  scheduleSave();
+}
+
+function updatePhotoStatus(){
+  var done=0;var req=0;
+  PHOTO_SLOTS.forEach(function(s){if(s.required){req++;if(photoState[s.key])done++;}});
+  var bar=document.getElementById('photoStatusBar');
+  var txt=document.getElementById('photoStatusText');
+  if(!bar||!txt)return;
+  txt.textContent=done+' of '+req+' required photos uploaded';
+  var dot=bar.querySelector('.dot');
+  if(dot){dot.className='dot '+(done>=req?'green':'orange');}
+}
+
+function mandatoryPhotosDone(){
+  return PHOTO_SLOTS.filter(function(s){return s.required;}).every(function(s){return !!photoState[s.key];});
+}
+
 // ── CAROUSELS ──
 document.getElementById('eL').onclick=function(){document.getElementById('eyeTrack').scrollBy({left:-220,behavior:'smooth'});};
 document.getElementById('eR').onclick=function(){document.getElementById('eyeTrack').scrollBy({left:220,behavior:'smooth'});};
@@ -494,6 +680,8 @@ function applyState(s){
   selCols=new Set(s.cols||[]);
   selCols.forEach(function(n){var el=document.getElementById('col'+n);if(el)el.checked=true;});
   document.getElementById('cCount').textContent=selCols.size;
+  if(s.photoState)photoState=s.photoState;
+  if(s.submissionUUID)submissionUUID=s.submissionUUID;
 }
 
 function saveState(){
@@ -538,7 +726,7 @@ function updateUI(){
 
 document.getElementById('btnNext').onclick=function(){if(cur<TOTAL)goTo(cur+1);else submitForm();};
 document.getElementById('btnBack').onclick=function(){if(cur>1)goTo(cur-1);};
-document.getElementById('tabP').onclick=function(){alert('📸 Email your 6 photos to hello@yourszn.com.au\n\nInclude your full name in the subject line.');};
+document.getElementById('tabP').onclick=function(){goTo(9);};
 
 // ── SUMMARY ──
 function gv(nm){var e=document.querySelector('input[name="'+nm+'"]:checked');return e?e.value:'—';}
@@ -564,6 +752,7 @@ function buildSummary(){
 
 // ── SUBMIT ──
 async function submitForm(){
+  if(!mandatoryPhotosDone()){alert('Please upload all 6 required photos before submitting.');return;}
   var btn=document.getElementById('btnNext');
   btn.textContent='Submitting…';btn.disabled=true;
   var payload={
@@ -586,7 +775,7 @@ async function submitForm(){
     preferred_metal:gv('metal'),fabric_surface:gt('fabric'),
     ancestry:gt('ancestry'),mother_ancestry:gt('motherAnc'),father_ancestry:gt('fatherAnc'),
     chosen_colours:Array.from(selCols).sort(function(a,b){return a-b;}),
-    extra_notes:gt('extraNotes'),status:'pending'
+    extra_notes:gt('extraNotes'),status:'pending',id:submissionUUID
   };
   try{
     var res=await fetch('https://ntqemlkwsymdxhaonfdv.supabase.co/rest/v1/szn_submissions',{
@@ -595,8 +784,21 @@ headers:{'Content-Type':'application/json','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI
       body:JSON.stringify(payload)
     });
     if(!res.ok)throw new Error(res.status);
+    // Save photo records
+    var photoRows=[];
+    Object.keys(photoState).forEach(function(key){
+      var p=photoState[key];
+      photoRows.push({submission_id:submissionUUID,slot_key:key,file_url:p.url,file_path:p.path,file_name:p.name,file_type:p.type});
+    });
+    if(photoRows.length>0){
+      await fetch('https://ntqemlkwsymdxhaonfdv.supabase.co/rest/v1/szn_photos',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY,'Prefer':'return=minimal'},
+        body:JSON.stringify(photoRows)
+      });
+    }
     localStorage.removeItem(SAVE_KEY);
-    document.getElementById('s8').classList.remove('on');
+    document.getElementById('s9').classList.remove('on');
     document.getElementById('navBar').style.display='none';
     document.getElementById('successScreen').classList.add('on');
     window.scrollTo({top:0,behavior:'smooth'});
@@ -607,15 +809,17 @@ headers:{'Content-Type':'application/json','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI
 }
 
 // ── INIT ──
+submissionUUID=generateUUID();
 var saved=loadState();
 if(saved&&saved.step){
   var rc=document.getElementById('resumeCard');
   rc.style.display='flex';rc.classList.add('on');
   setSave('ok');
-  document.getElementById('rYes').onclick=function(){rc.style.display='none';applyState(saved);goTo(saved.step);};
+  document.getElementById('rYes').onclick=function(){rc.style.display='none';applyState(saved);goTo(saved.step);initPhotoGrid();};
   document.getElementById('rNo').onclick=function(){rc.style.display='none';clearSave();};
 }
 
+initPhotoGrid();
 updateUI();
 </script>
 </body>

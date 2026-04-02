@@ -7,6 +7,7 @@ var ocaSubView = 'list';      // 'list' or 'detail'
 var ocaSubDetail = null;       // current submission being viewed
 var ocaSubDetailNotes = [];
 var ocaSubDetailResults = [];
+var ocaSubDetailPhotos = [];
 var ocaSubFilter = 'all';      // 'all','pending','in_progress','complete','sent'
 var ocaSubLoading = false;
 
@@ -85,6 +86,9 @@ async function ocaSubLoadDetail(id) {
 
     var resultsRes = await db.from('szn_results').select('*').eq('submission_id', id).order('created_at', { ascending: false });
     ocaSubDetailResults = (resultsRes.data || []);
+
+    var photosRes = await db.from('szn_photos').select('*').eq('submission_id', id).order('created_at', { ascending: true });
+    ocaSubDetailPhotos = (photosRes.data || []);
   } catch(e) {
     console.warn('Failed to load submission detail:', e);
   }
@@ -212,6 +216,7 @@ function ocaSubBackToList() {
   ocaSubDetail = null;
   ocaSubDetailNotes = [];
   ocaSubDetailResults = [];
+  ocaSubDetailPhotos = [];
   ocaSubLoadList();
 }
 
@@ -230,6 +235,7 @@ async function ocaSubDelete(id) {
     // Delete related notes and results first
     await db.from('szn_notes').delete().eq('submission_id', id);
     await db.from('szn_results').delete().eq('submission_id', id);
+    await db.from('szn_photos').delete().eq('submission_id', id);
     await db.from('szn_submissions').delete().eq('id', id);
     ocaSubBackToList();
   } catch(e) {
@@ -429,6 +435,21 @@ function renderOcaSubDetail() {
       + '</div>';
   }
 
+  // ── Client Photos ──────────────────────────────────────
+  if (ocaSubDetailPhotos.length > 0) {
+    html += '<div style="background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px;border:1px solid rgba(0,0,0,0.06)">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px;margin-bottom:12px">📸 CLIENT PHOTOS</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">';
+    ocaSubDetailPhotos.forEach(function(p) {
+      var label = (p.slot_key || '').replace(/_/g, ' ');
+      html += '<div style="cursor:pointer" onclick="ocaSubOpenLightbox(\'' + (p.file_url||'').replace(/'/g,"\\'") + '\',\'' + escHtml(label).replace(/'/g,"\\'") + '\')">'
+        + '<img src="' + p.file_url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08)" alt="' + escHtml(label) + '">'
+        + '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">' + escHtml(label) + '</div>'
+        + '</div>';
+    });
+    html += '</div></div>';
+  }
+
   // ── Analyst Notes ─────────────────────────────────────────
   html += '<div style="background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px;border:1px solid rgba(0,0,0,0.06)">'
     + '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px;margin-bottom:12px">📝 ANALYST NOTES</div>'
@@ -510,4 +531,25 @@ function ocaSubSection(title, rows) {
 function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// ── Photo Lightbox ─────────────────────────────────────────
+function ocaSubOpenLightbox(url, label) {
+  var existing = document.getElementById('oca-lightbox');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'oca-lightbox';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick = function(e) { if (e.target === overlay) ocaSubCloseLightbox(); };
+  overlay.innerHTML = '<button onclick="ocaSubCloseLightbox()" style="position:absolute;top:16px;right:20px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer">&times;</button>'
+    + '<img src="' + url + '" style="max-width:90%;max-height:75vh;border-radius:8px;object-fit:contain">'
+    + '<div style="color:#fff;font-size:13px;margin-top:12px">' + label + '</div>'
+    + '<a href="' + url + '" download style="margin-top:10px;color:#fff;font-size:12px;text-decoration:underline">Download</a>';
+  document.body.appendChild(overlay);
+}
+
+function ocaSubCloseLightbox() {
+  var el = document.getElementById('oca-lightbox');
+  if (el) el.remove();
 }
