@@ -31,12 +31,6 @@
     text-align: center;
     position: relative;
   }
-  .portal-hero::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 50% 80%, rgba(100,85,70,0.25) 0%, transparent 70%);
-    pointer-events: none;
-  }
   .portal-logo {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 52px;
@@ -80,23 +74,25 @@
     max-width: 580px;
     margin: 0 auto;
     display: flex; flex-direction: column;
-    gap: 0;
+    gap: 16px;
   }
 
-  /* Card — matching yourszn.com.au style */
+  /* Card — individual separated sections */
   .portal-card {
-    background: transparent;
-    border: 1px solid var(--charcoal);
-    border-bottom: none;
+    background: white;
+    border: 1px solid var(--sand);
+    border-radius: 14px;
     padding: 28px 32px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
     text-decoration: none; color: inherit; display: block;
     position: relative;
   }
-  .portal-card:first-child { border-radius: 10px 10px 0 0; }
-  .portal-card:last-child { border-bottom: 1px solid var(--charcoal); border-radius: 0 0 10px 10px; }
-  .portal-card:hover { background: var(--warm); }
+  .portal-card:hover {
+    border-color: var(--charcoal);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(44,36,32,0.08);
+  }
 
   .portal-card-inner {
     display: flex; align-items: center; justify-content: space-between;
