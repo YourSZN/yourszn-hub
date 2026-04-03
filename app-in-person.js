@@ -55,6 +55,84 @@ function ipFormatDate(d) {
 }
 
 /* ==========================================================
+   PHOTO UPLOAD NOTIFICATIONS
+   Checks for bookings where client submitted photos
+   but status is still 'pending' (not yet reviewed).
+   ========================================================== */
+
+var _ipPendingPhotos = [];
+
+async function ipCheckPhotoNotifications() {
+  var db = getSupa(); if (!db) return;
+
+  var { data, error } = await db
+    .from('in_person_bookings')
+    .select('id, client_name, client_email, appointment_date, photos_submitted_at')
+    .not('photos_submitted_at', 'is', null)
+    .eq('status', 'pending')
+    .order('photos_submitted_at', { ascending: false });
+
+  _ipPendingPhotos = (error || !data) ? [] : data;
+
+  ipUpdateNavBadge();
+  ipUpdateDashBanner();
+}
+
+function ipUpdateNavBadge() {
+  var badge = document.getElementById('n-clients-badge');
+  if (!badge) return;
+  var count = _ipPendingPhotos.length;
+  if (count > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = count;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function ipUpdateDashBanner() {
+  var el = document.getElementById('dash-photo-banner');
+  if (!el) return;
+  var count = _ipPendingPhotos.length;
+  if (count === 0) { el.innerHTML = ''; return; }
+
+  var names = _ipPendingPhotos.slice(0, 3).map(function(b) { return b.client_name; }).join(', ');
+  var extra = count > 3 ? ' + ' + (count - 3) + ' more' : '';
+
+  el.innerHTML =
+    '<div onclick="showPage(\'clients\');showClientsTab(\'inperson\');" style="' +
+      'display:flex;align-items:center;gap:12px;padding:12px 18px;margin-bottom:16px;' +
+      'background:linear-gradient(135deg,#FEF2F2,#FFF7ED);border:1px solid #FECACA;border-radius:10px;' +
+      'cursor:pointer;transition:transform 0.15s;" ' +
+      'onmouseover="this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.transform=\'none\'">' +
+      '<div style="width:36px;height:36px;border-radius:50%;background:var(--rose);color:white;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">&#128247;</div>' +
+      '<div style="flex:1;">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--charcoal);">' + count + ' client' + (count !== 1 ? 's have' : ' has') + ' uploaded photos</div>' +
+        '<div style="font-size:12px;color:var(--brown);margin-top:2px;">' + names + extra + ' — ready for contrast analysis</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--muted);">View →</div>' +
+    '</div>';
+}
+
+function ipGetInPersonBanner() {
+  var count = _ipPendingPhotos.length;
+  if (count === 0) return '';
+
+  var names = _ipPendingPhotos.slice(0, 3).map(function(b) { return b.client_name; }).join(', ');
+  var extra = count > 3 ? ' + ' + (count - 3) + ' more' : '';
+
+  return '<div style="' +
+    'display:flex;align-items:center;gap:12px;padding:12px 18px;margin-bottom:16px;' +
+    'background:linear-gradient(135deg,#FEF2F2,#FFF7ED);border:1px solid #FECACA;border-radius:10px;">' +
+    '<div style="width:32px;height:32px;border-radius:50%;background:var(--rose);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">&#128247;</div>' +
+    '<div style="flex:1;">' +
+      '<div style="font-size:13px;font-weight:600;color:var(--charcoal);">' + count + ' photo submission' + (count !== 1 ? 's' : '') + ' awaiting review</div>' +
+      '<div style="font-size:12px;color:var(--brown);margin-top:2px;">' + names + extra + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ==========================================================
    TAB SWITCHING
    ========================================================== */
 
@@ -137,7 +215,7 @@ function ipRenderFilteredList(query) {
   });
 
   /* Search bar */
-  var html =
+  var html = ipGetInPersonBanner() +
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">' +
       '<div style="position:relative;flex:1;min-width:220px;max-width:400px;">' +
         '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">&#128269;</span>' +

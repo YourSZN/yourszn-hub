@@ -493,6 +493,12 @@ async function cuSubmitAll() {
       }
     }
 
+    /* Mark photos as submitted */
+    await db.from('in_person_bookings').update({
+      photos_submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }).eq('id', cuBooking.id);
+
     msgEl.innerHTML = '<div class="cu-success">All saved successfully! Your photos have been submitted.</div>';
     cuRenderSlots();
 
