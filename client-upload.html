@@ -199,13 +199,13 @@
       <strong>Image Use &amp; Consent</strong><br><br>
       The contrast analysis photos you upload here are used strictly for internal assessment purposes and will not be published, shared, or used in any external materials.
       <br><br>
-      Separately, photographs and video taken during your appointment may be used by Your SZN across our website, social media channels, and marketing materials. Please indicate your preference below.
+      We love sharing the amazing transformations from our appointments! With your permission, we may feature photographs and video from your session across our website, social media, and marketing materials. There's absolutely no obligation — just let us know what you're comfortable with.
       <div class="cu-consent-select">
-        <label>Media Consent</label>
-        <select class="cu-select" id="cu-consent-sel">
-          <option value="photos_and_video">I consent to photos and video being used</option>
-          <option value="photos_only">I consent to photos only (no video)</option>
-          <option value="none">I do not consent to any media being used</option>
+        <label>Your Preference</label>
+        <select class="cu-select" id="cu-consent-sel" onchange="cuUpdateConsentColor()">
+          <option value="photos_and_video">Happy for photos &amp; video to be used</option>
+          <option value="photos_only">Happy for photos only (no video please)</option>
+          <option value="none">I'd prefer not to have any media shared</option>
         </select>
       </div>
     </div>
@@ -400,6 +400,9 @@ function cuRenderUpload() {
 
   /* Render slots */
   cuRenderSlots();
+
+  /* Set consent dropdown colour */
+  cuUpdateConsentColor();
 }
 
 function cuRenderSlots() {
@@ -606,6 +609,26 @@ async function cuSubmitAll() {
     msgEl.innerHTML = '<div class="cu-error">Something went wrong: ' + (err.message || err) + '</div>';
     btn.disabled = false;
     btn.textContent = 'Submit Photos';
+  }
+}
+
+/* ── Consent dropdown colour coding ── */
+function cuUpdateConsentColor() {
+  var sel = document.getElementById('cu-consent-sel');
+  if (!sel) return;
+  var v = sel.value;
+  if (v === 'photos_and_video') {
+    sel.style.background = '#E8F5E9';
+    sel.style.borderColor = '#5A8A5E';
+    sel.style.color = '#2E5B30';
+  } else if (v === 'photos_only') {
+    sel.style.background = '#FFF8E1';
+    sel.style.borderColor = '#C4963A';
+    sel.style.color = '#7A5C1A';
+  } else {
+    sel.style.background = '#FEF2F2';
+    sel.style.borderColor = '#C47272';
+    sel.style.color = '#9B2C2C';
   }
 }
 </script>
