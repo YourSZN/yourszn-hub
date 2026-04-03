@@ -446,12 +446,11 @@ function renderOcaSubDetail() {
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">';
     originalPhotos.forEach(function(p) {
       var label = (p.slot_label || '').replace(/_/g, ' ');
-      var isHeic = /\.(heic|heif)$/i.test(p.file_url || '');
       html += '<div style="cursor:pointer" onclick="ocaSubOpenLightbox(\'' + (p.file_url||'').replace(/'/g,"\\'") + '\',\'' + escHtml(label).replace(/'/g,"\\'") + '\')">'
         + '<img src="' + p.file_url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08)" alt="' + escHtml(label) + '"'
         + ' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
-        + '<div style="display:' + (isHeic ? 'flex' : 'none') + ';width:100%;aspect-ratio:1;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:var(--sand);align-items:center;justify-content:center;flex-direction:column;gap:4px">'
-        + '<span style="font-size:20px">⚠️</span><span style="font-size:9px;color:var(--muted);font-weight:700">HEIC</span>'
+        + '<div style="display:none;width:100%;aspect-ratio:1;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:var(--sand);align-items:center;justify-content:center;flex-direction:column;gap:4px">'
+        + '<span style="font-size:20px">⚠️</span><span style="font-size:10px;color:var(--muted);font-weight:700">Cannot preview</span>'
         + '<a href="' + p.file_url + '" download style="font-size:9px;color:var(--rose);text-decoration:underline" onclick="event.stopPropagation()">Download</a></div>'
         + '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">' + escHtml(label) + '</div>'
         + '</div>';
@@ -471,12 +470,11 @@ function renderOcaSubDetail() {
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">';
     revisedPhotos.forEach(function(p) {
       var label = (p.file_name || 'Revised').replace(/_/g, ' ');
-      var isHeic = /\.(heic|heif)$/i.test(p.file_url || '');
       html += '<div style="cursor:pointer" onclick="ocaSubOpenLightbox(\'' + (p.file_url||'').replace(/'/g,"\\'") + '\',\'' + escHtml(label).replace(/'/g,"\\'") + '\')">'
         + '<img src="' + p.file_url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:2px solid #C47272" alt="' + escHtml(label) + '"'
         + ' onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
-        + '<div style="display:' + (isHeic ? 'flex' : 'none') + ';width:100%;aspect-ratio:1;border-radius:8px;border:2px solid #C47272;background:var(--sand);align-items:center;justify-content:center;flex-direction:column;gap:4px">'
-        + '<span style="font-size:20px">⚠️</span><span style="font-size:9px;color:var(--muted);font-weight:700">HEIC</span>'
+        + '<div style="display:none;width:100%;aspect-ratio:1;border-radius:8px;border:2px solid #C47272;background:var(--sand);align-items:center;justify-content:center;flex-direction:column;gap:4px">'
+        + '<span style="font-size:20px">⚠️</span><span style="font-size:10px;color:var(--muted);font-weight:700">Cannot preview</span>'
         + '<a href="' + p.file_url + '" download style="font-size:9px;color:var(--rose);text-decoration:underline" onclick="event.stopPropagation()">Download</a></div>'
         + '<div style="font-size:10px;color:#C47272;text-align:center;margin-top:3px">' + escHtml(label) + '</div>'
         + '</div>';
