@@ -612,6 +612,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 /* ── Nav badge updated ── */
 .task-nav-badge{display:inline-flex;align-items:center;justify-content:center;background:#F59E0B;color:white;font-size:10px;font-weight:800;padding:2px 7px;border-radius:12px;margin-left:auto;line-height:1.4;letter-spacing:.3px;animation:badge-pulse 2s infinite;}
 @keyframes badge-pulse{0%,100%{opacity:1;}50%{opacity:.7;}}
+.oca-revised-badge{display:inline-flex;align-items:center;justify-content:center;background:#C47272;color:white;font-size:10px;font-weight:800;padding:2px 7px;border-radius:12px;margin-left:auto;line-height:1.4;letter-spacing:.3px;animation:badge-pulse 2s infinite;}
 
 /* ══ GOALS ══ */
 .goal-card{background:white;border:1px solid var(--sand);border-radius:14px;padding:22px 24px;margin-bottom:14px;transition:box-shadow .2s;}

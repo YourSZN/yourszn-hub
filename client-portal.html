@@ -236,6 +236,38 @@
           <button class="portal-gate-btn" id="btn-online" onclick="event.stopPropagation();checkCode('online')">ENTER</button>
         </div>
         <div class="portal-gate-error" id="err-online"></div>
+        <!-- Choice: New or Revised -->
+        <div id="online-choice" style="display:none;margin-top:16px">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px;text-align:center">What would you like to do?</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a href="yourszn-form-7.html" class="portal-gate-btn" style="flex:1;text-align:center;text-decoration:none;padding:12px 16px;border-radius:8px">NEW SUBMISSION</a>
+            <button class="portal-gate-btn" style="flex:1;background:var(--rose);padding:12px 16px;border-radius:8px" onclick="event.stopPropagation();showRevisedFlow()">UPLOAD REVISED PHOTOS</button>
+          </div>
+        </div>
+        <!-- Revised flow -->
+        <div id="revised-flow" style="display:none;margin-top:16px">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">Upload Revised Photos</div>
+          <div style="margin-bottom:12px">
+            <label class="portal-gate-label">Your Email</label>
+            <div class="portal-gate-row">
+              <div class="portal-gate-field">
+                <input class="portal-gate-input" id="revised-email" type="email" placeholder="Enter the email from your submission" onclick="event.stopPropagation()" />
+              </div>
+              <button class="portal-gate-btn" onclick="event.stopPropagation();lookupSubmission()">FIND</button>
+            </div>
+          </div>
+          <div class="portal-gate-error" id="revised-err"></div>
+          <div id="revised-match" style="display:none;margin-bottom:12px"></div>
+          <div id="revised-uploader" style="display:none">
+            <div id="revised-dropzone" onclick="event.stopPropagation();document.getElementById('revised-file-input').click()" style="border:2px dashed var(--sand);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;background:var(--cream);transition:all 0.2s">
+              <div style="font-size:32px;margin-bottom:8px">📸</div>
+              <div style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:4px">Drop photos here or click to browse</div>
+              <div style="font-size:11px;color:var(--muted)">You can select multiple photos at once</div>
+            </div>
+            <input type="file" id="revised-file-input" accept="image/*" multiple style="display:none" onchange="onRevisedFileInput(this)" onclick="event.stopPropagation()">
+            <div id="revised-status" style="margin-top:12px"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -287,6 +319,10 @@
 <div class="portal-footer">Your SZN &middot; Colour Analysis</div>
 
 <script>
+var SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+var STORAGE_BUCKET = 'online-clients-photos';
+
 var CODES = {
   online: { code: '1893', url: 'yourszn-form-7.html' },
   inperson: { code: '2722', url: 'client-upload.html' },
@@ -322,8 +358,143 @@ function checkCode(key) {
   btn.disabled = true;
   btn.innerHTML = '<span class="portal-spinner"></span>';
 
+  /* ── Online: show choice instead of redirect ── */
+  if (key === 'online') {
+    btn.style.display = 'none';
+    var choiceEl = document.getElementById('online-choice');
+    if (choiceEl) choiceEl.style.display = 'block';
+    return;
+  }
+
   window.location.href = CODES[key].url;
 }
+
+/* ── Revised-photo helpers ── */
+function sbHeaders() {
+  return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+}
+
+function showRevisedFlow() {
+  document.getElementById('online-choice').style.display = 'none';
+  document.getElementById('revised-flow').style.display = 'block';
+}
+
+function lookupSubmission() {
+  var email = (document.getElementById('revised-email').value || '').trim().toLowerCase();
+  var errEl = document.getElementById('revised-err');
+  var matchEl = document.getElementById('revised-match');
+  var uploaderEl = document.getElementById('revised-uploader');
+  errEl.style.display = 'none';
+  matchEl.style.display = 'none';
+  uploaderEl.style.display = 'none';
+
+  if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
+
+  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id,full_name,email,created_at&limit=1';
+  fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || data.length === 0) {
+        errEl.textContent = 'No submission found for this email. Please check and try again.';
+        errEl.style.display = 'block';
+        return;
+      }
+      var sub = data[0];
+      window._revisedSubId = sub.id;
+      matchEl.innerHTML =
+        '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:var(--warm);border:1px solid var(--sand)">'
+        + '<div style="width:40px;height:40px;border-radius:50%;background:var(--rose);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'
+        + (sub.full_name || 'U').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2)
+        + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:14px;font-weight:700;color:var(--charcoal)">' + (sub.full_name || 'Unnamed') + '</div>'
+        + '<div style="font-size:12px;color:var(--muted)">' + sub.email + '</div>'
+        + '</div></div>';
+      matchEl.style.display = 'block';
+      uploaderEl.style.display = 'block';
+    })
+    .catch(function(e) {
+      errEl.textContent = 'Error looking up submission. Please try again.';
+      errEl.style.display = 'block';
+    });
+}
+
+/* Drag-and-drop upload */
+function initDropZone() {
+  var dz = document.getElementById('revised-dropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = 'var(--rose)'; dz.style.background = 'var(--warm)'; });
+  dz.addEventListener('dragleave', function() { dz.style.borderColor = 'var(--sand)'; dz.style.background = 'var(--cream)'; });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.style.borderColor = 'var(--sand)'; dz.style.background = 'var(--cream)';
+    if (e.dataTransfer.files.length > 0) handleRevisedFiles(e.dataTransfer.files);
+  });
+}
+
+function onRevisedFileInput(inp) {
+  if (inp.files.length > 0) handleRevisedFiles(inp.files);
+  inp.value = '';
+}
+
+function handleRevisedFiles(files) {
+  var statusEl = document.getElementById('revised-status');
+  var subId = window._revisedSubId;
+  if (!subId) return;
+  var ts = Date.now();
+  var uploads = [];
+  statusEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Uploading ' + files.length + ' photo(s)…</div>';
+
+  for (var i = 0; i < files.length; i++) {
+    (function(file, idx) {
+      var path = subId + '/revised_' + ts + '_' + idx + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      var uploadUrl = SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path;
+      uploads.push(
+        fetch(uploadUrl, {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': file.type, 'x-upsert': 'true' }, sbHeaders()),
+          body: file
+        }).then(function() {
+          var publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + path;
+          return fetch(SUPABASE_URL + '/rest/v1/szn_photos', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
+            body: JSON.stringify({
+              submission_id: subId,
+              file_url: publicUrl,
+              file_name: file.name,
+              file_type: file.type,
+              is_revised: true,
+              slot_number: null,
+              slot_label: null
+            })
+          });
+        })
+      );
+    })(files[i], i);
+  }
+
+  Promise.all(uploads).then(function() {
+    /* PATCH revised_photos_at */
+    return fetch(SUPABASE_URL + '/rest/v1/szn_submissions?id=eq.' + subId, {
+      method: 'PATCH',
+      headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
+      body: JSON.stringify({ revised_photos_at: new Date().toISOString() })
+    });
+  }).then(function() {
+    statusEl.innerHTML =
+      '<div style="text-align:center;padding:24px">'
+      + '<div style="font-size:32px;margin-bottom:8px">✅</div>'
+      + '<div style="font-size:14px;font-weight:700;color:var(--green)">Photos uploaded successfully!</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:4px">Your analyst will review the new photos shortly.</div>'
+      + '</div>';
+    document.getElementById('revised-dropzone').style.display = 'none';
+  }).catch(function() {
+    statusEl.innerHTML = '<div style="color:var(--rose);font-size:12px">Upload failed. Please try again.</div>';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() { initDropZone(); });
 
 /* Enter key support on all code inputs */
 document.querySelectorAll('.portal-gate-input').forEach(function(input) {

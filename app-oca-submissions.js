@@ -318,6 +318,7 @@ function renderOcaSubList() {
       // Status + date
       + '<div style="text-align:right;flex-shrink:0">'
       + ocaSubStatusBadge(sub.status)
+      + (sub.revised_photos_at ? '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:#C47272;color:#fff;margin-left:6px">📸 Revised</span>' : '')
       + '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + ocaSubFormatDate(sub.created_at) + '</div>'
       + '</div>'
       + '</div>';
@@ -436,15 +437,38 @@ function renderOcaSubDetail() {
   }
 
   // ── Client Photos ──────────────────────────────────────
-  if (ocaSubDetailPhotos.length > 0) {
+  var originalPhotos = ocaSubDetailPhotos.filter(function(p) { return !p.is_revised; });
+  var revisedPhotos = ocaSubDetailPhotos.filter(function(p) { return p.is_revised; });
+
+  if (originalPhotos.length > 0) {
     html += '<div style="background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px;border:1px solid rgba(0,0,0,0.06)">'
       + '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px;margin-bottom:12px">📸 CLIENT PHOTOS</div>'
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">';
-    ocaSubDetailPhotos.forEach(function(p) {
+    originalPhotos.forEach(function(p) {
       var label = (p.slot_label || '').replace(/_/g, ' ');
       html += '<div style="cursor:pointer" onclick="ocaSubOpenLightbox(\'' + (p.file_url||'').replace(/'/g,"\\'") + '\',\'' + escHtml(label).replace(/'/g,"\\'") + '\')">'
         + '<img src="' + p.file_url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08)" alt="' + escHtml(label) + '">'
         + '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:3px">' + escHtml(label) + '</div>'
+        + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // ── Revised Photos ──────────────────────────────────────
+  if (revisedPhotos.length > 0) {
+    var revisedDate = s.revised_photos_at ? ocaSubFormatDate(s.revised_photos_at) : '';
+    html += '<div style="background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px;border:2px solid #C47272">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+      + '<div style="font-size:12px;font-weight:700;color:#C47272;letter-spacing:.5px">📸 REVISED PHOTOS</div>'
+      + '<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;background:#C47272;color:#fff">' + revisedPhotos.length + '</span>'
+      + (revisedDate ? '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + revisedDate + '</span>' : '')
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">';
+    revisedPhotos.forEach(function(p) {
+      var label = (p.file_name || 'Revised').replace(/_/g, ' ');
+      html += '<div style="cursor:pointer" onclick="ocaSubOpenLightbox(\'' + (p.file_url||'').replace(/'/g,"\\'") + '\',\'' + escHtml(label).replace(/'/g,"\\'") + '\')">'
+        + '<img src="' + p.file_url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:2px solid #C47272" alt="' + escHtml(label) + '">'
+        + '<div style="font-size:10px;color:#C47272;text-align:center;margin-top:3px">' + escHtml(label) + '</div>'
         + '</div>';
     });
     html += '</div></div>';
@@ -552,4 +576,29 @@ function ocaSubOpenLightbox(url, label) {
 function ocaSubCloseLightbox() {
   var el = document.getElementById('oca-lightbox');
   if (el) el.remove();
+}
+
+// ── Revised-photos badge on nav ─────────────────────────
+function updateOcaRevisedBadge() {
+  var SB_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+  var url = SB_URL + '/rest/v1/szn_submissions?revised_photos_at=not.is.null&status=in.(pending,in_progress)&select=id';
+  fetch(url, {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var navEl = document.getElementById('n-online');
+    if (!navEl) return;
+    // Remove existing badge if any
+    var existing = navEl.querySelector('.oca-revised-badge');
+    if (existing) existing.remove();
+    if (data && data.length > 0) {
+      var badge = document.createElement('span');
+      badge.className = 'oca-revised-badge';
+      badge.textContent = data.length;
+      navEl.appendChild(badge);
+    }
+  })
+  .catch(function() { /* silent */ });
 }
