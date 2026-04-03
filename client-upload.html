@@ -104,6 +104,27 @@
   }
   .cu-booking-bar strong { color: var(--charcoal); }
 
+  /* Consent notice */
+  .cu-consent {
+    background: var(--warm); border: 1px solid var(--sand); border-radius: 10px;
+    padding: 18px 20px; margin-bottom: 20px; font-size: 12px; line-height: 1.6; color: var(--brown);
+  }
+  .cu-consent strong { color: var(--charcoal); font-size: 12px; }
+  .cu-consent-check {
+    display: flex; align-items: flex-start; gap: 10px; margin-top: 12px;
+    font-size: 12px; color: var(--charcoal);
+  }
+  .cu-consent-check input[type="checkbox"] {
+    margin-top: 2px; width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--charcoal);
+  }
+
+  /* Confirmation screen */
+  .cu-confirm-screen { text-align: center; padding: 60px 20px; }
+  .cu-confirm-icon { font-size: 48px; margin-bottom: 20px; color: var(--green); }
+  .cu-confirm-title { font-size: 20px; font-weight: 700; color: var(--charcoal); margin-bottom: 12px; font-family: Georgia, serif; }
+  .cu-confirm-text { font-size: 14px; color: var(--brown); line-height: 1.7; max-width: 400px; margin: 0 auto; }
+  .cu-confirm-note { font-size: 12px; color: var(--muted); margin-top: 24px; font-style: italic; }
+
   /* Footer */
   .cu-footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 40px; }
 
@@ -118,36 +139,27 @@
   <div class="cu-logo"><span>YOUR</span> SZN</div>
   <div class="cu-subtitle">In-Person Appointment — Photo Upload</div>
 
-  <!-- ═══ LOGIN SCREEN ═══ -->
-  <div id="cu-login">
+  <!-- ═══ START / DETAILS SCREEN ═══ -->
+  <div id="cu-start">
     <div class="cu-card">
-      <div class="cu-card-title">Access Your Booking</div>
-      <div id="cu-login-error"></div>
+      <div class="cu-card-title">Your Details</div>
+      <div id="cu-start-error"></div>
       <div class="cu-field">
         <label class="cu-label">Full Name</label>
-        <input class="cu-input" id="cu-name" type="text" placeholder="As entered when booking" />
+        <input class="cu-input" id="cu-name" type="text" placeholder="Your full name" />
       </div>
       <div class="cu-field">
         <label class="cu-label">Email</label>
         <input class="cu-input" id="cu-email" type="email" placeholder="Your email address" />
       </div>
-      <div style="text-align:right;margin-top:8px;">
-        <button class="cu-btn cu-btn-primary" id="cu-login-btn" onclick="cuLogin()">View My Booking</button>
+      <div class="cu-field">
+        <label class="cu-label">Appointment Date</label>
+        <input class="cu-input" id="cu-date" type="date" />
       </div>
-    </div>
-  </div>
-
-  <!-- ═══ UPLOAD SCREEN ═══ -->
-  <div id="cu-upload" style="display:none;">
-    <div id="cu-booking-info"></div>
-    <div id="cu-messages"></div>
-
-    <!-- Appointment Type -->
-    <div class="cu-card">
-      <div class="cu-card-title">Appointment Type</div>
       <div class="cu-field" style="margin-bottom:0;">
-        <select class="cu-select" id="cu-appt-type" onchange="cuSaveApptType()">
-          <option value="—">— Select —</option>
+        <label class="cu-label">Appointment Type</label>
+        <select class="cu-select" id="cu-type">
+          <option value="">— Select —</option>
           <option value="1:1 Standard">1:1 Standard</option>
           <option value="1:2 Standard">1:2 Standard</option>
           <option value="1:3 Standard">1:3 Standard</option>
@@ -159,7 +171,17 @@
           <option value="Call Out">Call Out</option>
         </select>
       </div>
+      <div style="text-align:right;margin-top:20px;">
+        <button class="cu-btn cu-btn-primary" id="cu-start-btn" onclick="cuStart()">Continue</button>
+      </div>
     </div>
+  </div>
+
+  <!-- ═══ UPLOAD SCREEN ═══ -->
+  <div id="cu-upload" style="display:none;">
+    <div id="cu-booking-info"></div>
+    <div id="cu-returning-notice"></div>
+    <div id="cu-messages"></div>
 
     <!-- Person Slots -->
     <div class="cu-card">
@@ -173,19 +195,47 @@
       </div>
     </div>
 
+    <!-- Consent Notice -->
+    <div class="cu-consent">
+      <strong>Image Use &amp; Consent</strong><br><br>
+      The contrast analysis photos you upload here are used strictly for internal assessment purposes and will not be published, shared, or used in any external materials.
+      <br><br>
+      Separately, photographs taken during your appointment may be used by Your SZN across our website, social media channels, and marketing materials. If you would prefer your appointment photos not be used in this way, please let us know.
+      <div class="cu-consent-check">
+        <input type="checkbox" id="cu-consent-cb" checked />
+        <label for="cu-consent-cb">I consent to photographs taken during my appointment being used by Your SZN for marketing and promotional purposes.</label>
+      </div>
+    </div>
+
     <!-- Submit -->
     <div style="text-align:center;margin-top:8px;">
       <button class="cu-btn cu-btn-primary" id="cu-submit-btn" onclick="cuSubmitAll()" style="padding:14px 40px;font-size:15px;">
-        Save & Submit
+        Submit Photos
       </button>
     </div>
 
     <div style="text-align:center;margin-top:16px;">
-      <button class="cu-btn cu-btn-secondary" onclick="cuLogout()" style="font-size:12px;padding:8px 16px;">Log Out</button>
+      <button class="cu-btn cu-btn-secondary" onclick="cuBack()" style="font-size:12px;padding:8px 16px;">Back</button>
     </div>
   </div>
 
-  <div class="cu-footer">Your SZN · Colour Analysis</div>
+  <!-- ═══ CONFIRMATION SCREEN ═══ -->
+  <div id="cu-confirm" style="display:none;">
+    <div class="cu-card">
+      <div class="cu-confirm-screen">
+        <div class="cu-confirm-icon">&#10003;</div>
+        <div class="cu-confirm-title">Thank You</div>
+        <div class="cu-confirm-text">
+          Your photos have been submitted and the Your SZN team have been notified.
+          <br><br>
+          Please disregard any automated SMS you may receive.
+        </div>
+        <div class="cu-confirm-note">You can close this page now.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cu-footer">Your SZN &middot; Colour Analysis</div>
 </div>
 
 <script>
@@ -201,83 +251,126 @@ function cuDb() {
 /* ── State ── */
 var cuBooking = null;
 var cuPersons = []; /* { id, name, is_primary, photo_url, photo_path, _file, _preview, _isNew } */
+var cuIsReturning = false;
 var MAX_SLOTS = 6;
 
-/* ── Login ── */
-async function cuLogin() {
+/* ── Start / Continue ── */
+async function cuStart() {
   var name = (document.getElementById('cu-name').value || '').trim();
   var email = (document.getElementById('cu-email').value || '').trim().toLowerCase();
-  var errEl = document.getElementById('cu-login-error');
+  var date = document.getElementById('cu-date').value;
+  var type = document.getElementById('cu-type').value;
+  var errEl = document.getElementById('cu-start-error');
 
   if (!name || !email) {
-    errEl.innerHTML = '<div class="cu-error">Please enter both your full name and email.</div>';
+    errEl.innerHTML = '<div class="cu-error">Please enter your full name and email address.</div>';
+    return;
+  }
+  if (!date) {
+    errEl.innerHTML = '<div class="cu-error">Please select your appointment date.</div>';
+    return;
+  }
+  if (!type) {
+    errEl.innerHTML = '<div class="cu-error">Please select your appointment type.</div>';
     return;
   }
 
-  var btn = document.getElementById('cu-login-btn');
+  var btn = document.getElementById('cu-start-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="cu-spinner"></span> Checking...';
+  errEl.innerHTML = '';
 
   var db = cuDb();
-  var { data, error } = await db
+
+  /* Check for existing booking by name + email */
+  var { data: existing, error: lookupErr } = await db
     .from('in_person_bookings')
     .select('*')
     .ilike('client_name', name)
     .ilike('client_email', email)
-    .limit(1)
-    .single();
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    /* ── Returning client: load existing booking for photo editing ── */
+    cuBooking = existing[0];
+    cuIsReturning = true;
+
+    /* Fetch existing persons */
+    var { data: persons } = await db
+      .from('in_person_persons')
+      .select('*')
+      .eq('booking_id', cuBooking.id)
+      .order('sort_order', { ascending: true });
+
+    cuPersons = (persons || []).map(function(p) {
+      return {
+        id: p.id,
+        name: p.name || '',
+        is_primary: p.is_primary,
+        photo_url: p.photo_url || '',
+        photo_path: p.photo_path || '',
+        _file: null,
+        _preview: p.photo_url || '',
+        _isNew: false
+      };
+    });
+
+    /* Ensure at least 1 slot */
+    if (cuPersons.length === 0) {
+      cuPersons.push({
+        id: null, name: cuBooking.client_name || '', is_primary: true,
+        photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
+      });
+    }
+
+  } else {
+    /* ── New client: create booking ── */
+    cuIsReturning = false;
+
+    var { data: newBooking, error: createErr } = await db
+      .from('in_person_bookings')
+      .insert({
+        client_name: name,
+        client_email: email,
+        appointment_date: date,
+        appointment_type: type,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (createErr || !newBooking) {
+      errEl.innerHTML = '<div class="cu-error">Something went wrong creating your booking. Please try again.</div>';
+      btn.disabled = false;
+      btn.textContent = 'Continue';
+      return;
+    }
+
+    cuBooking = newBooking;
+
+    /* Create primary person slot pre-filled with client name */
+    cuPersons = [{
+      id: null, name: name, is_primary: true,
+      photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
+    }];
+  }
 
   btn.disabled = false;
-  btn.textContent = 'View My Booking';
+  btn.textContent = 'Continue';
 
-  if (error || !data) {
-    errEl.innerHTML = '<div class="cu-error">No booking found for that name and email. Please check your details and try again.</div>';
-    return;
-  }
-
-  cuBooking = data;
-
-  /* Fetch existing persons */
-  var { data: persons } = await db
-    .from('in_person_persons')
-    .select('*')
-    .eq('booking_id', cuBooking.id)
-    .order('sort_order', { ascending: true });
-
-  cuPersons = (persons || []).map(function(p) {
-    return {
-      id: p.id,
-      name: p.name || '',
-      is_primary: p.is_primary,
-      photo_url: p.photo_url || '',
-      photo_path: p.photo_path || '',
-      _file: null,
-      _preview: p.photo_url || '',
-      _isNew: false
-    };
-  });
-
-  /* Ensure at least 1 slot */
-  if (cuPersons.length === 0) {
-    cuPersons.push({
-      id: null, name: cuBooking.client_name || '', is_primary: true,
-      photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
-    });
-  }
-
-  document.getElementById('cu-login').style.display = 'none';
+  /* Switch to upload screen */
+  document.getElementById('cu-start').style.display = 'none';
   document.getElementById('cu-upload').style.display = 'block';
   cuRenderUpload();
 }
 
-function cuLogout() {
-  cuBooking = null;
-  cuPersons = [];
-  document.getElementById('cu-login').style.display = 'block';
+function cuBack() {
   document.getElementById('cu-upload').style.display = 'none';
-  document.getElementById('cu-login-error').innerHTML = '';
-  document.getElementById('cu-name').value = '';
-  document.getElementById('cu-email').value = '';
+  document.getElementById('cu-start').style.display = 'block';
+  document.getElementById('cu-messages').innerHTML = '';
 }
 
 /* ── Render upload interface ── */
@@ -285,17 +378,22 @@ function cuRenderUpload() {
   /* Booking info bar */
   var infoEl = document.getElementById('cu-booking-info');
   var dateStr = cuBooking.appointment_date
-    ? new Date(cuBooking.appointment_date).toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
+    ? new Date(cuBooking.appointment_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
     : 'TBC';
   infoEl.innerHTML =
     '<div class="cu-booking-bar">' +
       '<div><strong>' + (cuBooking.client_name || '') + '</strong></div>' +
       '<div>' + dateStr + '</div>' +
+      '<div>' + (cuBooking.appointment_type || '') + '</div>' +
     '</div>';
 
-  /* Appt type */
-  var typeSelect = document.getElementById('cu-appt-type');
-  if (typeSelect) typeSelect.value = cuBooking.appointment_type || '—';
+  /* Returning client notice */
+  var noticeEl = document.getElementById('cu-returning-notice');
+  if (cuIsReturning) {
+    noticeEl.innerHTML = '<div class="cu-info">Welcome back! We found your existing booking. You can update or re-upload your photos below.</div>';
+  } else {
+    noticeEl.innerHTML = '';
+  }
 
   /* Render slots */
   cuRenderSlots();
@@ -389,15 +487,6 @@ function cuFileSelected(idx, input) {
   reader.readAsDataURL(file);
 }
 
-/* ── Save appointment type ── */
-async function cuSaveApptType() {
-  if (!cuBooking) return;
-  var val = document.getElementById('cu-appt-type').value;
-  cuBooking.appointment_type = val;
-  var db = cuDb();
-  await db.from('in_person_bookings').update({ appointment_type: val }).eq('id', cuBooking.id);
-}
-
 /* ── Submit all ── */
 async function cuSubmitAll() {
   var msgEl = document.getElementById('cu-messages');
@@ -409,6 +498,12 @@ async function cuSubmitAll() {
     return;
   }
 
+  /* Validate: primary must have a photo (new file or existing) */
+  if (!cuPersons[0]._file && !cuPersons[0].photo_url) {
+    msgEl.innerHTML = '<div class="cu-error">Please upload a photo for Person 1.</div>';
+    return;
+  }
+
   var btn = document.getElementById('cu-submit-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="cu-spinner"></span> Uploading...';
@@ -416,10 +511,8 @@ async function cuSubmitAll() {
   var db = cuDb();
 
   try {
-    /* Save appointment type */
-    var apptType = document.getElementById('cu-appt-type').value;
+    /* Update booking timestamps */
     await db.from('in_person_bookings').update({
-      appointment_type: apptType,
       updated_at: new Date().toISOString()
     }).eq('id', cuBooking.id);
 
@@ -441,7 +534,7 @@ async function cuSubmitAll() {
         if (upErr) {
           msgEl.innerHTML = '<div class="cu-error">Failed to upload photo for ' + (p.name || 'Person ' + (i+1)) + ': ' + upErr.message + '</div>';
           btn.disabled = false;
-          btn.textContent = 'Save & Submit';
+          btn.textContent = 'Submit Photos';
           return;
         }
 
@@ -493,21 +586,22 @@ async function cuSubmitAll() {
       }
     }
 
-    /* Mark photos as submitted */
+    /* Mark photos as submitted + set status to uploaded */
     await db.from('in_person_bookings').update({
+      status: 'uploaded',
       photos_submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }).eq('id', cuBooking.id);
 
-    msgEl.innerHTML = '<div class="cu-success">All saved successfully! Your photos have been submitted.</div>';
-    cuRenderSlots();
+    /* Show confirmation screen */
+    document.getElementById('cu-upload').style.display = 'none';
+    document.getElementById('cu-confirm').style.display = 'block';
 
   } catch (err) {
     msgEl.innerHTML = '<div class="cu-error">Something went wrong: ' + (err.message || err) + '</div>';
+    btn.disabled = false;
+    btn.textContent = 'Submit Photos';
   }
-
-  btn.disabled = false;
-  btn.textContent = 'Save & Submit';
 }
 </script>
 </body>

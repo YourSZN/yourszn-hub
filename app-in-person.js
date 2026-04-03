@@ -57,7 +57,7 @@ function ipFormatDate(d) {
 /* ==========================================================
    PHOTO UPLOAD NOTIFICATIONS
    Checks for bookings where client submitted photos
-   but status is still 'pending' (not yet reviewed).
+   but status is still 'uploaded' (not yet reviewed by admin).
    ========================================================== */
 
 var _ipPendingPhotos = [];
@@ -69,7 +69,7 @@ async function ipCheckPhotoNotifications() {
     .from('in_person_bookings')
     .select('id, client_name, client_email, appointment_date, photos_submitted_at')
     .not('photos_submitted_at', 'is', null)
-    .eq('status', 'pending')
+    .eq('status', 'uploaded')
     .order('photos_submitted_at', { ascending: false });
 
   _ipPendingPhotos = (error || !data) ? [] : data;
