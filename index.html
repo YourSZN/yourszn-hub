@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your SZN — Business Hub</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&family=Almarai:wght@300;400;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ═══════════════════════════════════════════════════════
@@ -261,6 +264,9 @@
 
 
     <!-- CLIENTS -->
+    <div class="page" id="pg-calendar">
+      <div id="calendar-root"></div>
+    </div>
     <div class="page" id="pg-clients">
       <div class="ph">
         <div><div class="ptitle">Clients</div><div class="psub" id="clients-psub">30 slots · drag to reorder · track appointments and invoices</div></div>
@@ -2042,6 +2048,7 @@
   </div>
 <script src="app-in-person.js"></script>
 <script src="comms-fix-v39.js"></script>
+<script src="unified-calendar.js"></script>
 <script src="comms-fix-daily.js"></script>
 <script src="comms-fix-hidden.js"></script>
 <script src="client-day-colours.js"></script>
