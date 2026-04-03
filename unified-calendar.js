@@ -1,3 +1,4 @@
+(function() {
 const {
   useState,
   useRef
@@ -3458,4 +3459,9 @@ function UnifiedCalendar() {
   if (el) {
     ReactDOM.createRoot(el).render(React.createElement(UnifiedCalendar));
   }
+})();
+
+
+var el = document.getElementById('calendar-root');
+if(el){ ReactDOM.createRoot(el).render(React.createElement(UnifiedCalendar)); }
 })();
