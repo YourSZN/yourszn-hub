@@ -110,12 +110,11 @@
     padding: 18px 20px; margin-bottom: 20px; font-size: 12px; line-height: 1.6; color: var(--brown);
   }
   .cu-consent strong { color: var(--charcoal); font-size: 12px; }
-  .cu-consent-check {
-    display: flex; align-items: flex-start; gap: 10px; margin-top: 12px;
-    font-size: 12px; color: var(--charcoal);
+  .cu-consent-select {
+    margin-top: 14px;
   }
-  .cu-consent-check input[type="checkbox"] {
-    margin-top: 2px; width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--charcoal);
+  .cu-consent-select label {
+    display: block; font-size: 11px; font-weight: 600; color: var(--charcoal); margin-bottom: 6px;
   }
 
   /* Confirmation screen */
@@ -200,10 +199,14 @@
       <strong>Image Use &amp; Consent</strong><br><br>
       The contrast analysis photos you upload here are used strictly for internal assessment purposes and will not be published, shared, or used in any external materials.
       <br><br>
-      Separately, photographs taken during your appointment may be used by Your SZN across our website, social media channels, and marketing materials. If you would prefer your appointment photos not be used in this way, please let us know.
-      <div class="cu-consent-check">
-        <input type="checkbox" id="cu-consent-cb" checked />
-        <label for="cu-consent-cb">I consent to photographs taken during my appointment being used by Your SZN for marketing and promotional purposes.</label>
+      Separately, photographs and video taken during your appointment may be used by Your SZN across our website, social media channels, and marketing materials. Please indicate your preference below.
+      <div class="cu-consent-select">
+        <label>Media Consent</label>
+        <select class="cu-select" id="cu-consent-sel">
+          <option value="photos_and_video">I consent to photos and video being used</option>
+          <option value="photos_only">I consent to photos only (no video)</option>
+          <option value="none">I do not consent to any media being used</option>
+        </select>
       </div>
     </div>
 
@@ -586,9 +589,11 @@ async function cuSubmitAll() {
       }
     }
 
-    /* Mark photos as submitted + set status to uploaded */
+    /* Mark photos as submitted + set status to uploaded + save consent */
+    var consentVal = document.getElementById('cu-consent-sel').value;
     await db.from('in_person_bookings').update({
       status: 'uploaded',
+      media_consent: consentVal,
       photos_submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }).eq('id', cuBooking.id);

@@ -455,6 +455,7 @@ async function showBookingDetail(bookingId) {
           '<div>' +
             '<div style="font-weight:600;font-size:17px;color:var(--charcoal);">' + (booking.client_name || 'Unnamed') + '</div>' +
             '<div style="font-size:12px;color:var(--muted);">' + (booking.client_email || '') + ' · ' + ipFormatDate(booking.appointment_date) + '</div>' +
+            (booking.media_consent ? '<div style="font-size:11px;margin-top:4px;"><span style="padding:2px 8px;border-radius:10px;background:' + (booking.media_consent === 'none' ? 'var(--rose)' : booking.media_consent === 'photos_only' ? 'var(--gold)' : 'var(--green)') + ';color:white;font-size:10px;font-weight:600;">' + (booking.media_consent === 'photos_and_video' ? 'Consents: Photos & Video' : booking.media_consent === 'photos_only' ? 'Consents: Photos Only' : 'No Media Consent') + '</span></div>' : '') +
           '</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;">' +
