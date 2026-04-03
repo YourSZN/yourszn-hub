@@ -19,14 +19,14 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: 'Almarai', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--charcoal); color: var(--charcoal);
+    background: var(--cream); color: var(--charcoal);
     min-height: 100vh;
     display: flex; flex-direction: column;
   }
 
   /* ─── Hero ─── */
   .portal-hero {
-    background: var(--charcoal);
+    background: var(--cream);
     padding: 60px 20px 50px;
     text-align: center;
     position: relative;
@@ -34,8 +34,7 @@
   .portal-logo-img {
     height: 80px;
     width: auto;
-    filter: brightness(0) invert(1);
-    opacity: 0.15;
+    opacity: 0.85;
     position: relative;
   }
 
@@ -55,7 +54,7 @@
   .portal-subtitle {
     font-family: 'Almarai', sans-serif;
     font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
-    color: rgba(255,255,255,0.28);
+    color: var(--muted);
     margin-top: 24px; position: relative;
   }
 
@@ -63,9 +62,7 @@
   .portal-body {
     flex: 1;
     background: var(--cream);
-    padding: 40px 20px 60px;
-    border-radius: 24px 24px 0 0;
-    margin-top: -12px;
+    padding: 20px 20px 60px;
     position: relative; z-index: 1;
   }
   .portal-cards {
