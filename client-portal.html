@@ -4,15 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your SZN — Client Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
-
   :root {
     --cream: #FAF7F2; --warm: #F5F0E8; --sand: #E0D5C5;
-    --tan: #C4B49A; --brown: #6B5B4E; --deep: #3E3229;
-    --charcoal: #2C2420; --green: #5A8A5E; --rose: #C47272;
-    --gold: #C4963A; --muted: #9A8E82;
-    /* Season icon colours from branding */
+    --tan: #C4B49A; --charcoal: #2C2420; --deep: #3E3229;
+    --green: #5A8A5E; --rose: #C47272; --gold: #C4963A;
+    --muted: #9A8E82;
     --icon-winter: #9E9E9E;
     --icon-spring: #A8C8E8;
     --icon-summer: #C8A8D8;
@@ -20,198 +18,184 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Almarai', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--charcoal); color: var(--charcoal);
     min-height: 100vh;
     display: flex; flex-direction: column;
   }
 
-  /* ─── Hero / Header ─── */
+  /* ─── Hero ─── */
   .portal-hero {
     background: var(--charcoal);
     padding: 60px 20px 50px;
     text-align: center;
     position: relative;
-    overflow: hidden;
   }
   .portal-hero::before {
     content: '';
     position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 50% 80%, rgba(100,85,70,0.3) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 80%, rgba(100,85,70,0.25) 0%, transparent 70%);
     pointer-events: none;
   }
-
   .portal-logo {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 48px;
-    font-weight: 400;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 52px;
+    font-weight: 300;
     color: rgba(255,255,255,0.12);
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     line-height: 1;
-    margin-bottom: 6px;
     position: relative;
   }
-  .portal-logo .your { font-weight: 400; }
-  .portal-logo .szn { font-weight: 700; }
+  .portal-logo .szn { font-weight: 500; }
 
-  /* Season icons row */
   .portal-icons {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 20px;
-    position: relative;
+    display: flex; justify-content: center; gap: 16px;
+    margin-top: 22px; position: relative;
   }
   .portal-icon {
-    width: 44px; height: 44px;
-    border-radius: 50%;
+    width: 42px; height: 42px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.3s ease;
   }
   .portal-icon:hover { transform: scale(1.1); }
-  .portal-icon svg { width: 24px; height: 24px; }
+  .portal-icon svg { width: 22px; height: 22px; }
 
   .portal-subtitle {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 12px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
-    margin-top: 24px;
-    position: relative;
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(255,255,255,0.28);
+    margin-top: 24px; position: relative;
   }
 
-  /* ─── Cards section ─── */
+  /* ─── Body ─── */
   .portal-body {
     flex: 1;
     background: var(--cream);
     padding: 40px 20px 60px;
     border-radius: 24px 24px 0 0;
     margin-top: -12px;
-    position: relative;
-    z-index: 1;
+    position: relative; z-index: 1;
   }
   .portal-cards {
-    max-width: 520px;
+    max-width: 580px;
     margin: 0 auto;
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
+    gap: 0;
+  }
+
+  /* Card — matching yourszn.com.au style */
+  .portal-card {
+    background: transparent;
+    border: 1px solid var(--charcoal);
+    border-bottom: none;
+    padding: 28px 32px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-decoration: none; color: inherit; display: block;
+    position: relative;
+  }
+  .portal-card:first-child { border-radius: 10px 10px 0 0; }
+  .portal-card:last-child { border-bottom: 1px solid var(--charcoal); border-radius: 0 0 10px 10px; }
+  .portal-card:hover { background: var(--warm); }
+
+  .portal-card-inner {
+    display: flex; align-items: center; justify-content: space-between;
     gap: 16px;
   }
-
-  /* Card */
-  .portal-card {
-    background: white;
-    border: 1px solid var(--sand);
-    border-radius: 14px;
-    padding: 24px 24px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    color: inherit;
-    display: block;
-    position: relative;
-    overflow: hidden;
-  }
-  .portal-card:hover {
-    border-color: var(--tan);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(44,36,32,0.08);
-  }
-  .portal-card-inner {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-  }
-  .portal-card-icon {
-    width: 52px; height: 52px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .portal-card-icon svg { width: 26px; height: 26px; }
-  .portal-card-text { flex: 1; min-width: 0; }
+  .portal-card-left { flex: 1; min-width: 0; }
   .portal-card-title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 17px; font-weight: 600;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 26px; font-weight: 400;
     color: var(--charcoal);
-    margin-bottom: 4px;
+    line-height: 1.2;
   }
   .portal-card-desc {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.4;
+    font-family: 'Almarai', sans-serif;
+    font-size: 12px; color: var(--muted);
+    margin-top: 4px; line-height: 1.4;
   }
-  .portal-card-arrow {
-    color: var(--tan);
-    font-size: 18px;
+  .portal-card-link {
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--charcoal);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    white-space: nowrap;
     flex-shrink: 0;
-    transition: transform 0.2s;
+    transition: opacity 0.2s;
   }
-  .portal-card:hover .portal-card-arrow { transform: translateX(3px); }
+  .portal-card:hover .portal-card-link { opacity: 0.7; }
 
-  /* Vietnam card expand */
-  .portal-card.has-gate { cursor: pointer; }
+  /* Gate (code entry) */
   .portal-gate {
     display: none;
-    margin-top: 18px;
-    padding-top: 18px;
+    margin-top: 20px;
+    padding-top: 20px;
     border-top: 1px solid var(--sand);
   }
   .portal-gate.open { display: block; }
-  .portal-gate-field {
-    margin-bottom: 12px;
+  .portal-gate-row {
+    display: flex; gap: 10px; align-items: flex-end;
   }
+  .portal-gate-field { flex: 1; }
   .portal-gate-label {
-    display: block; font-size: 11px; font-weight: 600; color: var(--brown);
-    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;
+    display: block;
+    font-family: 'Almarai', sans-serif;
+    font-size: 10px; font-weight: 700;
+    color: var(--charcoal); text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 6px;
   }
   .portal-gate-input {
-    width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--sand);
+    width: 100%; padding: 10px 14px; border-radius: 6px;
+    border: 1px solid var(--sand);
+    font-family: 'Almarai', sans-serif;
     font-size: 14px; background: white; color: var(--charcoal); outline: none;
     transition: border-color 0.15s;
   }
-  .portal-gate-input:focus { border-color: var(--brown); }
+  .portal-gate-input:focus { border-color: var(--charcoal); }
   .portal-gate-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    padding: 10px 20px; border-radius: 6px;
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
     cursor: pointer; border: none;
     background: var(--charcoal); color: white;
-    transition: background 0.15s;
+    transition: opacity 0.15s;
+    white-space: nowrap;
   }
-  .portal-gate-btn:hover { background: var(--deep); }
+  .portal-gate-btn:hover { opacity: 0.85; }
   .portal-gate-error {
-    background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C;
-    padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px;
-    display: none;
+    font-family: 'Almarai', sans-serif;
+    color: var(--rose); font-size: 12px;
+    margin-top: 10px; display: none;
   }
 
   /* Footer */
   .portal-footer {
     text-align: center;
-    font-size: 11px;
-    color: var(--muted);
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; color: var(--muted);
     padding: 0 20px 30px;
     background: var(--cream);
   }
 
   /* Spinner */
   .portal-spinner {
-    display: inline-block; width: 16px; height: 16px;
-    border: 2px solid var(--sand); border-top-color: white;
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
     border-radius: 50%; animation: pspin 0.6s linear infinite;
   }
   @keyframes pspin { to { transform: rotate(360deg); } }
 
-  /* Responsive */
   @media (max-width: 480px) {
-    .portal-logo { font-size: 36px; }
-    .portal-hero { padding: 40px 20px 40px; }
+    .portal-logo { font-size: 38px; }
+    .portal-hero { padding: 40px 16px 40px; }
     .portal-body { padding: 30px 16px 50px; }
-    .portal-card { padding: 20px; }
-    .portal-card-icon { width: 44px; height: 44px; border-radius: 10px; }
-    .portal-card-icon svg { width: 22px; height: 22px; }
-    .portal-card-title { font-size: 15px; }
+    .portal-card { padding: 22px 20px; }
+    .portal-card-title { font-size: 22px; }
+    .portal-card-link { font-size: 10px; }
+    .portal-gate-row { flex-direction: column; align-items: stretch; }
   }
 </style>
 </head>
@@ -220,12 +204,10 @@
 <!-- ═══ HERO ═══ -->
 <div class="portal-hero">
   <div class="portal-logo">
-    <span class="your">Your</span> <span class="szn">SZN</span>
+    <span class="your">Your</span><span class="szn">SZN</span>
   </div>
 
-  <!-- Season Icons -->
   <div class="portal-icons">
-    <!-- Winter -->
     <div class="portal-icon" style="background:var(--icon-winter);">
       <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round">
         <ellipse cx="12" cy="10" rx="6" ry="4"/>
@@ -234,7 +216,6 @@
         <line x1="8" y1="19" x2="16" y2="19"/>
       </svg>
     </div>
-    <!-- Spring -->
     <div class="portal-icon" style="background:var(--icon-spring);">
       <svg viewBox="0 0 24 24" fill="none" stroke="rgba(44,36,32,0.6)" stroke-width="1.5" stroke-linecap="round">
         <circle cx="12" cy="12" r="3"/>
@@ -248,14 +229,12 @@
         <line x1="8" y1="21.5" x2="9.5" y2="18.5"/><line x1="14.5" y1="5.5" x2="16" y2="2.5"/>
       </svg>
     </div>
-    <!-- Summer -->
     <div class="portal-icon" style="background:var(--icon-summer);">
       <svg viewBox="0 0 24 24" fill="none" stroke="rgba(44,36,32,0.6)" stroke-width="1.5" stroke-linecap="round">
         <path d="M12 4c0 4-4 6-4 10a4 4 0 008 0c0-4-4-6-4-10z"/>
         <path d="M12 6c0 3 3 5 3 8" opacity="0.5"/>
       </svg>
     </div>
-    <!-- Autumn -->
     <div class="portal-icon" style="background:var(--icon-autumn);">
       <svg viewBox="0 0 24 24" fill="none" stroke="rgba(44,36,32,0.6)" stroke-width="1.5" stroke-linecap="round">
         <path d="M4 17a8 8 0 0116 0"/>
@@ -273,72 +252,65 @@
   <div class="portal-cards">
 
     <!-- Online Colour Analysis -->
-    <a href="yourszn-form-7.html" class="portal-card">
+    <div class="portal-card" onclick="openGate('online')">
       <div class="portal-card-inner">
-        <div class="portal-card-icon" style="background:var(--warm);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="3"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <path d="M21 15l-5-5L5 21"/>
-          </svg>
-        </div>
-        <div class="portal-card-text">
-          <div class="portal-card-title">Online Colour Analysis</div>
+        <div class="portal-card-left">
+          <div class="portal-card-title">Online <em>Colour</em> Analysis</div>
           <div class="portal-card-desc">Complete your questionnaire &amp; upload photos</div>
         </div>
-        <div class="portal-card-arrow">→</div>
+        <div class="portal-card-link">GET STARTED</div>
       </div>
-    </a>
+      <div class="portal-gate" id="gate-online">
+        <div class="portal-gate-row">
+          <div class="portal-gate-field">
+            <label class="portal-gate-label">Access Code</label>
+            <input class="portal-gate-input" id="code-online" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
+          </div>
+          <button class="portal-gate-btn" id="btn-online" onclick="event.stopPropagation();checkCode('online')">ENTER</button>
+        </div>
+        <div class="portal-gate-error" id="err-online"></div>
+      </div>
+    </div>
 
     <!-- In-Person Booking -->
-    <a href="client-upload.html" class="portal-card">
+    <div class="portal-card" onclick="openGate('inperson')">
       <div class="portal-card-inner">
-        <div class="portal-card-icon" style="background:var(--warm);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-            <circle cx="12" cy="16" r="2"/>
-          </svg>
-        </div>
-        <div class="portal-card-text">
+        <div class="portal-card-left">
           <div class="portal-card-title">In-Person Booking</div>
           <div class="portal-card-desc">Upload photos ahead of your appointment</div>
         </div>
-        <div class="portal-card-arrow">→</div>
+        <div class="portal-card-link">UPLOAD PHOTOS</div>
       </div>
-    </a>
+      <div class="portal-gate" id="gate-inperson">
+        <div class="portal-gate-row">
+          <div class="portal-gate-field">
+            <label class="portal-gate-label">Access Code</label>
+            <input class="portal-gate-input" id="code-inperson" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
+          </div>
+          <button class="portal-gate-btn" id="btn-inperson" onclick="event.stopPropagation();checkCode('inperson')">ENTER</button>
+        </div>
+        <div class="portal-gate-error" id="err-inperson"></div>
+      </div>
+    </div>
 
     <!-- Vietnam Tour -->
-    <div class="portal-card has-gate" onclick="toggleGate(event)">
+    <div class="portal-card" onclick="openGate('vietnam')">
       <div class="portal-card-inner">
-        <div class="portal-card-icon" style="background:var(--warm);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--brown)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <div class="portal-card-text">
+        <div class="portal-card-left">
           <div class="portal-card-title">Vietnam Tour</div>
           <div class="portal-card-desc">Access your planning lookbook</div>
         </div>
-        <div class="portal-card-arrow" id="gate-arrow">→</div>
+        <div class="portal-card-link">OPEN LOOKBOOK</div>
       </div>
-
-      <!-- Code gate -->
-      <div class="portal-gate" id="vietnam-gate">
-        <div class="portal-gate-error" id="gate-error"></div>
-        <div class="portal-gate-field">
-          <label class="portal-gate-label">Access Code</label>
-          <input class="portal-gate-input" id="gate-code" type="text" placeholder="Enter your access code" onclick="event.stopPropagation()" />
+      <div class="portal-gate" id="gate-vietnam">
+        <div class="portal-gate-row">
+          <div class="portal-gate-field">
+            <label class="portal-gate-label">Access Code</label>
+            <input class="portal-gate-input" id="code-vietnam" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
+          </div>
+          <button class="portal-gate-btn" id="btn-vietnam" onclick="event.stopPropagation();checkCode('vietnam')">ENTER</button>
         </div>
-        <div style="text-align:right;">
-          <button class="portal-gate-btn" id="gate-btn" onclick="event.stopPropagation();checkCode()">
-            Continue
-          </button>
-        </div>
+        <div class="portal-gate-error" id="err-vietnam"></div>
       </div>
     </div>
 
@@ -348,16 +320,23 @@
 <div class="portal-footer">Your SZN &middot; Colour Analysis</div>
 
 <script>
-function toggleGate(e) {
-  var gate = document.getElementById('vietnam-gate');
-  if (gate.classList.contains('open')) return; /* Don't close once open */
+var CODES = {
+  online: { code: '1893', url: 'yourszn-form-7.html' },
+  inperson: { code: '2722', url: 'client-upload.html' },
+  vietnam: { code: '2462', url: 'https://szn-client-lookbook.netlify.app' }
+};
+
+function openGate(key) {
+  var gate = document.getElementById('gate-' + key);
+  if (gate.classList.contains('open')) return;
   gate.classList.add('open');
-  document.getElementById('gate-code').focus();
+  document.getElementById('code-' + key).focus();
 }
 
-function checkCode() {
-  var code = (document.getElementById('gate-code').value || '').trim();
-  var errEl = document.getElementById('gate-error');
+function checkCode(key) {
+  var input = document.getElementById('code-' + key);
+  var errEl = document.getElementById('err-' + key);
+  var code = (input.value || '').trim();
 
   if (!code) {
     errEl.textContent = 'Please enter your access code.';
@@ -365,24 +344,29 @@ function checkCode() {
     return;
   }
 
-  if (code !== '2462') {
+  if (code !== CODES[key].code) {
     errEl.textContent = 'Invalid access code. Please check and try again.';
     errEl.style.display = 'block';
     return;
   }
 
-  /* Code correct — redirect to lookbook */
-  var btn = document.getElementById('gate-btn');
+  errEl.style.display = 'none';
+  var btn = document.getElementById('btn-' + key);
   btn.disabled = true;
   btn.innerHTML = '<span class="portal-spinner"></span>';
-  errEl.style.display = 'none';
 
-  window.location.href = 'https://szn-client-lookbook.netlify.app';
+  window.location.href = CODES[key].url;
 }
 
-/* Allow Enter key on code input */
-document.getElementById('gate-code').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') { e.preventDefault(); checkCode(); }
+/* Enter key support on all code inputs */
+document.querySelectorAll('.portal-gate-input').forEach(function(input) {
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var key = this.id.replace('code-', '');
+      checkCode(key);
+    }
+  });
 });
 </script>
 </body>
