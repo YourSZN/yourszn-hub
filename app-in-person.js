@@ -933,9 +933,7 @@ async function ipSyncToSlots() {
   /* Ensure cRows exists (it's global from app.js) */
   if (typeof cRows === 'undefined') return;
 
-  /* First, clear any slots previously populated by in-person bookings
-     We tag them with a _ipBookingId marker so we know which to clear.
-     Preserve manually-set fields (type, inv, notes) so re-sync doesn't lose them. */
+  /* 1. Preserve manually-set fields (type, inv, notes) from previously synced rows */
   var preserved = {};
   for (var c = 0; c < cRows.length; c++) {
     if (cRows[c]._ipBookingId) {
@@ -944,29 +942,23 @@ async function ipSyncToSlots() {
         inv: cRows[c].inv || '',
         notes: cRows[c].notes || ''
       };
-      cRows[c] = { name:'', day:'', date:'', type:'', con:'', atts:[], inv:'', notes:'' };
     }
   }
 
-  /* Find available slot indices (empty rows) */
-  var usedSlots = [];
-  for (var u = 0; u < cRows.length; u++) {
-    if (cRows[u].name && !cRows[u]._ipBookingId) usedSlots.push(u);
+  /* 2. Collect manual entries (rows with data that aren't synced) */
+  var manualRows = [];
+  for (var m = 0; m < cRows.length; m++) {
+    if (cRows[m].name && !cRows[m]._ipBookingId) {
+      manualRows.push(JSON.parse(JSON.stringify(cRows[m])));
+    }
   }
 
-  /* Assign bookings to slots in date order, filling empty rows */
-  var slotIdx = 0;
+  /* 3. Build in-person booking rows */
+  var ipRows = [];
   for (var b = 0; b < bookings.length; b++) {
-    /* Find next empty slot */
-    while (slotIdx < cRows.length && cRows[slotIdx].name && !cRows[slotIdx]._ipBookingId) {
-      slotIdx++;
-    }
-    if (slotIdx >= cRows.length) break; /* No more slots */
-
     var bk = bookings[b];
     var persons = bk.in_person_persons || [];
 
-    /* Find primary person */
     var primary = null;
     var guests = [];
     for (var p = 0; p < persons.length; p++) {
@@ -975,10 +967,8 @@ async function ipSyncToSlots() {
     }
     if (!primary && persons.length > 0) primary = persons[0];
 
-    /* Build contrast value — primary person's level */
     var primaryCon = primary ? ipMapContrast(primary.contrast_level) : '—';
 
-    /* Build attendees array — guests with their contrast levels */
     var atts = [];
     for (var g = 0; g < guests.length; g++) {
       atts.push({
@@ -987,26 +977,50 @@ async function ipSyncToSlots() {
       });
     }
 
-    /* Restore any manually-set fields from previous sync */
     var prev = preserved[bk.id] || {};
 
-    /* Populate the slot row */
-    cRows[slotIdx] = {
+    ipRows.push({
       name: bk.client_name || '',
       day: ipDayOfWeek(bk.appointment_date),
       date: bk.appointment_date || '',
-      type: prev.type || '—', /* Preserve manual type selection */
+      type: prev.type || '—',
       con: primaryCon,
       atts: atts,
       inv: prev.inv || '',
       notes: prev.notes || '',
-      _ipBookingId: bk.id /* marker so we can clear/re-sync later */
-    };
+      _ipBookingId: bk.id
+    });
 
-    /* Update client_slot in DB */
-    db.from('in_person_bookings').update({ client_slot: slotIdx + 1 }).eq('id', bk.id);
+    /* Update client_slot in DB (will set final value after sort) */
+  }
 
-    slotIdx++;
+  /* 4. Merge manual + in-person rows, sort by date */
+  var allRows = manualRows.concat(ipRows);
+  var withDate = [];
+  var noDate = [];
+  for (var i = 0; i < allRows.length; i++) {
+    if (allRows[i].date) withDate.push(allRows[i]);
+    else noDate.push(allRows[i]);
+  }
+  withDate.sort(function(a, b) {
+    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  });
+  var sorted = withDate.concat(noDate);
+
+  /* 5. Rebuild cRows: sorted entries first, then empty rows */
+  for (var s = 0; s < 30; s++) {
+    if (s < sorted.length) {
+      cRows[s] = sorted[s];
+    } else {
+      cRows[s] = { name:'', day:'', date:'', type:'', con:'', atts:[], inv:'', notes:'' };
+    }
+  }
+
+  /* 6. Update client_slot in DB for synced rows */
+  for (var sl = 0; sl < cRows.length; sl++) {
+    if (cRows[sl]._ipBookingId) {
+      db.from('in_person_bookings').update({ client_slot: sl + 1 }).eq('id', cRows[sl]._ipBookingId);
+    }
   }
 
   /* Re-render slots table and save */
