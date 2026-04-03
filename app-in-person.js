@@ -433,6 +433,8 @@ async function showBookingDetail(bookingId) {
 async function ipUpdateStatus(bookingId, status) {
   var db = getSupa(); if (!db) return;
   await db.from('in_person_bookings').update({ status: status, updated_at: new Date().toISOString() }).eq('id', bookingId);
+  /* Sync to appointment slots when analysed (or re-sync on any status change) */
+  ipSyncToSlots();
 }
 
 async function ipDeleteBooking(bookingId) {
@@ -441,6 +443,7 @@ async function ipDeleteBooking(bookingId) {
   await db.from('in_person_persons').delete().eq('booking_id', bookingId);
   await db.from('in_person_bookings').delete().eq('id', bookingId);
   renderInPersonList();
+  ipSyncToSlots();
 }
 
 async function ipAddGuest(bookingId) {
@@ -683,6 +686,8 @@ async function ipSaveContrast() {
     contrast_range: range,
     contrast_level: level
   }).eq('id', ipCPersonId);
+  /* Keep slots synced when contrast changes */
+  ipSyncToSlots();
 }
 
 async function ipSaveSeason(personId, season) {
@@ -885,4 +890,126 @@ async function ipSaveNewBooking() {
   if (modal) modal.remove();
 
   renderInPersonList();
+}
+
+/* ==========================================================
+   SYNC TO APPOINTMENT SLOTS TABLE
+   When a booking is marked "analysed", populate the
+   corresponding cRows entry so it appears on the
+   Appointment Slots tab in date order.
+   ========================================================== */
+
+var IP_CON_MAP = {
+  'Low': 'Low',
+  'Medium-Low': 'Low/Med',
+  'Medium': 'Med',
+  'Medium-High': 'Med/High',
+  'High': 'High'
+};
+
+function ipMapContrast(level) {
+  return IP_CON_MAP[level] || '—';
+}
+
+function ipDayOfWeek(dateStr) {
+  if (!dateStr) return '—';
+  var d = new Date(dateStr);
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  return days[d.getDay()] || '—';
+}
+
+async function ipSyncToSlots() {
+  var db = getSupa(); if (!db) return;
+
+  /* Fetch all analysed/complete bookings with their people */
+  var { data: bookings, error } = await db
+    .from('in_person_bookings')
+    .select('*, in_person_persons(*)')
+    .in('status', ['analysed', 'complete'])
+    .order('appointment_date', { ascending: true });
+
+  if (error || !bookings) return;
+
+  /* Ensure cRows exists (it's global from app.js) */
+  if (typeof cRows === 'undefined') return;
+
+  /* First, clear any slots previously populated by in-person bookings
+     We tag them with a _ipBookingId marker so we know which to clear.
+     Preserve manually-set fields (type, inv, notes) so re-sync doesn't lose them. */
+  var preserved = {};
+  for (var c = 0; c < cRows.length; c++) {
+    if (cRows[c]._ipBookingId) {
+      preserved[cRows[c]._ipBookingId] = {
+        type: cRows[c].type || '',
+        inv: cRows[c].inv || '',
+        notes: cRows[c].notes || ''
+      };
+      cRows[c] = { name:'', day:'', date:'', type:'', con:'', atts:[], inv:'', notes:'' };
+    }
+  }
+
+  /* Find available slot indices (empty rows) */
+  var usedSlots = [];
+  for (var u = 0; u < cRows.length; u++) {
+    if (cRows[u].name && !cRows[u]._ipBookingId) usedSlots.push(u);
+  }
+
+  /* Assign bookings to slots in date order, filling empty rows */
+  var slotIdx = 0;
+  for (var b = 0; b < bookings.length; b++) {
+    /* Find next empty slot */
+    while (slotIdx < cRows.length && cRows[slotIdx].name && !cRows[slotIdx]._ipBookingId) {
+      slotIdx++;
+    }
+    if (slotIdx >= cRows.length) break; /* No more slots */
+
+    var bk = bookings[b];
+    var persons = bk.in_person_persons || [];
+
+    /* Find primary person */
+    var primary = null;
+    var guests = [];
+    for (var p = 0; p < persons.length; p++) {
+      if (persons[p].is_primary) primary = persons[p];
+      else guests.push(persons[p]);
+    }
+    if (!primary && persons.length > 0) primary = persons[0];
+
+    /* Build contrast value — primary person's level */
+    var primaryCon = primary ? ipMapContrast(primary.contrast_level) : '—';
+
+    /* Build attendees array — guests with their contrast levels */
+    var atts = [];
+    for (var g = 0; g < guests.length; g++) {
+      atts.push({
+        name: guests[g].name || '',
+        con: ipMapContrast(guests[g].contrast_level)
+      });
+    }
+
+    /* Restore any manually-set fields from previous sync */
+    var prev = preserved[bk.id] || {};
+
+    /* Populate the slot row */
+    cRows[slotIdx] = {
+      name: bk.client_name || '',
+      day: ipDayOfWeek(bk.appointment_date),
+      date: bk.appointment_date || '',
+      type: prev.type || '—', /* Preserve manual type selection */
+      con: primaryCon,
+      atts: atts,
+      inv: prev.inv || '',
+      notes: prev.notes || '',
+      _ipBookingId: bk.id /* marker so we can clear/re-sync later */
+    };
+
+    /* Update client_slot in DB */
+    db.from('in_person_bookings').update({ client_slot: slotIdx + 1 }).eq('id', bk.id);
+
+    slotIdx++;
+  }
+
+  /* Re-render slots table and save */
+  if (typeof renderClients === 'function') renderClients();
+  if (typeof debouncedSave === 'function') debouncedSave();
 }
