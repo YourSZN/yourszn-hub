@@ -189,6 +189,7 @@
     .portal-gate-row { flex-direction: column; align-items: stretch; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 </head>
 <body>
 
@@ -447,27 +448,41 @@ function handleRevisedFiles(files) {
 
   for (var i = 0; i < files.length; i++) {
     (function(file, idx) {
+      // Convert HEIC/HEIF to JPEG for browser compatibility
+      var convertPromise;
+      var fname = file.name.toLowerCase();
+      if (fname.endsWith('.heic') || fname.endsWith('.heif') || file.type === 'image/heic' || file.type === 'image/heif') {
+        convertPromise = heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 }).then(function(blob) {
+          if (Array.isArray(blob)) blob = blob[0];
+          return new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+        }).catch(function() { return file; });
+      } else {
+        convertPromise = Promise.resolve(file);
+      }
       var path = subId + '/revised_' + ts + '_' + idx + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      var uploadUrl = SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path;
       uploads.push(
-        fetch(uploadUrl, {
-          method: 'POST',
-          headers: Object.assign({ 'Content-Type': file.type, 'x-upsert': 'true' }, sbHeaders()),
-          body: file
-        }).then(function() {
-          var publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + path;
-          return fetch(SUPABASE_URL + '/rest/v1/szn_photos', {
+        convertPromise.then(function(convFile) {
+          var uploadPath = path.replace(/\.(heic|heif)$/i, '.jpg');
+          var uploadUrl = SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + uploadPath;
+          return fetch(uploadUrl, {
             method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
-            body: JSON.stringify({
-              submission_id: subId,
-              file_url: publicUrl,
-              file_name: file.name,
-              file_type: file.type,
-              is_revised: true,
-              slot_number: null,
-              slot_label: null
-            })
+            headers: Object.assign({ 'Content-Type': convFile.type, 'x-upsert': 'true' }, sbHeaders()),
+            body: convFile
+          }).then(function() {
+            var publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + uploadPath;
+            return fetch(SUPABASE_URL + '/rest/v1/szn_photos', {
+              method: 'POST',
+              headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
+              body: JSON.stringify({
+                submission_id: subId,
+                file_url: publicUrl,
+                file_name: convFile.name,
+                file_type: convFile.type,
+                is_revised: true,
+                slot_number: null,
+                slot_label: null
+              })
+            });
           });
         })
       );
