@@ -31,16 +31,13 @@
     text-align: center;
     position: relative;
   }
-  .portal-logo {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 52px;
-    font-weight: 300;
-    color: rgba(255,255,255,0.12);
-    letter-spacing: 1px;
-    line-height: 1;
+  .portal-logo-img {
+    height: 80px;
+    width: auto;
+    filter: brightness(0) invert(1);
+    opacity: 0.15;
     position: relative;
   }
-  .portal-logo .szn { font-weight: 500; }
 
   .portal-icons {
     display: flex; justify-content: center; gap: 16px;
@@ -50,9 +47,10 @@
     width: 42px; height: 42px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.3s ease;
+    overflow: hidden;
   }
   .portal-icon:hover { transform: scale(1.1); }
-  .portal-icon svg { width: 22px; height: 22px; }
+  .portal-icon img { width: 24px; height: 24px; object-fit: contain; }
 
   .portal-subtitle {
     font-family: 'Almarai', sans-serif;
@@ -185,7 +183,7 @@
   @keyframes pspin { to { transform: rotate(360deg); } }
 
   @media (max-width: 480px) {
-    .portal-logo { font-size: 38px; }
+    .portal-logo-img { height: 60px; }
     .portal-hero { padding: 40px 16px 40px; }
     .portal-body { padding: 30px 16px 50px; }
     .portal-card { padding: 22px 20px; }
@@ -199,44 +197,20 @@
 
 <!-- ═══ HERO ═══ -->
 <div class="portal-hero">
-  <div class="portal-logo">
-    <span class="your">Your</span><span class="szn">SZN</span>
-  </div>
+  <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/YourSZN-Charcoal-Stacked%402x.png" alt="Your SZN" class="portal-logo-img" />
 
   <div class="portal-icons">
     <div class="portal-icon" style="background:var(--icon-winter);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round">
-        <ellipse cx="12" cy="10" rx="6" ry="4"/>
-        <line x1="6" y1="13" x2="18" y2="13"/>
-        <line x1="7" y1="16" x2="17" y2="16"/>
-        <line x1="8" y1="19" x2="16" y2="19"/>
-      </svg>
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Winter-Clouds-Charcoal%20copy.png" alt="Winter" />
     </div>
     <div class="portal-icon" style="background:var(--icon-spring);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(44,36,32,0.6)" stroke-width="1.5" stroke-linecap="round">
-        <circle cx="12" cy="12" r="3"/>
-        <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
-        <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
-        <line x1="4.9" y1="4.9" x2="7" y2="7"/><line x1="17" y1="17" x2="19.1" y2="19.1"/>
-        <line x1="4.9" y1="19.1" x2="7" y2="17"/><line x1="17" y1="7" x2="19.1" y2="4.9"/>
-        <line x1="8" y1="2.5" x2="9.5" y2="5.5"/><line x1="14.5" y1="18.5" x2="16" y2="21.5"/>
-        <line x1="2.5" y1="16" x2="5.5" y2="14.5"/><line x1="18.5" y1="9.5" x2="21.5" y2="8"/>
-        <line x1="2.5" y1="8" x2="5.5" y2="9.5"/><line x1="18.5" y1="14.5" x2="21.5" y2="16"/>
-        <line x1="8" y1="21.5" x2="9.5" y2="18.5"/><line x1="14.5" y1="5.5" x2="16" y2="2.5"/>
-      </svg>
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Spring-Leaf-Charcoal%20copy.png" alt="Spring" />
     </div>
     <div class="portal-icon" style="background:var(--icon-summer);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(44,36,32,0.6)" stroke-width="1.5" stroke-linecap="round">
-        <path d="M12 4c0 4-4 6-4 10a4 4 0 008 0c0-4-4-6-4-10z"/>
-        <path d="M12 6c0 3 3 5 3 8" opacity="0.5"/>
-      </svg>
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Summer-Sun-Charcoal%20copy.png" alt="Summer" />
     </div>
     <div class="portal-icon" style="background:var(--icon-autumn);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(44,36,32,0.6)" stroke-width="1.5" stroke-linecap="round">
-        <path d="M4 17a8 8 0 0116 0"/>
-        <line x1="4" y1="17" x2="20" y2="17"/>
-        <line x1="6" y1="20" x2="18" y2="20"/>
-      </svg>
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Autumn-Sunrise-Charcoal%20copy.png" alt="Autumn" />
     </div>
   </div>
 
