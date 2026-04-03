@@ -479,8 +479,11 @@ async function showBookingDetail(bookingId) {
     var person = persons[p];
     var cl = ipContrastLevel(person.skin_value, person.hair_value, person.eyes_value);
     var photoThumb = person.photo_url
-      ? '<img src="' + person.photo_url + '" style="width:48px;height:48px;border-radius:8px;object-fit:cover;filter:grayscale(100%);" />'
-      : '<div style="width:48px;height:48px;border-radius:8px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted);">?</div>';
+      ? '<div style="position:relative;width:48px;height:48px;flex-shrink:0;">' +
+          '<img id="ip-thumb-' + p + '" src="' + person.photo_url + '" style="width:48px;height:48px;border-radius:8px;object-fit:cover;filter:grayscale(100%);" />' +
+          '<div onclick="event.stopPropagation();ipToggleThumb(' + p + ')" style="position:absolute;bottom:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:var(--charcoal);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;border:2px solid white;" title="Toggle colour">&#127912;</div>' +
+        '</div>'
+      : '<div style="width:48px;height:48px;border-radius:8px;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted);flex-shrink:0;">?</div>';
 
     html +=
       '<div class="card" style="cursor:pointer;" onclick="showPersonContrast(\'' + person.id + '\',\'' + bookingId + '\')">' +
@@ -607,6 +610,7 @@ async function showPersonContrast(personId, bookingId) {
               '<input type="file" accept="image/*" id="ip-photo-input" style="display:none" onchange="ipUploadPhoto(this.files[0],\'' + personId + '\',\'' + bookingId + '\')">' +
             '</label>' +
             '<button onclick="ipClearPhoto(\'' + personId + '\',\'' + bookingId + '\')" style="background:none;border:1px solid var(--sand);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">Clear</button>' +
+            '<button id="ip-colour-toggle-btn" onclick="ipToggleContrastColour()" style="background:none;border:1px solid var(--sand);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">&#127912; View Original</button>' +
           '</div>' +
         '</div><div class="cb">' +
           '<div id="ip-contrast-preview" style="position:relative;width:100%;padding-top:115%;border-radius:8px;overflow:hidden;background:var(--sand)"></div>' +
@@ -648,7 +652,8 @@ async function showPersonContrast(personId, bookingId) {
     if (grid) grid.style.gridTemplateColumns = '1fr';
   }
 
-  /* Render the interactive widget */
+  /* Reset colour toggle + render the interactive widget */
+  _ipContrastColourOn = false;
   ipRenderContrast(person.photo_url);
 }
 
@@ -664,7 +669,7 @@ function ipRenderContrast(photoUrl) {
 
   /* Photo */
   var photoHtml = photoUrl
-    ? '<img src="'+photoUrl+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(100%);display:block;">'
+    ? '<img id="ip-contrast-photo" src="'+photoUrl+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(100%);display:block;">'
     : '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px"><div style="font-size:32px">&#128247;</div><div style="font-size:13px">Upload a photo above</div></div>';
 
   /* Draggable tags */
@@ -869,6 +874,27 @@ function ipClearPhoto(personId, bookingId) {
   var inp = document.getElementById('ip-photo-input');
   if (inp) inp.value = '';
   ipRenderContrast(null);
+}
+
+/* ── Colour/Greyscale toggles ── */
+
+/* Toggle thumbnail on booking detail person cards */
+function ipToggleThumb(idx) {
+  var img = document.getElementById('ip-thumb-' + idx);
+  if (!img) return;
+  var isGrey = img.style.filter && img.style.filter.indexOf('grayscale') !== -1;
+  img.style.filter = isGrey ? 'none' : 'grayscale(100%)';
+}
+
+/* Toggle contrast analyser main photo */
+var _ipContrastColourOn = false;
+function ipToggleContrastColour() {
+  var img = document.getElementById('ip-contrast-photo');
+  if (!img) return;
+  _ipContrastColourOn = !_ipContrastColourOn;
+  img.style.filter = _ipContrastColourOn ? 'none' : 'grayscale(100%)';
+  var btn = document.getElementById('ip-colour-toggle-btn');
+  if (btn) btn.innerHTML = _ipContrastColourOn ? '&#127912; View Greyscale' : '&#127912; View Original';
 }
 
 /* ── Delete person ── */
