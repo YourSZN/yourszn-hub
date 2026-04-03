@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your SZN — Photo Upload</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --cream: #FAF7F2; --warm: #F5F0E8; --sand: #E0D5C5;
+    --tan: #C4B49A; --brown: #6B5B4E; --deep: #3E3229;
+    --charcoal: #2C2420; --green: #5A8A5E; --rose: #C47272;
+    --gold: #C4963A; --muted: #9A8E82;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--cream); color: var(--charcoal);
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .cu-wrap { max-width: 640px; margin: 0 auto; padding: 40px 20px; }
+  .cu-logo { font-family: Georgia, serif; font-size: 22px; letter-spacing: 3px; color: var(--charcoal); text-align: center; margin-bottom: 8px; }
+  .cu-logo span { font-weight: 300; }
+  .cu-subtitle { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 40px; }
+
+  /* Cards */
+  .cu-card {
+    background: white; border: 1px solid var(--sand); border-radius: 12px;
+    padding: 28px; margin-bottom: 20px;
+  }
+  .cu-card-title {
+    font-size: 15px; font-weight: 700; color: var(--charcoal); margin-bottom: 16px;
+  }
+
+  /* Inputs */
+  .cu-field { margin-bottom: 16px; }
+  .cu-label { display: block; font-size: 11px; font-weight: 600; color: var(--brown); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .cu-input {
+    width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--sand);
+    font-size: 14px; background: white; color: var(--charcoal); outline: none;
+    transition: border-color 0.15s;
+  }
+  .cu-input:focus { border-color: var(--brown); }
+  .cu-select {
+    width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--sand);
+    font-size: 14px; background: white; color: var(--charcoal); cursor: pointer;
+  }
+
+  /* Buttons */
+  .cu-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .cu-btn-primary { background: var(--charcoal); color: white; }
+  .cu-btn-primary:hover { background: var(--deep); }
+  .cu-btn-secondary { background: transparent; color: var(--brown); border: 1px solid var(--sand); }
+  .cu-btn-secondary:hover { background: var(--warm); }
+  .cu-btn-danger { background: transparent; color: var(--rose); border: 1px solid var(--rose); font-size: 12px; padding: 6px 14px; }
+  .cu-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Person slot */
+  .cu-slot {
+    background: var(--warm); border: 1px solid var(--sand); border-radius: 10px;
+    padding: 20px; margin-bottom: 14px; transition: all 0.15s;
+  }
+  .cu-slot-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+  }
+  .cu-slot-num {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--charcoal); color: white;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+  }
+  .cu-slot-badge {
+    font-size: 10px; padding: 3px 10px; border-radius: 12px; background: var(--sand); color: var(--brown);
+  }
+
+  /* Photo upload area */
+  .cu-photo-area {
+    border: 2px dashed var(--sand); border-radius: 10px; padding: 24px;
+    text-align: center; cursor: pointer; transition: all 0.15s; position: relative;
+    min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .cu-photo-area:hover { border-color: var(--brown); background: rgba(255,255,255,0.5); }
+  .cu-photo-area.has-photo { border-style: solid; border-color: var(--green); padding: 8px; }
+  .cu-photo-icon { font-size: 28px; margin-bottom: 8px; }
+  .cu-photo-text { font-size: 12px; color: var(--muted); }
+  .cu-photo-preview {
+    width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px;
+  }
+
+  /* Messages */
+  .cu-error { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .cu-success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+  .cu-info { background: var(--warm); border: 1px solid var(--sand); color: var(--brown); padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+
+  /* Booking info bar */
+  .cu-booking-bar {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    padding: 14px 18px; background: var(--warm); border: 1px solid var(--sand);
+    border-radius: 10px; margin-bottom: 20px; font-size: 13px; color: var(--brown);
+  }
+  .cu-booking-bar strong { color: var(--charcoal); }
+
+  /* Footer */
+  .cu-footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 40px; }
+
+  /* Loading spinner */
+  .cu-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--sand); border-top-color: var(--charcoal); border-radius: 50%; animation: cu-spin 0.6s linear infinite; }
+  @keyframes cu-spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="cu-wrap">
+  <div class="cu-logo"><span>YOUR</span> SZN</div>
+  <div class="cu-subtitle">In-Person Appointment — Photo Upload</div>
+
+  <!-- ═══ LOGIN SCREEN ═══ -->
+  <div id="cu-login">
+    <div class="cu-card">
+      <div class="cu-card-title">Access Your Booking</div>
+      <div id="cu-login-error"></div>
+      <div class="cu-field">
+        <label class="cu-label">Full Name</label>
+        <input class="cu-input" id="cu-name" type="text" placeholder="As entered when booking" />
+      </div>
+      <div class="cu-field">
+        <label class="cu-label">Email</label>
+        <input class="cu-input" id="cu-email" type="email" placeholder="Your email address" />
+      </div>
+      <div style="text-align:right;margin-top:8px;">
+        <button class="cu-btn cu-btn-primary" id="cu-login-btn" onclick="cuLogin()">View My Booking</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ UPLOAD SCREEN ═══ -->
+  <div id="cu-upload" style="display:none;">
+    <div id="cu-booking-info"></div>
+    <div id="cu-messages"></div>
+
+    <!-- Appointment Type -->
+    <div class="cu-card">
+      <div class="cu-card-title">Appointment Type</div>
+      <div class="cu-field" style="margin-bottom:0;">
+        <select class="cu-select" id="cu-appt-type" onchange="cuSaveApptType()">
+          <option value="—">— Select —</option>
+          <option value="1:1 Standard">1:1 Standard</option>
+          <option value="1:2 Standard">1:2 Standard</option>
+          <option value="1:3 Standard">1:3 Standard</option>
+          <option value="1:4 Standard">1:4 Standard</option>
+          <option value="1:1 Premium">1:1 Premium</option>
+          <option value="1:2 Premium">1:2 Premium</option>
+          <option value="1:3 Premium">1:3 Premium</option>
+          <option value="1:4 Premium">1:4 Premium</option>
+          <option value="Call Out">Call Out</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Person Slots -->
+    <div class="cu-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="cu-card-title" style="margin-bottom:0;">People</div>
+        <div style="font-size:12px;color:var(--muted);" id="cu-slot-count"></div>
+      </div>
+      <div id="cu-slots"></div>
+      <div id="cu-add-slot-wrap" style="text-align:center;margin-top:12px;">
+        <button class="cu-btn cu-btn-secondary" onclick="cuAddSlot()">+ Add Another Person</button>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div style="text-align:center;margin-top:8px;">
+      <button class="cu-btn cu-btn-primary" id="cu-submit-btn" onclick="cuSubmitAll()" style="padding:14px 40px;font-size:15px;">
+        Save & Submit
+      </button>
+    </div>
+
+    <div style="text-align:center;margin-top:16px;">
+      <button class="cu-btn cu-btn-secondary" onclick="cuLogout()" style="font-size:12px;padding:8px 16px;">Log Out</button>
+    </div>
+  </div>
+
+  <div class="cu-footer">Your SZN · Colour Analysis</div>
+</div>
+
+<script>
+/* ── Supabase ── */
+var SUPA_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+var SUPA_KEY = 'sb_publishable_H4rfsOyYOd8A3OQr0ckmfQ_D_JVaGNJ';
+var _cuDb = null;
+function cuDb() {
+  if (!_cuDb) _cuDb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  return _cuDb;
+}
+
+/* ── State ── */
+var cuBooking = null;
+var cuPersons = []; /* { id, name, is_primary, photo_url, photo_path, _file, _preview, _isNew } */
+var MAX_SLOTS = 6;
+
+/* ── Login ── */
+async function cuLogin() {
+  var name = (document.getElementById('cu-name').value || '').trim();
+  var email = (document.getElementById('cu-email').value || '').trim().toLowerCase();
+  var errEl = document.getElementById('cu-login-error');
+
+  if (!name || !email) {
+    errEl.innerHTML = '<div class="cu-error">Please enter both your full name and email.</div>';
+    return;
+  }
+
+  var btn = document.getElementById('cu-login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="cu-spinner"></span> Checking...';
+
+  var db = cuDb();
+  var { data, error } = await db
+    .from('in_person_bookings')
+    .select('*')
+    .ilike('client_name', name)
+    .ilike('client_email', email)
+    .limit(1)
+    .single();
+
+  btn.disabled = false;
+  btn.textContent = 'View My Booking';
+
+  if (error || !data) {
+    errEl.innerHTML = '<div class="cu-error">No booking found for that name and email. Please check your details and try again.</div>';
+    return;
+  }
+
+  cuBooking = data;
+
+  /* Fetch existing persons */
+  var { data: persons } = await db
+    .from('in_person_persons')
+    .select('*')
+    .eq('booking_id', cuBooking.id)
+    .order('sort_order', { ascending: true });
+
+  cuPersons = (persons || []).map(function(p) {
+    return {
+      id: p.id,
+      name: p.name || '',
+      is_primary: p.is_primary,
+      photo_url: p.photo_url || '',
+      photo_path: p.photo_path || '',
+      _file: null,
+      _preview: p.photo_url || '',
+      _isNew: false
+    };
+  });
+
+  /* Ensure at least 1 slot */
+  if (cuPersons.length === 0) {
+    cuPersons.push({
+      id: null, name: cuBooking.client_name || '', is_primary: true,
+      photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
+    });
+  }
+
+  document.getElementById('cu-login').style.display = 'none';
+  document.getElementById('cu-upload').style.display = 'block';
+  cuRenderUpload();
+}
+
+function cuLogout() {
+  cuBooking = null;
+  cuPersons = [];
+  document.getElementById('cu-login').style.display = 'block';
+  document.getElementById('cu-upload').style.display = 'none';
+  document.getElementById('cu-login-error').innerHTML = '';
+  document.getElementById('cu-name').value = '';
+  document.getElementById('cu-email').value = '';
+}
+
+/* ── Render upload interface ── */
+function cuRenderUpload() {
+  /* Booking info bar */
+  var infoEl = document.getElementById('cu-booking-info');
+  var dateStr = cuBooking.appointment_date
+    ? new Date(cuBooking.appointment_date).toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
+    : 'TBC';
+  infoEl.innerHTML =
+    '<div class="cu-booking-bar">' +
+      '<div><strong>' + (cuBooking.client_name || '') + '</strong></div>' +
+      '<div>' + dateStr + '</div>' +
+    '</div>';
+
+  /* Appt type */
+  var typeSelect = document.getElementById('cu-appt-type');
+  if (typeSelect) typeSelect.value = cuBooking.appointment_type || '—';
+
+  /* Render slots */
+  cuRenderSlots();
+}
+
+function cuRenderSlots() {
+  var wrap = document.getElementById('cu-slots');
+  var html = '';
+
+  for (var i = 0; i < cuPersons.length; i++) {
+    var p = cuPersons[i];
+    var num = i + 1;
+    var badge = p.is_primary ? '<span class="cu-slot-badge">Primary</span>'
+      : '<button class="cu-btn cu-btn-danger" onclick="cuRemoveSlot(' + i + ')">Remove</button>';
+
+    var photoContent = '';
+    if (p._preview) {
+      photoContent =
+        '<div class="cu-photo-area has-photo" onclick="cuTriggerUpload(' + i + ')">' +
+          '<img src="' + p._preview + '" class="cu-photo-preview" />' +
+          '<div style="font-size:11px;color:var(--green);margin-top:6px;">Click to change photo</div>' +
+        '</div>';
+    } else {
+      photoContent =
+        '<div class="cu-photo-area" onclick="cuTriggerUpload(' + i + ')">' +
+          '<div class="cu-photo-icon">&#128247;</div>' +
+          '<div class="cu-photo-text">Click to upload photo</div>' +
+          '<div class="cu-photo-text" style="margin-top:4px;font-size:10px;color:var(--tan);">Clear, front-facing photo in natural light</div>' +
+        '</div>';
+    }
+
+    html +=
+      '<div class="cu-slot">' +
+        '<div class="cu-slot-header">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<div class="cu-slot-num">' + num + '</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--charcoal);">Person ' + num + '</div>' +
+          '</div>' +
+          badge +
+        '</div>' +
+        '<div class="cu-field">' +
+          '<label class="cu-label">Full Name' + (p.is_primary ? ' (required)' : '') + '</label>' +
+          '<input class="cu-input" value="' + (p.name || '').replace(/"/g, '&quot;') + '" placeholder="Full name" ' +
+          'onchange="cuPersons[' + i + '].name=this.value" />' +
+        '</div>' +
+        photoContent +
+        '<input type="file" accept="image/*" id="cu-file-' + i + '" style="display:none" onchange="cuFileSelected(' + i + ',this)" />' +
+      '</div>';
+  }
+
+  wrap.innerHTML = html;
+
+  /* Slot count */
+  document.getElementById('cu-slot-count').textContent = cuPersons.length + ' of ' + MAX_SLOTS;
+
+  /* Hide add button if at max */
+  var addWrap = document.getElementById('cu-add-slot-wrap');
+  if (addWrap) addWrap.style.display = cuPersons.length >= MAX_SLOTS ? 'none' : 'block';
+}
+
+/* ── Slot management ── */
+function cuAddSlot() {
+  if (cuPersons.length >= MAX_SLOTS) return;
+  cuPersons.push({
+    id: null, name: '', is_primary: false,
+    photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
+  });
+  cuRenderSlots();
+}
+
+function cuRemoveSlot(idx) {
+  if (cuPersons[idx].is_primary) return;
+  cuPersons.splice(idx, 1);
+  cuRenderSlots();
+}
+
+/* ── Photo selection ── */
+function cuTriggerUpload(idx) {
+  document.getElementById('cu-file-' + idx).click();
+}
+
+function cuFileSelected(idx, input) {
+  var file = input.files[0];
+  if (!file) return;
+  cuPersons[idx]._file = file;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    cuPersons[idx]._preview = e.target.result;
+    cuRenderSlots();
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── Save appointment type ── */
+async function cuSaveApptType() {
+  if (!cuBooking) return;
+  var val = document.getElementById('cu-appt-type').value;
+  cuBooking.appointment_type = val;
+  var db = cuDb();
+  await db.from('in_person_bookings').update({ appointment_type: val }).eq('id', cuBooking.id);
+}
+
+/* ── Submit all ── */
+async function cuSubmitAll() {
+  var msgEl = document.getElementById('cu-messages');
+  msgEl.innerHTML = '';
+
+  /* Validate: primary must have name */
+  if (!cuPersons[0].name.trim()) {
+    msgEl.innerHTML = '<div class="cu-error">Please enter the name for Person 1.</div>';
+    return;
+  }
+
+  var btn = document.getElementById('cu-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="cu-spinner"></span> Uploading...';
+
+  var db = cuDb();
+
+  try {
+    /* Save appointment type */
+    var apptType = document.getElementById('cu-appt-type').value;
+    await db.from('in_person_bookings').update({
+      appointment_type: apptType,
+      updated_at: new Date().toISOString()
+    }).eq('id', cuBooking.id);
+
+    /* Process each person */
+    for (var i = 0; i < cuPersons.length; i++) {
+      var p = cuPersons[i];
+      if (!p.name.trim() && !p._file) continue; /* Skip empty optional slots */
+
+      /* Upload photo if new file selected */
+      var photoUrl = p.photo_url;
+      var photoPath = p.photo_path;
+
+      if (p._file) {
+        var path = 'booking_' + cuBooking.id + '/person_' + (p.id || 'new' + i) + '_' + Date.now() + '.jpg';
+        var { data: upData, error: upErr } = await db.storage.from('in-person-photos').upload(path, p._file, {
+          cacheControl: '3600', upsert: false
+        });
+
+        if (upErr) {
+          msgEl.innerHTML = '<div class="cu-error">Failed to upload photo for ' + (p.name || 'Person ' + (i+1)) + ': ' + upErr.message + '</div>';
+          btn.disabled = false;
+          btn.textContent = 'Save & Submit';
+          return;
+        }
+
+        var { data: urlData } = db.storage.from('in-person-photos').getPublicUrl(path);
+        photoUrl = urlData ? urlData.publicUrl : '';
+        photoPath = path;
+      }
+
+      if (p._isNew || !p.id) {
+        /* Insert new person */
+        var { data: newPerson, error: insErr } = await db.from('in_person_persons').insert({
+          booking_id: cuBooking.id,
+          name: p.name.trim(),
+          is_primary: p.is_primary,
+          photo_url: photoUrl,
+          photo_path: photoPath,
+          sort_order: i,
+          created_at: new Date().toISOString()
+        }).select().single();
+
+        if (!insErr && newPerson) {
+          cuPersons[i].id = newPerson.id;
+          cuPersons[i]._isNew = false;
+        }
+      } else {
+        /* Update existing person */
+        var updates = { name: p.name.trim(), sort_order: i };
+        if (p._file) {
+          updates.photo_url = photoUrl;
+          updates.photo_path = photoPath;
+        }
+        await db.from('in_person_persons').update(updates).eq('id', p.id);
+      }
+
+      /* Clear file ref after upload */
+      cuPersons[i]._file = null;
+      cuPersons[i].photo_url = photoUrl;
+      cuPersons[i].photo_path = photoPath;
+    }
+
+    /* Remove any persons from DB that were removed from the list */
+    var { data: existingPersons } = await db.from('in_person_persons').select('id').eq('booking_id', cuBooking.id);
+    if (existingPersons) {
+      var currentIds = cuPersons.filter(function(p){ return p.id; }).map(function(p){ return p.id; });
+      for (var e = 0; e < existingPersons.length; e++) {
+        if (currentIds.indexOf(existingPersons[e].id) === -1) {
+          await db.from('in_person_persons').delete().eq('id', existingPersons[e].id);
+        }
+      }
+    }
+
+    msgEl.innerHTML = '<div class="cu-success">All saved successfully! Your photos have been submitted.</div>';
+    cuRenderSlots();
+
+  } catch (err) {
+    msgEl.innerHTML = '<div class="cu-error">Something went wrong: ' + (err.message || err) + '</div>';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Save & Submit';
+}
+</script>
+</body>
+</html>

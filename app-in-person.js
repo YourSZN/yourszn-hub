@@ -983,7 +983,7 @@ async function ipSyncToSlots() {
       name: bk.client_name || '',
       day: ipDayOfWeek(bk.appointment_date),
       date: bk.appointment_date || '',
-      type: prev.type || '—',
+      type: bk.appointment_type || prev.type || '—',
       con: primaryCon,
       atts: atts,
       inv: prev.inv || '',
