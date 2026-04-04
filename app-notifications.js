@@ -253,58 +253,94 @@ function renderNotifCentre() {
     return;
   }
 
-  notifList.forEach(function(n) {
+  // Check if all notifications have been read by current user
+  var allRead = notifList.every(function(n) {
     var readers = n.read_by || [];
     if (typeof readers === 'string') readers = JSON.parse(readers);
-    var isRead = readers.some(function(r) { return r.user === uname; });
-    var sc = notifStatusColor(n.status);
-
-    html += '<div style="padding:16px 20px;border:1px solid ' + (isRead ? 'var(--sand)' : '#C4956A') + ';border-radius:12px;margin-bottom:10px;background:' + (isRead ? '#fff' : '#FFFBF7') + ';cursor:pointer" onclick="notifMarkRead(\'' + n.id + '\')">';
-
-    // Top row: type badge + time
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
-    html += '<div style="display:flex;align-items:center;gap:8px">';
-    if (!isRead) html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EF4444"></span>';
-    html += notifTypeLabel(n.type);
-    html += '</div>';
-    html += '<span style="font-size:11px;color:var(--muted)">' + notifTimeAgo(n.created_at) + '</span>';
-    html += '</div>';
-
-    // Message
-    html += '<div style="font-size:13px;color:var(--charcoal);margin-bottom:10px">' + (n.message || '') + '</div>';
-
-    // Client info
-    if (n.client_name) {
-      html += '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">';
-      html += '👤 ' + n.client_name;
-      if (n.client_email) html += ' · ' + n.client_email;
-      html += '</div>';
-    }
-
-    // Status row
-    html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
-    html += '<select onchange="notifUpdateStatus(\'' + n.id + '\', this.value);event.stopPropagation()" onclick="event.stopPropagation()" style="font-size:11px;padding:4px 8px;border:1px solid var(--sand);border-radius:6px;background:' + sc.bg + ';color:' + sc.color + ';font-weight:600;cursor:pointer">';
-    ['Not Addressed', 'In Progress', 'Completed'].forEach(function(s) {
-      html += '<option value="' + s + '"' + (n.status === s ? ' selected' : '') + '>' + s + '</option>';
-    });
-    html += '</select>';
-
-    // Audit trail
-    if (n.addressed_by) {
-      html += '<span style="font-size:10px;color:var(--muted)">Updated by ' + n.addressed_by + ' · ' + notifTimeAgo(n.addressed_at) + '</span>';
-    }
-
-    // Read by info
-    if (readers.length > 0) {
-      var readNames = readers.map(function(r) { return r.user; }).join(', ');
-      html += '<span style="font-size:10px;color:var(--muted);margin-left:auto">Read by: ' + readNames + '</span>';
-    }
-
-    html += '</div>'; // end status row
-    html += '</div>'; // end card
+    return readers.some(function(r) { return r.user === uname; });
   });
 
+  if (allRead) {
+    // Group by status
+    var groups = { 'Not Addressed': [], 'In Progress': [], 'Completed': [] };
+    notifList.forEach(function(n) {
+      var s = n.status || 'Not Addressed';
+      if (!groups[s]) groups[s] = [];
+      groups[s].push(n);
+    });
+
+    var sectionOrder = ['Not Addressed', 'In Progress', 'Completed'];
+    var sectionColors = {
+      'Not Addressed': { color: '#E07020', bg: '#FFF3EB', icon: '⚠️' },
+      'In Progress':   { color: '#5588DD', bg: '#EBF2FF', icon: '🔄' },
+      'Completed':     { color: '#44AA66', bg: '#EDFBF2', icon: '✅' }
+    };
+
+    sectionOrder.forEach(function(status) {
+      if (groups[status].length === 0) return;
+      var sc = sectionColors[status];
+      html += '<div style="margin-bottom:28px">';
+      html += '<div style="font-size:14px;font-weight:700;color:' + sc.color + ';margin-bottom:12px;padding:8px 14px;background:' + sc.bg + ';border-radius:8px">' + sc.icon + ' ' + status + ' (' + groups[status].length + ')</div>';
+      groups[status].forEach(function(n) {
+        html += notifRenderCard(n, uname);
+      });
+      html += '</div>';
+    });
+  } else {
+    // Show flat list (not all read yet)
+    notifList.forEach(function(n) {
+      html += notifRenderCard(n, uname);
+    });
+  }
+
   container.innerHTML = html;
+}
+
+function notifRenderCard(n, uname) {
+  var readers = n.read_by || [];
+  if (typeof readers === 'string') readers = JSON.parse(readers);
+  var isRead = readers.some(function(r) { return r.user === uname; });
+  var sc = notifStatusColor(n.status);
+  var html = '';
+
+  html += '<div style="padding:16px 20px;border:1px solid ' + (isRead ? 'var(--sand)' : '#C4956A') + ';border-radius:12px;margin-bottom:10px;background:' + (isRead ? '#fff' : '#FFFBF7') + ';cursor:pointer" onclick="notifMarkRead(\'' + n.id + '\')">';
+
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  html += '<div style="display:flex;align-items:center;gap:8px">';
+  if (!isRead) html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EF4444"></span>';
+  html += notifTypeLabel(n.type);
+  html += '</div>';
+  html += '<span style="font-size:11px;color:var(--muted)">' + notifTimeAgo(n.created_at) + '</span>';
+  html += '</div>';
+
+  html += '<div style="font-size:13px;color:var(--charcoal);margin-bottom:10px">' + (n.message || '') + '</div>';
+
+  if (n.client_name) {
+    html += '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">';
+    html += '👤 ' + n.client_name;
+    if (n.client_email) html += ' · ' + n.client_email;
+    html += '</div>';
+  }
+
+  html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
+  html += '<select onchange="notifUpdateStatus(\'' + n.id + '\', this.value);event.stopPropagation()" onclick="event.stopPropagation()" style="font-size:11px;padding:4px 8px;border:1px solid var(--sand);border-radius:6px;background:' + sc.bg + ';color:' + sc.color + ';font-weight:600;cursor:pointer">';
+  ['Not Addressed', 'In Progress', 'Completed'].forEach(function(s) {
+    html += '<option value="' + s + '"' + (n.status === s ? ' selected' : '') + '>' + s + '</option>';
+  });
+  html += '</select>';
+
+  if (n.addressed_by) {
+    html += '<span style="font-size:10px;color:var(--muted)">Updated by ' + n.addressed_by + ' · ' + notifTimeAgo(n.addressed_at) + '</span>';
+  }
+
+  if (readers.length > 0) {
+    var readNames = readers.map(function(r) { return r.user; }).join(', ');
+    html += '<span style="font-size:10px;color:var(--muted);margin-left:auto">Read by: ' + readNames + '</span>';
+  }
+
+  html += '</div>';
+  html += '</div>';
+  return html;
 }
 
 // ── Init ───────────────────────────────────────────────────
