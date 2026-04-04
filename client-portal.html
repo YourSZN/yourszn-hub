@@ -241,12 +241,33 @@
         <div id="online-choice" style="display:none;margin-top:16px">
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px;text-align:center">What would you like to do?</div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <a href="yourszn-form-7.html" class="portal-gate-btn" style="flex:1;text-align:center;text-decoration:none;padding:12px 16px;border-radius:8px">NEW SUBMISSION</a>
+            <button class="portal-gate-btn" style="flex:1;padding:12px 16px;border-radius:8px" onclick="event.stopPropagation();showNewSubFlow()">NEW SUBMISSION</button>
             <button class="portal-gate-btn" style="flex:1;background:var(--rose);padding:12px 16px;border-radius:8px" onclick="event.stopPropagation();showRevisedFlow()">UPLOAD REVISED PHOTOS</button>
           </div>
         </div>
+        <!-- New submission flow -->
+        <div id="newsub-flow" style="display:none;margin-top:16px">
+          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Almarai',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">New Submission</div>
+          <div style="margin-bottom:10px">
+            <label class="portal-gate-label">Your Full Name</label>
+            <input class="portal-gate-input" id="newsub-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="portal-gate-label">Your Email</label>
+            <div class="portal-gate-row">
+              <div class="portal-gate-field">
+                <input class="portal-gate-input" id="newsub-email" type="email" placeholder="Enter your email" onclick="event.stopPropagation()" />
+              </div>
+              <button class="portal-gate-btn" id="newsub-btn" onclick="event.stopPropagation();verifyNewSub()">CONTINUE</button>
+            </div>
+          </div>
+          <div class="portal-gate-error" id="newsub-err"></div>
+          <div id="newsub-existing" style="display:none"></div>
+        </div>
         <!-- Revised flow -->
         <div id="revised-flow" style="display:none;margin-top:16px">
+          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Almarai',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">Upload Revised Photos</div>
           <div style="margin-bottom:12px">
             <label class="portal-gate-label">Your Email</label>
@@ -377,7 +398,70 @@ function sbHeaders() {
 
 function showRevisedFlow() {
   document.getElementById('online-choice').style.display = 'none';
+  document.getElementById('newsub-flow').style.display = 'none';
   document.getElementById('revised-flow').style.display = 'block';
+}
+
+function showNewSubFlow() {
+  document.getElementById('online-choice').style.display = 'none';
+  document.getElementById('revised-flow').style.display = 'none';
+  document.getElementById('newsub-flow').style.display = 'block';
+}
+
+function backToChoice() {
+  document.getElementById('newsub-flow').style.display = 'none';
+  document.getElementById('revised-flow').style.display = 'none';
+  document.getElementById('online-choice').style.display = 'block';
+  /* Reset sub-flows */
+  document.getElementById('newsub-err').style.display = 'none';
+  document.getElementById('newsub-existing').style.display = 'none';
+  document.getElementById('newsub-existing').innerHTML = '';
+  document.getElementById('revised-err').style.display = 'none';
+  document.getElementById('revised-match').style.display = 'none';
+  document.getElementById('revised-uploader').style.display = 'none';
+}
+
+function verifyNewSub() {
+  var name = (document.getElementById('newsub-name').value || '').trim();
+  var email = (document.getElementById('newsub-email').value || '').trim().toLowerCase();
+  var errEl = document.getElementById('newsub-err');
+  var existEl = document.getElementById('newsub-existing');
+  errEl.style.display = 'none';
+  existEl.style.display = 'none';
+
+  if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
+  if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
+
+  var btn = document.getElementById('newsub-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="portal-spinner"></span>';
+
+  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id,full_name,email,created_at&limit=1';
+  fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.textContent = 'CONTINUE';
+      if (data && data.length > 0) {
+        existEl.innerHTML =
+          '<div style="padding:16px;border-radius:12px;background:#FFF3EB;border:1px solid #E07020;margin-top:12px">'
+          + '<div style="font-size:13px;font-weight:700;color:#E07020;margin-bottom:6px">⚠️ Submission already exists</div>'
+          + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:10px">A submission for <strong>' + (data[0].email) + '</strong> was submitted on ' + new Date(data[0].created_at).toLocaleDateString('en-AU') + '. You cannot start a new one.</div>'
+          + '<button class="portal-gate-btn" style="background:var(--rose);border-radius:8px;padding:10px 20px;font-size:11px" onclick="event.stopPropagation();backToChoice();showRevisedFlow();">UPLOAD REVISED PHOTOS INSTEAD</button>'
+          + '</div>';
+        existEl.style.display = 'block';
+      } else {
+        /* No existing submission — redirect to form with name/email pre-filled */
+        var params = '?name=' + encodeURIComponent(name) + '&email=' + encodeURIComponent(email);
+        window.location.href = 'yourszn-form-7.html' + params;
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'CONTINUE';
+      errEl.textContent = 'Something went wrong. Please try again.';
+      errEl.style.display = 'block';
+    });
 }
 
 function lookupSubmission() {
@@ -509,7 +593,17 @@ function handleRevisedFiles(files) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', function() { initDropZone(); });
+document.addEventListener('DOMContentLoaded', function() {
+  initDropZone();
+  /* Enter key for new-sub fields */
+  var nse = document.getElementById('newsub-email');
+  if (nse) nse.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); verifyNewSub(); } });
+  var nsn = document.getElementById('newsub-name');
+  if (nsn) nsn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('newsub-email').focus(); } });
+  /* Enter key for revised email */
+  var re = document.getElementById('revised-email');
+  if (re) re.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); lookupSubmission(); } });
+});
 
 /* Enter key support on all code inputs */
 document.querySelectorAll('.portal-gate-input').forEach(function(input) {

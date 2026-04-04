@@ -878,6 +878,15 @@ if(saved&&saved.step){
 
 initPhotoGrid();
 updateUI();
+
+/* Pre-fill name/email from portal URL params */
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var pName = params.get('name');
+  var pEmail = params.get('email');
+  if (pName) { var el = document.getElementById('fullName'); if (el) { el.value = pName; el.setAttribute('readonly', 'readonly'); el.style.background = '#f0ece6'; } }
+  if (pEmail) { var el = document.getElementById('email'); if (el) { el.value = pEmail; el.setAttribute('readonly', 'readonly'); el.style.background = '#f0ece6'; } }
+})();
 </script>
 </body>
 </html>
