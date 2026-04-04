@@ -440,28 +440,31 @@ function verifyNewSub() {
   btn.disabled = true;
   btn.innerHTML = '<span class="portal-spinner"></span>';
 
-  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id,full_name,email,created_at&limit=1';
-  fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,full_name,email,created_at&limit=1';
+  /* Also check email-only to detect mismatched name */
+  var urlEmailOnly = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id&limit=1';
+  Promise.all([
+    fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) }).then(function(r) { return r.json(); }),
+    fetch(urlEmailOnly, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) }).then(function(r) { return r.json(); })
+  ])
+    .then(function(results) {
+      var matchedBoth = results[0];
+      var matchedEmail = results[1];
       btn.disabled = false;
       btn.textContent = 'CONTINUE';
-      if (data && data.length > 0) {
-        /* Submission exists for this email — verify name matches before revealing details */
-        var dbName = (data[0].full_name || '').trim().toLowerCase();
-        var inputName = name.toLowerCase();
-        if (dbName !== inputName) {
-          errEl.textContent = 'The name and email you entered don\u2019t match any submission. Please check and try again.';
-          errEl.style.display = 'block';
-          return;
-        }
+      if (matchedBoth && matchedBoth.length > 0) {
+        /* Name + email match — submission exists, block new submission */
         existEl.innerHTML =
           '<div style="padding:16px;border-radius:12px;background:#FFF3EB;border:1px solid #E07020;margin-top:12px">'
           + '<div style="font-size:13px;font-weight:700;color:#E07020;margin-bottom:6px">\u26A0\uFE0F Submission already exists</div>'
-          + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:10px">A submission for <strong>' + (data[0].full_name) + '</strong> was submitted on ' + new Date(data[0].created_at).toLocaleDateString('en-AU') + '. You cannot start a new one.</div>'
+          + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:10px">A submission for <strong>' + (matchedBoth[0].full_name) + '</strong> was submitted on ' + new Date(matchedBoth[0].created_at).toLocaleDateString('en-AU') + '. You cannot start a new one.</div>'
           + '<button class="portal-gate-btn" style="background:var(--rose);border-radius:8px;padding:10px 20px;font-size:11px" onclick="event.stopPropagation();backToChoice();showRevisedFlow();">UPLOAD REVISED PHOTOS INSTEAD</button>'
           + '</div>';
         existEl.style.display = 'block';
+      } else if (matchedEmail && matchedEmail.length > 0) {
+        /* Email exists but name doesn't match — block without revealing details */
+        errEl.textContent = 'The name and email you entered don\u2019t match any submission. Please check and try again.';
+        errEl.style.display = 'block';
       } else {
         /* No existing submission — redirect to form with name/email pre-filled */
         var params = '?name=' + encodeURIComponent(name) + '&email=' + encodeURIComponent(email);
@@ -489,7 +492,7 @@ function lookupSubmission() {
   if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
   if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
 
-  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id,full_name,email,created_at&limit=1';
+  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,full_name,email,created_at&limit=1';
   fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -499,14 +502,6 @@ function lookupSubmission() {
         return;
       }
       var sub = data[0];
-      /* Verify name matches (case-insensitive) before granting access */
-      var dbName = (sub.full_name || '').trim().toLowerCase();
-      var inputName = name.toLowerCase();
-      if (dbName !== inputName) {
-        errEl.textContent = 'No submission found. Please check your name and email and try again.';
-        errEl.style.display = 'block';
-        return;
-      }
       window._revisedSubId = sub.id;
       matchEl.innerHTML =
         '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:var(--warm);border:1px solid var(--sand)">'
