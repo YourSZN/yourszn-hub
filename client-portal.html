@@ -269,6 +269,10 @@
         <div id="revised-flow" style="display:none;margin-top:16px">
           <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Almarai',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">Upload Revised Photos</div>
+          <div style="margin-bottom:10px">
+            <label class="portal-gate-label">Your Full Name</label>
+            <input class="portal-gate-input" id="revised-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
+          </div>
           <div style="margin-bottom:12px">
             <label class="portal-gate-label">Your Email</label>
             <div class="portal-gate-row">
@@ -443,10 +447,18 @@ function verifyNewSub() {
       btn.disabled = false;
       btn.textContent = 'CONTINUE';
       if (data && data.length > 0) {
+        /* Submission exists for this email — verify name matches before revealing details */
+        var dbName = (data[0].full_name || '').trim().toLowerCase();
+        var inputName = name.toLowerCase();
+        if (dbName !== inputName) {
+          errEl.textContent = 'The name and email you entered don\u2019t match any submission. Please check and try again.';
+          errEl.style.display = 'block';
+          return;
+        }
         existEl.innerHTML =
           '<div style="padding:16px;border-radius:12px;background:#FFF3EB;border:1px solid #E07020;margin-top:12px">'
-          + '<div style="font-size:13px;font-weight:700;color:#E07020;margin-bottom:6px">⚠️ Submission already exists</div>'
-          + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:10px">A submission for <strong>' + (data[0].email) + '</strong> was submitted on ' + new Date(data[0].created_at).toLocaleDateString('en-AU') + '. You cannot start a new one.</div>'
+          + '<div style="font-size:13px;font-weight:700;color:#E07020;margin-bottom:6px">\u26A0\uFE0F Submission already exists</div>'
+          + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:10px">A submission for <strong>' + (data[0].full_name) + '</strong> was submitted on ' + new Date(data[0].created_at).toLocaleDateString('en-AU') + '. You cannot start a new one.</div>'
           + '<button class="portal-gate-btn" style="background:var(--rose);border-radius:8px;padding:10px 20px;font-size:11px" onclick="event.stopPropagation();backToChoice();showRevisedFlow();">UPLOAD REVISED PHOTOS INSTEAD</button>'
           + '</div>';
         existEl.style.display = 'block';
@@ -465,6 +477,7 @@ function verifyNewSub() {
 }
 
 function lookupSubmission() {
+  var name = (document.getElementById('revised-name').value || '').trim();
   var email = (document.getElementById('revised-email').value || '').trim().toLowerCase();
   var errEl = document.getElementById('revised-err');
   var matchEl = document.getElementById('revised-match');
@@ -473,6 +486,7 @@ function lookupSubmission() {
   matchEl.style.display = 'none';
   uploaderEl.style.display = 'none';
 
+  if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
   if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
 
   var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id,full_name,email,created_at&limit=1';
@@ -480,11 +494,19 @@ function lookupSubmission() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data || data.length === 0) {
-        errEl.textContent = 'No submission found for this email. Please check and try again.';
+        errEl.textContent = 'No submission found. Please check your name and email and try again.';
         errEl.style.display = 'block';
         return;
       }
       var sub = data[0];
+      /* Verify name matches (case-insensitive) before granting access */
+      var dbName = (sub.full_name || '').trim().toLowerCase();
+      var inputName = name.toLowerCase();
+      if (dbName !== inputName) {
+        errEl.textContent = 'No submission found. Please check your name and email and try again.';
+        errEl.style.display = 'block';
+        return;
+      }
       window._revisedSubId = sub.id;
       matchEl.innerHTML =
         '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:var(--warm);border:1px solid var(--sand)">'
@@ -600,7 +622,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (nse) nse.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); verifyNewSub(); } });
   var nsn = document.getElementById('newsub-name');
   if (nsn) nsn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('newsub-email').focus(); } });
-  /* Enter key for revised email */
+  /* Enter key for revised fields */
+  var rn = document.getElementById('revised-name');
+  if (rn) rn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('revised-email').focus(); } });
   var re = document.getElementById('revised-email');
   if (re) re.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); lookupSubmission(); } });
 });
