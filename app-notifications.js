@@ -25,8 +25,7 @@ async function notifFetch(path, opts) {
 async function notifPollSubmissions() {
   try {
     // Get all submissions
-    var subs = await notifFetch('szn_submissions?select=id,client_name,client_email,status,created_at,revised_photos_at,revised_photos_urls');
-    if (!subs) return;
+   var subs = await notifFetch('szn_submissions?select=id,full_name,email,status,created_at,revised_photos_at');
 
     // Get all existing notifications
     var existing = await notifFetch('notifications?select=submission_id,type');
@@ -41,12 +40,12 @@ async function notifPollSubmissions() {
       // New submission notification
       var newKey = s.id + ':new_submission';
       if (!existingMap[newKey]) {
-        toInsert.push({
+      toInsert.push({
           type: 'new_submission',
           submission_id: s.id,
-          client_name: s.client_name || 'Unknown',
-          client_email: s.client_email || '',
-          message: (s.client_name || 'A client') + ' submitted a new colour analysis',
+          client_name: s.full_name || 'Unknown',
+          client_email: s.email || '',
+          message: (s.full_name || 'A client') + ' submitted a new colour analysis',
           status: 'Not Addressed'
         });
       }
@@ -55,12 +54,12 @@ async function notifPollSubmissions() {
       if (s.revised_photos_at) {
         var revKey = s.id + ':revised_images';
         if (!existingMap[revKey]) {
-          toInsert.push({
+      toInsert.push({
             type: 'revised_images',
             submission_id: s.id,
-            client_name: s.client_name || 'Unknown',
-            client_email: s.client_email || '',
-            message: (s.client_name || 'A client') + ' uploaded revised photos',
+            client_name: s.full_name || 'Unknown',
+            client_email: s.email || '',
+            message: (s.full_name || 'A client') + ' uploaded revised photos',
             status: 'Not Addressed'
           });
         }
