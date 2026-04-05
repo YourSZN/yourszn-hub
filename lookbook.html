@@ -738,14 +738,16 @@ function renderClients() {
           <div class="client-count">${(c.inspiration_items || []).length}</div>
           <div style="font-size:13px;color:var(--text-light)">${new Date(c.created_at).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}</div>
           <div style="text-align:right;display:flex;align-items:center;gap:8px;justify-content:flex-end">
-            <button onclick="event.stopPropagation();deleteLbClient('${c.id}','${c.name.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:4px" title="Delete client">✕</button>
+            <button onclick="event.stopPropagation();deleteLbClient('${c.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:4px" title="Delete client">✕</button>
             <span style="color:var(--text-light)">→</span>
         </div>
       `).join('')}
     </div>
   `;
 }
-async function deleteLbClient(clientId, clientName) {
+async function deleteLbClient(clientId) {
+  const client = allClients.find(c => c.id === clientId);
+  const clientName = client ? client.name : 'this client';
   if (!confirm('Delete ' + clientName + ' and all their lookbook items, photos, measurements and notes? This cannot be undone.')) return;
   try {
     const items = await sb('inspiration_items?client_id=eq.' + clientId + '&select=id');
