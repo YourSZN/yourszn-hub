@@ -737,13 +737,34 @@ function renderClients() {
           <div class="client-email">${c.email}</div>
           <div class="client-count">${(c.inspiration_items || []).length}</div>
           <div style="font-size:13px;color:var(--text-light)">${new Date(c.created_at).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})}</div>
-          <div style="text-align:right;color:var(--text-light)">→</div>
+          <div style="text-align:right;display:flex;align-items:center;gap:8px;justify-content:flex-end">
+            <button onclick="event.stopPropagation();deleteLbClient('${c.id}','${c.name.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:4px" title="Delete client">✕</button>
+            <span style="color:var(--text-light)">→</span>
         </div>
       `).join('')}
     </div>
   `;
 }
-
+async function deleteLbClient(clientId, clientName) {
+  if (!confirm('Delete ' + clientName + ' and all their lookbook items, photos, measurements and notes? This cannot be undone.')) return;
+  try {
+    const items = await sb('inspiration_items?client_id=eq.' + clientId + '&select=id');
+    if (items && items.length > 0) {
+      const itemIds = items.map(i => i.id).join(',');
+      await sb('inspiration_item_colours?item_id=in.(' + itemIds + ')', { method: 'DELETE' });
+      await sb('inspiration_photos?item_id=in.(' + itemIds + ')', { method: 'DELETE' });
+      await sb('inspiration_admin_notes?item_id=in.(' + itemIds + ')', { method: 'DELETE' });
+      await sb('inspiration_items?client_id=eq.' + clientId, { method: 'DELETE' });
+    }
+    await sb('inspiration_measurements?client_id=eq.' + clientId, { method: 'DELETE' });
+    await sb('inspiration_clients?id=eq.' + clientId, { method: 'DELETE' });
+    showToast(clientName + ' deleted');
+    loadClients();
+  } catch (e) {
+    console.error('Delete client error:', e);$
+    showToast('Failed to delete client', true);
+  }
+}
 // ── Open Client ──
 async function openClient(clientId) {
   openedAdminItem = null;
