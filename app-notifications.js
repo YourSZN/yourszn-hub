@@ -24,9 +24,6 @@ async function notifFetch(path, opts) {
 // ── Poll submissions & create missing notifications ────────
 async function notifPollSubmissions() {
   try {
-    // Get all submissions
-   var subs = await notifFetch('szn_submissions?select=id,full_name,email,status,created_at,revised_photos_at');
-
     // Get all existing notifications
     var existing = await notifFetch('notifications?select=submission_id,type');
     if (!existing) existing = [];
@@ -36,35 +33,67 @@ async function notifPollSubmissions() {
 
     var toInsert = [];
 
-    subs.forEach(function(s) {
-      // New submission notification
-      var newKey = s.id + ':new_submission';
-      if (!existingMap[newKey]) {
-      toInsert.push({
-          type: 'new_submission',
-          submission_id: s.id,
-          client_name: s.full_name || 'Unknown',
-          client_email: s.email || '',
-          message: (s.full_name || 'A client') + ' submitted a new colour analysis',
-          status: 'Not Addressed'
-        });
-      }
-
-      // Revised images notification
-      if (s.revised_photos_at) {
-        var revKey = s.id + ':revised_images';
-        if (!existingMap[revKey]) {
-      toInsert.push({
-            type: 'revised_images',
+    // --- Online Colour Analysis submissions ---
+    var subs = await notifFetch('szn_submissions?select=id,full_name,email,status,created_at,revised_photos_at');
+    if (subs) {
+      subs.forEach(function(s) {
+        var newKey = s.id + ':new_submission';
+        if (!existingMap[newKey]) {
+          toInsert.push({
+            type: 'new_submission',
             submission_id: s.id,
             client_name: s.full_name || 'Unknown',
             client_email: s.email || '',
-            message: (s.full_name || 'A client') + ' uploaded revised photos',
+            message: (s.full_name || 'A client') + ' submitted a new colour analysis',
             status: 'Not Addressed'
           });
         }
-      }
-    });
+        if (s.revised_photos_at) {
+          var revKey = s.id + ':revised_images';
+          if (!existingMap[revKey]) {
+            toInsert.push({
+              type: 'revised_images',
+              submission_id: s.id,
+              client_name: s.full_name || 'Unknown',
+              client_email: s.email || '',
+              message: (s.full_name || 'A client') + ' uploaded revised photos',
+              status: 'Not Addressed'
+            });
+          }
+        }
+      });
+    }
+
+    // --- In-Person Bookings ---
+    var bookings = await notifFetch('in_person_bookings?select=id,client_name,client_email,appointment_type,status,photos_submitted_at,created_at');
+    if (bookings) {
+      bookings.forEach(function(b) {
+        var bookKey = b.id + ':new_booking';
+        if (!existingMap[bookKey]) {
+          toInsert.push({
+            type: 'new_booking',
+            submission_id: b.id,
+            client_name: b.client_name || 'Unknown',
+            client_email: b.client_email || '',
+            message: (b.client_name || 'A client') + ' booked an in-person ' + (b.appointment_type || 'appointment'),
+            status: 'Not Addressed'
+          });
+        }
+        if (b.photos_submitted_at) {
+          var photoKey = b.id + ':booking_photos';
+          if (!existingMap[photoKey]) {
+            toInsert.push({
+              type: 'booking_photos',
+              submission_id: b.id,
+              client_name: b.client_name || 'Unknown',
+              client_email: b.client_email || '',
+              message: (b.client_name || 'A client') + ' uploaded photos for their in-person appointment',
+              status: 'Not Addressed'
+            });
+          }
+        }
+      });
+    }
 
     if (toInsert.length > 0) {
       await notifFetch('notifications', {
@@ -217,8 +246,10 @@ function notifTimeAgo(d) {
 }
 
 function notifTypeLabel(type) {
-  if (type === 'new_submission') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#EBF2FF;color:#5588DD">New Submission</span>';
+  if (type === 'new_submission') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#EBF2FF;color:#5588DD">Online Submission</span>';
   if (type === 'revised_images') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FFF3EB;color:#E07020">Revised Photos</span>';
+  if (type === 'new_booking') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F0EBFF;color:#7C3AED">In-Person Booking</span>';
+  if (type === 'booking_photos') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FFF3EB;color:#E07020">Booking Photos</span>';
   return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F4F4F4;color:#888">' + type + '</span>';
 }
 
