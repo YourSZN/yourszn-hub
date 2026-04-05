@@ -838,7 +838,30 @@ function renderAdminPhotoSlots(item) {
     </div>`;
   }).join('');
 }
-
+async function deleteInspItem(itemId) {
+  const item = currentItems.find(i => i.id === itemId);
+  const label = item ? item.category : 'this item';
+  if (!confirm('Delete ' + label + '? This will remove all its photos, colours and notes. This cannot be undone.')) return;
+  try {
+    const photos = item ? (item.inspiration_photos || []) : [];
+    for (const p of photos) {
+      if (p.storage_path) {
+        await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + p.storage_path, { method: 'DELETE', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }).catch(() => {});
+      }
+    }
+    await sb('inspiration_item_colours?item_id=eq.' + itemId, { method: 'DELETE' });
+    await sb('inspiration_photos?item_id=eq.' + itemId, { method: 'DELETE' });
+    await sb('inspiration_admin_notes?item_id=eq.' + itemId, { method: 'DELETE' });
+    await sb('inspiration_items?id=eq.' + itemId, { method: 'DELETE' });
+    showToast(label + ' deleted');
+    currentItems = currentItems.filter(i => i.id !== itemId);
+    openedAdminItem = null;
+    renderDetail();
+  } catch (e) {
+    console.error('Delete item error:', e);
+    showToast('Failed to delete item', true);
+  }
+}
 function renderDetail() {
   const container = document.getElementById('detailItems');
   if (currentItems.length === 0) {
@@ -897,7 +920,8 @@ function renderDetail() {
             <span class="status-badge ${statusClass}">${adminNote.status || 'New'}</span>
             <span style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-mid)">${item.category}</span>
           </div>
-          <div class="shelf-actions">
+         <div class="shelf-actions">
+            <button class="icon-btn" onclick="event.stopPropagation();deleteInspItem('${item.id}')" title="Delete item" style="color:#EF4444">🗑</button>
             <button class="icon-btn" onclick="event.stopPropagation();toggleAdminShelf('${item.id}')" title="Close">✕</button>
           </div>
         </div>
