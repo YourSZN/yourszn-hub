@@ -1111,9 +1111,9 @@ function downloadClientReport() {
       const p = photoMap[slot];
       const label = slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
       if (p) {
-        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:220px;object-fit:cover;border-radius:8px;margin-bottom:6px"><div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;text-align:center">' + label + '</div></div>';
+        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;max-height:240px;object-fit:contain;border-radius:8px;margin-bottom:6px;background:#F7F4F0"><div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;text-align:center">' + label + '</div></div>';
       }
-      return '<div><div style="height:220px;background:#F7F4F0;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px dashed #DDD5CC"><span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#C5BAB0">' + label + '</span></div></div>';
+      return '<div><div style="height:180px;background:#F7F4F0;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px dashed #DDD5CC"><span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#C5BAB0">' + label + '</span></div></div>';
     }).join('');
 
     // Prompts — two-column grid for details
@@ -1138,7 +1138,7 @@ function downloadClientReport() {
     const col1 = promptsArr.slice(0, half).join('');
     const col2 = promptsArr.slice(half).join('');
 
-    itemsHtml += '<div class="rp-item" style="page-break-inside:avoid;margin-bottom:36px">';
+    itemsHtml += '<div class="rp-item" style="page-break-inside:avoid;page-break-after:always;margin-bottom:36px">';
     // Item header with number and category
     itemsHtml += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
       + '<div style="width:28px;height:28px;border-radius:50%;background:#3C3229;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">' + (idx+1) + '</div>'

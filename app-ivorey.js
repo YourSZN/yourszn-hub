@@ -1,11 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
-// IVOREY SUBMISSIONS — Google Sheets CSV Integration
+// IVOREY SUBMISSIONS — Google Sheets CSV + Supabase Overrides
 // ═══════════════════════════════════════════════════════════════
 
 var ivoreyData = [];
-var ivoreySort = { col: 0, asc: true };
+var ivoreyOverrides = {};  // keyed by email
+var ivoreySort = { col: 2, asc: false }; // default: Photo Submission date, newest first
 var ivoreySearch = '';
 var ivoreyLoading = false;
+var ivoreySentCollapsed = true; // sent section collapsed by default
 
 var IVOREY_CSV_URL = 'https://docs.google.com/spreadsheets/d/1j06xazCUHPFtfw9fcmU5cv8TvF3brvK_fMP2zHep1YY/gviz/tq?tqx=out:csv&gid=0';
 
@@ -13,6 +15,16 @@ var IVOREY_COLS = [
   'Full Name', 'Email', 'Photo Submission', 'PAID?',
   'Photos confirmed as good to analyse?', 'Assumed season?',
   'Status', 'Date sent', 'Season', 'Notes'
+];
+
+var IVOREY_PAID_OPTIONS = ['', 'Paid', 'Yes', 'No', 'Sale'];
+var IVOREY_PHOTOS_OPTIONS = ['', 'Pending', 'YES', 'NO', 'Waiting on new'];
+var IVOREY_STATUS_OPTIONS = ['', 'Started', 'Complete', 'In Document', 'Sent to Client'];
+var IVOREY_SEASON_OPTIONS = [
+  '', 'Light Spring', 'True Spring', 'Bright Spring',
+  'Light Summer', 'True Summer', 'Soft Summer',
+  'Soft Autumn', 'True Autumn', 'Dark Autumn',
+  'Dark Winter', 'True Winter', 'Bright Winter'
 ];
 
 // ── CSV Parsing ─────────────────────────────────────────────
@@ -62,45 +74,100 @@ function ivoreyParseCSV(text) {
   return rows;
 }
 
+// ── Load Supabase overrides ─────────────────────────────────
+
+async function ivoreyLoadOverrides() {
+  var db = getSupa();
+  if (!db) return;
+  try {
+    var res = await db.from('ivorey_overrides').select('*');
+    if (res.error) throw res.error;
+    ivoreyOverrides = {};
+    (res.data || []).forEach(function(row) {
+      ivoreyOverrides[row.email.toLowerCase().trim()] = row;
+    });
+  } catch(e) {
+    console.warn('Failed to load ivorey overrides:', e);
+  }
+}
+
+// ── Save single override field ──────────────────────────────
+
+async function ivoreySaveField(email, field, value) {
+  var db = getSupa();
+  if (!db) return;
+  var key = email.toLowerCase().trim();
+  try {
+    var existing = ivoreyOverrides[key];
+    if (existing) {
+      var update = { updated_at: new Date().toISOString() };
+      update[field] = value;
+      await db.from('ivorey_overrides').update(update).eq('id', existing.id);
+      existing[field] = value;
+    } else {
+      var insert = { email: key, updated_at: new Date().toISOString() };
+      insert[field] = value;
+      var res = await db.from('ivorey_overrides').insert(insert).select().single();
+      if (res.error) throw res.error;
+      ivoreyOverrides[key] = res.data;
+    }
+  } catch(e) {
+    console.warn('Failed to save ivorey override:', e);
+    alert('Failed to save. Please try again.');
+  }
+}
+
+// ── Get effective value (override > CSV) ────────────────────
+
+function ivoreyGetVal(row, colIndex, field) {
+  var email = (row[1] || '').toLowerCase().trim();
+  var override = ivoreyOverrides[email];
+  if (override && override[field] !== null && override[field] !== undefined && override[field] !== '') {
+    return override[field];
+  }
+  return row[colIndex] || '';
+}
+
 // ── Fetch Data ──────────────────────────────────────────────
 
 function ivoreyFetchData(cb) {
   ivoreyLoading = true;
   renderIvoreySubmissions();
 
-  fetch(IVOREY_CSV_URL)
-    .then(function(res) {
+  Promise.all([
+    fetch(IVOREY_CSV_URL).then(function(res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.text();
-    })
-    .then(function(text) {
-      var rows = ivoreyParseCSV(text);
-      // Skip header row
-      if (rows.length > 0) {
-        rows.shift();
-      }
-      // Pad each row to 10 columns
-      ivoreyData = rows.map(function(r) {
-        while (r.length < 10) r.push('');
-        return r;
-      });
-      ivoreyLoading = false;
-      if (cb) cb();
-      renderIvoreySubmissions();
-    })
-    .catch(function(err) {
-      ivoreyLoading = false;
-      console.error('Ivorey fetch error:', err);
-      var panel = document.getElementById('oca-content');
-      if (panel) {
-        panel.innerHTML =
-          '<div class="cwrap" style="padding:40px;text-align:center;">' +
-          '<p style="color:#c44;font-weight:600;">Failed to load Ivorey submissions</p>' +
-          '<p style="color:#888;font-size:13px;margin-top:8px;">' + (err.message || 'Unknown error') + '</p>' +
-          '<button class="btn btnp" onclick="ivoreyFetchData()" style="margin-top:16px;">Retry</button>' +
-          '</div>';
-      }
+    }),
+    ivoreyLoadOverrides()
+  ])
+  .then(function(results) {
+    var text = results[0];
+    var rows = ivoreyParseCSV(text);
+    if (rows.length > 0) {
+      rows.shift();
+    }
+    ivoreyData = rows.map(function(r) {
+      while (r.length < 10) r.push('');
+      return r;
     });
+    ivoreyLoading = false;
+    if (cb) cb();
+    renderIvoreySubmissions();
+  })
+  .catch(function(err) {
+    ivoreyLoading = false;
+    console.error('Ivorey fetch error:', err);
+    var panel = document.getElementById('oca-content');
+    if (panel) {
+      panel.innerHTML =
+        '<div class="cwrap" style="padding:40px;text-align:center;">' +
+        '<p style="color:#c44;font-weight:600;">Failed to load Ivorey submissions</p>' +
+        '<p style="color:#888;font-size:13px;margin-top:8px;">' + (err.message || 'Unknown error') + '</p>' +
+        '<button class="btn btnp" onclick="ivoreyFetchData()" style="margin-top:16px;">Retry</button>' +
+        '</div>';
+    }
+  });
 }
 
 // ── Badge Helpers ───────────────────────────────────────────
@@ -130,21 +197,25 @@ function ivoreyPhotoBadge(val) {
   return '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;color:#888;background:#F4F4F4">' + ivoreyEsc(val) + '</span>';
 }
 
+// Traffic light status: Sent=green, Started=red, Complete=orange, In Document=orange, blank=grey
 function ivoreyStatusBadge(val) {
   var v = (val || '').toLowerCase().trim();
   var map = {
-    'sent':        { label: 'Sent',        colour: '#5588DD', bg: '#EBF2FF' },
-    'complete':    { label: 'Complete',     colour: '#44AA66', bg: '#EDFBF2' },
-    'completed':   { label: 'Complete',     colour: '#44AA66', bg: '#EDFBF2' },
-    'pending':     { label: 'Pending',      colour: '#E07020', bg: '#FFF3EB' },
-    'in progress': { label: 'In Progress',  colour: '#5588DD', bg: '#EBF2FF' },
-    'in_progress': { label: 'In Progress',  colour: '#5588DD', bg: '#EBF2FF' },
-    'new':         { label: 'New',          colour: '#E07020', bg: '#FFF3EB' },
-    'waiting':     { label: 'Waiting',      colour: '#D4A017', bg: '#FFF9E6' },
-    'need photos': { label: 'Need Photos',  colour: '#D4A017', bg: '#FFF9E6' }
+    'sent to client':  { label: 'Sent to Client', colour: '#fff', bg: '#44AA66' },
+    'sent':            { label: 'Sent',            colour: '#fff', bg: '#44AA66' },
+    'started':         { label: 'Started',         colour: '#fff', bg: '#CC3333' },
+    'complete':        { label: 'Complete',         colour: '#fff', bg: '#E08020' },
+    'completed':       { label: 'Complete',         colour: '#fff', bg: '#E08020' },
+    'in document':     { label: 'In Document',      colour: '#fff', bg: '#E08020' },
+    'pending':         { label: 'Pending',          colour: '#fff', bg: '#CC3333' },
+    'in progress':     { label: 'In Progress',      colour: '#fff', bg: '#E08020' },
+    'in_progress':     { label: 'In Progress',      colour: '#fff', bg: '#E08020' },
+    'new':             { label: 'New',              colour: '#fff', bg: '#CC3333' },
+    'waiting':         { label: 'Waiting',          colour: '#fff', bg: '#E08020' },
+    'need photos':     { label: 'Need Photos',      colour: '#fff', bg: '#E08020' }
   };
-  var s = map[v] || { label: val || '—', colour: '#888', bg: '#F4F4F4' };
-  if (!val || val.trim() === '') return '<span style="color:#aaa">—</span>';
+  if (!val || val.trim() === '') return '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;color:#888;background:#eee">—</span>';
+  var s = map[v] || { label: val, colour: '#fff', bg: '#888' };
   return '<span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px;color:' + s.colour + ';background:' + s.bg + '">' + s.label + '</span>';
 }
 
@@ -158,16 +229,24 @@ function ivoreySeasonBadge(val) {
     'winter':        { colour: '#3366AA', bg: '#EBF0FF' },
     'light spring':  { colour: '#7CB950', bg: '#F2FAEF' },
     'warm spring':   { colour: '#8DAA30', bg: '#F5F9E8' },
+    'true spring':   { colour: '#5A9E3C', bg: '#EFF8EB' },
+    'bright spring': { colour: '#5A9E3C', bg: '#EFF8EB' },
     'clear spring':  { colour: '#5A9E3C', bg: '#EFF8EB' },
     'light summer':  { colour: '#7799CC', bg: '#EFF4FB' },
     'cool summer':   { colour: '#5577AA', bg: '#EBF0F9' },
+    'true summer':   { colour: '#5577AA', bg: '#EBF0F9' },
     'soft summer':   { colour: '#8899AA', bg: '#F0F3F6' },
     'soft autumn':   { colour: '#AA8844', bg: '#FAF4E8' },
     'warm autumn':   { colour: '#CC7722', bg: '#FFF5E6' },
+    'true autumn':   { colour: '#CC7722', bg: '#FFF5E6' },
     'deep autumn':   { colour: '#8B4513', bg: '#F8EDE4' },
+    'dark autumn':   { colour: '#8B4513', bg: '#F8EDE4' },
     'deep winter':   { colour: '#223366', bg: '#E8ECF4' },
+    'dark winter':   { colour: '#223366', bg: '#E8ECF4' },
     'cool winter':   { colour: '#334488', bg: '#EAECF6' },
-    'clear winter':  { colour: '#2255AA', bg: '#E8EFF8' }
+    'true winter':   { colour: '#334488', bg: '#EAECF6' },
+    'clear winter':  { colour: '#2255AA', bg: '#E8EFF8' },
+    'bright winter': { colour: '#2255AA', bg: '#E8EFF8' }
   };
   if (!val || val.trim() === '') return '<span style="color:#aaa">—</span>';
   var s = map[v] || { colour: '#666', bg: '#F4F4F4' };
@@ -179,6 +258,49 @@ function ivoreyEsc(s) {
   var d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+// ── Dropdown change handler ─────────────────────────────────
+
+function ivoreyOnDropdown(email, field, selectEl) {
+  var val = selectEl.value;
+  ivoreySaveField(email, field, val);
+  selectEl.style.opacity = '0.6';
+  setTimeout(function() { selectEl.style.opacity = '1'; }, 300);
+}
+
+// ── Notes save handler ──────────────────────────────────────
+
+var _ivoreyNotesTimer = {};
+function ivoreyOnNotes(email, textareaEl) {
+  var val = textareaEl.value;
+  if (_ivoreyNotesTimer[email]) clearTimeout(_ivoreyNotesTimer[email]);
+  _ivoreyNotesTimer[email] = setTimeout(function() {
+    ivoreySaveField(email, 'notes', val);
+  }, 800);
+}
+
+// ── Build dropdown HTML ─────────────────────────────────────
+
+function ivoreyDropdown(email, field, options, currentVal) {
+  var safeEmail = ivoreyEsc(email).replace(/'/g, '&#39;');
+  var h = '<select onchange="ivoreyOnDropdown(\'' + safeEmail + '\',\'' + field + '\',this)" '
+    + 'style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid #ddd;background:#fff;'
+    + 'cursor:pointer;font-family:inherit;max-width:130px;color:var(--charcoal)">';
+  options.forEach(function(opt) {
+    var selected = (currentVal || '').toLowerCase().trim() === opt.toLowerCase().trim();
+    h += '<option value="' + ivoreyEsc(opt) + '"' + (selected ? ' selected' : '') + '>'
+      + (opt === '' ? '—' : ivoreyEsc(opt)) + '</option>';
+  });
+  h += '</select>';
+  return h;
+}
+
+// ── Toggle sent section ─────────────────────────────────────
+
+function ivoreyToggleSent() {
+  ivoreySentCollapsed = !ivoreySentCollapsed;
+  renderIvoreySubmissions();
 }
 
 // ── Sorting ─────────────────────────────────────────────────
@@ -197,12 +319,31 @@ function ivoreySortedData(data) {
   var col = ivoreySort.col;
   var asc = ivoreySort.asc;
   return data.slice().sort(function(a, b) {
-    var va = (a[col] || '').toLowerCase();
-    var vb = (b[col] || '').toLowerCase();
+    var va, vb;
+    if (col === 2) {
+      va = ivoreyParseDate(a[col]);
+      vb = ivoreyParseDate(b[col]);
+    } else {
+      va = (a[col] || '').toLowerCase();
+      vb = (b[col] || '').toLowerCase();
+    }
     if (va < vb) return asc ? -1 : 1;
     if (va > vb) return asc ? 1 : -1;
     return 0;
   });
+}
+
+function ivoreyParseDate(str) {
+  if (!str) return 0;
+  var parts = str.split('/');
+  if (parts.length === 3) {
+    var d = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    var y = parseInt(parts[2], 10);
+    if (y < 100) y += 2000;
+    return new Date(y, m - 1, d).getTime() || 0;
+  }
+  return new Date(str).getTime() || 0;
 }
 
 // ── Summary Stats ───────────────────────────────────────────
@@ -215,17 +356,78 @@ function ivoreyGetStats(data) {
   var paid = 0;
 
   data.forEach(function(r) {
-    var status = (r[6] || '').toLowerCase().trim();
-    var paidVal = (r[3] || '').toLowerCase().trim();
+    var statusVal = ivoreyGetVal(r, 6, 'status').toLowerCase().trim();
+    var paidVal = ivoreyGetVal(r, 3, 'paid').toLowerCase().trim();
 
-    if (status === 'sent') sent++;
-    if (status === 'complete' || status === 'completed') complete++;
-    if (status === 'pending' || status === 'new' || status === '' ||
-        status === 'waiting' || status === 'need photos' || status === 'in progress' || status === 'in_progress') pending++;
-    if (paidVal === 'yes' || paidVal === 'y' || paidVal === 'true' || paidVal === 'paid') paid++;
+    if (statusVal === 'sent to client' || statusVal === 'sent') sent++;
+    if (statusVal === 'complete' || statusVal === 'completed') complete++;
+    if (statusVal === 'pending' || statusVal === 'new' || statusVal === '' ||
+        statusVal === 'waiting' || statusVal === 'need photos' ||
+        statusVal === 'in progress' || statusVal === 'in_progress' || statusVal === 'started') pending++;
+    if (paidVal === 'yes' || paidVal === 'y' || paidVal === 'true' || paidVal === 'paid' || paidVal === 'sale') paid++;
   });
 
   return { total: total, sent: sent, complete: complete, pending: pending, paid: paid };
+}
+
+// ── Render a single table row ───────────────────────────────
+
+function ivoreyRenderRow(r, ri, isSent) {
+  var email = (r[1] || '').toLowerCase().trim();
+  var paidVal = ivoreyGetVal(r, 3, 'paid');
+  var photosVal = ivoreyGetVal(r, 4, 'photos_confirmed');
+  var assumedVal = ivoreyGetVal(r, 5, 'assumed_season');
+  var statusVal = ivoreyGetVal(r, 6, 'status');
+  var seasonVal = ivoreyGetVal(r, 8, 'season');
+  var notesVal = ivoreyGetVal(r, 9, 'notes');
+
+  var rowStyle = 'border-bottom:1px solid ' + (isSent ? '#b6e2c4' : '#f0f0f0') + ';';
+  if (isSent) {
+    rowStyle += 'opacity:0.55;';
+  } else if (ri % 2 !== 0) {
+    rowStyle += 'background:#FDFDFB;';
+  }
+
+  var h = '<tr style="' + rowStyle + '">';
+
+  // Full Name
+  h += '<td style="padding:10px 12px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + ivoreyEsc(r[0]) + '">' + ivoreyEsc(r[0]) + '</td>';
+
+  // Email
+  h += '<td style="padding:10px 12px;color:#666;font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + ivoreyEsc(r[1]) + '">' + ivoreyEsc(r[1]) + '</td>';
+
+  // Photo Submission date
+  h += '<td style="padding:10px 12px;white-space:nowrap;font-size:12px;">' + (r[2] ? ivoreyEsc(r[2]) : '<span style="color:#aaa">—</span>') + '</td>';
+
+  // PAID? — dropdown
+  h += '<td style="padding:10px 12px;">' + ivoreyDropdown(email, 'paid', IVOREY_PAID_OPTIONS, paidVal) + '</td>';
+
+  // Photos OK? — dropdown
+  h += '<td style="padding:10px 12px;">' + ivoreyDropdown(email, 'photos_confirmed', IVOREY_PHOTOS_OPTIONS, photosVal) + '</td>';
+
+  // Assumed Season — dropdown
+  h += '<td style="padding:10px 12px;">' + ivoreyDropdown(email, 'assumed_season', IVOREY_SEASON_OPTIONS, assumedVal) + '</td>';
+
+  // Status — dropdown
+  h += '<td style="padding:10px 12px;">' + ivoreyDropdown(email, 'status', IVOREY_STATUS_OPTIONS, statusVal) + '</td>';
+
+  // Date sent
+  h += '<td style="padding:10px 12px;white-space:nowrap;font-size:12px;">' + (r[7] ? ivoreyEsc(r[7]) : '<span style="color:#aaa">—</span>') + '</td>';
+
+  // Season (confirmed) — dropdown
+  h += '<td style="padding:10px 12px;">' + ivoreyDropdown(email, 'season', IVOREY_SEASON_OPTIONS, seasonVal) + '</td>';
+
+  // Notes — textarea
+  var safeEmail = ivoreyEsc(email).replace(/'/g, '&#39;');
+  h += '<td style="padding:6px 8px;">'
+    + '<textarea onchange="ivoreyOnNotes(\'' + safeEmail + '\',this)" oninput="ivoreyOnNotes(\'' + safeEmail + '\',this)" '
+    + 'style="width:100%;min-width:140px;min-height:28px;max-height:80px;font-size:11px;padding:6px 8px;'
+    + 'border-radius:6px;border:1px solid #ddd;resize:vertical;font-family:inherit;background:#fff;color:var(--charcoal)"'
+    + ' placeholder="Add notes…">' + ivoreyEsc(notesVal) + '</textarea>'
+    + '</td>';
+
+  h += '</tr>';
+  return h;
 }
 
 // ── Render ──────────────────────────────────────────────────
@@ -267,6 +469,18 @@ function renderIvoreySubmissions() {
   // Sort
   var sorted = ivoreySortedData(filtered);
 
+  // Separate active vs sent
+  var activeRows = [];
+  var sentRows = [];
+  sorted.forEach(function(r) {
+    var sv = ivoreyGetVal(r, 6, 'status').toLowerCase().trim();
+    if (sv === 'sent to client' || sv === 'sent') {
+      sentRows.push(r);
+    } else {
+      activeRows.push(r);
+    }
+  });
+
   // Stats
   var stats = ivoreyGetStats(ivoreyData);
 
@@ -289,55 +503,70 @@ function renderIvoreySubmissions() {
   h += '<span style="font-size:12px;color:#888;">' + filtered.length + ' of ' + ivoreyData.length + ' shown</span>';
   h += '</div>';
 
-  // Table
-  h += '<div style="overflow-x:auto;border-radius:10px;border:1px solid #eee;">';
+  // ── Table header helper ──
+  var colHeaders = ['Full Name', 'Email', 'Submitted', 'Paid?', 'Photos OK?', 'Assumed', 'Status', 'Date Sent', 'Season', 'Notes'];
+  var colWidths = ['140px', '', '100px', '100px', '120px', '130px', '120px', '90px', '130px', '180px'];
+
+  function buildTableHeader() {
+    var th = '<thead><tr style="background:#FAFAF8;">';
+    colHeaders.forEach(function(col, i) {
+      var arrow = '';
+      if (ivoreySort.col === i) {
+        arrow = ivoreySort.asc ? ' ▲' : ' ▼';
+      }
+      var widthStyle = colWidths[i] ? 'width:' + colWidths[i] + ';' : '';
+      th += '<th onclick="ivoreySetSort(' + i + ')" style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;white-space:nowrap;border-bottom:2px solid #eee;user-select:none;' + widthStyle + '">' + col + arrow + '</th>';
+    });
+    th += '</tr></thead>';
+    return th;
+  }
+
+  // ── Active submissions table ──
+  h += '<div style="overflow-x:auto;border-radius:10px;border:1px solid #eee;margin-bottom:24px;">';
   h += '<table class="ctable" style="width:100%;min-width:1200px;border-collapse:collapse;font-size:13px;">';
-
-  // Header
-  h += '<thead><tr style="background:#FAFAF8;">';
-  IVOREY_COLS.forEach(function(col, i) {
-    var arrow = '';
-    if (ivoreySort.col === i) {
-      arrow = ivoreySort.asc ? ' ▲' : ' ▼';
-    }
-    var shortLabel = col;
-    if (col === 'Photos confirmed as good to analyse?') shortLabel = 'Photos OK?';
-    if (col === 'Assumed season?') shortLabel = 'Assumed';
-    h += '<th onclick="ivoreySetSort(' + i + ')" style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;white-space:nowrap;border-bottom:2px solid #eee;user-select:none">' + shortLabel + arrow + '</th>';
-  });
-  h += '</tr></thead>';
-
-  // Body
+  h += buildTableHeader();
   h += '<tbody>';
-  if (sorted.length === 0) {
+
+  if (activeRows.length === 0 && sentRows.length === 0) {
     h += '<tr><td colspan="10" style="padding:30px;text-align:center;color:#aaa;">No matching submissions</td></tr>';
+  } else if (activeRows.length === 0) {
+    h += '<tr><td colspan="10" style="padding:20px;text-align:center;color:#aaa;font-size:12px;">All submissions have been sent</td></tr>';
   } else {
-    sorted.forEach(function(r, ri) {
-      h += '<tr style="border-bottom:1px solid #f0f0f0;' + (ri % 2 === 0 ? '' : 'background:#FDFDFB;') + '">';
-      // Full Name (col 0)
-      h += '<td style="padding:10px 12px;font-weight:600;white-space:nowrap;">' + ivoreyEsc(r[0]) + '</td>';
-      // Email (col 1)
-      h += '<td style="padding:10px 12px;color:#666;font-size:12px;">' + ivoreyEsc(r[1]) + '</td>';
-      // Photo Submission date (col 2)
-      h += '<td style="padding:10px 12px;white-space:nowrap;font-size:12px;">' + (r[2] ? ivoreyEsc(r[2]) : '<span style="color:#aaa">—</span>') + '</td>';
-      // PAID? (col 3)
-      h += '<td style="padding:10px 12px;">' + ivoreyPaidBadge(r[3]) + '</td>';
-      // Photos confirmed (col 4)
-      h += '<td style="padding:10px 12px;">' + ivoreyPhotoBadge(r[4]) + '</td>';
-      // Assumed season (col 5)
-      h += '<td style="padding:10px 12px;">' + ivoreySeasonBadge(r[5]) + '</td>';
-      // Status (col 6)
-      h += '<td style="padding:10px 12px;">' + ivoreyStatusBadge(r[6]) + '</td>';
-      // Date sent (col 7)
-      h += '<td style="padding:10px 12px;white-space:nowrap;font-size:12px;">' + (r[7] ? ivoreyEsc(r[7]) : '<span style="color:#aaa">—</span>') + '</td>';
-      // Season (col 8)
-      h += '<td style="padding:10px 12px;">' + ivoreySeasonBadge(r[8]) + '</td>';
-      // Notes (col 9)
-      h += '<td style="padding:10px 12px;font-size:12px;color:#666;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + ivoreyEsc(r[9]) + '">' + (r[9] ? ivoreyEsc(r[9]) : '<span style="color:#aaa">—</span>') + '</td>';
-      h += '</tr>';
+    activeRows.forEach(function(r, ri) {
+      h += ivoreyRenderRow(r, ri, false);
     });
   }
+
   h += '</tbody></table></div>';
+
+  // ── Sent submissions — collapsible section ──
+  if (sentRows.length > 0) {
+    var chevron = ivoreySentCollapsed ? '▶' : '▼';
+    h += '<div style="margin-bottom:24px;">';
+
+    // Header bar
+    h += '<div onclick="ivoreyToggleSent()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;'
+      + 'background:linear-gradient(135deg,#EDFBF2,#E8F8ED);border:1px solid #b6e2c4;border-radius:10px;cursor:pointer;user-select:none;'
+      + (ivoreySentCollapsed ? '' : 'border-bottom-left-radius:0;border-bottom-right-radius:0;')
+      + '">'
+      + '<span style="font-size:14px;color:#44AA66">' + chevron + '</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#2E8B4E;letter-spacing:.3px">✓ Sent to Client</span>'
+      + '<span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700;background:#44AA66;color:#fff">' + sentRows.length + '</span>'
+      + '</div>';
+
+    // Collapsible table
+    if (!ivoreySentCollapsed) {
+      h += '<div style="overflow-x:auto;border:1px solid #b6e2c4;border-top:none;border-radius:0 0 10px 10px;">';
+      h += '<table class="ctable" style="width:100%;min-width:1200px;border-collapse:collapse;font-size:13px;">';
+      h += '<tbody>';
+      sentRows.forEach(function(r, ri) {
+        h += ivoreyRenderRow(r, ri, true);
+      });
+      h += '</tbody></table></div>';
+    }
+
+    h += '</div>';
+  }
 
   panel.innerHTML = h;
 }

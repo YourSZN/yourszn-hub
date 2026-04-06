@@ -218,6 +218,11 @@
           <div class="cb" style="border-top:1px solid var(--warm);padding-top:12px">
             <div style="display:flex;gap:8px">
               <input class="fi" id="myhub-todo-inp" placeholder="Add a to-do…" style="flex:1" onkeydown="if(event.key==='Enter')myhubAddTodo()">
+              <select id="myhub-todo-tag" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #ddd;cursor:pointer;font-weight:700">
+                <option value="">No tag</option>
+                <option value="Urgent">URGENT</option>
+                <option value="Soon">SOON</option>
+              </select>
               <button class="btn btnp" onclick="myhubAddTodo()">Add</button>
             </div>
           </div>
@@ -275,7 +280,6 @@
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn clients-subtab on" id="cst-slots" onclick="showClientsTab('slots')">Appointment Slots</button>
         <button class="btn clients-subtab" id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
-      <button class="btn clients-subtab" id="cst-ivorey" onclick="showClientsTab('ivorey')">Ivorey Submissions</button>
       </div>
       <div id="clients-slots-panel">
       <div class="csumrow">
@@ -335,7 +339,6 @@
       </div>
       </div><!-- /clients-slots-panel -->
       <div id="clients-inperson-panel" style="display:none"></div>
-    <div id="clients-ivorey-panel" style="display:none"></div>
   </div>
 
     <!-- TASKS PAGE -->

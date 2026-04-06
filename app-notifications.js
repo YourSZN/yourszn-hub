@@ -25,7 +25,7 @@ async function notifFetch(path, opts) {
 async function notifPollSubmissions() {
   try {
     // Get all existing notifications
-    var existing = await notifFetch('notifications?select=submission_id,type');
+    var existing = await notifFetch('notifications?select=submission_id,type,client_email');
     if (!existing) existing = [];
 
     var existingMap = {};
@@ -91,6 +91,38 @@ async function notifPollSubmissions() {
               status: 'Not Addressed'
             });
           }
+        }
+      });
+    }
+
+    // --- Ivorey Submissions (from Google Sheets) ---
+    var existingIvoreyEmails = {};
+    existing.forEach(function(n) {
+      if (n.type === 'ivorey_submission' && n.client_email) {
+        existingIvoreyEmails[n.client_email.toLowerCase().trim()] = true;
+      }
+    });
+    var ivoreyRows = (typeof ivoreyData !== 'undefined' && ivoreyData.length > 0) ? ivoreyData : null;
+    if (!ivoreyRows) {
+      try {
+        var csvRes = await fetch('https://docs.google.com/spreadsheets/d/1j06xazCUHPFtfw9fcmU5cv8TvF3brvK_fMP2zHep1YY/gviz/tq?tqx=out:csv&gid=0');
+        if (csvRes.ok) {
+          var csvText = await csvRes.text();
+          if (typeof ivoreyParseCSV === 'function') {
+            ivoreyRows = ivoreyParseCSV(csvText);
+            if (ivoreyRows.length > 0) ivoreyRows.shift();
+          }
+        }
+      } catch(e) { /* silent */ }
+    }
+    if (ivoreyRows && ivoreyRows.length > 0) {
+      ivoreyRows.forEach(function(r) {
+        var name = (r[0] || '').trim();
+        var email = (r[1] || '').toLowerCase().trim();
+        if (!email) return;
+        if (!existingIvoreyEmails[email]) {
+          toInsert.push({ type: 'ivorey_submission', client_name: name || 'Unknown', client_email: email, message: (name || 'A client') + ' submitted a new Ivorey colour analysis', status: 'Not Addressed' });
+          existingIvoreyEmails[email] = true;
         }
       });
     }
@@ -250,6 +282,7 @@ function notifTypeLabel(type) {
   if (type === 'revised_images') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FFF3EB;color:#E07020">Revised Photos</span>';
   if (type === 'new_booking') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F0EBFF;color:#7C3AED">In-Person Booking</span>';
   if (type === 'booking_photos') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FFF3EB;color:#E07020">Booking Photos</span>';
+  if (type === 'ivorey_submission') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F5EDE4;color:#8B6914">Ivorey Submission</span>';
   return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F4F4F4;color:#888">' + type + '</span>';
 }
 
