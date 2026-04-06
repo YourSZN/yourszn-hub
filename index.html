@@ -275,6 +275,7 @@
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button class="btn clients-subtab on" id="cst-slots" onclick="showClientsTab('slots')">Appointment Slots</button>
         <button class="btn clients-subtab" id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
+      <button class="btn clients-subtab" id="cst-ivorey" onclick="showClientsTab('ivorey')">Ivorey Submissions</button>
       </div>
       <div id="clients-slots-panel">
       <div class="csumrow">
@@ -334,7 +335,8 @@
       </div>
       </div><!-- /clients-slots-panel -->
       <div id="clients-inperson-panel" style="display:none"></div>
-    </div>
+    <div id="clients-ivorey-panel" style="display:none"></div>
+  </div>
 
     <!-- TASKS PAGE -->
     <div class="page" id="pg-tasks">
@@ -1998,6 +2000,7 @@
     </div>
   </div>
 <script src="app-in-person.js"></script>
+<script src="app-ivorey.js"></script>
 <script src="comms-fix-v39.js"></script>
 <script src="unified-calendar.js"></script>
 <script src="comms-fix-daily.js"></script>
