@@ -153,13 +153,20 @@
           </div>
         </div>
         <div class="card">
-          <div class="ch"><div class="ct">Priority To-Dos</div><span class="badge" id="todo-ct">5</span></div>
-          <div class="cb scrl" id="dash-todos">
-            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Finalise corporate pricing structure</div><span class="ttag tu">Urgent</span></div>
-            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Decide call-out pricing</div><span class="ttag tu">Urgent</span></div>
-            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Build ManyChat DM funnel (COLOUR trigger)</div><span class="ttag ts">Soon</span></div>
-            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Email leather team re: belts</div><span class="ttag tu">Urgent</span></div>
-            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Set up 3-email post-analysis sequence</div><span class="ttag ts">Soon</span></div>
+          <div class="ch"><div class="ct">Priority To-Dos</div><span class="badge" id="myhub-todo-badge">0</span></div>
+          <div class="cb scrl" id="myhub-todos" style="max-height:220px;overflow-y:auto">
+            <div style="color:var(--muted);font-size:13px;padding:6px 0">Loading…</div>
+          </div>
+          <div class="cb" style="border-top:1px solid var(--warm);padding-top:12px">
+            <div style="display:flex;gap:8px">
+              <input class="fi" id="myhub-todo-inp" placeholder="Add a to-do…" style="flex:1" onkeydown="if(event.key==='Enter')myhubAddTodo()">
+              <select id="myhub-todo-tag" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #ddd;cursor:pointer;font-weight:700">
+                <option value="">No tag</option>
+                <option value="Urgent">URGENT</option>
+                <option value="Soon">SOON</option>
+              </select>
+              <button class="btn btnp" onclick="myhubAddTodo()">Add</button>
+            </div>
           </div>
         </div>
       </div>
@@ -210,21 +217,6 @@
           <div class="ch"><div class="ct">Task Progress — This Week</div></div>
           <div class="cb" id="myhub-progress">
             <div style="color:var(--muted);font-size:13px">Loading…</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">Priority To-Dos</div><span class="badge" id="myhub-todo-badge">0</span></div>
-          <div class="cb scrl" id="myhub-todos" style="max-height:220px;overflow-y:auto"></div>
-          <div class="cb" style="border-top:1px solid var(--warm);padding-top:12px">
-            <div style="display:flex;gap:8px">
-              <input class="fi" id="myhub-todo-inp" placeholder="Add a to-do…" style="flex:1" onkeydown="if(event.key==='Enter')myhubAddTodo()">
-              <select id="myhub-todo-tag" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #ddd;cursor:pointer;font-weight:700">
-                <option value="">No tag</option>
-                <option value="Urgent">URGENT</option>
-                <option value="Soon">SOON</option>
-              </select>
-              <button class="btn btnp" onclick="myhubAddTodo()">Add</button>
-            </div>
           </div>
         </div>
       </div>
