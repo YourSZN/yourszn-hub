@@ -91,7 +91,7 @@ function ivoreyFetchData(cb) {
     .catch(function(err) {
       ivoreyLoading = false;
       console.error('Ivorey fetch error:', err);
-      var panel = document.getElementById('clients-ivorey-panel');
+      var panel = document.getElementById('oca-content');
       if (panel) {
         panel.innerHTML =
           '<div class="cwrap" style="padding:40px;text-align:center;">' +
@@ -231,7 +231,7 @@ function ivoreyGetStats(data) {
 // ── Render ──────────────────────────────────────────────────
 
 function renderIvoreySubmissions() {
-  var panel = document.getElementById('clients-ivorey-panel');
+  var panel = document.getElementById('oca-content');
   if (!panel) return;
 
   if (ivoreyLoading) {
