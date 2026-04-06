@@ -367,60 +367,7 @@
         <div id="hidden-box-staff" style="display:none;margin-top:24px"></div>
       </div>
 
-      <!-- ── OWNER TASK MODAL (full edit) ── -->
-      <div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:500;align-items:center;justify-content:center;">
-        <div style="background:white;border-radius:16px;padding:32px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
-          <button onclick="closeTaskModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">&#215;</button>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--deep);margin-bottom:22px" id="modal-title">New Task</div>
-          <input type="hidden" id="modal-task-id">
-          <div class="frow">
-            <div class="fg"><label class="fl">Title</label><input class="fi" id="mt-title" placeholder="Task title"></div>
-            <div class="fg"><label class="fl">Assigned To</label>
-              <select class="fsel" id="mt-assign"><option value="latisha">Latisha</option><option value="salma">Salma</option><option value="lemari">Lemari</option></select>
-            </div>
-          </div>
-          <div class="frow">
-            <div class="fg"><label class="fl">Category</label>
-              <select class="fsel" id="mt-cat"><option>Admin</option><option>Content</option><option>Customer Support</option><option>Links</option><option>Operations</option><option>Marketing</option><option>Other</option></select>
-            </div>
-            <div class="fg"><label class="fl">Frequency</label>
-              <select class="fsel" id="mt-freq" onchange="toggleWeekPicker()">
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="one-off">One-off (specific week)</option>
-              </select>
-            </div>
-          </div>
-          <div class="frow">
-            <div class="fg"><label class="fl">Due Day</label><input class="fi" id="mt-due" placeholder="e.g. Monday"></div>
-            <div class="fg" id="mt-weekpicker-wrap" style="display:none">
-              <label class="fl">Week of (Monday)</label>
-              <input class="fi" id="mt-weekdate" type="date">
-            </div>
-            <div class="fg"><label class="fl">Priority</label>
-              <select class="fsel" id="mt-priority"><option value="red">&#128308; High / Urgent</option><option value="orange">&#128992; Medium</option><option value="green">&#128994; Low</option></select>
-            </div>
-          </div>
-          <div class="frow">
-            <div class="fg"><label class="fl">Hours Allowed</label><input class="fi" id="mt-hrs" type="number" step="0.5" placeholder="e.g. 2"></div>
-            <div class="fg"><label class="fl">Status</label>
-              <select class="fsel" id="mt-status"><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="waiting">Waiting</option><option value="done">Done</option><option value="blocked">Blocked</option></select>
-            </div>
-          </div>
-          <div class="fg" style="margin-bottom:12px"><label class="fl">Description / Instructions</label><textarea class="fi" id="mt-desc" rows="3" placeholder="Instructions for this task…" style="resize:vertical"></textarea></div>
-          <div class="frow">
-            <div class="fg"><label class="fl">Training Video URL</label><input class="fi" id="mt-video" placeholder="https://..."></div>
-            <div class="fg"><label class="fl">File / Resource URL</label><input class="fi" id="mt-file" placeholder="https://..."></div>
-          </div>
-          <div class="fg" style="margin-bottom:20px"><label class="fl">Notes</label><textarea class="fi" id="mt-notes" rows="2" placeholder="Additional notes…" style="resize:vertical"></textarea></div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <button class="btn btnp" onclick="saveTask()">Save Task</button>
-            <button class="btn btns" onclick="closeTaskModal()">Cancel</button>
-            <span style="flex:1"></span>
-            <button class="btn" id="modal-del-btn" onclick="deleteTask()" style="background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA;display:none">Delete</button>
-          </div>
-        </div>
-      </div>
+   
 
       <!-- ── STAFF UPDATE MODAL (status / hours / notes only) ── -->
       <div id="staff-task-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:500;align-items:center;justify-content:center;">
@@ -2056,5 +2003,59 @@
 <script src="comms-fix-daily.js"></script>
 <script src="comms-fix-hidden.js"></script>
 <script src="client-day-colours.js"></script>
+   <!-- ── OWNER TASK MODAL (full edit) ── -->
+      <div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:500;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:16px;padding:32px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
+          <button onclick="closeTaskModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">&#215;</button>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--deep);margin-bottom:22px" id="modal-title">New Task</div>
+          <input type="hidden" id="modal-task-id">
+          <div class="frow">
+            <div class="fg"><label class="fl">Title</label><input class="fi" id="mt-title" placeholder="Task title"></div>
+            <div class="fg"><label class="fl">Assigned To</label>
+              <select class="fsel" id="mt-assign"><option value="latisha">Latisha</option><option value="salma">Salma</option><option value="lemari">Lemari</option></select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Category</label>
+              <select class="fsel" id="mt-cat"><option>Admin</option><option>Content</option><option>Customer Support</option><option>Links</option><option>Operations</option><option>Marketing</option><option>Other</option></select>
+            </div>
+            <div class="fg"><label class="fl">Frequency</label>
+              <select class="fsel" id="mt-freq" onchange="toggleWeekPicker()">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="one-off">One-off (specific week)</option>
+              </select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Due Day</label><input class="fi" id="mt-due" placeholder="e.g. Monday"></div>
+            <div class="fg" id="mt-weekpicker-wrap" style="display:none">
+              <label class="fl">Week of (Monday)</label>
+              <input class="fi" id="mt-weekdate" type="date">
+            </div>
+            <div class="fg"><label class="fl">Priority</label>
+              <select class="fsel" id="mt-priority"><option value="red">&#128308; High / Urgent</option><option value="orange">&#128992; Medium</option><option value="green">&#128994; Low</option></select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Hours Allowed</label><input class="fi" id="mt-hrs" type="number" step="0.5" placeholder="e.g. 2"></div>
+            <div class="fg"><label class="fl">Status</label>
+              <select class="fsel" id="mt-status"><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="waiting">Waiting</option><option value="done">Done</option><option value="blocked">Blocked</option></select>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:12px"><label class="fl">Description / Instructions</label><textarea class="fi" id="mt-desc" rows="3" placeholder="Instructions for this task…" style="resize:vertical"></textarea></div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Training Video URL</label><input class="fi" id="mt-video" placeholder="https://..."></div>
+            <div class="fg"><label class="fl">File / Resource URL</label><input class="fi" id="mt-file" placeholder="https://..."></div>
+          </div>
+          <div class="fg" style="margin-bottom:20px"><label class="fl">Notes</label><textarea class="fi" id="mt-notes" rows="2" placeholder="Additional notes…" style="resize:vertical"></textarea></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btnp" onclick="saveTask()">Save Task</button>
+            <button class="btn btns" onclick="closeTaskModal()">Cancel</button>
+            <span style="flex:1"></span>
+            <button class="btn" id="modal-del-btn" onclick="deleteTask()" style="background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA;display:none">Delete</button>
+          </div>
+        </div>
+      </div>
 </body>
 </html>
