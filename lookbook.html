@@ -1106,20 +1106,31 @@ function downloadClientReport() {
     photos.forEach(p => photoMap[p.slot] = p);
     const adminNote = (item.inspiration_admin_notes || [])[0] || { status: 'New', notes: '' };
 
-    // Photos — 2-column layout, larger images
-    let photosHtml = ['front','back','side_left','side_right'].map(slot => {
+    // Photos — front/back large, side views smaller
+    var frontBack = ['front','back'].map(slot => {
       const p = photoMap[slot];
       const label = slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
       if (p) {
-        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;max-height:240px;object-fit:contain;border-radius:8px;margin-bottom:6px;background:#F7F4F0"><div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;text-align:center">' + label + '</div></div>';
+        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:280px;object-fit:contain;border-radius:8px;margin-bottom:4px;background:#F7F4F0"><div style="font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;text-align:center">' + label + '</div></div>';
       }
-      return '<div><div style="height:180px;background:#F7F4F0;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px dashed #DDD5CC"><span style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#C5BAB0">' + label + '</span></div></div>';
+      return '<div><div style="height:280px;background:#F7F4F0;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px dashed #DDD5CC"><span style="font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#C5BAB0">' + label + '</span></div></div>';
     }).join('');
+
+    var sideViews = ['side_left','side_right'].map(slot => {
+      const p = photoMap[slot];
+      const label = slot.replace('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+      if (p) {
+        return '<div><img src="' + photoUrl(p.storage_path) + '" style="width:100%;height:160px;object-fit:contain;border-radius:6px;margin-bottom:4px;background:#F7F4F0"><div style="font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;text-align:center">' + label + '</div></div>';
+      }
+      return '<div><div style="height:160px;background:#F7F4F0;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px dashed #DDD5CC"><span style="font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:#C5BAB0">' + label + '</span></div></div>';
+    }).join('');
+
+    var photosHtml = frontBack + sideViews;
 
     // Prompts — two-column grid for details
     function pf(label, val) {
       if (!val) return '';
-      return '<div style="margin-bottom:14px"><div style="font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;margin-bottom:4px">' + label + '</div><div style="font-size:12px;color:#3C3229;line-height:1.6">' + val + '</div></div>';
+      return '<div style="margin-bottom:8px"><div style="font-size:7px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#7A6E62;margin-bottom:2px">' + label + '</div><div style="font-size:11px;color:#3C3229;line-height:1.4">' + val + '</div></div>';
     }
 
     const promptsArr = [
@@ -1148,7 +1159,7 @@ function downloadClientReport() {
     // Photos grid
     itemsHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">' + photosHtml + '</div>';
     // Prompts in two columns
-    itemsHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px;padding:16px 20px;background:#FDFCFA;border-radius:10px;border:1px solid #F0ECE6">' + col1 + col2 + '</div>';
+    itemsHtml += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;padding:12px 16px;background:#FDFCFA;border-radius:8px;border:1px solid #F0ECE6">' + col1 + col2 + '</div>';
     // Quantity & Colours
     var qty = item.quantity || 1;
     var itemColours = item.inspiration_item_colours || [];
