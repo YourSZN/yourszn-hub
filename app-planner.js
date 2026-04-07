@@ -3,27 +3,7 @@
 // ════════════════════════════════════════════════════════
 var tourTaskIdSeq = 100;
 var editingTourId = null;
-var tours = [
-  { id:'t1', city:'Cairns', state:'QLD', status:'upcoming',
-    travelDateStart:'2026-03-05', travelDateEnd:'2026-03-10',
-    clientDateStart:'2026-03-06', clientDateEnd:'2026-03-09',
-    flights:[
-      {id:'f1',airline:'Qantas',flightNo:'QF123',dep:'BNE 06:00',arr:'CNS 09:15',cost:320},
-      {id:'f2',airline:'Qantas',flightNo:'QF124',dep:'CNS 17:00',arr:'BNE 20:10',cost:310}
-    ],
-    accommodation:{name:'Crystalbrook Riley',address:'131-141 The Esplanade, Cairns',checkin:'2026-03-05',checkout:'2026-03-10',cost:890},
-    bookings:{standard:8,premium:3,standardRate:349,premiumRate:445},
-    activeTab:'flights',
-    isOpen:false,
-    tasks:[
-      {id:'tt1',text:'Book flights',status:'done',notes:''},
-      {id:'tt2',text:'Book hotel',status:'done',notes:''},
-      {id:'tt3',text:'Confirm venue',status:'todo',notes:''},
-      {id:'tt4',text:'Send reminder emails to clients',status:'todo',notes:''},
-      {id:'tt5',text:'Pack drapes and kit',status:'todo',notes:''}
-    ]
-  }
-];
+var tours = [];
 
 function fmtTourDate(d) {
   if (!d) return '\u2014';
