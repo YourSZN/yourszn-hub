@@ -293,26 +293,26 @@ function switchTourTab(tourId, tab) {
   var active = document.getElementById('ttp-' + tourId + '-' + tab);
   if (active) active.classList.add('on');
   var tabEls = document.querySelectorAll('#tour-card-' + tourId + ' .tour-tab');
-  tabEls.forEach(function(el){ el.classList.remove('on'); if(el.textContent.includes(tab.charAt(0).toUpperCase()||tab)) el.classList.toggle('on', el.onclick&&el.onclick.toString().includes("'"+tab+"'")); });
+  tabEls.forEach(function(el){ el.classList.remove('on'); if(el.onclick&&el.onclick.toString().includes("'"+tab+"'")); });
   // Re-render just this card to keep tabs in sync
   renderToursPage();
 }
 function updateTourRev(id,field,val) { updateBooking(id,field,val); }
 function updateBooking(id,field,val) {
   var t = tours.find(function(x){return x.id===id;}); if (!t) return;
-  t.bookings[field] = parseFloat(val)||0; renderToursPage();
+  t.bookings[field] = parseFloat(val)||0; saveData(); renderToursPage();
 }
 function cycleTourTask(tourId,taskId) {
   var t  = tours.find(function(x){return x.id===tourId;});  if (!t)  return;
   var tk = t.tasks.find(function(x){return x.id===taskId;}); if (!tk) return;
   var c  = ['todo','in-progress','done'];
   tk.status = c[(c.indexOf(tk.status)+1)%c.length];
-  renderToursPage();
+  saveData(); renderToursPage();
 }
 function deleteTourTask(tourId,taskId) {
   var t = tours.find(function(x){return x.id===tourId;}); if (!t) return;
   t.tasks = t.tasks.filter(function(tk){return tk.id!==taskId;});
-  renderToursPage();
+  saveData(); renderToursPage();
 }
 
 function openTourModal() { openTourEditModal(null); }
@@ -359,7 +359,7 @@ function saveTourEdit() {
 function deleteTour() {
   if (!editingTourId||!confirm('Delete this tour?')) return;
   tours = tours.filter(function(t){return t.id!==editingTourId;});
-  closeTourEditModal(); renderToursPage();
+  closeTourEditModal(); saveData(); renderToursPage();
 }
 
 var editingFlightTourId=null, editingFlightIdx=null;
@@ -394,12 +394,12 @@ function saveFlight() {
   var t = tours.find(function(x){return x.id===editingFlightTourId;}); if (!t) return;
   var obj = {id:'f'+Date.now(),airline:airline,flightNo:document.getElementById('flt-no').value.trim(),dep:document.getElementById('flt-dep').value.trim(),arr:document.getElementById('flt-arr').value.trim(),cost:parseFloat(document.getElementById('flt-cost').value)||0};
   if (editingFlightIdx!==null&&editingFlightIdx>=0) t.flights[editingFlightIdx]=obj; else t.flights.push(obj);
-  closeFlightModal(); renderToursPage();
+  closeFlightModal(); saveData(); renderToursPage();
 }
 function deleteFlight() {
   if (!confirm('Remove this flight?')) return;
   var t = tours.find(function(x){return x.id===editingFlightTourId;}); if (!t) return;
-  t.flights.splice(editingFlightIdx,1); closeFlightModal(); renderToursPage();
+  t.flights.splice(editingFlightIdx,1); closeFlightModal(); saveData(); renderToursPage();
 }
 
 var editingAccTourId=null;
@@ -485,7 +485,7 @@ function closeAccModal() { document.getElementById('acc-modal').style.display='n
 function saveAcc() {
   var t = tours.find(function(x){return x.id===editingAccTourId;}); if (!t) return;
   t.accommodation={name:document.getElementById('acc-name').value.trim(),address:document.getElementById('acc-address').value.trim(),checkin:document.getElementById('acc-checkin').value,checkout:document.getElementById('acc-checkout').value,cost:parseFloat(document.getElementById('acc-cost').value)||0};
-  closeAccModal(); renderToursPage();
+  closeAccModal(); saveData(); renderToursPage();
 }
 
 var editingTaskTourId=null;
@@ -504,7 +504,7 @@ function saveTourTask() {
   if (!text) { document.getElementById('ttm-err').textContent='Task text is required.'; return; }
   var t = tours.find(function(x){return x.id===editingTaskTourId;}); if (!t) return;
   t.tasks.push({id:'tt'+(tourTaskIdSeq++),text:text,status:document.getElementById('ttm-status').value,notes:document.getElementById('ttm-notes').value.trim()});
-  closeTourTaskModal(); renderToursPage();
+  closeTourTaskModal(); saveData(); renderToursPage();
 }
 
 // ════════════════════════════════════════════════════════
@@ -1364,7 +1364,7 @@ function toggleAdExpand(id) { adExpanded[id] = !adExpanded[id]; renderAdList(); 
 
 function markAdUsed(id) {
   var a = adData.find(function(x) { return x.id === id; }); if (!a) return;
-  a.status = 'active'; renderAdCreativePage();
+  a.status = 'active'; saveData(); renderAdCreativePage();
 }
 
 function openAdModal(id) {
@@ -1421,12 +1421,12 @@ function saveAd() {
   };
   var idx = adData.findIndex(function(x) { return x.id === obj.id; });
   if (idx > -1) adData[idx] = obj; else adData.push(obj);
- closeAdModal(); saveData(); renderAdCreativePage();
+  closeAdModal(); saveData(); renderAdCreativePage();
 }
 function deleteAd() {
   if (!editingAdId || !confirm('Delete this ad?')) return;
   adData = adData.filter(function(a) { return a.id !== editingAdId; });
-closeAdModal(); saveData(); renderAdCreativePage();
+  closeAdModal(); saveData(); renderAdCreativePage();
 }
 function handleAdCreativeUpload(input) {
   if (!input.files || !input.files[0]) return;
@@ -1631,4 +1631,3 @@ function showCommsTab(tab, btn) {
     commsNavBadge();
   }
 }
-
