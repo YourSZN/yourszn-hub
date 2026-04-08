@@ -10,7 +10,7 @@ function ipFixHeicImg(img) {
   fetch(img.src)
     .then(function(res) { return res.blob(); })
     .then(function(blob) {
-      return heic2any({ blob: blob, toType: 'image/jpeg', quality: 0.85 });
+      return HeicTo({ blob: blob, type: 'image/jpeg', quality: 0.85 });
     })
     .then(function(jpegBlob) {
       img.src = URL.createObjectURL(jpegBlob);
@@ -875,7 +875,7 @@ async function ipUploadPhoto(file, personId, bookingId) {
     var fileName = file.name.toLowerCase();
     if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
       try {
-        var jpegBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+        var jpegBlob = await HeicTo({ blob: file, type: 'image/jpeg', quality: 0.85 });
         file = new File([jpegBlob], file.name.replace(/\.heic|\.heif/i, '.jpg'), { type: 'image/jpeg' });
       } catch (heicErr) {
         console.warn('HEIC conversion failed, uploading original:', heicErr);
