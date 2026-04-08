@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your SZN — Photo Upload</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <style>
   :root {
     --cream: #FAF7F2; --warm: #F5F0E8; --sand: #E0D5C5;
@@ -481,9 +482,18 @@ function cuTriggerUpload(idx) {
   document.getElementById('cu-file-' + idx).click();
 }
 
-function cuFileSelected(idx, input) {
+async function cuFileSelected(idx, input) {
   var file = input.files[0];
   if (!file) return;
+  var fname = file.name.toLowerCase();
+  /* Convert HEIC/HEIF to JPEG for browser compatibility */
+  if (fname.endsWith('.heic') || fname.endsWith('.heif') || file.type === 'image/heic' || file.type === 'image/heif') {
+    try {
+      var blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+      if (Array.isArray(blob)) blob = blob[0];
+      file = new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+    } catch(ce) { console.warn('HEIC conversion failed, uploading original:', ce); }
+  }
   cuPersons[idx]._file = file;
   var reader = new FileReader();
   reader.onload = function(e) {
