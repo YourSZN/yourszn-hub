@@ -1,7 +1,24 @@
 /* ============================================================
    app-in-person.js  —  In-Person Clients Feature
    ============================================================ */
+// --- HEIC display fix for Chrome ---
 
+function ipFixHeicImg(img) {
+  if (!img || !img.src) return;
+  var src = img.src.toLowerCase();
+  if (src.indexOf('.heic') === -1 && src.indexOf('.heif') === -1) return;
+  fetch(img.src)
+    .then(function(res) { return res.blob(); })
+    .then(function(blob) {
+      return heic2any({ blob: blob, toType: 'image/jpeg', quality: 0.85 });
+    })
+    .then(function(jpegBlob) {
+      img.src = URL.createObjectURL(jpegBlob);
+    })
+    .catch(function(err) {
+      console.warn('HEIC fix failed:', err);
+    });
+}
 var IP_SEASONS = [
   'Bright Spring','Bright Winter','Dark Autumn','Dark Winter',
   'Light Spring','Light Summer','Soft Autumn','Soft Summer',
@@ -352,6 +369,9 @@ function ipRenderFilteredList(query) {
   }
 
   panel.innerHTML = html;
+  // Fix HEIC thumbnails on person cards
+    var thumbImgs = panel.querySelectorAll('img');
+    thumbImgs.forEach(function(img) { ipFixHeicImg(img); });
 
   /* Restore focus to search if typing */
   if (q) {
@@ -686,6 +706,9 @@ function ipRenderContrast(photoUrl) {
   }).join('');
 
   preview.innerHTML = photoHtml + tagHtml;
+  // Fix HEIC display in contrast analyser
+    var caImg = preview.querySelector('img');
+    if (caImg) ipFixHeicImg(caImg);
 
   /* Slider controls (card-style, matching existing) */
   controls.innerHTML = Object.keys(ipCTags).map(function(key) {
@@ -848,6 +871,16 @@ function ipTouchEnd() {
 
 async function ipUploadPhoto(file, personId, bookingId) {
   if (!file) return;
+  // Convert HEIC to JPEG before uploading
+    var fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
+      try {
+        var jpegBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+        file = new File([jpegBlob], file.name.replace(/\.heic|\.heif/i, '.jpg'), { type: 'image/jpeg' });
+      } catch (heicErr) {
+        console.warn('HEIC conversion failed, uploading original:', heicErr);
+      }
+    }
   var db = getSupa(); if (!db) return;
 
   var path = 'booking_' + bookingId + '/person_' + personId + '_' + Date.now() + '.jpg';
