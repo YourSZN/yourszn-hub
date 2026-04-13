@@ -1,11 +1,12 @@
 /**
- * comms-fix.js v37
+ * comms-fix.js v39
  * v16 core: DM + Group + Hidden tasks UNCHANGED
  * v24: Floating panel task table approach
  * v33: safeId lookup fix for UUID task IDs
  * v34: Permanent delete with blacklist
  * v37: Fix hidden task weekly reset — correct DOM selector for date label
- *      format is "This Week — 23 Mar to 29 Mar" / "Next Week — 30 Mar to 5 Apr"
+ * v39: All v24 task reads/writes go through getTS/setTS for week-aware state
+ *      — buildSelect, buildNoteBtn, openPanel, doPatch, __v24_status, __v24_saveNote
  */
 (function () {
   'use strict';
@@ -223,10 +224,10 @@
           entry.weekLabel = getCurrentWeekLabel();
           delete entry.weekOffset;
           delete entry.weekNumber;
-          console.log('[comms-fix] v47: tagged task', taskId, 'with weekLabel:', entry.weekLabel);
+          console.log('[comms-fix] v39: tagged task', taskId, 'with weekLabel:', entry.weekLabel);
           if (typeof window.saveData === 'function') window.saveData();
         } else {
-          console.log('[comms-fix] v47: WARNING - could not find hidden task entry for', taskId);
+          console.log('[comms-fix] v39: WARNING - could not find hidden task entry for', taskId);
         }
       }, 150);
       return r;
@@ -239,10 +240,6 @@
       if (current !== lastLabel) {
         lastLabel = current;
         if (typeof window.renderHiddenBox === 'function') window.renderHiddenBox();
-        // v37b: removed to prevent status flicker
-        
-        
-        
       }
     }, 500);
   }
@@ -277,7 +274,7 @@
       
       return result;
     };
-    console.log('[comms-fix] v47: patched buildTaskTablesHTML for week-aware hiding');
+    console.log('[comms-fix] v39: patched buildTaskTablesHTML for week-aware hiding');
   }
 
   var ST = [{ v: 'not-started', l: 'Not Started', bg: '#f0f0f0', c: '#666' },{ v: 'in-progress', l: 'In Progress', bg: '#fff3e0', c: '#e65100' },{ v: 'blocked', l: 'Blocked', bg: '#fdecea', c: '#c62828' },{ v: 'complete', l: 'Complete', bg: '#e8f5e9', c: '#2e7d32' }];
@@ -285,6 +282,38 @@
   function stCfg(v) { var val = (v || 'not-started').toLowerCase(); var found = null; ST.forEach(function(o) { if (o.v === val) found = o; }); return found || ST[0]; }
   function safeId(id) { return String(id).replace(/[^a-zA-Z0-9_]/g, '_'); }
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ── v39: Week-aware task state helpers ─────────────────────────────────
+  // Delegates to app.js getTS/setTS if available; falls back to direct read/write
+  function getCurWeekOff() {
+    if (window.curUser === 'latisha') return window.taskWeekOff || 0;
+    return window.staffTaskWeekOff || 0;
+  }
+  function v24getTS(task) {
+    if (typeof window.getTS === 'function') {
+      var result = window.getTS(task, getCurWeekOff());
+      // getTS doesn't return 'notes' (owner notes) — supplement it
+      if (result.notes === undefined) result.notes = task.notes || '';
+      return result;
+    }
+    // Fallback: read directly from task object
+    return {
+      status: task.status || 'not-started',
+      hrsTaken: task.hrsTaken || 0,
+      staffNotes: task.staffNotes || task.staff_notes || '',
+      notes: task.notes || ''
+    };
+  }
+  function v24setTS(task, field, value) {
+    if (typeof window.setTS === 'function') {
+      window.setTS(task, getCurWeekOff(), field, value);
+      return;
+    }
+    // Fallback: write directly to task object
+    task[field] = value;
+    if (field === 'staffNotes') task.staff_notes = value;
+  }
+  // ── END v39 helpers ───────────────────────────────────────────────────
 
   function injectCSS() {
     if (document.getElementById('v24css')) return;
@@ -295,21 +324,24 @@
   function getOrCreatePanel() { var p = document.getElementById('v24panel'); if (!p) { p = document.createElement('div'); p.id = 'v24panel'; p.style.display = 'none'; document.body.appendChild(p); } return p; }
   function closePanel() { var p = document.getElementById('v24panel'); if (p) p.style.display = 'none'; openPanelSid = null; }
 
+  // v39: __v24_status now writes via v24setTS (week-aware)
   window.__v24_status = function(taskSid, newVal, sel) {
     var t = null; (window.tasks || []).forEach(function(x) { if (safeId(x.id) === taskSid) t = x; });
-    if (!t) return; t.status = newVal; var cfg = stCfg(newVal);
+    if (!t) return; v24setTS(t, 'status', newVal); var cfg = stCfg(newVal);
     sel.style.background = cfg.bg; sel.style.color = cfg.c; sel.style.borderColor = cfg.c;
     if (typeof window.saveData === 'function') window.saveData();
   };
+  // v39: __v24_saveNote now writes via v24setTS (week-aware)
   window.__v24_saveNote = function(sid, noteSid) {
     var t = null; (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) t = x; });
     if (!t) return; var ta = document.getElementById('v24ta' + noteSid); if (!ta) return;
     var noteVal = ta.value.trim();
-    if ((window.curUser || '').toLowerCase() === 'latisha') { t.notes = noteVal; } else { t.staffNotes = noteVal; t.staff_notes = noteVal; }
+    if ((window.curUser || '').toLowerCase() === 'latisha') { v24setTS(t, 'notes', noteVal); } else { v24setTS(t, 'staffNotes', noteVal); }
     if (typeof window.saveData === 'function') window.saveData();
     var btn = document.getElementById('v24nb' + sid);
     if (btn) { btn.textContent = 'Saved \u2713'; setTimeout(function() { btn.textContent = 'Save Note'; }, 1500); }
   };
+  // v39: __v24_openPanel now reads via v24getTS (week-aware)
   window.__v24_openPanel = function(sid, anchorEl) {
     if (openPanelSid === sid) { closePanel(); return; } openPanelSid = sid;
     var task = null; (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) task = x; });
@@ -318,21 +350,22 @@
     var desc = task.desc || task.description || '';
     var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
     var file = task.fileUrl || task.file_url || '';
-    var myNote = isLatisha ? (task.notes || '') : (task.staffNotes || task.staff_notes || '');
+    var _ts = v24getTS(task);
+    var myNote = isLatisha ? (_ts.notes || '') : (_ts.staffNotes || '');
     var html = '<button class="v24-close" onclick="__v24_closePanel()">\u00d7</button>';
     html += '<div style="font-weight:700;font-size:14px;margin-bottom:12px;padding-right:20px">' + esc(task.title || '') + '</div>';
     if (desc) html += '<div class="v24-lbl">Instructions</div><div class="v24-val">' + esc(desc) + '</div>';
     if (video) html += '<div class="v24-lbl">Training Video</div><div class="v24-val"><a href="' + esc(video) + '" target="_blank" style="color:#b5785a">' + esc(video) + '</a></div>';
     if (file) html += '<div class="v24-lbl">File / Resource</div><div class="v24-val"><a href="' + esc(file) + '" target="_blank" style="color:#b5785a">' + esc(file) + '</a></div>';
     if (isLatisha) {
-      html += '<div class="v24-lbl">My Notes (Owner)</div><textarea id="v24ta' + sid + '">' + esc(task.notes || '') + '</textarea>';
+      html += '<div class="v24-lbl">My Notes (Owner)</div><textarea id="v24ta' + sid + '">' + esc(_ts.notes || '') + '</textarea>';
       html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
-      var sN = task.staffNotes || task.staff_notes || '';
+      var sN = _ts.staffNotes || '';
       if (sN) { var asg = task.assignedTo || task.assigned_to || 'Staff'; html += '<div class="v24-lbl" style="margin-top:14px">Note from ' + esc(asg) + '</div><div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(sN) + '</div>'; }
     } else {
       html += '<div class="v24-lbl">My Notes</div><textarea id="v24ta' + sid + '">' + esc(myNote) + '</textarea>';
       html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
-      var oN = task.notes || '';
+      var oN = _ts.notes || '';
       if (oN) { html += '<div class="v24-lbl" style="margin-top:14px">Note from Latisha (Owner)</div><div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(oN) + '</div>'; }
     }
     html += '<button class="v24-delete" onclick="__v24_deleteTask(\'' + sid + '\')">\uD83D\uDDD1 Delete permanently</button>';
@@ -376,19 +409,21 @@
     if (window.hiddenTasks && window.hiddenTasks[String(task.id)]) delete window.hiddenTasks[String(task.id)];
     if (typeof window.saveData === 'function') window.saveData();
     closePanel();
-    // v37b: removed to prevent status flicker
     setTimeout(doPatch, 100);
   };
 
+  // v39: buildSelect now reads status via v24getTS (week-aware)
   function buildSelect(task) {
-    var cfg = stCfg(task.status);
+    var _ts = v24getTS(task);
+    var cfg = stCfg(_ts.status);
     var st = 'background:' + cfg.bg + ';color:' + cfg.c + ';border:1px solid ' + cfg.c + ';padding:3px 7px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;outline:none;width:100%;max-width:120px;';
-    var sid = safeId(task.id); var opts = ''; var curVal = (task.status || 'not-started').toLowerCase();
+    var sid = safeId(task.id); var opts = ''; var curVal = (_ts.status || 'not-started').toLowerCase();
     ST.forEach(function(o) { opts += '<option value="' + o.v + '"' + (o.v === curVal ? ' selected' : '') + '>' + o.l + '</option>'; });
     return '<select data-v24s="1" style="' + st + '" onchange="__v24_status(\'' + sid + '\',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
   }
+  // v39: buildNoteBtn now checks notes via v24getTS (week-aware)
   function buildNoteBtn(task) {
-    var sid = safeId(task.id); var hasNote = !!(task.staffNotes || task.staff_notes || task.notes);
+    var sid = safeId(task.id); var _ts = v24getTS(task); var hasNote = !!(_ts.staffNotes || _ts.notes);
     return '<button class="v24-notes-btn" onclick="__v24_openPanel(\'' + sid + '\',this);event.stopPropagation()">' + (hasNote ? '\uD83D\uDCDD Note' : '+ Note') + '</button>';
   }
 
@@ -421,18 +456,21 @@
         for (var xi = 0; xi < (window.tasks || []).length; xi++) { if ((window.tasks[xi].title || '').trim() === titleText) tm.push(window.tasks[xi]); }
         if (tm.length === 0) continue;
         if (tm.length === 1) { task = tm[0]; } else {
-          for (var mi = 0; mi < tm.length; mi++) { var ts = (tm[mi].status || 'not-started').toLowerCase(); if (ts === curStatusText || curStatusText.indexOf(ts.replace(/-/g,'')) > -1) { task = tm[mi]; break; } }
+          // v39: use v24getTS for disambiguation
+          for (var mi = 0; mi < tm.length; mi++) { var ts = (v24getTS(tm[mi]).status || 'not-started').toLowerCase(); if (ts === curStatusText || curStatusText.indexOf(ts.replace(/-/g,'')) > -1) { task = tm[mi]; break; } }
           if (!task) task = tm[0];
         }
         if (!task) continue; var sid = safeId(task.id);
         if (stIdx > -1 && cells[stIdx] && !cells[stIdx].querySelector('[data-v24s]')) cells[stIdx].innerHTML = buildSelect(task);
         if (hrsIdx > -1 && cells[hrsIdx] && !cells[hrsIdx].dataset.v24h) {
           var hrsVal = task.hrs_allowed || task.hrsAllowed || '';
-          if (hrsVal && String(hrsVal) !== '0' && cells[hrsIdx].textContent.trim() === '—') { cells[hrsIdx].dataset.v24h = '1'; cells[hrsIdx].textContent = hrsVal + 'h'; }
+          if (hrsVal && String(hrsVal) !== '0' && cells[hrsIdx].textContent.trim() === '\u2014') { cells[hrsIdx].dataset.v24h = '1'; cells[hrsIdx].textContent = hrsVal + 'h'; }
         }
         if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v24n) {
           cells[notIdx].dataset.v24n = '1';
-          var eN = task.staffNotes || task.staff_notes || task.notes || '';
+          // v39: use v24getTS for notes display
+          var _nts = v24getTS(task);
+          var eN = _nts.staffNotes || _nts.notes || '';
           var prev = eN ? '<div style="font-size:12px;color:#666;margin-bottom:4px;white-space:pre-wrap;word-break:break-word">' + esc(eN.substring(0,60)) + (eN.length>60?'...':'') + '</div>' : '';
           cells[notIdx].innerHTML = prev + buildNoteBtn(task);
         }
@@ -458,7 +496,7 @@
       // Now load hiddenTasks (which the original forgot to do!)
       if (d && d.hiddenTasks) {
         window.hiddenTasks = d.hiddenTasks;
-        console.log('[comms-fix] v47c: loaded', Object.keys(d.hiddenTasks).length, 'hidden tasks from cloud');
+        console.log('[comms-fix] v39: loaded', Object.keys(d.hiddenTasks).length, 'hidden tasks from cloud');
       }
       // Re-render hidden box and task board after loading
       setTimeout(function() {
@@ -468,7 +506,7 @@
       return result;
     };
     window._applyLoadedData.__patched = true;
-    console.log('[comms-fix] v47c: patched _applyLoadedData to load hiddenTasks');
+    console.log('[comms-fix] v39: patched _applyLoadedData to load hiddenTasks');
     return true;
   }
 
@@ -506,7 +544,7 @@
       patchBuildTaskTablesHTML(); // v47: week-aware hiding in main table
       patchApplyLoadedData(); // v47c: fix hiddenTasks not being loaded
       watchTaskTable();
-      console.log('[comms-fix] v47c booted');
+      console.log('[comms-fix] v39 booted');
     }, 2000);
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } else { setTimeout(boot, 500); }
