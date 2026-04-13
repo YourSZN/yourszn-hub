@@ -4,8 +4,10 @@
  * v24: Floating panel task table approach
  * v33: safeId lookup fix for UUID task IDs
  * v34: Permanent delete with blacklist
- * v37: Fix hidden task weekly reset — correct DOM selector for date label
- *      format is "This Week — 23 Mar to 29 Mar" / "Next Week — 30 Mar to 5 Apr"
+ * v36: Fix hidden task weekly reset — correct DOM selector for date label
+ * v37: Fix stale task data on week navigation — v24 now uses per-week state
+ *      (getTS/setTS) for daily/weekly recurring tasks instead of reading
+ *      task.status / task.staffNotes directly from the task object
  */
 (function () {
   'use strict';
@@ -253,6 +255,11 @@
         document.querySelectorAll('[data-v24n]').forEach(function(el) {
           delete el.dataset.v24n;
         });
+        // v37: also clear v24s (status selects) so they re-render with correct week state
+        document.querySelectorAll('[data-v24s]').forEach(function(el) {
+          var cell = el.parentElement;
+          if (cell) delete cell.dataset.v24s;
+        });
         setTimeout(doPatch, 200);
       }
     }, 500);
@@ -336,6 +343,35 @@
   // ── END PERMANENT DELETE ──────────────────────────────────────────────────
 
   // ── TASK TABLE v24 — FLOATING PANEL APPROACH ─────────────────────────────
+
+  // v37 FIX: helper to get the current week offset so v24 uses per-week state
+  // for daily/weekly recurring tasks instead of reading t.status directly.
+  // In app.js, daily/weekly tasks store per-week status in taskWeekState via
+  // getTS(task, weekOff) / setTS(task, weekOff, field, val).
+  // Previously v24 was reading/writing task.status directly, which meant
+  // changing status on one week would bleed into every other week.
+  function getCurWeekOff() {
+    if (window.curUser === 'latisha') return window.taskWeekOff || 0;
+    return window.staffTaskWeekOff || 0;
+  }
+
+  // v37 FIX: get per-week task state (status, hrsTaken, staffNotes)
+  // For daily/weekly tasks this reads from taskWeekState; for one-off it reads from the task itself
+  function v24getTS(task) {
+    if (typeof window.getTS === 'function') return window.getTS(task, getCurWeekOff());
+    // fallback if getTS not available yet
+    return { status: task.status || 'not-started', hrsTaken: task.hrsTaken || 0, staffNotes: task.staffNotes || '' };
+  }
+
+  // v37 FIX: set per-week task state
+  function v24setTS(task, field, val) {
+    if (typeof window.setTS === 'function') {
+      window.setTS(task, getCurWeekOff(), field, val);
+    } else {
+      task[field] = val;
+    }
+  }
+
   var ST = [
     { v: 'not-started', l: 'Not Started', bg: '#f0f0f0', c: '#666' },
     { v: 'in-progress', l: 'In Progress', bg: '#fff3e0', c: '#e65100' },
@@ -406,11 +442,12 @@
   }
 
   // v33 FIX: use safeId(x.id) === taskSid for lookup
+  // v37 FIX: use v24setTS for per-week status on daily/weekly tasks
   window.__v24_status = function(taskSid, newVal, sel) {
     var t = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === taskSid) t = x; });
     if (!t) return;
-    t.status = newVal;
+    v24setTS(t, 'status', newVal);
     var cfg = stCfg(newVal);
     sel.style.background = cfg.bg;
     sel.style.color = cfg.c;
@@ -418,6 +455,7 @@
     if (typeof window.saveData === 'function') window.saveData();
   };
 
+  // v37 FIX: use v24setTS for per-week notes on daily/weekly tasks
   window.__v24_saveNote = function(sid, noteSid) {
     var t = null;
     (window.tasks || []).forEach(function(x) { if (safeId(x.id) === sid) t = x; });
@@ -426,16 +464,17 @@
     if (!ta) return;
     var noteVal = ta.value.trim();
     if ((window.curUser || '').toLowerCase() === 'latisha') {
-      t.notes = noteVal;
+      v24setTS(t, 'notes', noteVal);
     } else {
-      t.staffNotes = noteVal;
-      t.staff_notes = noteVal;
+      v24setTS(t, 'staffNotes', noteVal);
+      v24setTS(t, 'staff_notes', noteVal);
     }
     if (typeof window.saveData === 'function') window.saveData();
     var btn = document.getElementById('v24nb' + sid);
     if (btn) { btn.textContent = 'Saved \u2713'; setTimeout(function() { btn.textContent = 'Save Note'; }, 1500); }
   };
 
+  // v37 FIX: use v24getTS for per-week notes in panel display
   window.__v24_openPanel = function(sid, anchorEl) {
     if (openPanelSid === sid) { closePanel(); return; }
     openPanelSid = sid;
@@ -445,10 +484,13 @@
     if (!task) return;
 
     var isLatisha = (window.curUser || '').toLowerCase() === 'latisha';
+    var _pts = v24getTS(task);
     var desc  = task.desc || task.description || '';
     var video = task.videoUrl || task.video_url || task.trainingVideoUrl || task.training_video_url || '';
     var file  = task.fileUrl || task.file_url || '';
-    var myNote = isLatisha ? (task.notes || '') : (task.staffNotes || task.staff_notes || '');
+    var myNote = isLatisha
+      ? (_pts.notes || task.notes || '')
+      : (_pts.staffNotes || _pts.staff_notes || task.staffNotes || task.staff_notes || '');
 
     var html = '<button class="v24-close" onclick="__v24_closePanel()">\u00d7</button>';
     html += '<div style="font-weight:700;font-size:14px;margin-bottom:12px;padding-right:20px">' + esc(task.title || '') + '</div>';
@@ -459,9 +501,9 @@
 
     if (isLatisha) {
       html += '<div class="v24-lbl">My Notes (Owner)</div>';
-      html += '<textarea id="v24ta' + sid + '">' + esc(task.notes || '') + '</textarea>';
+      html += '<textarea id="v24ta' + sid + '">' + esc(_pts.notes || task.notes || '') + '</textarea>';
       html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
-      var sNote = task.staffNotes || task.staff_notes || '';
+      var sNote = _pts.staffNotes || _pts.staff_notes || task.staffNotes || task.staff_notes || '';
       if (sNote) {
         var assignee = task.assignedTo || task.assigned_to || 'Staff';
         html += '<div class="v24-lbl" style="margin-top:14px">Note from ' + esc(assignee) + '</div>';
@@ -471,10 +513,10 @@
       html += '<div class="v24-lbl">My Notes</div>';
       html += '<textarea id="v24ta' + sid + '">' + esc(myNote) + '</textarea>';
       html += '<button id="v24nb' + sid + '" class="v24-save" onclick="__v24_saveNote(\'' + sid + '\',\'' + sid + '\')">Save Note</button>';
-      var ownerNote = task.notes || '';
+      var ownerNote = _pts.notes || task.notes || '';
       if (ownerNote) {
         html += '<div class="v24-lbl" style="margin-top:14px">Note from Latisha (Owner)</div>';
-        html += '<div style="font-size:13px;color#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(ownerNote) + '</div>';
+        html += '<div style="font-size:13px;color:#555;white-space:pre-wrap;background:#faf8f5;border:1px solid #e8e2db;border-radius:8px;padding:8px;margin-top:4px">' + esc(ownerNote) + '</div>';
       }
     }
 
@@ -521,22 +563,26 @@
 
   window.__v24_closePanel = closePanel;
 
+  // v37 FIX: use v24getTS for per-week status in select dropdown
   function buildSelect(task) {
-    var cfg = stCfg(task.status);
+    var _ts = v24getTS(task);
+    var cfg = stCfg(_ts.status);
     var st = 'background:' + cfg.bg + ';color:' + cfg.c + ';border:1px solid ' + cfg.c +
       ';padding:3px 7px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;outline:none;width:100%;max-width:120px;';
     var sid = safeId(task.id);
     var opts = '';
-    var curVal = (task.status || 'not-started').toLowerCase();
+    var curVal = (_ts.status || 'not-started').toLowerCase();
     ST.forEach(function(o) {
       opts += '<option value="' + o.v + '"' + (o.v === curVal ? ' selected' : '') + '>' + o.l + '</option>';
     });
     return '<select data-v24s="1" style="' + st + '" onchange="__v24_status(\'' + sid + '\',this.value,this)" onclick="event.stopPropagation()">' + opts + '</select>';
   }
 
+  // v37 FIX: use v24getTS for per-week notes indicator
   function buildNoteBtn(task) {
     var sid = safeId(task.id);
-    var hasNote = !!(task.staffNotes || task.staff_notes || task.notes);
+    var _ts = v24getTS(task);
+    var hasNote = !!(_ts.staffNotes || _ts.staff_notes || _ts.notes || task.staffNotes || task.staff_notes || task.notes);
     var label = hasNote ? '\uD83D\uDCDD Note' : '+ Note';
     return '<button class="v24-notes-btn" onclick="__v24_openPanel(\'' + sid + '\',this);event.stopPropagation()">' + label + '</button>';
   }
@@ -592,8 +638,9 @@
         if (titleMatches.length === 1) {
           task = titleMatches[0];
         } else {
+          // v37 FIX: use v24getTS for status comparison when disambiguating
           for (var mi = 0; mi < titleMatches.length; mi++) {
-            var ts = (titleMatches[mi].status || 'not-started').toLowerCase();
+            var ts = (v24getTS(titleMatches[mi]).status || 'not-started').toLowerCase();
             if (ts === curStatusText || curStatusText.indexOf(ts.replace(/-/g,'')) > -1) {
               task = titleMatches[mi]; break;
             }
@@ -612,9 +659,11 @@
             cells[hrsIdx].textContent = hrsVal + 'h';
           }
         }
+        // v37 FIX: use v24getTS for per-week notes display
         if (notIdx > -1 && cells[notIdx] && !cells[notIdx].dataset.v24n) {
           cells[notIdx].dataset.v24n = '1';
-          var existingNote = task.staffNotes || task.staff_notes || task.notes || '';
+          var _nts = v24getTS(task);
+          var existingNote = _nts.staffNotes || _nts.staff_notes || _nts.notes || task.staffNotes || task.staff_notes || task.notes || '';
           var notePreview = existingNote
             ? '<div style="font-size:12px;color:#666;margin-bottom:4px;white-space:pre-wrap;word-break:break-word">' + esc(existingNote.substring(0, 60)) + (existingNote.length > 60 ? '...' : '') + '</div>'
             : '';
@@ -644,7 +693,7 @@
   }
 
   function boot() {
-    console.log('[comms-fix] v24.0 booting...');
+    console.log('[comms-fix] v37 booting...');
     setTimeout(function() {
       interceptLogin();
       interceptSendDm();
@@ -667,7 +716,7 @@
       patchWeekNav();
 
       watchTaskTable();
-      console.log('[comms-fix] v24.0 active');
+      console.log('[comms-fix] v37 active');
     }, 2000);
   }
 
