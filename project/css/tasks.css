@@ -1,0 +1,201 @@
+/* tasks.css — Task system, progress bars, staff dashboard, staff member cards, recurring task tags, staff goal items, restricted team card, task tables, person accordion cards, hidden/completed box, new task highlight, nav badge */
+/* ── TASK SYSTEM ── */
+.tboard-section{margin-bottom:28px;}
+.tboard-sec-hd{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 0 8px;border-bottom:2px solid var(--sand);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.tcard{background:white;border:1px solid var(--sand);border-radius:10px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s;display:flex;align-items:flex-start;gap:12px;position:relative;}
+.tcard:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.tcard-prio{width:4px;border-radius:4px;flex-shrink:0;align-self:stretch;min-height:40px;}
+.prio-red{background:#EF4444;}
+.prio-orange{background:#F97316;}
+.prio-green{background:#22C55E;}
+.tcard-body{flex:1;min-width:0;}
+.tcard-title{font-size:14px;font-weight:500;color:var(--deep);margin-bottom:4px;}
+.tcard-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.tcard-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;}
+.tag-daily{background:#E0F2FE;color:#075985;}
+.tag-weekly{background:#F5F3FF;color:#4C1D95;}
+.tag-one-off{background:#FEF3C7;color:#B45309;}
+.tag-cat{background:var(--warm);color:var(--brown);border:1px solid var(--sand);}
+.tcard-status{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;}
+.st-not-started{background:#F3F4F6;color:#6B7280;}
+.st-in-progress{background:#DBEAFE;color:#1D4ED8;}
+.st-blocked{background:#FEE2E2;color:#B91C1C;}
+.st-done{background:#D1FAE5;color:#065F46;}
+.tcard-hrs{font-size:11px;color:var(--muted);margin-left:auto;flex-shrink:0;text-align:right;line-height:1.4;}
+.tcard-hrs .over{color:#EF4444;font-weight:600;}
+.tcard-due{font-size:11px;color:var(--muted);}
+.tcard-assign{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:white;flex-shrink:0;margin-top:2px;}
+.week-nav-strip{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+
+/* ── APPT TYPE COLOURS ── */
+.atype-std{color:#C4956A;font-weight:500;}
+.atype-prem{color:#7C3AED;font-weight:500;}
+.atype-call{color:#059669;font-weight:500;}
+
+/* ── TASK PROGRESS BARS ── */
+.tp-row{margin-bottom:14px;}
+.tp-label{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px;}
+.tp-name{font-weight:500;color:var(--deep);}
+.tp-counts{font-size:11px;color:var(--muted);}
+.tp-track{height:10px;border-radius:6px;background:var(--warm);border:1px solid var(--sand);overflow:hidden;display:flex;}
+.tp-seg-red{background:#EF4444;height:100%;}
+.tp-seg-orange{background:#F97316;height:100%;}
+.tp-seg-green{background:#22C55E;height:100%;}
+.tp-legend{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;}
+.tp-leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.tp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ── STAFF DASHBOARD ── */
+.staff-todo-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--warm);cursor:pointer;}
+.staff-todo-item:last-child{border-bottom:none;}
+.stck{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--tan);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.stck.done{background:var(--green);border-color:var(--green);}
+.stck.done::after{content:'';width:5px;height:3px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translateY(-1px);display:block;}
+.stck-txt{font-size:13px;flex:1;line-height:1.4;}
+.stck-txt.done{text-decoration:line-through;color:var(--muted);}
+.staff-goal-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--warm);font-size:13px;}
+.staff-goal-item:last-child{border-bottom:none;}
+.sgdel{background:none;border:none;cursor:pointer;color:var(--tan);font-size:16px;margin-left:auto;}
+.sgdel:hover{color:#B91C1C;}
+
+/* ── STAFF MEMBER CARDS ── */
+.smcard{background:white;border:1px solid var(--sand);border-radius:12px;padding:22px;}
+.smcard-av{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:22px;color:white;margin-bottom:12px;}
+.smcard-name{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--deep);margin-bottom:2px;}
+.smcard-role{font-size:11px;color:var(--muted);letter-spacing:.5px;margin-bottom:14px;}
+.smcard-stat{font-size:12px;color:var(--charcoal);margin-bottom:6px;}
+.smcard-btn{width:100%;margin-top:12px;padding:8px;border-radius:8px;border:1px solid var(--accent);background:none;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;}
+.smcard-btn:hover{background:var(--accent);color:white;}
+
+/* ── STATUS BADGE UPDATE (add waiting) ── */
+.st-waiting{background:#FEF3C7;color:#B45309;}
+
+/* ── STAFF EXPANDED CARDS ── */
+.smcard-full{background:white;border:1px solid var(--sand);border-radius:14px;margin-bottom:18px;overflow:hidden;}
+.smcard-header{display:flex;align-items:center;gap:16px;padding:20px 24px;cursor:pointer;transition:background .15s;}
+.smcard-header:hover{background:var(--warm);}
+.smcard-av2{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:20px;color:white;flex-shrink:0;}
+.smcard-info{flex:1;}
+.smcard-nm{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--deep);line-height:1.1;}
+.smcard-rl{font-size:11px;color:var(--muted);}
+.smcard-prog{flex:0 0 200px;}
+.smcard-expand{font-size:18px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+.smcard-expand.open{transform:rotate(180deg);}
+.smcard-body{display:none;padding:0 24px 24px;border-top:1px solid var(--warm);}
+.smcard-body.open{display:block;}
+.smcard-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+.smcard-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px;}
+
+/* ── RECURRING TASK DAY TAGS ── */
+.rtask-row{padding:10px 0;border-bottom:1px solid var(--warm);}
+.rtask-row:last-child{border-bottom:none;}
+.rtask-title{font-size:13px;font-weight:500;color:var(--deep);margin-bottom:6px;}
+.rtask-days{display:flex;gap:5px;flex-wrap:wrap;}
+.day-chip{font-size:10px;padding:3px 8px;border-radius:12px;border:1px solid var(--sand);background:var(--warm);color:var(--charcoal);cursor:pointer;transition:all .15s;user-select:none;font-family:'DM Sans',sans-serif;}
+.day-chip:hover{border-color:var(--accent);}
+.day-chip.done{background:#22C55E;border-color:#22C55E;color:white;}
+
+/* ── STAFF GOAL ITEM (checkable) ── */
+.sgoal-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--warm);cursor:pointer;}
+.sgoal-item:last-child{border-bottom:none;}
+.sgoal-ck{width:17px;height:17px;border-radius:4px;border:1.5px solid var(--tan);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.sgoal-ck.done{background:var(--accent);border-color:var(--accent);}
+.sgoal-ck.done::after{content:'';width:5px;height:3px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translateY(-1px);display:block;}
+.sgoal-txt{font-size:13px;flex:1;line-height:1.4;}
+.sgoal-txt.done{text-decoration:line-through;color:var(--muted);}
+
+/* ── RESTRICTED TEAM CARD ── */
+.team-locked-card{background:white;border:1px solid var(--sand);border-radius:12px;padding:18px 22px;margin-bottom:12px;display:flex;align-items:center;gap:16px;}
+.team-locked-info{flex:1;}
+.team-locked-name{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--deep);}
+.team-locked-role{font-size:11px;color:var(--muted);}
+.team-locked-note{font-size:12px;color:var(--muted);font-style:italic;}
+
+/* ── SCREENSHOT-STYLE TODO / GOAL ITEMS ── */
+.slist-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #F0EBE3;cursor:pointer;transition:background .12s;}
+.slist-item:last-child{border-bottom:none;}
+.slist-item:hover{background:#FAFAF8;}
+.slist-circle{width:22px;height:22px;border-radius:50%;border:1.5px solid #C4A882;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.slist-circle.done{background:var(--accent);border-color:var(--accent);}
+.slist-circle.done::after{content:'';width:6px;height:4px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translateY(-1px);display:block;}
+.slist-text{flex:1;font-size:14px;color:#2C2420;line-height:1.4;}
+.slist-text.done{text-decoration:line-through;color:#A89080;}
+.slist-tag{font-size:10px;font-weight:600;letter-spacing:.8px;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.stag-urgent{background:#FEE2E2;color:#C4464A;}
+.stag-soon{background:#FEF9C3;color:#A08020;}
+.stag-goal{background:#F0FDF4;color:#2D7A4F;}
+
+/* ── TASK TABLES ── */
+.ttable-wrap{margin-bottom:28px;}
+.ttable-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ttable-title{font-family:'Cormorant Garamond',serif;font-size:19px;color:var(--deep);}
+.ttable-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.ttable-count{font-size:11px;background:var(--warm);color:var(--brown);padding:2px 8px;border-radius:10px;}
+.ttbl{width:100%;border-collapse:collapse;background:white;border:1px solid var(--sand);border-radius:12px;overflow:hidden;}
+.ttbl thead tr{background:var(--warm);}
+.ttbl th{padding:10px 14px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--brown);text-align:left;white-space:nowrap;}
+.ttbl td{padding:12px 14px;font-size:13px;color:var(--charcoal);border-top:1px solid var(--sand);vertical-align:top;}
+.ttbl tr:hover td{background:#FAFAF8;cursor:pointer;}
+.ttbl .prio-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.ttbl .prio-red{background:#EF4444;}
+.ttbl .prio-orange{background:#F97316;}
+.ttbl .prio-green{background:#22C55E;}
+.ttbl .st-badge{font-size:10px;padding:2px 8px;border-radius:10px;white-space:nowrap;display:inline-block;}
+.ttbl .st-not-started{background:#F1F5F9;color:#64748B;}
+.ttbl .st-in-progress{background:#EFF6FF;color:#2563EB;}
+.ttbl .st-waiting{background:#FEF9C3;color:#A08020;}
+.ttbl .st-done{background:#F0FDF4;color:#15803D;}
+.ttbl .st-blocked{background:#FEF2F2;color:#B91C1C;}
+.ttbl .dc-chip{font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--sand);background:var(--warm);color:var(--charcoal);cursor:pointer;transition:all .12s;margin:1px;display:inline-block;}
+.ttbl .dc-chip.done{background:#22C55E;border-color:#22C55E;color:white;}
+.ttbl .uav-sm{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:11px;color:white;flex-shrink:0;vertical-align:middle;margin-right:5px;}
+
+/* person accordion cards for Latisha task view */
+.tpcard{background:white;border:1px solid var(--sand);border-radius:14px;margin-bottom:18px;overflow:hidden;}
+.tpcard-hd{display:flex;align-items:center;gap:14px;padding:18px 22px;cursor:pointer;transition:background .15s;}
+.tpcard-hd:hover{background:var(--warm);}
+.tpcard-body{display:none;padding:0 22px 22px;}
+.tpcard-body.open{display:block;}
+.tpcard-exp{font-size:16px;color:var(--muted);transition:transform .2s;margin-left:auto;}
+.tpcard-exp.open{transform:rotate(180deg);}
+
+
+/* ── New Task / Completed Banner ── */
+.ntb-inner{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:12px;}
+.ntb-inner.ntb-green{background:#D1FAE5;border-color:#6EE7B7;}
+.ntb-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
+.ntb-title{font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:4px;}
+.ntb-list{font-size:12px;color:var(--muted);line-height:1.6;}
+.ntb-close{margin-left:auto;flex-shrink:0;padding:6px 12px;background:white;border:1px solid var(--sand);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ntb-close:hover{background:var(--warm);}
+
+/* ── Hidden / Completed Box ── */
+.hidden-box-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:var(--warm);border:1px solid var(--sand);border-radius:12px;cursor:pointer;font-size:13px;font-weight:500;color:var(--charcoal);user-select:none;}
+.hidden-box-hd:hover{background:var(--sand);}
+.hb-arrow{font-size:14px;color:var(--muted);transition:transform .2s;}
+.hb-arrow.open{transform:rotate(180deg);}
+.hidden-box-body{border:1px solid var(--sand);border-top:none;border-radius:0 0 12px 12px;padding:16px 18px;background:white;}
+.hb-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.hb-pill{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--sand);background:var(--warm);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.hb-pill.on,.hb-pill:hover{background:var(--charcoal);color:white;border-color:var(--charcoal);}
+.hb-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--warm);}
+.hb-row:last-child{border-bottom:none;}
+.hb-main{flex:1;min-width:0;}
+.hb-title{font-size:13px;color:var(--muted);text-decoration:line-through;margin-bottom:4px;}
+.hb-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:4px;}
+.hb-date{font-size:11px;color:var(--muted);}
+.hb-who{font-size:11px;font-weight:600;color:var(--accent);}
+.hb-cat{font-size:10px;padding:2px 8px;border-radius:8px;background:var(--warm);color:var(--muted);}
+.hb-notes{font-size:12px;color:var(--charcoal);background:var(--warm);border-radius:6px;padding:6px 10px;margin-top:4px;line-height:1.5;font-style:italic;}
+.hb-time{font-size:11px;color:var(--brown);background:#FEF3C7;padding:2px 8px;border-radius:8px;}
+.hb-restore{flex-shrink:0;padding:4px 10px;font-size:11px;font-weight:600;background:white;border:1px solid var(--sand);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--charcoal);}
+.hb-restore:hover{background:var(--warm);}
+
+/* ── New task row highlight ── */
+.task-row-new{background:#FFFBEB !important;border-left:3px solid #F59E0B;}
+.task-row-new td:first-child{padding-left:9px;}
+.task-row-new:hover{background:#FEF3C7 !important;}
+
+/* ── Nav badge updated ── */
+.task-nav-badge{display:inline-flex;align-items:center;justify-content:center;background:#F59E0B;color:white;font-size:10px;font-weight:800;padding:2px 7px;border-radius:12px;margin-left:auto;line-height:1.4;letter-spacing:.3px;animation:badge-pulse 2s infinite;}
+@keyframes badge-pulse{0%,100%{opacity:1;}50%{opacity:.7;}}

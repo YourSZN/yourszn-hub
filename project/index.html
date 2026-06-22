@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your SZN — Business Hub</title>
+
+  <!-- ── Styles (split by section for easy editing) ── -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/clients.css">
+  <link rel="stylesheet" href="css/tasks.css">
+  <link rel="stylesheet" href="css/sops.css">
+  <link rel="stylesheet" href="css/huestripe.css">
+  <link rel="stylesheet" href="css/tours.css">
+  <link rel="stylesheet" href="css/social.css">
+  <link rel="stylesheet" href="css/comms.css">
+  <link rel="stylesheet" href="css/goals.css">
+  <link rel="stylesheet" href="css/finances.css">
+  <link rel="stylesheet" href="css/misc.css">
+
+  <!-- ── External libraries ── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-screen">
+  <div class="lbox">
+    <div class="llogo">Your <span>SZN</span></div>
+    <div class="ltag">Business Hub</div>
+    <div id="step-user">
+      <button class="ubtn" onclick="selUser('latisha')">
+        <div class="uav" style="background:var(--accent)">L</div>
+        <div><div class="uname">Latisha</div><div class="urole">Owner · Full Access</div></div>
+      </button>
+      <button class="ubtn" onclick="selUser('salma')">
+        <div class="uav" style="background:var(--rose)">S</div>
+        <div><div class="uname">Salma</div><div class="urole">Admin Support</div></div>
+      </button>
+      <button class="ubtn" onclick="selUser('lemari')">
+        <div class="uav" style="background:var(--green)">L</div>
+        <div><div class="uname">Lemari</div><div class="urole">Content · Video</div></div>
+      </button>
+    </div>
+    <div id="step-pin">
+      <div class="plabel" id="pin-prompt">Enter your PIN</div>
+      <div class="pdots">
+        <div class="pdot" id="d0"></div><div class="pdot" id="d1"></div>
+        <div class="pdot" id="d2"></div><div class="pdot" id="d3"></div>
+      </div>
+      <div class="ppad">
+        <button class="pkey" onclick="pk('1')">1</button>
+        <button class="pkey" onclick="pk('2')">2</button>
+        <button class="pkey" onclick="pk('3')">3</button>
+        <button class="pkey" onclick="pk('4')">4</button>
+        <button class="pkey" onclick="pk('5')">5</button>
+        <button class="pkey" onclick="pk('6')">6</button>
+        <button class="pkey" onclick="pk('7')">7</button>
+        <button class="pkey" onclick="pk('8')">8</button>
+        <button class="pkey" onclick="pk('9')">9</button>
+        <button class="pkey empty"></button>
+        <button class="pkey" onclick="pk('0')">0</button>
+        <button class="pkey del" onclick="pdel()">⌫</button>
+      </div>
+      <div class="perr" id="perr"></div>
+      <button class="pbk" onclick="goBack()">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="slogo">Your <span>SZN</span></div>
+    <div class="suser">
+      <div class="sulab">Logged in as</div>
+      <div class="suname" id="uname-display"></div>
+    </div>
+    <nav class="snav" id="snav"></nav>
+    <div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:6px;">
+      <button onclick="exportData()" style="width:100%;background:var(--rose);color:#fff;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;">&#128190; Export Data</button>
+      <label style="width:100%;background:var(--warm);border:1.5px solid var(--sand);border-radius:8px;padding:7px;font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;text-align:center;display:block;box-sizing:border-box;">&#128194; Import Data<input type="file" accept=".json" onchange="importData(this.files[0])" style="display:none;"></label>
+    </div>
+    <button class="sout" onclick="doLogout()">Sign Out</button>
+  </aside>
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page" id="pg-dashboard">
+      <div class="ph">
+        <div><div class="ptitle" id="dash-greet">Welcome</div><div class="psub">Here's your business at a glance</div></div>
+        <div class="dbadge" id="dash-date"></div>
+      </div>
+      <div class="srow">
+        <div class="sc"><div class="slb">Weekly Target</div><div class="sv">$7,000</div><div class="ss">10 in-person · 13 online</div></div>
+        <div class="sc g"><div class="slb">In-Person Rate</div><div class="sv">$349</div><div class="ss">Premium: $445</div></div>
+        <div class="sc r"><div class="slb">Online Rate</div><div class="sv">$270</div><div class="ss">Per analysis</div></div>
+        <div class="sc go"><div class="slb">Weekly Expenses</div><div class="sv">$2,015</div><div class="ss">Total outgoings</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">Team Task Progress</div><div style="font-size:11px;color:var(--muted)" id="dash-task-updated"></div></div>
+          <div class="cb" id="dash-task-progress">
+            <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Loading…</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Priority To-Dos</div><span class="badge" id="todo-ct">5</span></div>
+          <div class="cb scrl" id="dash-todos">
+            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Finalise corporate pricing structure</div><span class="ttag tu">Urgent</span></div>
+            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Decide call-out pricing</div><span class="ttag tu">Urgent</span></div>
+            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Build ManyChat DM funnel (COLOUR trigger)</div><span class="ttag ts">Soon</span></div>
+            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Email leather team re: belts</div><span class="ttag tu">Urgent</span></div>
+            <div class="titem" onclick="togTask(this)"><div class="tck"></div><div class="ttx">Set up 3-email post-analysis sequence</div><span class="ttag ts">Soon</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="g3">
+        <div class="card">
+          <div class="ch"><div class="ct">Staff Hours</div></div>
+          <div class="cb">
+            <div class="sc2"><div class="sav" style="background:var(--rose)">S</div><div><div class="sn">Salma</div><div class="sr">Admin Support</div></div><div class="sh">25 hrs/wk</div></div>
+            <div class="sc2"><div class="sav" style="background:var(--green)">L</div><div><div class="sn">Lemari</div><div class="sr">Content / Video</div></div><div class="sh">15 hrs/wk</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Active Projects</div></div>
+          <div class="cb">
+            <div class="gr"><div class="gi" style="background:#FEF3C7">🇻🇳</div><div><div class="gtit">Vietnam Tour</div><div class="gd">Planning phase</div></div><span class="stat sp">Active</span></div>
+            <div class="gr"><div class="gi" style="background:#E0F2FE">📱</div><div><div class="gtit">SZN App</div><div class="gd">Wireframes ready</div></div><span class="stat sp">Building</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Content Goals</div></div>
+          <div class="cb">
+            <div class="gr"><div class="gi" style="background:#F5F3FF">📸</div><div><div class="gtit">10K Instagram</div><div class="gd">3–5 reels/wk</div></div></div>
+            <div class="gr"><div class="gi" style="background:#FFF7ED">🎵</div><div><div class="gtit">10K TikTok</div><div class="gd">Celeb breakdowns</div></div></div>
+            <div class="gr"><div class="gi" style="background:#F0FDF4">📧</div><div><div class="gtit">Email Growth</div><div class="gd">ManyChat → nurture</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY HUB (staff personal page — Salma & Lemari only) -->
+    <div class="page" id="pg-myhub">
+      <div class="ph">
+        <div><div class="ptitle" id="myhub-greet">My Hub</div><div class="psub" id="myhub-date"></div></div>
+        <button class="btn btns" onclick="requestStaffAccess()">Request Team Access</button>
+      </div>
+
+      <!-- Row 1: stat cards — task progress summary -->
+      <div class="srow" id="myhub-stats">
+        <div class="sc"><div class="slb">Tasks This Week</div><div class="sv" id="myhub-total">—</div><div class="ss">assigned to me</div></div>
+        <div class="sc g"><div class="slb">Completed</div><div class="sv" id="myhub-done">—</div><div class="ss">this week</div></div>
+        <div class="sc r"><div class="slb">In Progress</div><div class="sv" id="myhub-ip">—</div><div class="ss">underway</div></div>
+        <div class="sc go"><div class="slb">Not Started</div><div class="sv" id="myhub-ns">—</div><div class="ss">to do</div></div>
+      </div>
+
+      <!-- Row 2: progress bar + priority to-dos -->
+      <div class="g2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="ch"><div class="ct">Task Progress — This Week</div></div>
+          <div class="cb" id="myhub-progress">
+            <div style="color:var(--muted);font-size:13px">Loading…</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Priority To-Dos</div><span class="badge" id="myhub-todo-badge">0</span></div>
+          <div class="cb scrl" id="myhub-todos" style="max-height:220px;overflow-y:auto"></div>
+          <div class="cb" style="border-top:1px solid var(--warm);padding-top:12px">
+            <div style="display:flex;gap:8px">
+              <input class="fi" id="myhub-todo-inp" placeholder="Add a to-do…" style="flex:1" onkeydown="if(event.key==='Enter')myhubAddTodo()">
+              <button class="btn btnp" onclick="myhubAddTodo()">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: recurring tasks + personal goals -->
+      <div class="g2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="ch"><div class="ct">Weekly Recurring Tasks</div></div>
+          <div class="cb scrl" id="myhub-recur" style="max-height:280px;overflow-y:auto">
+            <div style="color:var(--muted);font-size:13px">No recurring tasks this week.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Personal Work Goals</div></div>
+          <div class="cb scrl" id="myhub-goals" style="max-height:220px;overflow-y:auto"></div>
+          <div class="cb" style="border-top:1px solid var(--warm);padding-top:12px">
+            <div style="display:flex;gap:8px">
+              <input class="fi" id="myhub-goal-inp" placeholder="Add a goal…" style="flex:1" onkeydown="if(event.key==='Enter')myhubAddGoal()">
+              <button class="btn btnp" onclick="myhubAddGoal()">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: notes to self + team -->
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">Notes to Self</div><div style="font-size:11px;color:var(--green)" id="myhub-diary-saved"></div></div>
+          <div class="cb">
+            <textarea class="fi" id="myhub-diary" rows="8" placeholder="Your private diary / notes… only you can see this." style="resize:vertical;width:100%;min-height:180px" oninput="myhubSaveDiary()"></textarea>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px">Auto-saved as you type.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">Team</div></div>
+          <div class="cb" id="myhub-team">
+            <div style="color:var(--muted);font-size:13px">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- CLIENTS -->
+    <div class="page" id="pg-clients">
+      <div class="ph">
+        <div><div class="ptitle">Clients</div><div class="psub">30 slots · drag to reorder · track appointments and invoices</div></div>
+        <button class="btn btnp" onclick="clearClients()">Clear All</button>
+      </div>
+      <div class="csumrow">
+        <div class="csum"><strong id="cs-tot">0</strong>Total</div>
+        <div class="csum"><strong id="cs-inv">0</strong>Invoiced</div>
+        <div class="csum"><strong id="cs-vou">0</strong>Vouchers</div>
+        <div class="csum"><strong id="cs-pen">0</strong>Pending</div>
+      </div>
+      <div class="cwrap">
+        <table class="ctable">
+          <thead><tr>
+            <th style="width:24px"></th>
+            <th style="width:24px">#</th>
+            <th style="min-width:110px">Name</th>
+            <th style="min-width:110px">Day</th>
+            <th style="min-width:120px">Date</th>
+            <th style="min-width:150px">Appt Type</th>
+            <th style="min-width:110px">Contrast</th>
+            <th style="min-width:200px">Other Attendees</th>
+            <th style="min-width:100px">Invoice</th>
+            <th style="min-width:110px">Notes</th>
+            <th style="width:36px"></th>
+          </tr></thead>
+          <tbody id="ctbody"></tbody>
+        </table>
+      </div>
+
+      <!-- ── CLIENT CONTRAST ANALYSER ── -->
+      <div style="margin-top:32px">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Contrast Analyser</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="card">
+            <div class="ch">
+              <div class="ct">Contrast</div>
+              <div style="font-size:11px;color:var(--muted)">Drag each tag over the matching feature.</div>
+              <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+                <label style="display:inline-flex;align-items:center;gap:6px;background:var(--deep);color:#fff;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;letter-spacing:.3px">
+                  <span>&#128247;</span> Upload Photo
+                  <input type="file" accept="image/*" id="cct-photo-input" style="display:none" onchange="cctLoadPhoto(event)">
+                </label>
+                <button onclick="cctClearPhoto()" style="background:none;border:1px solid var(--sand);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">Clear</button>
+              </div>
+            </div>
+            <div class="cb">
+              <div id="client-contrast-preview" style="position:relative;width:100%;padding-top:115%;border-radius:8px;overflow:hidden;background:var(--sand)"></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Feature Values</div>
+            <div id="client-contrast-controls"></div>
+            <div style="background:var(--warm);border-radius:10px;padding:10px 14px;border:1px solid var(--sand)">
+              <div style="font-size:11px;font-weight:600;color:var(--deep);margin-bottom:6px">Contrast Range</div>
+              <div id="client-contrast-result" style="font-size:12px;color:var(--brown);line-height:1.5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS PAGE -->
+    <div class="page" id="pg-tasks">
+      <!-- Latisha sees accordion per person; staff see own tables -->
+      <div id="tasks-owner-view" style="display:none">
+        <div id="completed-banner" style="display:none;margin-bottom:20px"></div>
+        <div class="ph">
+          <div><div class="ptitle">Tasks</div><div class="psub" id="task-week-label">Loading…</div></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btns" onclick="changeTaskWeek(-1)">‹ Prev</button>
+            <button class="btn btns" onclick="changeTaskWeek(1)">Next ›</button>
+            <button class="btn btnp" onclick="openNewTaskModal()">+ New Task</button>
+          </div>
+        </div>
+        <div id="tasks-owner-cards"></div>
+        <div id="hidden-box-owner" style="display:none;margin-top:24px"></div>
+      </div>
+
+      <div id="tasks-staff-view" style="display:none">
+        <div id="new-task-banner" style="display:none;margin-bottom:20px"></div>
+        <div class="ph">
+          <div><div class="ptitle">My Tasks</div><div class="psub" id="staff-task-week-label">Loading…</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btns" onclick="changeStaffTaskWeek(-1)">‹ Prev</button>
+            <button class="btn btns" onclick="changeStaffTaskWeek(1)">Next ›</button>
+          </div>
+        </div>
+        <div id="tasks-staff-tables"></div>
+        <div id="hidden-box-staff" style="display:none;margin-top:24px"></div>
+      </div>
+
+      <!-- ── OWNER TASK MODAL (full edit) ── -->
+      <div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:500;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:16px;padding:32px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
+          <button onclick="closeTaskModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">&#215;</button>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--deep);margin-bottom:22px" id="modal-title">New Task</div>
+          <input type="hidden" id="modal-task-id">
+          <div class="frow">
+            <div class="fg"><label class="fl">Title</label><input class="fi" id="mt-title" placeholder="Task title"></div>
+            <div class="fg"><label class="fl">Assigned To</label>
+              <select class="fsel" id="mt-assign"><option value="latisha">Latisha</option><option value="salma">Salma</option><option value="lemari">Lemari</option></select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Category</label>
+              <select class="fsel" id="mt-cat"><option>Admin</option><option>Content</option><option>Customer Support</option><option>Links</option><option>Operations</option><option>Marketing</option><option>Other</option></select>
+            </div>
+            <div class="fg"><label class="fl">Frequency</label>
+              <select class="fsel" id="mt-freq" onchange="toggleWeekPicker()">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="one-off">One-off (specific week)</option>
+              </select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Due Day</label><input class="fi" id="mt-due" placeholder="e.g. Monday"></div>
+            <div class="fg" id="mt-weekpicker-wrap" style="display:none">
+              <label class="fl">Week of (Monday)</label>
+              <input class="fi" id="mt-weekdate" type="date">
+            </div>
+            <div class="fg"><label class="fl">Priority</label>
+              <select class="fsel" id="mt-priority"><option value="red">&#128308; High / Urgent</option><option value="orange">&#128992; Medium</option><option value="green">&#128994; Low</option></select>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Hours Allowed</label><input class="fi" id="mt-hrs" type="number" step="0.5" placeholder="e.g. 2"></div>
+            <div class="fg"><label class="fl">Status</label>
+              <select class="fsel" id="mt-status"><option value="not-started">Not Started</option><option value="in-progress">In Progress</option><option value="waiting">Waiting</option><option value="done">Done</option><option value="blocked">Blocked</option></select>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:12px"><label class="fl">Description / Instructions</label><textarea class="fi" id="mt-desc" rows="3" placeholder="Instructions for this task…" style="resize:vertical"></textarea></div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Training Video URL</label><input class="fi" id="mt-video" placeholder="https://..."></div>
+            <div class="fg"><label class="fl">File / Resource URL</label><input class="fi" id="mt-file" placeholder="https://..."></div>
+          </div>
+          <div class="fg" style="margin-bottom:20px"><label class="fl">Notes</label><textarea class="fi" id="mt-notes" rows="2" placeholder="Additional notes…" style="resize:vertical"></textarea></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btnp" onclick="saveTask()">Save Task</button>
+            <button class="btn btns" onclick="closeTaskModal()">Cancel</button>
+            <span style="flex:1"></span>
+            <button class="btn" id="modal-del-btn" onclick="deleteTask()" style="background:#FEE2E2;color:#B91C1C;border:1px solid #FECACA;display:none">Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STAFF UPDATE MODAL (status / hours / notes only) ── -->
+      <div id="staff-task-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:500;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:16px;padding:30px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
+          <button onclick="closeStaffTaskModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">&#215;</button>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep);margin-bottom:4px" id="stm-title"></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px" id="stm-cat"></div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:16px" id="stm-prio"></div>
+          <input type="hidden" id="stm-id">
+          <div id="stm-desc" style="background:var(--warm);border-radius:8px;padding:14px;font-size:13px;margin-bottom:14px;line-height:1.6"></div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap" id="stm-links"></div>
+          <div class="fg" style="margin-bottom:12px">
+            <label class="fl">Status</label>
+            <select class="fsel" id="stm-status">
+              <option value="not-started">Not Started</option>
+              <option value="in-progress">In Progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="done">Complete</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:12px">
+            <label class="fl">Actual Hours Taken</label>
+            <input class="fi" id="stm-hrs" type="number" step="0.5" min="0" placeholder="0">
+          </div>
+          <div class="fg" style="margin-bottom:20px">
+            <label class="fl">My Notes</label>
+            <textarea class="fi" id="stm-notes" rows="4" placeholder="Add your notes here…" style="resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btnp" onclick="saveStaffTaskUpdate()">Save</button>
+            <button class="btn btns" onclick="closeStaffTaskModal()">Cancel</button>
+            <span style="flex:1"></span>
+            <button class="btn" onclick="requestTaskRemoval()" style="background:#FEF3C7;color:#B45309;border:1px solid #FDE68A;font-size:11px">Request Removal</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--warm)">
+            Core task details are set by Latisha. You can update status, log actual hours and add notes.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAFF PAGE -->
+    <div class="page" id="pg-staff">
+
+      <!-- ── OWNER VIEW: full team overview ── -->
+      <div id="staff-owner-view" style="display:none">
+        <div class="ph">
+          <div><div class="ptitle">Staff</div><div class="psub">Team overview — click any member to expand their dashboard</div></div>
+        </div>
+        <!-- Team member full dashboards (accordion style) -->
+        <div id="staff-member-cards"></div>
+        <!-- access request inbox -->
+        <div class="card" style="margin-top:16px">
+          <div class="ch"><div class="ct">Access Requests</div><span class="badge" id="access-req-count">0</span></div>
+          <div class="cb" id="access-req-list">
+            <div style="color:var(--muted);font-size:13px;padding:8px 0">No pending requests.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STAFF VIEW: own dashboard + limited team view ── -->
+      <div id="staff-personal-view" style="display:none">
+        <div class="ph">
+          <div><div class="ptitle" id="staff-dash-name">My Dashboard</div><div class="psub">Your tasks, goals and notes</div></div>
+          <button class="btn btns" onclick="requestStaffAccess()">Request Team Access</button>
+        </div>
+
+        <!-- My dashboard content (same as owner sees) -->
+        <div id="staff-my-dash"></div>
+
+        <!-- Team members section — restricted -->
+        <div style="margin-top:32px">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;border-bottom:2px solid var(--sand);padding-bottom:8px">Team</div>
+          <div id="staff-team-cards"></div>
+        </div>
+      </div>
+
+      <!-- staff task modal (limited permissions) -->
+      <div id="staff-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:500;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:16px;padding:32px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
+          <button onclick="closeStaffModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">&#215;</button>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep);margin-bottom:4px" id="smodal-title"></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px" id="smodal-cat"></div>
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px" id="smodal-prio-badge"></div>
+          <input type="hidden" id="smodal-id">
+          <div id="smodal-desc" style="background:var(--warm);border-radius:8px;padding:14px;font-size:13px;margin-bottom:16px;line-height:1.6"></div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap" id="smodal-links"></div>
+          <!-- editable fields -->
+          <div class="fg" style="margin-bottom:12px">
+            <label class="fl">Status</label>
+            <select class="fsel" id="smodal-status">
+              <option value="not-started">Not Started</option>
+              <option value="in-progress">In Progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="done">Complete</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:12px">
+            <label class="fl">Time Taken (hrs)</label>
+            <input class="fi" id="smodal-hrs" type="number" step="0.5" min="0" placeholder="0">
+          </div>
+          <div class="fg" style="margin-bottom:20px">
+            <label class="fl">My Notes</label>
+            <textarea class="fi" id="smodal-notes" rows="4" placeholder="Add your own notes here…" style="resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn btnp" onclick="saveStaffTask()">Save Update</button>
+            <button class="btn btns" onclick="closeStaffModal()">Cancel</button>
+            <span style="flex:1"></span>
+            <button class="btn" onclick="requestTaskDeletion()" style="background:#FEF3C7;color:#B45309;border:1px solid #FDE68A;font-size:11px">Request Removal</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--warm)">
+            You can update status, log time and add notes. Core task details are managed by Latisha.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FINANCES -->
+    <div class="page" id="pg-finances">
+      <div class="ph">
+        <div><div class="ptitle">Finances</div><div class="psub">Business &amp; personal</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="fin-tab on" onclick="showFinTab('business',this)">Business</button>
+          <button class="fin-tab" onclick="showFinTab('personal',this)">Personal</button>
+        </div>
+      </div>
+
+      <!-- ── TIMEFRAME TOGGLE ── -->
+      <div style="display:flex;gap:8px;margin-bottom:28px;align-items:center">
+        <button class="fin-period on" onclick="setFinPeriod('weekly',this)">Weekly</button>
+        <button class="fin-period" onclick="setFinPeriod('monthly',this)">Monthly</button>
+        <button class="fin-period" onclick="setFinPeriod('yearly',this)">Yearly</button>
+      </div>
+
+      <!-- ── BUSINESS TAB ── -->
+      <div id="fin-business">
+        <!-- Summary cards -->
+        <div id="fin-biz-summary" class="srow" style="margin-bottom:28px"></div>
+
+        <!-- Income section -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep)">Income</div>
+          <button class="btn btnp" style="font-size:11px" onclick="openFinEntryModal('income',null)">+ Add Income</button>
+        </div>
+        <div id="fin-income-list" style="margin-bottom:32px"></div>
+
+        <!-- Expense categories -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep)">Expenses</div>
+          <button class="btn btnp" style="font-size:11px" onclick="openFinEntryModal('expense',null)">+ Add Expense</button>
+        </div>
+        <div id="fin-expense-list" style="margin-bottom:24px"></div>
+
+        <!-- Net summary -->
+        <div id="fin-net-bar"></div>
+      </div>
+
+      <!-- ── PERSONAL TAB ── -->
+      <div id="fin-personal" style="display:none">
+        <div id="fin-personal-summary" class="srow" style="margin-bottom:28px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep)">Personal Expenses</div>
+          <button class="btn btnp" style="font-size:11px" onclick="openFinEntryModal('personal',null)">+ Add Expense</button>
+        </div>
+        <div id="fin-personal-list"></div>
+      </div>
+    </div>
+
+    <!-- VIETNAM -->
+    <div class="page" id="pg-vietnam">
+      <div class="ph">
+        <div><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Planning tracker &middot; Launch end of October</div></div>
+      </div>
+      <div id="vt-content"></div>
+    </div>
+    <!-- GOALS -->
+    <div class="page" id="pg-goals">
+      <div class="ph">
+        <div><div class="ptitle">Goals &amp; Vision</div><div class="psub">Track progress toward every target</div></div>
+        <div style="display:flex;gap:8px" id="goals-header-btns">
+          <button class="btn btns" onclick="setGoalFilter('active',this)">Active</button>
+          <button class="btn btns" onclick="setGoalFilter('completed',this)">Completed</button>
+          <button class="btn btns" onclick="setGoalFilter('archived',this)">Archived</button>
+          <button class="btn btns" onclick="setGoalFilter('all',this)">All</button>
+          <button class="btn btnp" id="goals-new-btn" onclick="openGoalModal(null)">+ New Goal</button>
+        </div>
+      </div>
+      <div id="goals-list"></div>
+    </div>
+
+    <!-- SOPs -->
+    <div class="page" id="pg-sops">
+      <div class="ph">
+        <div><div class="ptitle">SOPs &amp; Passwords</div><div class="psub">Operating procedures, documents and logins</div></div>
+      </div>
+      <!-- tab bar -->
+      <div style="display:flex;gap:8px;margin-bottom:24px">
+        <button id="sop-tab-sops"      class="vt-tab on"  onclick="setSopSection('sops')">&#128196; SOPs</button>
+        <button id="sop-tab-passwords" class="vt-tab"     onclick="setSopSection('passwords')">&#128274; Passwords</button>
+      </div>
+
+      <!-- ── SOPs section ── -->
+      <div id="sop-sec-sops">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div class="sopfrow" id="sop-filters" style="margin:0">
+            <div class="fpill on" onclick="filtSops('All',this)">All</div>
+            <div class="fpill" onclick="filtSops('Bookings',this)">Bookings</div>
+            <div class="fpill" onclick="filtSops('Social Media',this)">Social Media</div>
+            <div class="fpill" onclick="filtSops('Finance',this)">Finance</div>
+            <div class="fpill" onclick="filtSops('Admin',this)">Admin</div>
+            <div class="fpill" onclick="filtSops('Marketing',this)">Marketing</div>
+            <div class="fpill" onclick="filtSops('Operations',this)">Operations</div>
+          </div>
+          <button class="btn btnp" onclick="openSopModal(null)">+ New SOP</button>
+        </div>
+        <div class="sopgrid" id="sop-grid"></div>
+        <div id="sop-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No SOPs yet — click + New SOP to add one.</div>
+      </div>
+
+      <!-- ── Passwords section ── -->
+      <div id="sop-sec-passwords" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:13px;color:var(--muted)">Passwords hidden by default — click Show to reveal</div>
+          <button class="btn btnp" onclick="openPwModal(null)">+ Add Login</button>
+        </div>
+        <div class="sopgrid" id="pw-grid"></div>
+        <div id="pw-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No logins yet — click + Add Login.</div>
+      </div>
+    </div>
+
+    <!-- ══ SOP Modal ══ -->
+    <div id="sop-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:640px;width:100%;max-height:88vh;overflow-y:auto">
+        <button onclick="closeSopModal()" class="sm-modal-x">&#215;</button>
+        <div id="sopm-heading" class="sm-modal-title">New SOP</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Title *</label><input id="sopm-title" class="sm-inp" placeholder="e.g. Client Booking Process"></div>
+          <div class="sm-field"><label class="sm-lbl">Category</label>
+            <select id="sopm-cat" class="sm-inp">
+              <option>Bookings</option><option>Social Media</option><option>Finance</option>
+              <option>Admin</option><option>Marketing</option><option>Operations</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Short description <span style="font-weight:400;color:var(--muted)">(shown on card)</span></label>
+          <input id="sopm-notes" class="sm-inp" placeholder="One-line summary">
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Full SOP / Procedure</label>
+          <textarea id="sopm-body" class="sm-inp" rows="8" placeholder="Write the full step-by-step procedure here..." style="resize:vertical;font-family:inherit;line-height:1.7"></textarea>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Document link <span style="font-weight:400;color:var(--muted)">(Google Doc, Notion, Canva…)</span></label>
+          <input id="sopm-docurl" class="sm-inp" type="url" placeholder="https://docs.google.com/...">
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Loom / video link</label>
+          <input id="sopm-loom" class="sm-inp" type="url" placeholder="https://www.loom.com/share/...">
+        </div>
+        <div id="sopm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveSopModal()">Save SOP</button>
+          <button class="btn btns"  onclick="closeSopModal()">Cancel</button>
+          <button id="sopm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteSopItem(_sopEditId);closeSopModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Password Modal ══ -->
+    <div id="pw-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closePwModal()" class="sm-modal-x">&#215;</button>
+        <div id="pwm-heading" class="sm-modal-title">Add Login</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Service name *</label><input id="pwm-title" class="sm-inp" placeholder="e.g. Squarespace"></div>
+          <div class="sm-field"><label class="sm-lbl">Category</label>
+            <select id="pwm-cat" class="sm-inp">
+              <option>Admin</option><option>Social Media</option><option>Finance</option>
+              <option>Bookings</option><option>Marketing</option><option>Operations</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">URL</label><input id="pwm-url" class="sm-inp" type="url" placeholder="https://..."></div>
+        <div class="sm-field"><label class="sm-lbl">Username / Email</label><input id="pwm-user" class="sm-inp" placeholder="login@example.com"></div>
+        <div class="sm-field"><label class="sm-lbl">Password</label><input id="pwm-pw" class="sm-inp" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label><input id="pwm-notes" class="sm-inp" placeholder="e.g. 2FA on phone"></div>
+        <div id="pwm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="savePwModal()">Save</button>
+          <button class="btn btns"  onclick="closePwModal()">Cancel</button>
+          <button id="pwm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deletePwItem(_pwEditId);closePwModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+    <!-- HUE & STRIPE -->
+    <div class="page" id="pg-huestripe">
+      <div class="ph">
+        <div><div class="ptitle">Hue &amp; Stripe</div><div class="psub">Season audit · brand library · watchlist</div></div>
+        <button class="btn btnp" onclick="showHsTab('add-brand')">+ Add Brand</button>
+      </div>
+      <div class="hstabs">
+        <div class="hstab on" onclick="showHsTab('audit')">Audit Tracker</div>
+        <div class="hstab" onclick="showHsTab('brands')">Brand Library</div>
+        <div class="hstab" onclick="showHsTab('watchlist')">Watchlist</div>
+        <div class="hstab" onclick="showHsTab('add-brand')">+ Add Brand</div>
+      </div>
+      <div class="hspanel on" id="hs-audit">
+        <div class="hsnote">Track when each season category was last audited. Set a date, status and notes for each.</div>
+        <div id="audit-container"></div>
+      </div>
+      <div class="hspanel" id="hs-brands">
+        <div class="bsrow">
+          <input class="fi" id="brand-search" placeholder="Search brand or tag…" oninput="renderBrands()" style="max-width:280px">
+          <div class="bfpills" id="bfpills">
+            <span class="fpill on" onclick="setBF('All',this)">All</span>
+            <span class="fpill" onclick="setBF('Clothing',this)">Clothing</span>
+            <span class="fpill" onclick="setBF('Jewellery',this)">Jewellery</span>
+            <span class="fpill" onclick="setBF('Makeup',this)">Makeup</span>
+            <span class="fpill" onclick="setBF('Accessories',this)">Accessories</span>
+            <span class="fpill" onclick="setBF('Animal Cruelty Free',this)">Animal CF</span>
+            <span class="fpill" onclick="setBF('Clean Beauty',this)">Clean Beauty</span>
+            <span class="fpill" onclick="setBF('Both',this)">Both</span>
+            <span class="fpill" onclick="setBF('Gym',this)">Gym</span>
+            <span class="fpill" onclick="setBF('Formal',this)">Formal</span>
+            <span class="fpill" onclick="setBF('Suiting',this)">Suiting</span>
+            <span class="fpill" onclick="setBF('Casual',this)">Casual</span>
+            <span class="fpill" onclick="setBF('Swim',this)">Swim</span>
+          </div>
+        </div>
+        <div class="bgrid" id="brand-grid"></div>
+        <div id="brand-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No brands match.</div>
+      </div>
+      <div class="hspanel" id="hs-watchlist">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+          <div style="font-size:13px;color:var(--muted)">Brands to research or add later.</div>
+          <button class="btn btnp" onclick="togWatchForm()">+ Add</button>
+        </div>
+        <div class="waddform" id="watch-form">
+          <input class="fi" id="wname" placeholder="Brand name…" style="max-width:220px">
+          <input class="fi" id="wnote" placeholder="Notes…">
+          <button class="btn btnp" onclick="saveWatch()">Save</button>
+          <button class="btn btns" onclick="togWatchForm()">Cancel</button>
+        </div>
+        <div id="watch-list"></div>
+        <div id="watch-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">Watchlist is empty.</div>
+      </div>
+      <div class="hspanel" id="hs-add-brand">
+        <div class="card" style="max-width:680px">
+          <div class="ch"><div class="ct" id="bform-title">Add Brand</div></div>
+          <div class="cb">
+            <input type="hidden" id="b-editid">
+            <div class="frow">
+              <div class="fg"><label class="fl">Brand Name</label><input class="fi" id="b-name" placeholder="e.g. Zara"></div>
+              <div class="fg"><label class="fl">Website URL</label><input class="fi" id="b-url" placeholder="https://..."></div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Categories</label>
+              <div class="tcbg" id="b-cats">
+                <label class="tcb"><input type="checkbox" value="Clothing"> Clothing</label>
+                <label class="tcb"><input type="checkbox" value="Jewellery"> Jewellery</label>
+                <label class="tcb"><input type="checkbox" value="Makeup"> Makeup</label>
+                <label class="tcb"><input type="checkbox" value="Accessories"> Accessories</label>
+                <label class="tcb"><input type="checkbox" value="Shoes"> Shoes</label>
+                <label class="tcb"><input type="checkbox" value="Bags"> Bags</label>
+              </div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Clothing Tags</label>
+              <div class="tcbg" id="b-ctags">
+                <label class="tcb"><input type="checkbox" value="Gym"> Gym</label>
+                <label class="tcb"><input type="checkbox" value="Formal"> Formal</label>
+                <label class="tcb"><input type="checkbox" value="Suiting"> Suiting</label>
+                <label class="tcb"><input type="checkbox" value="Casual"> Casual</label>
+                <label class="tcb"><input type="checkbox" value="Swim"> Swim</label>
+                <label class="tcb"><input type="checkbox" value="All"> All</label>
+              </div>
+            </div>
+            <div class="fg" style="margin-bottom:12px">
+              <label class="fl">Makeup Tags</label>
+              <div class="tcbg" id="b-mtags">
+                <label class="tcb"><input type="checkbox" value="Animal Cruelty Free"> Animal Cruelty Free</label>
+                <label class="tcb"><input type="checkbox" value="Clean Beauty"> Clean Beauty</label>
+                <label class="tcb"><input type="checkbox" value="Both"> Both</label>
+              </div>
+            </div>
+            <div class="frow">
+              <div class="fg"><label class="fl">Season / Palette</label>
+                <select class="fsel" id="b-season">
+                  <option value="">— Multi-Season —</option>
+                  <option>Spring</option><option>True Spring</option><option>Warm Spring</option><option>Light Spring</option>
+                  <option>Summer</option><option>True Summer</option><option>Cool Summer</option><option>Light Summer</option>
+                  <option>Autumn</option><option>True Autumn</option><option>Warm Autumn</option><option>Deep Autumn</option>
+                  <option>Winter</option><option>True Winter</option><option>Cool Winter</option><option>Deep Winter</option>
+                </select>
+              </div>
+              <div class="fg"><label class="fl">Date Added</label><input class="fi" type="date" id="b-date"></div>
+            </div>
+            <div class="fg" style="margin-bottom:16px"><label class="fl">Notes</label><textarea class="fi" id="b-notes" rows="3" placeholder="Styling notes, best pieces, what to avoid…" style="resize:vertical"></textarea></div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btnp" onclick="saveBrand()">Save Brand</button>
+              <button class="btn btns" onclick="showHsTab('brands')">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════ TOURS ═══════════════════════════ -->
+    <div class="page" id="pg-tours">
+      <div class="ph">
+        <div><div class="ptitle">Tours</div><div class="psub">Upcoming &amp; past tour management</div></div>
+        <button class="btn btnp" onclick="openTourModal()">+ New Tour</button>
+      </div>
+      <div id="tours-list"></div>
+    </div>
+
+
+    <!-- VT Checklist Item Modal -->
+    <div id="vt-checklist-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:440px;width:100%">
+        <button onclick="closeVtChecklistModal()" class="sm-modal-x">&#215;</button>
+        <div id="vtcm-heading" class="sm-modal-title">Add Task</div>
+        <div class="sm-field"><label class="sm-lbl">Task Text *</label>
+          <input id="vtcm-text" class="sm-inp" placeholder="e.g. Book airport transfers">
+        </div>
+        <div id="vtcm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+          <button class="btn btnp" onclick="saveVtChecklistItem()">Save</button>
+          <button class="btn btns" onclick="closeVtChecklistModal()">Cancel</button>
+          <button id="vtcm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="vtDeleteItem(_vtClModal.clId,_vtClModal.itemId);closeVtChecklistModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VT Document Modal -->
+    <div id="vt-doc-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closeVtDocModal()" class="sm-modal-x">&#215;</button>
+        <div id="vtdm-heading" class="sm-modal-title">Add Document</div>
+        <div class="sm-field"><label class="sm-lbl">Document Name *</label>
+          <input id="vtdm-name" class="sm-inp" placeholder="e.g. Brochure, Welcome Pack">
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Status</label>
+          <select id="vtdm-status" class="sm-inp">
+            <option value="notstarted">Not Started</option>
+            <option value="inprogress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Link (Canva, Google Drive, file, etc.)</label>
+          <input id="vtdm-url" class="sm-inp" type="url" placeholder="https://www.canva.com/...">
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label>
+          <input id="vtdm-notes" class="sm-inp" placeholder="e.g. Created in Canva, needs review">
+        </div>
+        <div id="vtdm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+          <button class="btn btnp" onclick="saveVtDoc()">Save</button>
+          <button class="btn btns" onclick="closeVtDocModal()">Cancel</button>
+          <button id="vtdm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="vtDeleteDoc(_vtDocId);closeVtDocModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VT Client Modal -->
+    <div id="vt-client-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closeVtClientModal()" class="sm-modal-x">&#215;</button>
+        <div id="vtcl-heading" class="sm-modal-title">Add Client</div>
+        <div class="sm-field"><label class="sm-lbl">Full Name *</label>
+          <input id="vtcl-name" class="sm-inp" placeholder="e.g. Sarah Johnson">
+        </div>
+        <div id="vtcl-pkg-row" class="sm-field"><label class="sm-lbl">Room Type</label>
+          <select id="vtcl-package" class="sm-inp" onchange="vtTogglePartner()">
+            <option value="">&#8212; Select &#8212;</option>
+            <option value="Single">Single</option>
+            <option value="Double">Double</option>
+          </select>
+        </div>
+        <div id="vtcl-partner-row" class="sm-field" style="display:none">
+          <label class="sm-lbl">Partner / Second Guest Name *</label>
+          <input id="vtcl-partner" class="sm-inp" placeholder="e.g. James Johnson">
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label>
+          <input id="vtcl-notes" class="sm-inp" placeholder="e.g. deposit paid, dietary needs, referral">
+        </div>
+        <div class="sm-field">
+          <label class="sm-lbl">Contract / Document Link</label>
+          <input id="vtcl-contract" class="sm-inp" type="url" placeholder="https://drive.google.com/... or Canva link">
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Google Drive, Canva, Dropbox or any file URL</div>
+        </div>
+        <div id="vtcl-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+          <button class="btn btnp" onclick="saveVtClient()">Save</button>
+          <button class="btn btns" onclick="closeVtClientModal()">Cancel</button>
+          <button id="vtcl-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="vtDeleteClient(_vtClientList,_vtClientIdx);closeVtClientModal();">Remove</button>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- ═══════════════════════════ ONLINE COLOUR ANALYSIS ═══════════════════════════ -->
+    <div class="page" id="pg-online">
+      <div class="ph">
+        <div>
+          <div class="ptitle">Online Colour Analysis</div>
+          <div class="psub">Drape &amp; compare seasons on your client</div>
+        </div>
+      </div>
+
+      <!-- Photo upload bar -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="position:relative;cursor:pointer;flex-shrink:0" onclick="document.getElementById('oca-photo-input').click()">
+            <img id="oca-photo-preview" src="" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;object-position:center top;border:3px solid var(--rose)">
+            <div id="oca-photo-placeholder" style="width:72px;height:72px;border-radius:50%;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;border:2px dashed var(--muted)">&#128247;</div>
+            <div style="position:absolute;bottom:2px;right:2px;background:var(--rose);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700">+</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:4px">Client Photo</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Upload a clear front-facing photo. It will appear on every colour swatch for comparison.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btnp" style="font-size:12px" onclick="document.getElementById('oca-photo-input').click()">&#128247; Upload Photo</button>
+              <button class="btn btns" style="font-size:12px" onclick="ocaPhotoClear()">Clear</button>
+            </div>
+          </div>
+          <input type="file" id="oca-photo-input" accept="image/*" style="display:none" onchange="ocaPhotoUpload(this)">
+        </div>
+      </div>
+
+      <!-- Main tabs -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+        <button id="oca-tab-draping"      class="vt-tab on" onclick="setOcaTab('draping')">&#9998; Draping Process</button>
+        <button id="oca-tab-fundamentals" class="vt-tab"    onclick="setOcaTab('fundamentals')">&#9680; Fundamentals</button>
+        <button id="oca-tab-metals"       class="vt-tab"    onclick="setOcaTab('metals')">&#10024; Metals</button>
+        <button id="oca-tab-blush"        class="vt-tab"    onclick="setOcaTab('blush')">&#127804; Blush</button>
+        <button id="oca-tab-coolwarm"     class="vt-tab"    onclick="setOcaTab('coolwarm')">&#127776; Cool vs Warm</button>
+        <button id="oca-tab-seasons"      class="vt-tab"    onclick="setOcaTab('seasons')">&#127809; Season Palettes</button>
+        <button id="oca-tab-compare"      class="vt-tab"    onclick="setOcaTab('compare')">&#9878; Compare Seasons</button>
+        <button class="btn" style="margin-left:auto;background:var(--rose);color:#fff;font-size:12px;padding:8px 18px;border-radius:8px;white-space:nowrap" onclick="openReportModal()">&#128196; Generate Report</button>
+      </div>
+
+      <div id="oca-content"></div>
+
+      <!-- ── Report Modal ── -->
+      <div id="report-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:16px;padding:32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+          <div style="font-size:18px;font-weight:700;color:var(--charcoal);margin-bottom:6px">Generate Client Report</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Fill in the details below then preview the report before downloading as PDF.</div>
+          <div style="margin-bottom:14px">
+            <label style="font-size:11px;font-weight:600;color:var(--charcoal);display:block;margin-bottom:5px">Client Name</label>
+            <input id="report-client-name" type="text" placeholder="e.g. Sarah Johnson" class="sm-inp" style="width:100%;padding:10px 12px;font-size:13px;border-radius:8px">
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="font-size:11px;font-weight:600;color:var(--charcoal);display:block;margin-bottom:5px">Season Result <span style="font-weight:400;color:var(--muted)">(auto-detected from tallies)</span></label>
+            <select id="report-season-select" class="sm-inp" style="width:100%;padding:10px 12px;font-size:13px;border-radius:8px">
+              <option value="">— Select Sub-Season —</option>
+              <option>Light Spring</option><option>True Spring</option><option>Bright Spring</option>
+              <option>Light Summer</option><option>True Summer</option><option>Soft Summer</option>
+              <option>Soft Autumn</option><option>True Autumn</option><option>Dark Autumn</option>
+              <option>True Winter</option><option>Dark Winter</option><option>Bright Winter</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btns" style="flex:1;padding:10px" onclick="closeReportModal()">Cancel</button>
+            <button class="btn" style="flex:2;padding:10px;background:var(--rose);color:#fff" onclick="previewReport()">Preview Report &#8594;</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Report Preview Overlay ── -->
+      <div id="report-preview-overlay" style="display:none;position:fixed;inset:0;background:#555;z-index:1001;overflow-y:auto">
+        <div style="position:sticky;top:0;z-index:10;background:#333;padding:12px 24px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.4)">
+          <button class="btn btns" style="font-size:12px;padding:6px 14px" onclick="closeReportPreview()">&#8592; Back</button>
+          <div style="flex:1;font-size:13px;font-weight:600;color:#fff" id="report-preview-title">Report Preview</div>
+          <button class="btn" style="background:var(--rose);color:#fff;font-size:12px;padding:8px 18px" onclick="downloadReportPDF()">&#8681; Download PDF</button>
+        </div>
+        <div id="report-pages-container" style="padding:32px;display:flex;flex-direction:column;align-items:center;gap:24px"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════ GIFT VOUCHERS ═══════════════════════════ -->
+    <div class="page" id="pg-vouchers">
+      <div class="ph"><div><div class="ptitle">Gift Vouchers</div><div class="psub">Create &amp; download personalised gift vouchers</div></div></div>
+      <div id="voucher-page-content"></div>
+    </div>
+
+    <!-- ═══════════════════════════ MARKETING ═══════════════════════════ -->
+    <div class="page" id="pg-marketing">
+      <div class="ph"><div><div class="ptitle">Marketing</div><div class="psub">Website, content &amp; outreach</div></div></div>
+
+      <!-- Marketing tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+        <button id="mkt-tab-website"  class="vt-tab on"  onclick="setMktTab('website')">&#127760; Website</button>
+        <button id="mkt-tab-blog"     class="vt-tab"     onclick="setMktTab('blog')">&#128221; Blog</button>
+        <button id="mkt-tab-creators" class="vt-tab"     onclick="setMktTab('creators')">&#127775; Creators</button>
+        <button id="mkt-tab-linkedin" class="vt-tab"     onclick="setMktTab('linkedin')">&#128188; LinkedIn</button>
+        <button id="mkt-tab-gbp"      class="vt-tab"     onclick="setMktTab('gbp')">&#128205; GBP</button>
+      </div>
+      <div id="mkt-content"></div>
+    </div>
+
+    <!-- ═══════════════════════════ SOCIAL MEDIA ═══════════════════════════ -->
+    <div class="page" id="pg-social">
+      <div class="ph"><div><div class="ptitle">Social Media</div><div class="psub">Content planning &amp; scheduling</div></div></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button id="sm-tab-planner"  class="vt-tab on" onclick="setSmTab('planner')">Schedule</button>
+        <button id="sm-tab-ideas"    class="vt-tab"    onclick="setSmTab('ideas')">&#128161; Content Ideas</button>
+      </div>
+      <div id="sm-sec-planner">
+
+      <div class="sm-sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+          <div>
+            <div class="sm-sec-title">Schedule Planner</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <span class="sm-week-lbl" id="planner-week-lbl" style="font-size:13px;color:var(--muted)"></span>
+            <button class="btn btns" onclick="changePlannerWeek(-1)" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:50%">←</button>
+            <button class="btn btns" onclick="changePlannerWeek(1)" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:50%">→</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+          <button id="planner-tab-meta" class="planner-tab on" onclick="setPlannerTab('meta')">META</button>
+          <button id="planner-tab-tiktok" class="planner-tab" onclick="setPlannerTab('tiktok')">TIKTOK</button>
+        </div>
+        <div style="overflow-x:auto"><div id="planner-grid"></div></div>
+      </div>
+      <div class="sm-divider"></div>
+
+      <!-- META ROTATION SCHEDULE (colour-coded table) -->
+      <div class="sm-sec">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+          <div>
+            <div class="sm-sec-title" style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:var(--deep)">META Rotation Schedule</div>
+            <div class="sm-sec-sub" style="font-size:12px;color:var(--muted)">Click any cell to assign staff, add Canva links &amp; notes</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="meta-tbl" id="meta-sched-table">
+            <thead><tr><th></th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead>
+            <tbody id="meta-sched-body"></tbody>
+          </table>
+        </div>
+
+      <!-- META Rotation Cell Modal -->
+      <div id="mrc-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+        <div class="sm-modal" style="max-width:440px;width:100%">
+          <button onclick="closeMrcModal()" class="sm-modal-x">&#215;</button>
+          <div id="mrc-view-mode">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div id="mrc-badge-view" style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0"></div>
+              <div>
+                <div id="mrc-slot-lbl" style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)"></div>
+              </div>
+              <button onclick="switchMrcToEdit()" class="btn btns" style="margin-left:auto;font-size:11px">Edit</button>
+            </div>
+            <div id="mrc-thumb-view" style="margin-bottom:14px"></div>
+            <div id="mrc-links-view" style="margin-bottom:12px"></div>
+            <div id="mrc-notes-view" style="font-size:13px;color:var(--muted);font-style:italic;line-height:1.6"></div>
+          </div>
+          <div id="mrc-edit-mode" style="display:none">
+            <div class="sm-modal-title">Edit Cell</div>
+            <div class="sm-field"><label class="sm-lbl">Content Type</label>
+              <select id="mrc-content-type" class="sm-inp">
+                <option value="">— Select —</option>
+                <option value="Celeb">Celeb</option>
+                <option value="Client Video">Client Video</option>
+                <option value="Educational">Educational</option>
+                <option value="Moodboard">Moodboard</option>
+                <option value="Promotion">Promotion</option>
+                <option value="Behind the Scenes">Behind the Scenes</option>
+                <option value="Testimonial">Testimonial</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="sm-field"><label class="sm-lbl">Assigned To</label>
+              <select id="mrc-staff" class="sm-inp">
+                <option value="">Unassigned</option>
+                <option value="Lemari">Lemari</option>
+                <option value="Salma">Salma</option>
+                <option value="Latisha">Latisha</option>
+              </select>
+            </div>
+            <div class="sm-field">
+              <label class="sm-lbl">Thumbnail Image</label>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+                <img id="mrc-thumb-prev" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--sand);display:none">
+                <div>
+                  <input type="file" id="mrc-thumb-input" accept="image/*" onchange="handleMrcThumb(this)" style="font-size:12px;color:var(--muted)">
+                  <button id="mrc-thumb-clear" onclick="clearMrcThumb()" style="display:none;margin-top:6px;background:none;border:none;color:#B91C1C;font-size:11px;cursor:pointer;padding:0">&#10005; Remove image</button>
+                </div>
+              </div>
+            </div>
+            <div class="sm-field"><label class="sm-lbl">Canva Link (WIP / In Progress)</label>
+              <input id="mrc-canva-wip" class="sm-inp" placeholder="https://canva.com/...">
+            </div>
+            <div class="sm-field"><label class="sm-lbl">Canva Link (Completed / Final)</label>
+              <input id="mrc-canva-done" class="sm-inp" placeholder="https://canva.com/...">
+            </div>
+            <div class="sm-field"><label class="sm-lbl">Notes</label>
+              <textarea id="mrc-notes" class="sm-inp" rows="3" style="resize:vertical" placeholder="Any extra info&#8230;"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button class="btn btnp" onclick="saveMrcSlot()">Save</button>
+              <button class="btn btns" onclick="switchMrcToView()">Cancel</button>
+              <button onclick="clearMrcSlot()" style="margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="sm-divider"></div>
+
+      <!-- CELEB TRACKER -->
+      <div class="sm-sec">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+          <div>
+            <div class="sm-sec-title" style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:var(--deep)">&#9733; Celeb Colour Analysis Tracker</div>
+            <div class="sm-sec-sub" style="font-size:12px;color:var(--muted)">Track celebrities to analyse &mdash; avoid double-ups, notes &amp; season guess</div>
+          </div>
+          <button class="btn btnp" onclick="openCelebModal(null)">+ Add Celeb</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+          <button class="celeb-tab on" id="ctab-todo" onclick="setCelebTab('todo')">To Do</button>
+          <button class="celeb-tab" id="ctab-done" onclick="setCelebTab('done')">&#10003; Completed</button>
+        </div>
+        <div id="celeb-list"></div>
+      </div>
+
+      <!-- Celeb Modal -->
+      <div id="celeb-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;overflow-y:auto;padding:20px">
+        <div class="sm-modal" style="max-width:460px;width:100%">
+          <button onclick="closeCelebModal()" class="sm-modal-x">&#215;</button>
+          <div class="sm-modal-title" id="celeb-modal-title">Add Celeb</div>
+          <div class="sm-field"><label class="sm-lbl">Celebrity Name</label><input id="celeb-name" class="sm-inp" placeholder="e.g. Zendaya"></div>
+          <div class="sm-field"><label class="sm-lbl">Status</label>
+            <select id="celeb-status" class="sm-inp"><option value="todo">To Do</option><option value="done">Completed</option></select>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Priority</label>
+            <div style="display:flex;gap:10px;margin-top:6px">
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;padding:7px 14px;border-radius:20px;border:1.5px solid #FECACA;background:#FFF5F5">
+                <input type="radio" name="celeb-priority" value="hot" style="accent-color:#EF4444"> <span style="font-size:14px">🔴</span> Hot Topic
+              </label>
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;padding:7px 14px;border-radius:20px;border:1.5px solid #FDE68A;background:#FFFBEB">
+                <input type="radio" name="celeb-priority" value="trending" style="accent-color:#F59E0B"> <span style="font-size:14px">🟡</span> Trending
+              </label>
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;padding:7px 14px;border-radius:20px;border:1.5px solid #A7F3D0;background:#F0FDF4">
+                <input type="radio" name="celeb-priority" value="evergreen" style="accent-color:#10B981"> <span style="font-size:14px">🟢</span> Evergreen
+              </label>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Guessed Season</label>
+            <select id="celeb-season" class="sm-inp">
+              <option value="">&mdash; Unknown &mdash;</option>
+              <optgroup label="Spring"><option value="light-spring">Light Spring</option><option value="true-spring">True Spring</option><option value="bright-spring">Bright Spring</option></optgroup>
+              <optgroup label="Summer"><option value="light-summer">Light Summer</option><option value="soft-summer">Soft Summer</option><option value="true-summer">True Summer</option></optgroup>
+              <optgroup label="Autumn"><option value="soft-autumn">Soft Autumn</option><option value="true-autumn">True Autumn</option><option value="dark-autumn">Dark Autumn</option></optgroup>
+              <optgroup label="Winter"><option value="bright-winter">Bright Winter</option><option value="true-winter">True Winter</option><option value="dark-winter">Dark Winter</option></optgroup>
+            </select>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Notes</label><textarea id="celeb-notes" class="sm-inp" rows="3" style="resize:vertical" placeholder="e.g. Warm undertones, earthy tones suit her&#8230;"></textarea></div>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button class="btn btnp" onclick="saveCeleb()">Save</button>
+            <button class="btn btns" onclick="closeCelebModal()">Cancel</button>
+            <button id="celeb-del" style="margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;display:none" onclick="deleteCeleb()">Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sm-divider"></div>
+
+      <div class="sm-sec">
+        <div class="sm-sec-title">🎬 Video Tracker</div>
+        <div class="sm-sec-sub">Track client &amp; celeb video production</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;gap:8px">
+            <button class="sm-pill on" onclick="filterVids('all',this)">All</button>
+            <button class="sm-pill" onclick="filterVids('client',this)">&#128100; Client</button>
+            <button class="sm-pill" onclick="filterVids('founder',this)">&#127775; Founder</button>
+            <button class="sm-pill" onclick="filterVids('trend',this)">&#128200; Trend</button>
+            <button class="sm-pill" onclick="filterVids('bts',this)">&#127916; BTS</button>
+            <button class="sm-pill" onclick="filterVids('educational',this)">&#127979; Educational</button>
+          </div>
+          <div id="vid-plat-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <button class="sm-pill on" onclick="filterVidPlat('all',this)">All Platforms</button>
+            <button class="sm-pill" onclick="filterVidPlat('ig',this)">&#128248; META / IG</button>
+            <button class="sm-pill" onclick="filterVidPlat('tt',this)">&#127925; TikTok</button>
+            <button class="sm-pill" onclick="filterVidPlat('yt',this)">&#9654;&#65039; YouTube</button>
+            <button class="sm-pill" onclick="filterVidPlat('none',this)">&#10060; Not Posted</button>
+          </div>
+          <div style="display:none"><!-- spacer -->
+          </div>
+          <button class="btn btnp" onclick="openVidModal(null)">+ Add Video</button>
+        </div>
+        <div id="vid-list"></div>
+      </div>
+
+      <!-- Slot Modal -->
+      <div id="slot-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.55);z-index:500;align-items:center;justify-content:center">
+        <div class="sm-modal">
+          <button onclick="closeSlotModal()" class="sm-modal-x">&#215;</button>
+          <div class="sm-modal-title" id="slot-modal-title">Edit Slot</div>
+          <div class="sm-field"><label class="sm-lbl">Assigned To</label>
+            <select id="slot-assign" class="sm-inp">
+              <option value="">— Unassigned —</option>
+              <option value="latisha">Latisha</option><option value="salma">Salma</option><option value="lemari">Lemari</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Post Type</label>
+              <select id="slot-posttype" class="sm-inp"><option>Reel</option><option>Carousel</option><option>Single Image</option><option>Story</option><option>TikTok</option></select>
+            </div>
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Content Pillar</label>
+              <select id="slot-pillar" class="sm-inp">
+                <option>Outfit / Pinterest Styling</option><option>Celebrity Palette Analysis</option><option>Client Video / Reel</option><option>Educational</option><option>Moodboard</option><option>Availabilities / Bookings</option><option>Cool vs Warm Quiz</option><option>Client Review</option>
+              </select>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Topic / Title</label><input id="slot-topic" class="sm-inp" placeholder="e.g. Spring colour palette trends"></div>
+          <div class="sm-field"><label class="sm-lbl">Caption Notes</label><textarea id="slot-caption" class="sm-inp" rows="2" style="resize:vertical"></textarea></div>
+          <div class="sm-field"><label class="sm-lbl">CTA</label><input id="slot-cta" class="sm-inp"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Canva Link</label><input id="slot-canva" class="sm-inp" placeholder="https://canva.com/..."></div>
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Status</label>
+              <select id="slot-status" class="sm-inp"><option value="idea">Idea</option><option value="creating">Creating</option><option value="ready">Ready</option><option value="scheduled">Scheduled</option><option value="published">Published</option></select>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Image URL</label><input id="slot-img-url" class="sm-inp" placeholder="https://..."></div>
+          <div class="sm-field"><label class="sm-lbl">Or Upload Image</label><input type="file" accept="image/*" onchange="handleSlotImgUpload(this)" style="font-size:12px"></div>
+          <div id="slot-img-preview" style="display:none;margin-top:8px"><img id="slot-img-preview-img" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:8px"></div>
+          <input type="hidden" id="slot-day-idx"><input type="hidden" id="slot-type">
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button class="btn btnp" onclick="saveSlot()">Save</button>
+            <button class="btn btns" onclick="closeSlotModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Modal -->
+      <div id="vid-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.55);z-index:500;align-items:center;justify-content:center">
+        <div class="sm-modal">
+          <button onclick="closeVidModal()" class="sm-modal-x">&#215;</button>
+          <div class="sm-modal-title">Video Details</div>
+          <input type="hidden" id="vm-id">
+          <div class="sm-field">
+            <label class="sm-lbl">Category</label>
+            <div style="display:flex;gap:20px;padding-top:6px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="vm-cat-r" value="client" onchange="document.getElementById('vm-vid-cat').value=this.value" checked> &#128100; Client</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="vm-cat-r" value="founder" onchange="document.getElementById('vm-vid-cat').value=this.value"> &#127775; Founder</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="vm-cat-r" value="trend" onchange="document.getElementById('vm-vid-cat').value=this.value"> &#128200; Trend</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="vm-cat-r" value="bts" onchange="document.getElementById('vm-vid-cat').value=this.value"> &#127916; Behind the Scenes</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="vm-cat-r" value="educational" onchange="document.getElementById('vm-vid-cat').value=this.value"> &#127979; Educational</label>
+            </div>
+            <input type="hidden" id="vm-vid-cat" value="client">
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Client / Subject</label><input id="vm-client" class="sm-inp" placeholder="e.g. Monica"></div>
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Video Type</label>
+              <select id="vm-type" class="sm-inp"><option>Reel</option><option>TikTok</option><option>YouTube Short</option><option>YouTube Long</option></select>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Part / Episode</label><input id="vm-part" class="sm-inp" placeholder="Part 1"></div>
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Editor</label>
+              <select id="vm-editor" class="sm-inp"><option value="lemari">Lemari</option><option value="salma">Salma</option><option value="latisha">Latisha</option></select>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Caption</label><textarea id="vm-caption" class="sm-inp" rows="2" style="resize:vertical"></textarea></div>
+          <div class="sm-field"><label class="sm-lbl">CTA</label><input id="vm-cta" class="sm-inp"></div>
+          <div class="sm-field"><label class="sm-lbl">Hashtags</label><input id="vm-hashtags" class="sm-inp" placeholder="#colouranalysis #yourszn"></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Status</label>
+              <select id="vm-pub-status" class="sm-inp"><option value="editing">Editing</option><option value="review">Review</option><option value="completed">Completed</option><option value="scheduled">Scheduled</option><option value="published">Published</option></select>
+            </div>
+            <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Drive / Canva Link</label><input id="vm-link" class="sm-inp" placeholder="https://..."></div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:1"><label class="sm-lbl">Date Completed</label><input type="date" id="vm-date-completed" class="sm-inp"></div>
+            <div class="sm-field" style="flex:1"><label class="sm-lbl">Date Published</label><input type="date" id="vm-date-published" class="sm-inp"></div>
+          </div>
+          <div class="sm-field">
+            <label class="sm-lbl" style="margin-bottom:10px;display:block">📅 Schedule on Platforms</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="background:var(--warm);border-radius:10px;padding:12px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <span style="font-size:16px">📸</span>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer">
+                    <input type="checkbox" id="vm-plat-ig" onchange="togglePlatDate('ig')"> Instagram
+                  </label>
+                </div>
+                <input type="date" id="vm-date-ig" class="sm-inp" style="display:none;font-size:12px;margin-bottom:6px" oninput="syncPlatStatus()">
+                <input type="time" id="vm-time-ig" class="sm-inp" style="display:none;font-size:12px">
+              </div>
+              <div style="background:var(--warm);border-radius:10px;padding:12px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <span style="font-size:16px">🎵</span>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer">
+                    <input type="checkbox" id="vm-plat-tt" onchange="togglePlatDate('tt')"> TikTok
+                  </label>
+                </div>
+                <input type="date" id="vm-date-tt" class="sm-inp" style="display:none;font-size:12px;margin-bottom:6px" oninput="syncPlatStatus()">
+                <input type="time" id="vm-time-tt" class="sm-inp" style="display:none;font-size:12px">
+              </div>
+              <div style="background:var(--warm);border-radius:10px;padding:12px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <span style="font-size:16px">📌</span>
+                  <label style="display:flex;align-items:center;gap=6px;font-size:13px;font-weight:600;cursor:pointer">
+                    <input type="checkbox" id="vm-plat-pi" onchange="togglePlatDate('pi')"> Pinterest
+                  </label>
+                </div>
+                <input type="date" id="vm-date-pi" class="sm-inp" style="display:none;font-size:12px" oninput="syncPlatStatus()">
+              </div>
+              <div style="background:var(--warm);border-radius:10px;padding:12px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                  <span style="font-size:16px">▶️</span>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer">
+                    <input type="checkbox" id="vm-plat-yt" onchange="togglePlatDate('yt')"> YouTube
+                  </label>
+                </div>
+                <input type="date" id="vm-date-yt" class="sm-inp" style="display:none;font-size:12px" oninput="syncPlatStatus()">
+              </div>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Notes</label><textarea id="vm-notes" class="sm-inp" rows="2" style="resize:vertical"></textarea></div>
+          <div class="sm-field"><label class="sm-lbl">Thumbnail</label>
+            <input id="vm-thumb" class="sm-inp" placeholder="URL..." style="margin-bottom:6px">
+            <input type="file" accept="image/*" onchange="handleVmThumbUpload(this)" style="font-size:12px">
+            <img id="vm-thumb-preview" style="max-width:100%;max-height:100px;object-fit:contain;border-radius:6px;margin-top:6px;display:none">
+          </div>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button class="btn btnp" onclick="saveVid()">Save</button>
+            <button class="btn btns" onclick="closeVidModal()">Cancel</button>
+            <button class="btn" style="margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none" onclick="deleteVid()">Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule Image Modal -->
+      <div id="sched-img-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.55);z-index:500;align-items:center;justify-content:center">
+        <div style="background:white;border-radius:16px;padding:28px 32px;width:400px;max-width:95vw;position:relative">
+          <button onclick="closeSchedImgModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted)">&#215;</button>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep);margin-bottom:18px">Add Image</div>
+          <div class="sm-field"><label class="sm-lbl">Image URL</label><input id="sched-img-url" class="sm-inp" placeholder="https://..."></div>
+          <div class="sm-field"><label class="sm-lbl">Or Upload</label><input type="file" accept="image/*" onchange="handleSchedImgUpload(this)" style="font-size:12px"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btnp" onclick="saveSchedImgUrl()">Save</button>
+            <button class="btn btns" onclick="closeSchedImgModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lightbox -->
+      <div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:900;align-items:center;justify-content:center" onclick="closeLightbox()">
+        <button style="position:absolute;top:20px;right:24px;background:none;border:none;color:white;font-size:32px;cursor:pointer">&#215;</button>
+        <img id="lightbox-img" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px">
+      </div>
+    </div>
+      </div><!-- end sm-sec-planner -->
+
+      <!-- Content Ideas section -->
+      <div id="sm-sec-ideas" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:13px;color:var(--muted)">Capture content ideas — platform, format, concept</div>
+          <button class="btn btnp" onclick="openIdeaModal(null)">+ Add Idea</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px" id="idea-filters">
+          <div class="fpill on" onclick="filterIdeas('All',this)">All</div>
+          <div class="fpill" onclick="filterIdeas('Instagram',this)">Instagram</div>
+          <div class="fpill" onclick="filterIdeas('TikTok',this)">TikTok</div>
+          <div class="fpill" onclick="filterIdeas('LinkedIn',this)">LinkedIn</div>
+          <div class="fpill" onclick="filterIdeas('YouTube',this)">YouTube</div>
+          <div class="fpill" onclick="filterIdeas('Blog',this)">Blog</div>
+          <div class="fpill" onclick="filterIdeas('Other',this)">Other</div>
+        </div>
+        <div id="ideas-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
+        <div id="ideas-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No ideas yet — click + Add Idea.</div>
+      </div><!-- end pg-social -->
+
+    <!-- ═══════════════════════════ COMMS ═══════════════════════════ -->
+
+    <!-- AD CREATIVE PAGE -->
+    <div class="page" id="pg-adcreative">
+      <div class="ph">
+        <div><div class="ptitle">Ad Creative</div><div class="psub">Backlog, manage and track your Meta ad creatives</div></div>
+        <button class="btn btnp" onclick="openAdModal(null)">+ New Ad</button>
+      </div>
+
+      <!-- Type tiles -->
+      <div id="ad-tiles" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px"></div>
+
+      <!-- Ad list -->
+      <div id="ad-status-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px"></div>
+      <div id="ad-list"></div>
+
+      <!-- Ad Modal -->
+      <div id="ad-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.55);z-index:500;align-items:center;justify-content:center;overflow-y:auto;padding:20px">
+        <div class="sm-modal" style="max-width:520px;width:100%">
+          <button onclick="closeAdModal()" class="sm-modal-x">&#215;</button>
+          <div class="sm-modal-title" id="adm-heading">New Ad</div>
+          <div class="sm-field"><label class="sm-lbl">Ad Name / Label</label>
+            <input id="adm-name" class="sm-inp" placeholder="e.g. Mackay Tour - Book Now - Static">
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:1;min-width:120px"><label class="sm-lbl">Ad Type</label>
+              <select id="adm-type" class="sm-inp"><option>Static</option><option>Video</option><option>Carousel</option></select>
+            </div>
+            <div class="sm-field" style="flex:1;min-width:120px"><label class="sm-lbl">Status</label>
+              <select id="adm-status" class="sm-inp">
+                <option value="backlog">Backlog</option><option value="ready">Ready</option>
+                <option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option>
+              </select>
+            </div>
+            <div class="sm-field" style="flex:1;min-width:120px"><label class="sm-lbl">Performance Rating</label>
+              <select id="adm-perf" class="sm-inp">
+                <option value="">- Not rated -</option>
+                <option value="great">&#128293; Great</option>
+                <option value="good">&#128077; Good</option>
+                <option value="average">&#128528; Average</option>
+                <option value="poor">&#128201; Poor</option>
+              </select>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Primary Text</label>
+            <textarea id="adm-primary" class="sm-inp" rows="3" style="resize:vertical" placeholder="e.g. Darwin we are coming for you. bookings now open for September"></textarea>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="sm-field" style="flex:2"><label class="sm-lbl">Headline</label><input id="adm-headline" class="sm-inp" placeholder="e.g. Darwin 3-10 September"></div>
+            <div class="sm-field" style="flex:2"><label class="sm-lbl">Description</label><input id="adm-desc" class="sm-inp" placeholder="e.g. Limited spots available"></div>
+            <div class="sm-field" style="flex:1;min-width:130px"><label class="sm-lbl">CTA Button</label>
+              <select id="adm-cta" class="sm-inp">
+                <option>Book Now</option><option>Learn More</option><option>Sign Up</option>
+                <option>Shop Now</option><option>Get Offer</option><option>Contact Us</option><option>Watch More</option>
+              </select>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Audience / Targeting</label>
+            <input id="adm-targeting" class="sm-inp" placeholder="e.g. Women 25-45, QLD, interest in fashion">
+          </div>
+          <div class="sm-field">
+            <label class="sm-lbl" style="display:block;margin-bottom:10px">&#128202; Performance Stats</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">CTR (%)</div><input id="adm-ctr" class="sm-inp" type="number" step="0.01" placeholder="3.2"></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">ROAS (x)</div><input id="adm-roas" class="sm-inp" type="number" step="0.01" placeholder="4.5"></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">CPC ($)</div><input id="adm-cpc" class="sm-inp" type="number" step="0.01" placeholder="1.40"></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Spend ($)</div><input id="adm-spend" class="sm-inp" type="number" step="0.01" placeholder="250"></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Reach</div><input id="adm-reach" class="sm-inp" type="number" placeholder="12400"></div>
+              <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Conversions</div><input id="adm-conv" class="sm-inp" type="number" placeholder="48"></div>
+            </div>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Notes</label>
+            <textarea id="adm-notes" class="sm-inp" rows="2" style="resize:vertical" placeholder="e.g. Used for Mackay tour, ran 3 weeks"></textarea>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Creative (URL or Upload)</label>
+            <input id="adm-creative-url" class="sm-inp" placeholder="https://..."
+              oninput="var p=document.getElementById('adm-creative-prev');p.src=this.value;p.style.display=this.value?'block':'none'">
+            <input type="file" accept="image/*,video/*" onchange="handleAdCreativeUpload(this)" style="font-size:12px;margin-top:8px">
+            <img id="adm-creative-prev" style="max-width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:8px;display:none">
+          </div>
+          <div id="adm-err" style="color:#EF4444;font-size:12px;margin-top:4px"></div>
+          <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+            <button class="btn btnp" onclick="saveAd()">Save</button>
+            <button class="btn btns" onclick="closeAdModal()">Cancel</button>
+            <button id="adm-del" class="btn" style="margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none;display:none" onclick="deleteAd()">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="pg-comms">
+      <div class="ph"><div><div class="ptitle">Comms</div><div class="psub">Team communication</div></div></div>
+      <div style="display:flex;gap:8px;margin-bottom:24px">
+        <button class="sm-pill on" onclick="showCommsTab('group',this)">💬 Group Chat</button>
+        <button class="sm-pill" onclick="showCommsTab('dm',this)">✉️ Direct Messages</button>
+      </div>
+      <div id="comms-group" style="display:none">
+        <div id="group-thread" style="min-height:300px;max-height:420px;overflow-y:auto;border:1px solid var(--sand);border-radius:12px;padding:16px;background:white;margin-bottom:12px;display:flex;flex-direction:column;gap:10px"></div>
+        <div style="display:flex;gap:8px">
+          <input id="group-input" class="sm-inp" placeholder="Message the team…" style="flex:1" onkeydown="if(event.key==='Enter')sendGroupMsg()">
+          <button class="btn btnp" onclick="sendGroupMsg()">Send</button>
+        </div>
+      </div>
+      <div id="comms-dm" style="display:none">
+        <div id="dm-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+        <div id="dm-thread-wrap" style="display:none">
+          <div id="dm-header" style="font-size:13px;font-weight:600;color:var(--deep);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--sand)"></div>
+          <div id="dm-thread" style="min-height:200px;max-height:350px;overflow-y:auto;border:1px solid var(--sand);border-radius:12px;padding:16px;background:white;margin-bottom:12px;display:flex;flex-direction:column;gap:10px"></div>
+          <div style="display:flex;gap:8px">
+            <input id="dm-input" class="sm-inp" placeholder="Send a message…" style="flex:1" onkeydown="if(event.key==='Enter')sendDm()">
+            <button class="btn btnp" onclick="sendDm()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tour Edit Modal -->
+    <div id="tour-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;overflow-y:auto;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closeTourEditModal()" class="sm-modal-x">&#215;</button>
+        <div class="sm-modal-title" id="tem-heading">New Tour</div>
+        <div style="display:flex;gap:12px">
+          <div class="sm-field" style="flex:2"><label class="sm-lbl">City</label><input id="tem-city" class="sm-inp" placeholder="e.g. Darwin"></div>
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">State</label><input id="tem-state" class="sm-inp" placeholder="NT"></div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Status</label>
+          <select id="tem-status" class="sm-inp"><option value="upcoming">Upcoming</option><option value="active">Active</option><option value="done">Done</option></select>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Travel Start</label><input id="tem-travel-start" class="sm-inp" type="date"></div>
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Travel End</label><input id="tem-travel-end" class="sm-inp" type="date"></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Client Start</label><input id="tem-client-start" class="sm-inp" type="date"></div>
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Client End</label><input id="tem-client-end" class="sm-inp" type="date"></div>
+        </div>
+        <div id="tem-err" style="color:#EF4444;font-size:12px;margin-top:4px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button class="btn btnp" onclick="saveTourEdit()">Save Tour</button>
+          <button class="btn btns" onclick="closeTourEditModal()">Cancel</button>
+          <button id="tem-del" style="margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;display:none" onclick="deleteTour()">Delete</button>
+        </div>
+      </div>
+    </div>
+    <!-- Tour Task Modal -->
+    <div id="tour-task-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:420px;width:100%">
+        <button onclick="closeTourTaskModal()" class="sm-modal-x">&#215;</button>
+        <div class="sm-modal-title">Add Task</div>
+        <div class="sm-field"><label class="sm-lbl">Task</label><input id="ttm-title" class="sm-inp" placeholder="e.g. Book flights"></div>
+        <div class="sm-field"><label class="sm-lbl">Due Date</label><input id="ttm-due" class="sm-inp" type="date"></div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label><textarea id="ttm-notes" class="sm-inp" rows="2" style="resize:vertical"></textarea></div>
+        <div id="ttm-err" style="color:#EF4444;font-size:12px;margin-top:4px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button class="btn btnp" onclick="saveTourTask()">Add Task</button>
+          <button class="btn btns" onclick="closeTourTaskModal()">Cancel</button>
+        </div>
+      </div>
+
+    <!-- Flight Modal -->
+    <div id="flight-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:460px;width:100%">
+        <button onclick="closeFlightModal()" class="sm-modal-x">&#215;</button>
+        <div id="flt-heading" class="sm-modal-title">Add Flight</div>
+        <div class="sm-field"><label class="sm-lbl">Airline *</label><input id="flt-airline" class="sm-inp" placeholder="e.g. Vietnam Airlines"></div>
+        <div class="sm-field"><label class="sm-lbl">Flight No.</label><input id="flt-no" class="sm-inp" placeholder="e.g. VN123"></div>
+        <div style="display:flex;gap:12px">
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Departure</label><input id="flt-dep" class="sm-inp" placeholder="e.g. SYD 14:00"></div>
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Arrival</label><input id="flt-arr" class="sm-inp" placeholder="e.g. HAN 19:00"></div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Cost ($)</label><input id="flt-cost" class="sm-inp" type="number" min="0" placeholder="0"></div>
+        <div id="flt-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+          <button class="btn btnp" onclick="saveFlight()">Save Flight</button>
+          <button class="btn btns" onclick="closeFlightModal()">Cancel</button>
+          <button id="flt-del" class="btn" onclick="deleteCurrentFlight()" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accommodation Modal -->
+    <div id="acc-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:460px;width:100%">
+        <button onclick="closeAccModal()" class="sm-modal-x">&#215;</button>
+        <div class="sm-modal-title">Edit Accommodation</div>
+        <div class="sm-field"><label class="sm-lbl">Hotel / Property Name</label><input id="acc-name" class="sm-inp" placeholder="e.g. Sofitel Legend Metropole"></div>
+        <div class="sm-field"><label class="sm-lbl">Address</label><input id="acc-address" class="sm-inp" placeholder="Street, City"></div>
+        <div style="display:flex;gap:12px">
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Check-in</label><input id="acc-checkin" class="sm-inp" type="date"></div>
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Check-out</label><input id="acc-checkout" class="sm-inp" type="date"></div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Total Cost ($)</label><input id="acc-cost" class="sm-inp" type="number" min="0" placeholder="0"></div>
+        <div id="acc-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button class="btn btnp" onclick="saveAcc()">Save</button>
+          <button class="btn btns" onclick="closeAccModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tour Doc Modal -->
+    <div id="tour-doc-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:460px;width:100%">
+        <button onclick="closeTourDocModal()" class="sm-modal-x">&#215;</button>
+        <div class="sm-modal-title">Document / Link</div>
+        <div class="sm-field"><label class="sm-lbl">Name *</label><input id="tdm-name" class="sm-inp" placeholder="e.g. Canva itinerary, Flight confirmation"></div>
+        <div class="sm-field"><label class="sm-lbl">URL (file, Canva, Google Drive, etc.)</label><input id="tdm-url" class="sm-inp" type="url" placeholder="https://..."></div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label><input id="tdm-notes" class="sm-inp" placeholder="Optional description"></div>
+        <div id="tdm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+          <button class="btn btnp" onclick="saveTourDoc()">Save</button>
+          <button class="btn btns" onclick="closeTourDocModal()">Cancel</button>
+          <button id="tdm-del" class="btn" onclick="deleteTourDoc(editingDocTourId,editingDocIdx);closeTourDocModal();" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tour Client Modal -->
+    <div id="tour-client-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:440px;width:100%">
+        <button onclick="closeTourClientModal()" class="sm-modal-x">&#215;</button>
+        <div id="tcm-heading" class="sm-modal-title">Add Client</div>
+        <div class="sm-field"><label class="sm-lbl">Full Name *</label><input id="tcm-name" class="sm-inp" placeholder="e.g. Sarah Johnson"></div>
+        <div id="tcm-package-row" class="sm-field"><label class="sm-lbl">Package</label>
+          <select id="tcm-package" class="sm-inp">
+            <option value="">— Select —</option>
+            <option value="Standard">Standard</option>
+            <option value="Premium">Premium</option>
+          </select>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label><input id="tcm-notes" class="sm-inp" placeholder="e.g. deposit paid, dietary needs"></div>
+        <div id="tcm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+          <button class="btn btnp" onclick="saveTourClient()">Save</button>
+          <button class="btn btns" onclick="closeTourClientModal()">Cancel</button>
+          <button id="tcm-del" class="btn" onclick="deleteTourClient(editingClientTourId,editingClientList,editingClientIdx);closeTourClientModal();" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    </div>
+    <!-- Celeb Video Modal -->
+    <div id="celeb-vid-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:700;align-items:center;justify-content:center;overflow-y:auto;padding:20px">
+      <div class="sm-modal" style="max-width:520px;width:100%">
+        <button onclick="closeCelebVidModal()" class="sm-modal-x">&#215;</button>
+        <div class="sm-modal-title" id="cvm-heading">Add Video</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Celeb: <strong id="cvm-celeb-name"></strong></div>
+
+        <div class="sm-field"><label class="sm-lbl">Category</label>
+          <div style="display:flex;gap:20px;padding-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="cvm-cat-r" value="client" onchange="document.getElementById('cvm-vid-cat').value=this.value"> &#128100; Client</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="cvm-cat-r" value="celeb" onchange="document.getElementById('cvm-vid-cat').value=this.value" checked> &#11088; Celeb</label>
+          </div>
+          <input type="hidden" id="cvm-vid-cat" value="celeb">
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Client / Subject</label><input id="cvm-client" class="sm-inp" placeholder="e.g. Zendaya"></div>
+          <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Video Type</label>
+            <select id="cvm-type" class="sm-inp"><option>Reel</option><option>TikTok</option><option>YouTube Short</option><option>YouTube Long</option></select>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Part / Episode</label><input id="cvm-part" class="sm-inp" placeholder="Part 1"></div>
+          <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Editor</label>
+            <select id="cvm-editor" class="sm-inp"><option value="lemari">Lemari</option><option value="salma">Salma</option><option value="latisha">Latisha</option></select>
+          </div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Caption</label><textarea id="cvm-caption" class="sm-inp" rows="2" style="resize:vertical"></textarea></div>
+        <div class="sm-field"><label class="sm-lbl">CTA</label><input id="cvm-cta" class="sm-inp"></div>
+        <div class="sm-field"><label class="sm-lbl">Hashtags</label><input id="cvm-hashtags" class="sm-inp" placeholder="#colouranalysis #yourszn"></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Status</label>
+            <select id="cvm-status" class="sm-inp">
+              <option value="editing">Editing</option>
+              <option value="review">Review</option>
+              <option value="completed">Completed</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+          <div class="sm-field" style="flex:1;min-width:140px"><label class="sm-lbl">Drive / Canva Link</label><input id="cvm-link" class="sm-inp" placeholder="https://..."></div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Date Completed</label><input id="cvm-date-completed" class="sm-inp" type="date"></div>
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">Date Published</label><input id="cvm-date-published" class="sm-inp" type="date"></div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label><textarea id="cvm-notes" class="sm-inp" rows="2" style="resize:vertical"></textarea></div>
+        <div class="sm-field"><label class="sm-lbl">Thumbnail</label>
+          <input type="file" id="cvm-thumb-input" accept="image/*" onchange="handleCvmThumb(this)" style="font-size:12px">
+          <img id="cvm-thumb-prev" style="max-width:100%;max-height:100px;object-fit:contain;border-radius:6px;margin-top:6px;display:none">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button class="btn btnp" onclick="saveCelebVid()">Save</button>
+          <button class="btn btns" onclick="closeCelebVidModal()">Cancel</button>
+          <button id="cvm-del" style="margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;display:none" onclick="deleteCelebVid()">Delete</button>
+        </div>
+      </div>
+    </div>
+    <!-- Planner Video Detail Modal -->
+    <div id="planner-vid-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:700;align-items:center;justify-content:center;padding:20px;overflow-y:auto">
+      <div class="sm-modal" style="max-width:500px;width:100%">
+        <button onclick="closePlannerVidModal()" class="sm-modal-x">&#215;</button>
+        <div id="pvm-day" style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px"></div>
+        <img id="pvm-thumb" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:14px;display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+          <div id="pvm-title" style="font-size:20px;font-weight:500;color:var(--charcoal);flex:1"></div>
+          <span id="pvm-status" class="vid-status editing"></span>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <span id="pvm-cat" style="font-size:11px;font-weight:700;background:var(--warm);color:var(--muted);padding:3px 10px;border-radius:10px"></span>
+          <span id="pvm-type" style="font-size:11px;color:var(--muted);padding:3px 0"></span>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Scheduled On</div>
+          <div id="pvm-platforms"></div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Caption</label>
+          <div id="pvm-caption" style="font-size:13px;color:var(--charcoal);line-height:1.6;background:var(--warm);border-radius:8px;padding:10px;white-space:pre-wrap"></div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div class="sm-field" style="flex:1"><label class="sm-lbl">CTA</label>
+            <div id="pvm-cta" style="font-size:13px;color:var(--charcoal)"></div>
+          </div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Hashtags</label>
+          <div id="pvm-hashtags" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+        <div id="pvm-notes-wrap" class="sm-field"><label class="sm-lbl">Notes</label>
+          <div id="pvm-notes" style="font-size:12px;color:var(--muted);font-style:italic"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+          <button class="btn btnp" id="pvm-edit-btn">Edit Video</button>
+          <a id="pvm-link" href="#" target="_blank" class="btn btns" style="text-decoration:none;display:none">&#128193; Open Link</a>
+          <button class="btn btns" onclick="closePlannerVidModal()" style="margin-left:auto">Close</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+  <!-- ══ Content Idea Modal ══ -->
+  <div id="idea-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+    <div class="sm-modal" style="max-width:480px;width:100%">
+      <button onclick="closeIdeaModal()" class="sm-modal-x">&#215;</button>
+      <div id="ideam-heading" class="sm-modal-title">New Content Idea</div>
+      <div class="sm-field"><label class="sm-lbl">Idea / Title *</label><input id="ideam-title" class="sm-inp" placeholder="e.g. Before &amp; after colour analysis reel"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="sm-field"><label class="sm-lbl">Platform</label>
+          <select id="ideam-platform" class="sm-inp">
+            <option>Instagram</option><option>TikTok</option><option>LinkedIn</option>
+            <option>YouTube</option><option>Blog</option><option>Other</option>
+          </select>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Format</label>
+          <input id="ideam-format" class="sm-inp" placeholder="e.g. Reel, Carousel…">
+        </div>
+      </div>
+      <div class="sm-field"><label class="sm-lbl">Notes / concept</label>
+        <textarea id="ideam-notes" class="sm-inp" rows="3" placeholder="Hook idea, key messages…" style="resize:vertical;font-family:inherit;line-height:1.6"></textarea>
+      </div>
+      <div id="ideam-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn btnp" onclick="saveIdeaModal()">Save</button>
+        <button class="btn btns" onclick="closeIdeaModal()">Cancel</button>
+        <button id="ideam-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteIdea(_ideaEditId);closeIdeaModal();">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Marketing List Modal ══ -->
+  <div id="mkt-list-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+    <div class="sm-modal" style="max-width:400px;width:100%">
+      <button onclick="closeMktListModal()" class="sm-modal-x">&#215;</button>
+      <div id="mktlm-heading" class="sm-modal-title">New List</div>
+      <div class="sm-field"><label class="sm-lbl">List Title *</label><input id="mktlm-title" class="sm-inp" placeholder="e.g. SEO Improvements"></div>
+      <div id="mktlm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn btnp" onclick="saveMktList()">Save</button>
+        <button class="btn btns" onclick="closeMktListModal()">Cancel</button>
+        <button id="mktlm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteMktList(_mktListEditId);closeMktListModal();">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Marketing Item Modal ══ -->
+  <div id="mkt-item-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+    <div class="sm-modal" style="max-width:440px;width:100%">
+      <button onclick="closeMktItemModal()" class="sm-modal-x">&#215;</button>
+      <div id="mktim-heading" class="sm-modal-title">Add Item</div>
+      <div class="sm-field"><label class="sm-lbl">Task *</label><input id="mktim-text" class="sm-inp" placeholder="e.g. Update homepage headline"></div>
+      <div class="sm-field"><label class="sm-lbl">Notes</label><input id="mktim-notes" class="sm-inp" placeholder="e.g. reference competitor site"></div>
+      <div id="mktim-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn btnp" onclick="saveMktItem()">Save</button>
+        <button class="btn btns" onclick="closeMktItemModal()">Cancel</button>
+        <button id="mktim-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteMktItem(_mktListCtx,_mktItemEditId);closeMktItemModal();">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Vietnam Onboarding Step Modal ══ -->
+  <div id="vtob-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+    <div class="sm-modal" style="max-width:440px;width:100%">
+      <button onclick="closeVtObModal()" class="sm-modal-x">&#215;</button>
+      <div id="vtob-heading" class="sm-modal-title">Add Step</div>
+      <div class="sm-field"><label class="sm-lbl">Step *</label><input id="vtob-text" class="sm-inp" placeholder="e.g. Send contract"></div>
+      <div class="sm-field"><label class="sm-lbl">Notes</label><input id="vtob-notes" class="sm-inp" placeholder="e.g. use Canva template, attach to email"></div>
+      <div id="vtob-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn btnp" onclick="saveVtObModal()">Save</button>
+        <button class="btn btns" onclick="closeVtObModal()">Cancel</button>
+        <button id="vtob-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteVtObStep(_vtObEditId);">Delete</button>
+      </div>
+    </div>
+  </div>
+
+
+<!-- ── JavaScript (split by section for easy editing) ──────────
+     Load order matters: globals first, then utils/core, then features.
+     ────────────────────────────────────────────────────────── -->
+<script src="js/globals.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/core.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/clients.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/staff.js"></script>
+<script src="js/finances.js"></script>
+<script src="js/sops.js"></script>
+<script src="js/tours.js"></script>
+<script src="js/vietnam.js"></script>
+<script src="js/comms.js"></script>
+<script src="js/vouchers.js"></script>
+<script src="js/social.js"></script>
+<script src="js/marketing.js"></script>
+<script src="js/oca.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

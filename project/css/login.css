@@ -1,0 +1,87 @@
+/* ── Login Screen ────────────────────────────────────────────── */
+
+#login-screen {
+  position: fixed; inset: 0;
+  background: var(--charcoal);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999; transition: opacity .5s;
+}
+#login-screen.hide { opacity: 0; pointer-events: none; }
+
+.lbox { text-align: center; width: 340px; }
+.llogo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 42px; font-weight: 300;
+  color: var(--cream); letter-spacing: 8px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.llogo span { color: var(--cream); font-style: italic; opacity: .7; }
+.ltag {
+  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  color: rgba(250,247,242,.3); margin-bottom: 48px;
+}
+
+/* User select buttons */
+.ubtn {
+  width: 100%; padding: 14px 20px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  color: var(--cream); font-family: 'Inter', sans-serif;
+  font-size: 14px; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
+}
+.ubtn:hover { background: rgba(255,255,255,.1); border-color: var(--accent); }
+.uav {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 16px; flex-shrink: 0;
+}
+.uname { font-size: 14px; font-weight: 500; text-align: left; }
+.urole { font-size: 11px; color: rgba(250,247,242,.4); text-align: left; }
+
+/* PIN pad */
+#step-pin { display: none; }
+.plabel {
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(250,247,242,.4); margin-bottom: 20px;
+}
+.pdots { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
+.pdot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.4); background: transparent; transition: all .15s;
+}
+.pdot.on {
+  background: #FFFFFF; border-color: #FFFFFF;
+  box-shadow: 0 0 8px rgba(255,255,255,.4);
+}
+.ppad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; max-width: 240px; margin: 0 auto;
+}
+.pkey {
+  padding: 16px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  color: var(--cream); font-family: 'Inter', sans-serif;
+  font-size: 18px; cursor: pointer; transition: all .15s;
+}
+.pkey:hover { background: rgba(255,255,255,.12); }
+.pkey:active { transform: scale(.95); background: rgba(196,149,106,.2); }
+.pkey.del { font-size: 14px; color: rgba(250,247,242,.5); }
+.pkey.empty { border: none; background: transparent; cursor: default; pointer-events: none; }
+.perr { color: #F87171; font-size: 12px; margin-top: 16px; min-height: 20px; }
+.pbk {
+  background: none; border: none;
+  color: rgba(250,247,242,.3); font-size: 12px;
+  letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; margin-top: 20px; font-family: 'Inter', sans-serif;
+}
+.pbk:hover { color: var(--cream); }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0) }
+  20% { transform: translateX(-8px) }
+  40% { transform: translateX(8px) }
+  60% { transform: translateX(-6px) }
+  80% { transform: translateX(6px) }
+}

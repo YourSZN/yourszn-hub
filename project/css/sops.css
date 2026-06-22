@@ -1,0 +1,24 @@
+/* sops.css — SOP cards, filter pills, SOP form fields */
+/* ── SOPs ── */
+.sopgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.sopcard{background:white;border:1px solid var(--sand);border-radius:12px;padding:20px;position:relative;}
+.sopcat{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+.soptit{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--deep);margin-bottom:4px;}
+.sopdesc{font-size:12px;color:var(--muted);margin-bottom:8px;}
+.sopl{display:flex;align-items:center;gap:8px;margin:5px 0;}
+.sopl a{font-size:12px;color:var(--brown);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sopl a:hover{color:var(--accent);text-decoration:underline;}
+.sopcopy{font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--sand);background:var(--warm);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.soppw{font-family:monospace;font-size:12px;background:var(--warm);padding:4px 8px;border-radius:6px;display:flex;align-items:center;gap:6px;margin-top:4px;}
+.soppwrev{font-size:11px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;}
+.sopdel{position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;color:var(--tan);font-size:14px;}
+.sopdel:hover{color:#B91C1C;}
+.sopfrow{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.fpill{font-size:11px;padding:5px 14px;border-radius:20px;border:1px solid var(--sand);background:var(--warm);cursor:pointer;transition:all .15s;color:var(--charcoal);}
+.fpill.on,.fpill:hover{background:var(--charcoal);color:white;border-color:var(--charcoal);}
+.sopform{background:white;border:2px dashed var(--sand);border-radius:12px;padding:22px;margin-bottom:24px;display:none;}
+.sopform.open{display:block;border-color:var(--accent);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.fg{display:flex;flex-direction:column;gap:4px;}
+.fl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.fsel{padding:9px 12px;border:1px solid var(--sand);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--warm);outline:none;cursor:pointer;}

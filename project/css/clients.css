@@ -1,0 +1,29 @@
+/* clients.css — Client table, drag-to-reorder, attendee rows, summary cards */
+/* ── CLIENTS ── */
+.csumrow{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.csum{background:white;border:1px solid var(--sand);border-radius:10px;padding:12px 18px;font-size:12px;color:var(--muted);}
+.csum strong{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:400;color:var(--deep);display:block;}
+.cwrap{overflow-x:auto;border-radius:12px;border:1px solid var(--sand);background:white;}
+.ctable{width:100%;border-collapse:collapse;min-width:1080px;}
+.ctable th{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:12px 8px;border-bottom:2px solid var(--sand);background:var(--warm);text-align:left;white-space:nowrap;}
+.ctable td{padding:6px 5px;border-bottom:1px solid var(--warm);vertical-align:top;font-size:12px;}
+.ctable tr:last-child td{border-bottom:none;}
+.ctable tr:hover td{background:rgba(250,247,242,.7);}
+.ci{width:100%;padding:5px 7px;border:1px solid transparent;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;background:transparent;outline:none;transition:all .15s;}
+.ci:focus{border-color:var(--accent);background:white;}
+.ci::placeholder{color:var(--tan);}
+.csel{width:100%;padding:5px 4px;border:1px solid transparent;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;background:transparent;outline:none;cursor:pointer;}
+.csel:focus{border-color:var(--accent);background:white;}
+.dsel{display:flex;gap:2px;flex-wrap:wrap;}
+.dbtn{font-size:9px;padding:2px 5px;border-radius:4px;border:1px solid var(--sand);background:var(--warm);cursor:pointer;color:var(--charcoal);transition:all .15s;font-family:'DM Sans',sans-serif;}
+.dbtn.on{background:var(--accent);color:white;border-color:var(--accent);}
+.attrow{display:flex;gap:4px;margin-top:3px;align-items:center;}
+.attrow .ci{min-width:75px;font-size:11px;}
+.attrow .csel{min-width:85px;font-size:11px;}
+.addatt{font-size:10px;color:var(--accent);background:none;border:1px dashed var(--accent);border-radius:5px;cursor:pointer;padding:2px 6px;margin-top:4px;display:inline-block;font-family:'DM Sans',sans-serif;}
+.rematt{font-size:13px;color:var(--tan);background:none;border:none;cursor:pointer;flex-shrink:0;}
+.rematt:hover{color:#B91C1C;}
+.drag-h{cursor:grab;color:var(--tan);font-size:16px;padding:0 3px;user-select:none;}
+.drag-h:active{cursor:grabbing;}
+.ctable tr.dragging{opacity:.4;}
+.ctable tr.dragover td{border-top:2px solid var(--accent);}
