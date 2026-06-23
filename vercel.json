@@ -1,14 +1,10 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
       "destination": "/client-portal.html",
-      "has": [{ "type": "host", "value": "portal.yourszn.com.au" }]
-    },
-    {
-      "source": "/",
-      "destination": "/client-portal.html",
-      "has": [{ "type": "host", "value": "clients.yourszn.com.au" }]
+      "has": [{ "type": "host", "value": "clients.yourszn.com.au" }],
+      "permanent": false
     }
   ]
 }
