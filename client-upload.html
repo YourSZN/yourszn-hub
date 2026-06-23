@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your SZN — Photo Upload</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <style>
@@ -15,16 +16,16 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Almarai', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--cream); color: var(--charcoal);
     min-height: 100vh;
   }
 
   /* Layout */
   .cu-wrap { max-width: 640px; margin: 0 auto; padding: 40px 20px; }
-  .cu-logo { font-family: Georgia, serif; font-size: 22px; letter-spacing: 3px; color: var(--charcoal); text-align: center; margin-bottom: 8px; }
-  .cu-logo span { font-weight: 300; }
-  .cu-subtitle { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 40px; }
+  .cu-logo { text-align: center; margin-bottom: 10px; }
+  .cu-logo img { height: 64px; width: auto; opacity: 0.85; }
+  .cu-subtitle { text-align: center; font-family: 'Almarai', sans-serif; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 40px; }
 
   /* Cards */
   .cu-card {
@@ -32,7 +33,8 @@
     padding: 28px; margin-bottom: 20px;
   }
   .cu-card-title {
-    font-size: 15px; font-weight: 700; color: var(--charcoal); margin-bottom: 16px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 20px; font-weight: 500; color: var(--charcoal); margin-bottom: 16px;
   }
 
   /* Inputs */
@@ -121,7 +123,7 @@
   /* Confirmation screen */
   .cu-confirm-screen { text-align: center; padding: 60px 20px; }
   .cu-confirm-icon { font-size: 48px; margin-bottom: 20px; color: var(--green); }
-  .cu-confirm-title { font-size: 20px; font-weight: 700; color: var(--charcoal); margin-bottom: 12px; font-family: Georgia, serif; }
+  .cu-confirm-title { font-size: 22px; font-weight: 400; color: var(--charcoal); margin-bottom: 12px; font-family: 'Cormorant Garamond', Georgia, serif; }
   .cu-confirm-text { font-size: 14px; color: var(--brown); line-height: 1.7; max-width: 400px; margin: 0 auto; }
   .cu-confirm-note { font-size: 12px; color: var(--muted); margin-top: 24px; font-style: italic; }
 
@@ -136,8 +138,10 @@
 <body>
 
 <div class="cu-wrap">
-  <div class="cu-logo"><span>YOUR</span> SZN</div>
-  <div class="cu-subtitle">In-Person Appointment — Photo Upload</div>
+  <div class="cu-logo">
+    <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/YourSZN-Charcoal-Stacked%402x.png" alt="Your SZN" />
+  </div>
+  <div class="cu-subtitle">In-Person Appointment &middot; Photo Upload</div>
 
   <!-- ═══ START / DETAILS SCREEN ═══ -->
   <div id="cu-start">
@@ -243,22 +247,25 @@
 </div>
 
 <script>
-/* ── Supabase ── */
-var SUPA_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-var SUPA_KEY = 'sb_publishable_H4rfsOyYOd8A3OQr0ckmfQ_D_JVaGNJ';
+// ── Config ──────────────────────────────────────────────────
+var SUPA_URL    = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+var SUPA_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+var PHOTO_BUCKET = 'in-person-photos';
+var MAX_SLOTS   = 4;
+
+// ── Supabase client (lazy init) ──────────────────────────────
 var _cuDb = null;
 function cuDb() {
   if (!_cuDb) _cuDb = supabase.createClient(SUPA_URL, SUPA_KEY);
   return _cuDb;
 }
 
-/* ── State ── */
-var cuBooking = null;
-var cuPersons = []; /* { id, name, is_primary, photo_url, photo_path, _file, _preview, _isNew } */
+// ── State ───────────────────────────────────────────────────
+var cuBooking    = null;
+var cuPersons    = []; // { id, name, is_primary, photo_url, photo_path, _file, _preview, _isNew }
 var cuIsReturning = false;
-var MAX_SLOTS = 6;
 
-/* ── Start / Continue ── */
+// ── Start / details screen ──────────────────────────────────
 async function cuStart() {
   var name = (document.getElementById('cu-name').value || '').trim();
   var email = (document.getElementById('cu-email').value || '').trim().toLowerCase();
@@ -377,7 +384,7 @@ function cuBack() {
   document.getElementById('cu-messages').innerHTML = '';
 }
 
-/* ── Render upload interface ── */
+// ── Upload screen ────────────────────────────────────────────
 function cuRenderUpload() {
   /* Booking info bar */
   var infoEl = document.getElementById('cu-booking-info');
@@ -461,7 +468,7 @@ function cuRenderSlots() {
   if (addWrap) addWrap.style.display = cuPersons.length >= MAX_SLOTS ? 'none' : 'block';
 }
 
-/* ── Slot management ── */
+// ── Slot management ──────────────────────────────────────────
 function cuAddSlot() {
   if (cuPersons.length >= MAX_SLOTS) return;
   cuPersons.push({
@@ -477,7 +484,7 @@ function cuRemoveSlot(idx) {
   cuRenderSlots();
 }
 
-/* ── Photo selection ── */
+// ── Photo selection ──────────────────────────────────────────
 function cuTriggerUpload(idx) {
   document.getElementById('cu-file-' + idx).click();
 }
@@ -503,7 +510,7 @@ async function cuFileSelected(idx, input) {
   reader.readAsDataURL(file);
 }
 
-/* ── Submit all ── */
+// ── Submit ───────────────────────────────────────────────────
 async function cuSubmitAll() {
   var msgEl = document.getElementById('cu-messages');
   msgEl.innerHTML = '';
@@ -543,7 +550,7 @@ async function cuSubmitAll() {
 
       if (p._file) {
         var path = 'booking_' + cuBooking.id + '/person_' + (p.id || 'new' + i) + '_' + Date.now() + '.jpg';
-        var { data: upData, error: upErr } = await db.storage.from('in-person-photos').upload(path, p._file, {
+        var { data: upData, error: upErr } = await db.storage.from(PHOTO_BUCKET).upload(path, p._file, {
           cacheControl: '3600', upsert: false
         });
 
@@ -554,7 +561,7 @@ async function cuSubmitAll() {
           return;
         }
 
-        var { data: urlData } = db.storage.from('in-person-photos').getPublicUrl(path);
+        var { data: urlData } = db.storage.from(PHOTO_BUCKET).getPublicUrl(path);
         photoUrl = urlData ? urlData.publicUrl : '';
         photoPath = path;
       }
@@ -622,7 +629,7 @@ async function cuSubmitAll() {
   }
 }
 
-/* ── Consent dropdown colour coding ── */
+// ── Consent dropdown colour coding ──────────────────────────
 function cuUpdateConsentColor() {
   var sel = document.getElementById('cu-consent-sel');
   if (!sel) return;
