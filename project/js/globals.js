@@ -4,9 +4,9 @@
 // CONFIG — change PINs here
 // ══════════════════════════════════════
 var USERS = {
-  latisha: { name:'Latisha', role:'Owner', pin:'1234', pages:['dashboard','clients','vouchers','tours','social','adcreative','tasks','staff','finances','vietnam','goals','sops','huestripe','marketing','online','comms'] },
-  salma:   { name:'Salma',   role:'Admin Support', pin:'2222', pages:['myhub','tasks','clients','vouchers','tours','social','vietnam','goals','sops','huestripe','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', pin:'3333', pages:['myhub','tasks','clients','tours','social','vietnam','goals','sops','huestripe','comms'] }
+  latisha: { name:'Latisha', role:'Owner', pin:'1234', pages:['dashboard','clients','vouchers','tours','tasks','staff','finances','vietnam','goals','sops','huestripe','marketing','online','comms'] },
+  salma:   { name:'Salma',   role:'Admin Support', pin:'2222', pages:['myhub','tasks','clients','vouchers','tours','vietnam','goals','sops','huestripe','online','comms'] },
+  lemari:  { name:'Lemari',  role:'Content · Video', pin:'3333', pages:['myhub','tasks','clients','tours','vietnam','goals','sops','huestripe','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
@@ -17,8 +17,7 @@ var NAV = [
   { id:'tasks',     lbl:'Tasks',        sec:null,          icon:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id:'staff',     lbl:'Staff',        sec:null,          icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
   { id:'tours',     lbl:'Tours',        sec:null,          icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
-  { id:'social',    lbl:'Social Media', sec:null,          icon:'<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>' },
-  { id:'adcreative',lbl:'Ad Creative',  sec:null,          icon:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>' },
+
   { id:'finances',  lbl:'Finances',     sec:null,          icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'vietnam',   lbl:'Vietnam Tour', sec:'Projects',    icon:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>' },
   { id:'goals',     lbl:'Goals',        sec:null,          icon:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>' },
