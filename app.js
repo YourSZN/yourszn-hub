@@ -64,6 +64,13 @@ function goBack() {
   pin = ''; updDots(); selUid = null;
   document.getElementById('perr').textContent = '';
 }
+// ── Stub vars for removed sections (still referenced in saveData/loadData) ──
+var adData = [];
+var vidData = [], expandedVids = {}, vidFilter = 'all', vidPlatFilter = 'all';
+var socialSlots = {};
+var postsWeekOff = 0, storiesWeekOff = 0, ccWeekOff = 0;
+var goals = [], goalIdSeq = 10;
+
 // ══ Social Media tab toggle ══
 var smTabActive = 'planner';
 var ideaFilter  = 'All';
