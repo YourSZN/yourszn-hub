@@ -318,27 +318,6 @@
       </div>
     </div>
 
-    <!-- Vietnam Tour -->
-    <div class="portal-card" onclick="openGate('vietnam')">
-      <div class="portal-card-inner">
-        <div class="portal-card-left">
-          <div class="portal-card-title">Vietnam Tour</div>
-          <div class="portal-card-desc">Access your planning lookbook</div>
-        </div>
-        <div class="portal-card-link">OPEN LOOKBOOK</div>
-      </div>
-      <div class="portal-gate" id="gate-vietnam">
-        <div class="portal-gate-row">
-          <div class="portal-gate-field">
-            <label class="portal-gate-label">Access Code</label>
-            <input class="portal-gate-input" id="code-vietnam" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
-          </div>
-          <button class="portal-gate-btn" id="btn-vietnam" onclick="event.stopPropagation();checkCode('vietnam')">ENTER</button>
-        </div>
-        <div class="portal-gate-error" id="err-vietnam"></div>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -351,8 +330,7 @@ var STORAGE_BUCKET = 'online-clients-photos';
 
 var CODES = {
   online: { code: '1893', url: 'yourszn-form-7.html' },
-  inperson: { code: '2722', url: 'client-upload.html' },
-  vietnam: { code: '2462', url: 'https://szn-client-lookbook.netlify.app' }
+  inperson: { code: '2722', url: 'client-upload.html' }
 };
 
 function openGate(key) {
