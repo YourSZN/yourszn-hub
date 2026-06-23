@@ -13,6 +13,7 @@ var _CSH = { apikey: _CSKEY, Authorization: 'Bearer ' + _CSKEY };
 // ── Notification tracking ───────────────────────────────────
 var _dmLastCounts     = {};   // { threadKey: count }
 var _groupLastNCount  = 0;    // last count we notified about
+var _dmPollingReady   = false; // true after first poll snapshots baseline
 
 // ── Toast notification ──────────────────────────────────────
 function showCommsToast(senderName, text) {
@@ -117,7 +118,7 @@ function sendGroupMsg() {
   });
   commsNavBadge();
   renderGroupThread();
-  saveData();
+  // comms-fix-v39.js handles persistence to comms_group table — saveData not needed here
 }
 
 // ── Group notification check (called after thread renders) ──
@@ -267,9 +268,14 @@ function _pollDMs() {
       Object.keys(threads).forEach(function(key) {
         if (key.indexOf(curUser) === -1) return;
         var incoming = threads[key];
-        var prev     = _dmLastCounts[key] !== undefined ? _dmLastCounts[key] : (dmMsgs[key]||[]).length;
-        // Update local store
+        // Update local store so DM list shows latest messages
         dmMsgs[key] = incoming;
+        if (!_dmPollingReady) {
+          // First poll: just snapshot current counts, don't notify
+          _dmLastCounts[key] = incoming.length;
+          return;
+        }
+        var prev = _dmLastCounts[key] !== undefined ? _dmLastCounts[key] : 0;
         if (incoming.length <= prev) { _dmLastCounts[key] = incoming.length; return; }
         // New messages since last check
         var newMsgs = incoming.slice(prev);
@@ -283,6 +289,7 @@ function _pollDMs() {
           showCommsToast(name, msg.text);
         });
       });
+      _dmPollingReady = true; // after first pass, all subsequent polls notify
       if (anyNew) {
         commsNavBadge();
         renderDmList();
