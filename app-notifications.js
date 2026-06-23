@@ -7,6 +7,7 @@ var SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
 
 var notifList = [];
 var notifPollTimer = null;
+var notifFilter = 'All';
 
 // ── Supabase REST helpers ──────────────────────────────────
 function notifHeaders() {
@@ -292,70 +293,63 @@ function notifStatusColor(status) {
   return { color: '#E07020', bg: '#FFF3EB' }; // Not Addressed
 }
 
+// ── Set filter and re-render ───────────────────────────────
+function setNotifFilter(f) {
+  notifFilter = f;
+  renderNotifCentre();
+}
+
 // ── Render Notification Centre page ────────────────────────
 function renderNotifCentre() {
   var container = document.getElementById('notif-centre-content');
   if (!container) return;
-
   if (!curUser) { container.innerHTML = '<p>Please log in.</p>'; return; }
 
   var uname = USERS[curUser].name;
   var html = '';
 
-  // Header with Mark All Read
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">';
-  html += '<div style="font-size:13px;color:var(--muted)">' + notifList.length + ' notification' + (notifList.length !== 1 ? 's' : '') + '</div>';
+  // ── Filter tabs ──
+  var filters = ['All', 'Not Addressed', 'In Progress', 'Completed'];
+  var filterColors = { 'Not Addressed': '#E07020', 'In Progress': '#5588DD', 'Completed': '#44AA66' };
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">';
+  filters.forEach(function(f) {
+    var isOn = notifFilter === f;
+    var count = f === 'All' ? notifList.length : notifList.filter(function(n){ return (n.status||'Not Addressed')===f; }).length;
+    var col = filterColors[f] || 'var(--charcoal)';
+    html += '<button onclick="setNotifFilter(\''+f+'\')" style="'
+      + 'padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid '
+      + (isOn ? col : 'var(--sand)') + ';background:' + (isOn ? col : 'white') + ';color:' + (isOn ? 'white' : 'var(--muted)') + '">'
+      + f + ' (' + count + ')</button>';
+  });
+  html += '</div>';
+
+  // ── Header row ──
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
   var unreadCount = notifUnreadCount();
   if (unreadCount > 0) {
     html += '<button onclick="notifMarkAllRead()" style="background:var(--warm);border:1px solid var(--sand);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;color:var(--charcoal)">Mark All Read (' + unreadCount + ')</button>';
+  } else {
+    html += '<div></div>';
   }
   html += '</div>';
 
-  if (notifList.length === 0) {
-    html += '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:40px;margin-bottom:12px">🔔</div><div style="font-size:14px">No notifications yet</div><div style="font-size:12px;margin-top:6px">Notifications will appear here when clients submit forms or upload revised photos.</div></div>';
+  // ── Filter the list ──
+  var filtered = notifFilter === 'All' ? notifList : notifList.filter(function(n){
+    return (n.status||'Not Addressed') === notifFilter;
+  });
+
+  if (filtered.length === 0) {
+    html += '<div style="text-align:center;padding:60px 20px;color:var(--muted)">'
+      + '<div style="font-size:40px;margin-bottom:12px">🔔</div>'
+      + '<div style="font-size:14px">' + (notifFilter === 'All' ? 'No notifications yet' : 'No ' + notifFilter.toLowerCase() + ' notifications') + '</div>'
+      + '</div>';
     container.innerHTML = html;
     return;
   }
 
-  // Check if all notifications have been read by current user
-  var allRead = notifList.every(function(n) {
-    var readers = n.read_by || [];
-    if (typeof readers === 'string') readers = JSON.parse(readers);
-    return readers.some(function(r) { return r.user === uname; });
+  filtered.forEach(function(n) {
+    html += notifRenderCard(n, uname);
   });
-
-  if (allRead) {
-    // Group by status
-    var groups = { 'Not Addressed': [], 'In Progress': [], 'Completed': [] };
-    notifList.forEach(function(n) {
-      var s = n.status || 'Not Addressed';
-      if (!groups[s]) groups[s] = [];
-      groups[s].push(n);
-    });
-
-    var sectionOrder = ['Not Addressed', 'In Progress', 'Completed'];
-    var sectionColors = {
-      'Not Addressed': { color: '#E07020', bg: '#FFF3EB', icon: '⚠️' },
-      'In Progress':   { color: '#5588DD', bg: '#EBF2FF', icon: '🔄' },
-      'Completed':     { color: '#44AA66', bg: '#EDFBF2', icon: '✅' }
-    };
-
-    sectionOrder.forEach(function(status) {
-      if (groups[status].length === 0) return;
-      var sc = sectionColors[status];
-      html += '<div style="margin-bottom:28px">';
-      html += '<div style="font-size:14px;font-weight:700;color:' + sc.color + ';margin-bottom:12px;padding:8px 14px;background:' + sc.bg + ';border-radius:8px">' + sc.icon + ' ' + status + ' (' + groups[status].length + ')</div>';
-      groups[status].forEach(function(n) {
-        html += notifRenderCard(n, uname);
-      });
-      html += '</div>';
-    });
-  } else {
-    // Show flat list (not all read yet)
-    notifList.forEach(function(n) {
-      html += notifRenderCard(n, uname);
-    });
-  }
 
   container.innerHTML = html;
 }

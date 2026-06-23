@@ -3269,6 +3269,51 @@ function isHiddenThisWeek(taskId, off) {
 function taskStat(t) { return getTS(t, 0).status || 'not-started'; }
 var editingStaffTaskId = null;
 
+// ── Quick status cycle (click badge to toggle) ──────────────
+function quickCycleStatus(taskId, weekOff) {
+  var t = tasks.find(function(x){ return x.id===taskId; });
+  if (!t) return;
+  var cur = getTS(t, weekOff).status || 'not-started';
+  var next = cur === 'not-started' ? 'in-progress' : cur === 'in-progress' ? 'done' : 'not-started';
+  setTS(t, weekOff, 'status', next);
+  debouncedSave();
+  renderTaskBoard();
+}
+
+// ── This-week summary bar ───────────────────────────────────
+function buildTaskSummaryBar(weekOff, uid) {
+  var allTasks = tasksForWeek(weekOff);
+  if (uid) allTasks = allTasks.filter(function(t){ return (t.assignedTo||t.assigned_to)===uid; });
+  var total  = allTasks.length;
+  var done   = allTasks.filter(function(t){ return getTS(t,weekOff).status==='done'; }).length;
+  var inProg = allTasks.filter(function(t){ return getTS(t,weekOff).status==='in-progress'; }).length;
+  var today  = new Date(); today.setHours(0,0,0,0);
+  var overdue = allTasks.filter(function(t){
+    if (!t.due || t.freq==='daily' || t.freq==='weekly') return false;
+    return new Date(t.due) < today && getTS(t,weekOff).status !== 'done';
+  }).length;
+  var card = 'border-radius:10px;padding:14px 18px;flex:1;min-width:100px;';
+  var lbl  = 'font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;';
+  var num  = 'font-size:26px;font-family:\'Cormorant Garamond\',serif;font-weight:400;line-height:1;';
+  var html = '<div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">';
+  html += '<div style="background:white;border:1px solid var(--sand);'+card+'">'
+        + '<div style="color:var(--muted);'+lbl+'">Total</div>'
+        + '<div style="color:var(--deep);'+num+'">'+total+'</div></div>';
+  html += '<div style="background:white;border:1px solid var(--sand);'+card+'">'
+        + '<div style="color:var(--muted);'+lbl+'">Done</div>'
+        + '<div style="color:#22C55E;'+num+'">'+done+'</div></div>';
+  html += '<div style="background:white;border:1px solid var(--sand);'+card+'">'
+        + '<div style="color:var(--muted);'+lbl+'">In Progress</div>'
+        + '<div style="color:#F97316;'+num+'">'+inProg+'</div></div>';
+  if (overdue > 0) {
+    html += '<div style="background:#FEF2F2;border:1px solid #FECACA;'+card+'">'
+          + '<div style="color:#EF4444;'+lbl+'">Overdue</div>'
+          + '<div style="color:#EF4444;'+num+'">'+overdue+'</div></div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 // ── Week helpers ──
 function changeTaskWeek(d){ taskWeekOff+=d; renderTaskBoard(); }
 function changeStaffTaskWeek(d){ staffTaskWeekOff+=d; renderTaskBoard(); }
@@ -3294,7 +3339,7 @@ function renderOwnerTasks() {
   var grid = document.getElementById('tasks-owner-cards');
   if (!grid) return;
   // Render Latisha's tasks directly — no accordion needed
-  grid.innerHTML = buildTaskTablesHTML('latisha', taskWeekOff, false);
+  grid.innerHTML = buildTaskSummaryBar(taskWeekOff, null) + buildTaskTablesHTML('latisha', taskWeekOff, false);
   setTimeout(function(){ bindTableChips('latisha'); }, 0);
   renderHiddenBox();
   renderCompletedBanner();
@@ -3352,7 +3397,7 @@ function renderStaffTasks() {
   if (lbl) lbl.textContent = weekLabel(staffTaskWeekOff);
   var cont = document.getElementById('tasks-staff-tables');
   if (!cont) return;
-  cont.innerHTML = buildTaskTablesHTML(curUser, staffTaskWeekOff, true);
+  cont.innerHTML = buildTaskSummaryBar(staffTaskWeekOff, curUser) + buildTaskTablesHTML(curUser, staffTaskWeekOff, true);
   setTimeout(function(){ bindTableChips(curUser); }, 0);
   renderHiddenBox();
   renderNewTaskBanner();
@@ -3370,22 +3415,27 @@ function buildTaskTablesHTML(uid, weekOff, isStaff) {
   if (t.freq==='daily'||t.freq==='weekly') return !isHiddenThisWeek(t.id, weekOff);
   return !hiddenTasks[t.id];
 });
-  var daily  = allWeekTasks.filter(function(t){ return t.freq==='daily'; });
-  var weekly = allWeekTasks.filter(function(t){ return t.freq==='weekly'; });
-  var oneoff = allWeekTasks.filter(function(t){ return t.freq==='one-off'; });
+  var pOrd = {red:0, orange:1, green:2};
+  var pSort = function(a,b){ return (pOrd[a.priority||'green']||2)-(pOrd[b.priority||'green']||2); };
+  var daily  = allWeekTasks.filter(function(t){ return t.freq==='daily'; }).sort(pSort);
+  var weekly = allWeekTasks.filter(function(t){ return t.freq==='weekly'; }).sort(pSort);
+  var oneoff = allWeekTasks.filter(function(t){ return t.freq==='one-off'; }).sort(pSort);
   var wLabel = weekLabel(weekOff);
   var html = '<div style="padding-top:8px">';
+
+  var _todayMid = new Date(); _todayMid.setHours(0,0,0,0);
 
   // ── DAILY TABLE ──
   html += buildTable('Daily Tasks',
     daily.length ? daily : null,
     ['','Task','Category','Priority','Status','Hours Allowed','Hours Taken','Notes',''],
     function(t) {
+      var st = getTS(t,weekOff).status||'not-started';
       return '<td><span class="prio-dot prio-'+(t.priority||'green')+'"></span></td>'+
         '<td style="font-weight:500">'+esc(t.title)+'</td>'+
         '<td><span style="font-size:11px;color:var(--muted)">'+esc(t.category||'')+'</span></td>'+
         '<td><span style="font-size:11px;color:var(--muted);text-transform:capitalize">'+(t.priority||'')+'</span></td>'+
-        '<td><span class="st-badge st-'+(getTS(t,weekOff).status||'not-started')+'">'+statusLabel(getTS(t,weekOff).status)+'</span></td>'+
+        '<td><span class="st-badge st-'+st+'" style="cursor:pointer" title="Click to cycle status" onclick="event.stopPropagation();quickCycleStatus(\''+t.id+'\','+weekOff+')">'+statusLabel(st)+'</span></td>'+
         '<td style="color:var(--muted);font-size:12px">'+(t.hrsAllowed?t.hrsAllowed+'h':'—')+'</td>'+
         '<td style="color:var(--muted);font-size:12px">'+(getTS(t,weekOff).hrsTaken?getTS(t,weekOff).hrsTaken+'h':'—')+'</td>'+
         '<td style="font-size:11px;color:var(--muted);max-width:140px">'+(esc(getTS(t,weekOff).staffNotes||t.notes||''))+'</td>'+
@@ -3398,11 +3448,12 @@ function buildTaskTablesHTML(uid, weekOff, isStaff) {
     weekly.length ? weekly : null,
     ['','Task','Category','Priority','Status','Hours Allowed','Hours Taken','Notes',''],
     function(t) {
+      var st = getTS(t,weekOff).status||'not-started';
       return '<td><span class="prio-dot prio-'+(t.priority||'green')+'"></span></td>'+
         '<td style="font-weight:500">'+esc(t.title)+'</td>'+
         '<td><span style="font-size:11px;color:var(--muted)">'+esc(t.category||'')+'</span></td>'+
         '<td><span style="font-size:11px;color:var(--muted);text-transform:capitalize">'+(t.priority||'')+'</span></td>'+
-        '<td><span class="st-badge st-'+(getTS(t,weekOff).status||'not-started')+'">'+statusLabel(getTS(t,weekOff).status)+'</span></td>'+
+        '<td><span class="st-badge st-'+st+'" style="cursor:pointer" title="Click to cycle status" onclick="event.stopPropagation();quickCycleStatus(\''+t.id+'\','+weekOff+')">'+statusLabel(st)+'</span></td>'+
         '<td style="color:var(--muted);font-size:12px">'+(t.hrsAllowed?t.hrsAllowed+'h':'—')+'</td>'+
         '<td style="color:var(--muted);font-size:12px">'+(getTS(t,weekOff).hrsTaken?getTS(t,weekOff).hrsTaken+'h':'—')+'</td>'+
         '<td style="font-size:11px;color:var(--muted);max-width:140px">'+(esc(getTS(t,weekOff).staffNotes||t.notes||''))+'</td>'+
@@ -3415,11 +3466,13 @@ function buildTaskTablesHTML(uid, weekOff, isStaff) {
     oneoff.length ? oneoff : null,
     ['','Task','Category','Priority','Status','Hours Allowed','Hours Taken','Notes',''],
     function(t) {
+      var st = t.status||'not-started';
+      var isOverdue = t.due && new Date(t.due) < _todayMid && st !== 'done';
       return '<td><span class="prio-dot prio-'+(t.priority||'green')+'"></span></td>'+
-        '<td style="font-weight:500">'+esc(t.title)+'</td>'+
+        '<td style="font-weight:500">'+esc(t.title)+(isOverdue?'<span style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;letter-spacing:.8px;background:#FEE2E2;color:#EF4444;padding:2px 6px;border-radius:4px;vertical-align:middle">OVERDUE</span>':'')+'</td>'+
         '<td><span style="font-size:11px;color:var(--muted)">'+esc(t.category||'')+'</span></td>'+
         '<td><span style="font-size:11px;color:var(--muted);text-transform:capitalize">'+(t.priority||'')+'</span></td>'+
-        '<td><span class="st-badge st-'+(t.status||'not-started')+'">'+statusLabel(t.status)+'</span></td>'+
+        '<td><span class="st-badge st-'+st+'" style="cursor:pointer" title="Click to cycle status" onclick="event.stopPropagation();quickCycleStatus(\''+t.id+'\','+weekOff+')">'+statusLabel(st)+'</span></td>'+
         '<td style="color:var(--muted);font-size:12px">'+(t.hrsAllowed?t.hrsAllowed+'h':'—')+'</td>'+
         '<td style="color:var(--muted);font-size:12px">'+(t.hrsTaken?t.hrsTaken+'h':'—')+'</td>'+
         '<td style="font-size:11px;color:var(--muted);max-width:160px">'+(esc(t.staffNotes||t.notes||''))+'</td>'+
