@@ -264,6 +264,10 @@ function _pollDMs() {
           time: (h < 10 ? '0' : '') + h + ':' + (mn < 10 ? '0' : '') + mn + ' ' + ap
         });
       });
+      // Scrub any threads in dmMsgs that don't belong to this user (blob contamination from other users)
+      Object.keys(dmMsgs).forEach(function(k) {
+        if (k.indexOf(curUser) === -1) delete dmMsgs[k];
+      });
       var anyNew = false;
       Object.keys(threads).forEach(function(key) {
         if (key.indexOf(curUser) === -1) return;

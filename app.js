@@ -4266,7 +4266,10 @@ function saveData() {
       metaSlots:metaSlots,
       metaSchedData: (function(){ var o={}; Object.keys(metaSchedData).forEach(function(k){ o[k]=strip(metaSchedData[k]); }); return o; })(),
       celebData: celebData.map(function(c){ var cc=strip(c); if(cc.videos) cc.videos=cc.videos.map(strip); return cc; }),
-      groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread,
+      groupMsgs:groupMsgs,
+      // Only save DM threads involving the current user — prevents cross-user blob contamination
+      dmMsgs: (function(){ var o={}; Object.keys(dmMsgs).forEach(function(k){ if(curUser && k.indexOf(curUser)>-1) o[k]=dmMsgs[k]; }); return o; })(),
+      auditD:auditD, commsUnread:commsUnread,
       vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff, hiddenTasks:hiddenTasks, taskWeekState:taskWeekState,
       mktData:mktData, creatorsList:creatorsList,
       pwList:pwList, lastHrsReset: window._hrsResetNeeded || ''
