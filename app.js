@@ -4257,9 +4257,11 @@ function saveData() {
   }
   try {
     var strip = function(o) { if (!o) return o; var c = Object.assign({}, o); delete c.thumb; return c; };
-    var payload = {
+
+    // Shared: everything all three users need to see
+    var sharedPayload = {
       cRows:cRows, tours:tours, tasks:tasks, taskNotifs:taskNotifs,
-      vidData: vidData.map(strip), adData:adData, goals:goals,
+      vidData: vidData.map(strip), adData:adData,
       bizIncome:bizIncome, bizExpenses:bizExpenses, personalExpenses:personalExpenses,
       sopList:sopList, brands:brands, watchlist:watchlist,
       socialSlots: (function(){ var o={}; Object.keys(socialSlots).forEach(function(k){ o[k]=strip(socialSlots[k]); }); return o; })(),
@@ -4267,35 +4269,38 @@ function saveData() {
       metaSchedData: (function(){ var o={}; Object.keys(metaSchedData).forEach(function(k){ o[k]=strip(metaSchedData[k]); }); return o; })(),
       celebData: celebData.map(function(c){ var cc=strip(c); if(cc.videos) cc.videos=cc.videos.map(strip); return cc; }),
       groupMsgs:groupMsgs,
-      // Only save DM threads involving the current user — prevents cross-user blob contamination
-      dmMsgs: (function(){ var o={}; Object.keys(dmMsgs).forEach(function(k){ if(curUser && k.indexOf(curUser)>-1) o[k]=dmMsgs[k]; }); return o; })(),
-      auditD:auditD, commsUnread:commsUnread,
-      vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff, hiddenTasks:hiddenTasks, taskWeekState:taskWeekState,
+      auditD:auditD, vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff,
+      hiddenTasks:hiddenTasks, taskWeekState:taskWeekState,
       mktData:mktData, creatorsList:creatorsList,
       pwList:pwList, lastHrsReset: window._hrsResetNeeded || ''
     };
-    // Always keep a local backup too
-    try { localStorage.setItem('yszn_v1', JSON.stringify(payload)); } catch(e2){}
-    // Save to Supabase cloud
-    cloudSave(payload);
+
+    // Per-user: private to the logged-in user
+    var userPayload = {
+      goals: goals,
+      commsUnread: commsUnread,
+      dmMsgs: (function(){ var o={}; Object.keys(dmMsgs).forEach(function(k){ if(curUser && k.indexOf(curUser)>-1) o[k]=dmMsgs[k]; }); return o; })()
+    };
+
+    // Local backup (merged, for offline fallback)
+    try { localStorage.setItem('yszn_v1', JSON.stringify(Object.assign({}, sharedPayload, userPayload))); } catch(e2){}
+
+    cloudSave(sharedPayload, userPayload, curUser);
   } catch(e) { console.warn('saveData error:', e); }
 }
 
 // ── LOAD DATA (cloud first, local fallback) ───────────────────
 function loadData() {
-  // Try cloud first, fall back to localStorage
-  cloudLoad().then(function(d) {
+  cloudLoad(curUser).then(function(d) {
     if (!d) {
-      // No cloud data — try localStorage
       try {
         var raw = localStorage.getItem('yszn_v1');
         if (raw) d = JSON.parse(raw);
       } catch(e) {}
     }
-    if (!d) return; // Nothing saved yet — fresh start
+    if (!d) return;
     _applyLoadedData(d);
   }).catch(function() {
-    // If cloud fails entirely, use localStorage
     try {
       var raw = localStorage.getItem('yszn_v1');
       if (raw) _applyLoadedData(JSON.parse(raw));

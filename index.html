@@ -31,35 +31,57 @@
     return _supa;
   }
 
-  async function cloudSave(payload) {
+  // cloudSave(sharedPayload, userPayload, userId)
+  // Writes shared data to id='shared' and user-specific data to id=userId in parallel.
+  async function cloudSave(sharedPayload, userPayload, userId) {
     var db = getSupa();
     if (!db) return;
     try {
-      console.log('YourSZN: saving to cloud...');
-      var result = await db.from('app_state').upsert(
-        { id: 'main', state: payload, updated_at: new Date().toISOString() },
-        { onConflict: 'id' }
-      );
-      if (result.error) {
-        console.error('YourSZN cloudSave error:', result.error.message);
-      } else {
-        console.log('YourSZN: cloud save successful ✓');
+      var now = new Date().toISOString();
+      var saves = [
+        db.from('app_state').upsert({ id: 'shared', state: sharedPayload, updated_at: now }, { onConflict: 'id' })
+      ];
+      if (userId && userPayload) {
+        saves.push(
+          db.from('app_state').upsert({ id: userId, state: userPayload, updated_at: now }, { onConflict: 'id' })
+        );
       }
+      var results = await Promise.all(saves);
+      var err = results.find(function(r) { return r.error; });
+      if (err) console.error('YourSZN cloudSave error:', err.error.message);
     } catch(e) { console.error('YourSZN cloudSave exception:', e); }
   }
 
-  async function cloudLoad() {
+  // cloudLoad(userId)
+  // Loads shared blob + user blob and merges them (user values override shared for same keys).
+  // Falls back to legacy id='main' row on first run after migration.
+  async function cloudLoad(userId) {
     var db = getSupa();
     if (!db) return null;
     try {
-      console.log('YourSZN: loading from cloud...');
-      var result = await db.from('app_state').select('state').eq('id','main').single();
-      if (result.error) {
-        console.warn('YourSZN cloudLoad:', result.error.message);
-        return null;
+      var ids = ['shared'];
+      if (userId) ids.push(userId);
+      var result = await db.from('app_state').select('id,state').in('id', ids);
+      if (result.error) { console.warn('YourSZN cloudLoad:', result.error.message); return null; }
+      var rows = result.data || [];
+
+      // One-time migration: no 'shared' row yet → fall back to legacy 'main' row
+      var hasShared = rows.some(function(r) { return r.id === 'shared'; });
+      if (!hasShared) {
+        var legacy = await db.from('app_state').select('state').eq('id', 'main').single();
+        if (!legacy.error && legacy.data && legacy.data.state) {
+          console.log('YourSZN: migrating from legacy main blob');
+          return legacy.data.state;
+        }
       }
-      console.log('YourSZN: cloud load successful ✓');
-      return result.data ? result.data.state : null;
+
+      // Merge: shared first, then user-specific on top
+      var merged = {};
+      var sharedRow = rows.find(function(r) { return r.id === 'shared'; });
+      var userRow   = rows.find(function(r) { return r.id === userId; });
+      if (sharedRow) Object.assign(merged, sharedRow.state || {});
+      if (userRow)   Object.assign(merged, userRow.state   || {});
+      return Object.keys(merged).length > 0 ? merged : null;
     } catch(e) {
       console.error('YourSZN cloudLoad exception:', e);
       return null;
