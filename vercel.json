@@ -1,10 +1,1 @@
-{
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/client-portal.html",
-      "has": [{ "type": "host", "value": "clients.yourszn.com.au" }],
-      "permanent": false
-    }
-  ]
-}
+{}

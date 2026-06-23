@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your SZN — Client Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2; --warm: #F5F0E8; --sand: #E0D5C5;
+    --tan: #C4B49A; --charcoal: #2C2420; --deep: #3E3229;
+    --green: #5A8A5E; --rose: #C47272; --gold: #C4963A;
+    --muted: #9A8E82;
+    --icon-winter: #9E9E9E;
+    --icon-spring: #A8C8E8;
+    --icon-summer: #C8A8D8;
+    --icon-autumn: #D4B896;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Almarai', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--cream); color: var(--charcoal);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* ─── Hero ─── */
+  .portal-hero {
+    background: var(--cream);
+    padding: 60px 20px 50px;
+    text-align: center;
+    position: relative;
+  }
+  .portal-logo-img {
+    height: 80px;
+    width: auto;
+    opacity: 0.85;
+    position: relative;
+  }
+
+  .portal-icons {
+    display: flex; justify-content: center; gap: 16px;
+    margin-top: 22px; position: relative;
+  }
+  .portal-icon {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s ease;
+    overflow: hidden;
+  }
+  .portal-icon:hover { transform: scale(1.1); }
+  .portal-icon img { width: 24px; height: 24px; object-fit: contain; }
+
+  .portal-subtitle {
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 24px; position: relative;
+  }
+
+  /* ─── Body ─── */
+  .portal-body {
+    flex: 1;
+    background: var(--cream);
+    padding: 20px 20px 60px;
+    position: relative; z-index: 1;
+  }
+  .portal-cards {
+    max-width: 580px;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Card — individual separated sections */
+  .portal-card {
+    background: white;
+    border: 1px solid var(--sand);
+    border-radius: 14px;
+    padding: 28px 32px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none; color: inherit; display: block;
+    position: relative;
+  }
+  .portal-card:hover {
+    border-color: var(--charcoal);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(44,36,32,0.08);
+  }
+
+  .portal-card-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+  }
+  .portal-card-left { flex: 1; min-width: 0; }
+  .portal-card-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 26px; font-weight: 400;
+    color: var(--charcoal);
+    line-height: 1.2;
+  }
+  .portal-card-desc {
+    font-family: 'Almarai', sans-serif;
+    font-size: 12px; color: var(--muted);
+    margin-top: 4px; line-height: 1.4;
+  }
+  .portal-card-link {
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--charcoal);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+  }
+  .portal-card:hover .portal-card-link { opacity: 0.7; }
+
+  /* Gate (code entry) */
+  .portal-gate {
+    display: none;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--sand);
+  }
+  .portal-gate.open { display: block; }
+  .portal-gate-row {
+    display: flex; gap: 10px; align-items: flex-end;
+  }
+  .portal-gate-field { flex: 1; }
+  .portal-gate-label {
+    display: block;
+    font-family: 'Almarai', sans-serif;
+    font-size: 10px; font-weight: 700;
+    color: var(--charcoal); text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 6px;
+  }
+  .portal-gate-input {
+    width: 100%; padding: 10px 14px; border-radius: 6px;
+    border: 1px solid var(--sand);
+    font-family: 'Almarai', sans-serif;
+    font-size: 14px; background: white; color: var(--charcoal); outline: none;
+    transition: border-color 0.15s;
+  }
+  .portal-gate-input:focus { border-color: var(--charcoal); }
+  .portal-gate-btn {
+    padding: 10px 20px; border-radius: 6px;
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; border: none;
+    background: var(--charcoal); color: white;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .portal-gate-btn:hover { opacity: 0.85; }
+  .portal-gate-error {
+    font-family: 'Almarai', sans-serif;
+    color: var(--rose); font-size: 12px;
+    margin-top: 10px; display: none;
+  }
+
+  /* Footer */
+  .portal-footer {
+    text-align: center;
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; color: var(--muted);
+    padding: 0 20px 30px;
+    background: var(--cream);
+  }
+
+  /* Spinner */
+  .portal-spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: pspin 0.6s linear infinite;
+  }
+  @keyframes pspin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 480px) {
+    .portal-logo-img { height: 60px; }
+    .portal-hero { padding: 40px 16px 40px; }
+    .portal-body { padding: 30px 16px 50px; }
+    .portal-card { padding: 22px 20px; }
+    .portal-card-title { font-size: 22px; }
+    .portal-card-link { font-size: 10px; }
+    .portal-gate-row { flex-direction: column; align-items: stretch; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<div class="portal-hero">
+  <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/YourSZN-Charcoal-Stacked%402x.png" alt="Your SZN" class="portal-logo-img" />
+
+  <div class="portal-icons">
+    <div class="portal-icon" style="background:var(--icon-winter);">
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Winter-Clouds-Charcoal%20copy.png" alt="Winter" />
+    </div>
+    <div class="portal-icon" style="background:var(--icon-spring);">
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Spring-Leaf-Charcoal%20copy.png" alt="Spring" />
+    </div>
+    <div class="portal-icon" style="background:var(--icon-summer);">
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Summer-Sun-Charcoal%20copy.png" alt="Summer" />
+    </div>
+    <div class="portal-icon" style="background:var(--icon-autumn);">
+      <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/Icon-Autumn-Sunrise-Charcoal%20copy.png" alt="Autumn" />
+    </div>
+  </div>
+
+  <div class="portal-subtitle">Client Portal</div>
+</div>
+
+<!-- ═══ CARDS ═══ -->
+<div class="portal-body">
+  <div class="portal-cards">
+
+    <!-- Online Colour Analysis -->
+    <div class="portal-card" onclick="openGate('online')">
+      <div class="portal-card-inner">
+        <div class="portal-card-left">
+          <div class="portal-card-title">Online <em>Colour</em> Analysis</div>
+          <div class="portal-card-desc">Complete your questionnaire &amp; upload photos</div>
+        </div>
+        <div class="portal-card-link">GET STARTED</div>
+      </div>
+      <div class="portal-gate" id="gate-online">
+        <div class="portal-gate-row">
+          <div class="portal-gate-field">
+            <label class="portal-gate-label">Access Code</label>
+            <input class="portal-gate-input" id="code-online" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
+          </div>
+          <button class="portal-gate-btn" id="btn-online" onclick="event.stopPropagation();checkCode('online')">ENTER</button>
+        </div>
+        <div class="portal-gate-error" id="err-online"></div>
+        <!-- Choice: New or Revised -->
+        <div id="online-choice" style="display:none;margin-top:16px">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px;text-align:center">What would you like to do?</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="portal-gate-btn" style="flex:1;padding:12px 16px;border-radius:8px" onclick="event.stopPropagation();showNewSubFlow()">NEW SUBMISSION</button>
+            <button class="portal-gate-btn" style="flex:1;background:var(--rose);padding:12px 16px;border-radius:8px" onclick="event.stopPropagation();showRevisedFlow()">UPLOAD REVISED PHOTOS</button>
+          </div>
+        </div>
+        <!-- New submission flow -->
+        <div id="newsub-flow" style="display:none;margin-top:16px">
+          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Almarai',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">New Submission</div>
+          <div style="margin-bottom:10px">
+            <label class="portal-gate-label">Your Full Name</label>
+            <input class="portal-gate-input" id="newsub-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="portal-gate-label">Your Email</label>
+            <div class="portal-gate-row">
+              <div class="portal-gate-field">
+                <input class="portal-gate-input" id="newsub-email" type="email" placeholder="Enter your email" onclick="event.stopPropagation()" />
+              </div>
+              <button class="portal-gate-btn" id="newsub-btn" onclick="event.stopPropagation();verifyNewSub()">CONTINUE</button>
+            </div>
+          </div>
+          <div class="portal-gate-error" id="newsub-err"></div>
+          <div id="newsub-existing" style="display:none"></div>
+        </div>
+        <!-- Revised flow -->
+        <div id="revised-flow" style="display:none;margin-top:16px">
+          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Almarai',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">Upload Revised Photos</div>
+          <div style="margin-bottom:10px">
+            <label class="portal-gate-label">Your Full Name</label>
+            <input class="portal-gate-input" id="revised-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="portal-gate-label">Your Email</label>
+            <div class="portal-gate-row">
+              <div class="portal-gate-field">
+                <input class="portal-gate-input" id="revised-email" type="email" placeholder="Enter the email from your submission" onclick="event.stopPropagation()" />
+              </div>
+              <button class="portal-gate-btn" onclick="event.stopPropagation();lookupSubmission()">FIND</button>
+            </div>
+          </div>
+          <div class="portal-gate-error" id="revised-err"></div>
+          <div id="revised-match" style="display:none;margin-bottom:12px"></div>
+          <div id="revised-uploader" style="display:none">
+            <div id="revised-dropzone" onclick="event.stopPropagation();document.getElementById('revised-file-input').click()" style="border:2px dashed var(--sand);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;background:var(--cream);transition:all 0.2s">
+              <div style="font-size:32px;margin-bottom:8px">📸</div>
+              <div style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:4px">Drop photos here or click to browse</div>
+              <div style="font-size:11px;color:var(--muted)">You can select multiple photos at once</div>
+            </div>
+            <input type="file" id="revised-file-input" accept="image/*" multiple style="display:none" onchange="onRevisedFileInput(this)" onclick="event.stopPropagation()">
+            <div id="revised-status" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- In-Person Booking -->
+    <div class="portal-card" onclick="openGate('inperson')">
+      <div class="portal-card-inner">
+        <div class="portal-card-left">
+          <div class="portal-card-title">In-Person Booking</div>
+          <div class="portal-card-desc">Upload photos ahead of your appointment</div>
+        </div>
+        <div class="portal-card-link">UPLOAD PHOTOS</div>
+      </div>
+      <div class="portal-gate" id="gate-inperson">
+        <div class="portal-gate-row">
+          <div class="portal-gate-field">
+            <label class="portal-gate-label">Access Code</label>
+            <input class="portal-gate-input" id="code-inperson" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
+          </div>
+          <button class="portal-gate-btn" id="btn-inperson" onclick="event.stopPropagation();checkCode('inperson')">ENTER</button>
+        </div>
+        <div class="portal-gate-error" id="err-inperson"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="portal-footer">Your SZN &middot; Colour Analysis</div>
+
+<script>
+var SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+var STORAGE_BUCKET = 'online-clients-photos';
+
+var CODES = {
+  online: { code: '1893', url: 'yourszn-form-7.html' },
+  inperson: { code: '2722', url: 'client-upload.html' }
+};
+
+function openGate(key) {
+  var gate = document.getElementById('gate-' + key);
+  if (gate.classList.contains('open')) return;
+  gate.classList.add('open');
+  document.getElementById('code-' + key).focus();
+}
+
+function checkCode(key) {
+  var input = document.getElementById('code-' + key);
+  var errEl = document.getElementById('err-' + key);
+  var code = (input.value || '').trim();
+
+  if (!code) {
+    errEl.textContent = 'Please enter your access code.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if (code !== CODES[key].code) {
+    errEl.textContent = 'Invalid access code. Please check and try again.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display = 'none';
+  var btn = document.getElementById('btn-' + key);
+  btn.disabled = true;
+  btn.innerHTML = '<span class="portal-spinner"></span>';
+
+  /* ── Online: show choice instead of redirect ── */
+  if (key === 'online') {
+    btn.style.display = 'none';
+    var choiceEl = document.getElementById('online-choice');
+    if (choiceEl) choiceEl.style.display = 'block';
+    return;
+  }
+
+  window.location.href = CODES[key].url;
+}
+
+/* ── Revised-photo helpers ── */
+function sbHeaders() {
+  return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+}
+
+function showRevisedFlow() {
+  document.getElementById('online-choice').style.display = 'none';
+  document.getElementById('newsub-flow').style.display = 'none';
+  document.getElementById('revised-flow').style.display = 'block';
+}
+
+function showNewSubFlow() {
+  document.getElementById('online-choice').style.display = 'none';
+  document.getElementById('revised-flow').style.display = 'none';
+  document.getElementById('newsub-flow').style.display = 'block';
+}
+
+function backToChoice() {
+  document.getElementById('newsub-flow').style.display = 'none';
+  document.getElementById('revised-flow').style.display = 'none';
+  document.getElementById('online-choice').style.display = 'block';
+  /* Reset sub-flows */
+  document.getElementById('newsub-err').style.display = 'none';
+  document.getElementById('newsub-existing').style.display = 'none';
+  document.getElementById('newsub-existing').innerHTML = '';
+  document.getElementById('revised-err').style.display = 'none';
+  document.getElementById('revised-match').style.display = 'none';
+  document.getElementById('revised-uploader').style.display = 'none';
+}
+
+function verifyNewSub() {
+  var name = (document.getElementById('newsub-name').value || '').trim();
+  var email = (document.getElementById('newsub-email').value || '').trim().toLowerCase();
+  var errEl = document.getElementById('newsub-err');
+  var existEl = document.getElementById('newsub-existing');
+  errEl.style.display = 'none';
+  existEl.style.display = 'none';
+
+  if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
+  if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
+
+  var btn = document.getElementById('newsub-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="portal-spinner"></span>';
+
+  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,full_name,email,created_at&limit=1';
+  /* Also check email-only to detect mismatched name */
+  var urlEmailOnly = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id&limit=1';
+  Promise.all([
+    fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) }).then(function(r) { return r.json(); }),
+    fetch(urlEmailOnly, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) }).then(function(r) { return r.json(); })
+  ])
+    .then(function(results) {
+      var matchedBoth = results[0];
+      var matchedEmail = results[1];
+      btn.disabled = false;
+      btn.textContent = 'CONTINUE';
+      if (matchedBoth && matchedBoth.length > 0) {
+        /* Name + email match — submission exists, block new submission */
+        existEl.innerHTML =
+          '<div style="padding:16px;border-radius:12px;background:#FFF3EB;border:1px solid #E07020;margin-top:12px">'
+          + '<div style="font-size:13px;font-weight:700;color:#E07020;margin-bottom:6px">\u26A0\uFE0F Submission already exists</div>'
+          + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:10px">A submission for <strong>' + (matchedBoth[0].full_name) + '</strong> was submitted on ' + new Date(matchedBoth[0].created_at).toLocaleDateString('en-AU') + '. You cannot start a new one.</div>'
+          + '<button class="portal-gate-btn" style="background:var(--rose);border-radius:8px;padding:10px 20px;font-size:11px" onclick="event.stopPropagation();backToChoice();showRevisedFlow();">UPLOAD REVISED PHOTOS INSTEAD</button>'
+          + '</div>';
+        existEl.style.display = 'block';
+      } else if (matchedEmail && matchedEmail.length > 0) {
+        /* Email exists but name doesn't match — block without revealing details */
+        errEl.textContent = 'The name and email you entered don\u2019t match any submission. Please check and try again.';
+        errEl.style.display = 'block';
+      } else {
+        /* No existing submission — redirect to form with name/email pre-filled */
+        var params = '?name=' + encodeURIComponent(name) + '&email=' + encodeURIComponent(email);
+        window.location.href = 'yourszn-form-7.html' + params;
+      }
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'CONTINUE';
+      errEl.textContent = 'Something went wrong. Please try again.';
+      errEl.style.display = 'block';
+    });
+}
+
+function lookupSubmission() {
+  var name = (document.getElementById('revised-name').value || '').trim();
+  var email = (document.getElementById('revised-email').value || '').trim().toLowerCase();
+  var errEl = document.getElementById('revised-err');
+  var matchEl = document.getElementById('revised-match');
+  var uploaderEl = document.getElementById('revised-uploader');
+  errEl.style.display = 'none';
+  matchEl.style.display = 'none';
+  uploaderEl.style.display = 'none';
+
+  if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
+  if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
+
+  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,full_name,email,created_at&limit=1';
+  fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || data.length === 0) {
+        errEl.textContent = 'No submission found. Please check your name and email and try again.';
+        errEl.style.display = 'block';
+        return;
+      }
+      var sub = data[0];
+      window._revisedSubId = sub.id;
+      matchEl.innerHTML =
+        '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:var(--warm);border:1px solid var(--sand)">'
+        + '<div style="width:40px;height:40px;border-radius:50%;background:var(--rose);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'
+        + (sub.full_name || 'U').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2)
+        + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:14px;font-weight:700;color:var(--charcoal)">' + (sub.full_name || 'Unnamed') + '</div>'
+        + '<div style="font-size:12px;color:var(--muted)">' + sub.email + '</div>'
+        + '</div></div>';
+      matchEl.style.display = 'block';
+      uploaderEl.style.display = 'block';
+    })
+    .catch(function(e) {
+      errEl.textContent = 'Error looking up submission. Please try again.';
+      errEl.style.display = 'block';
+    });
+}
+
+/* Drag-and-drop upload */
+function initDropZone() {
+  var dz = document.getElementById('revised-dropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = 'var(--rose)'; dz.style.background = 'var(--warm)'; });
+  dz.addEventListener('dragleave', function() { dz.style.borderColor = 'var(--sand)'; dz.style.background = 'var(--cream)'; });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.style.borderColor = 'var(--sand)'; dz.style.background = 'var(--cream)';
+    if (e.dataTransfer.files.length > 0) handleRevisedFiles(e.dataTransfer.files);
+  });
+}
+
+function onRevisedFileInput(inp) {
+  if (inp.files.length > 0) handleRevisedFiles(inp.files);
+  inp.value = '';
+}
+
+function handleRevisedFiles(files) {
+  var statusEl = document.getElementById('revised-status');
+  var subId = window._revisedSubId;
+  if (!subId) return;
+  var ts = Date.now();
+  var uploads = [];
+  statusEl.innerHTML = '<div style="color:var(--muted);font-size:12px">Uploading ' + files.length + ' photo(s)…</div>';
+
+  for (var i = 0; i < files.length; i++) {
+    (function(file, idx) {
+      // Convert HEIC/HEIF to JPEG for browser compatibility
+      var convertPromise;
+      var fname = file.name.toLowerCase();
+      if (fname.endsWith('.heic') || fname.endsWith('.heif') || file.type === 'image/heic' || file.type === 'image/heif') {
+        convertPromise = heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 }).then(function(blob) {
+          if (Array.isArray(blob)) blob = blob[0];
+          return new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+        }).catch(function() { return file; });
+      } else {
+        convertPromise = Promise.resolve(file);
+      }
+      var path = subId + '/revised_' + ts + '_' + idx + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      uploads.push(
+        convertPromise.then(function(convFile) {
+          var uploadPath = path.replace(/\.(heic|heif)$/i, '.jpg');
+          var uploadUrl = SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + uploadPath;
+          return fetch(uploadUrl, {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': convFile.type, 'x-upsert': 'true' }, sbHeaders()),
+            body: convFile
+          }).then(function() {
+            var publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + uploadPath;
+            return fetch(SUPABASE_URL + '/rest/v1/szn_photos', {
+              method: 'POST',
+              headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
+              body: JSON.stringify({
+                submission_id: subId,
+                file_url: publicUrl,
+                file_name: convFile.name,
+                file_type: convFile.type,
+                is_revised: true,
+                slot_number: null,
+                slot_label: null
+              })
+            });
+          });
+        })
+      );
+    })(files[i], i);
+  }
+
+  Promise.all(uploads).then(function() {
+    /* PATCH revised_photos_at */
+    return fetch(SUPABASE_URL + '/rest/v1/szn_submissions?id=eq.' + subId, {
+      method: 'PATCH',
+      headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
+      body: JSON.stringify({ revised_photos_at: new Date().toISOString() })
+    });
+  }).then(function() {
+    statusEl.innerHTML =
+      '<div style="text-align:center;padding:24px">'
+      + '<div style="font-size:32px;margin-bottom:8px">✅</div>'
+      + '<div style="font-size:14px;font-weight:700;color:var(--green)">Photos uploaded successfully!</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:4px">Your analyst will review the new photos shortly.</div>'
+      + '</div>';
+    document.getElementById('revised-dropzone').style.display = 'none';
+  }).catch(function() {
+    statusEl.innerHTML = '<div style="color:var(--rose);font-size:12px">Upload failed. Please try again.</div>';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initDropZone();
+  /* Enter key for new-sub fields */
+  var nse = document.getElementById('newsub-email');
+  if (nse) nse.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); verifyNewSub(); } });
+  var nsn = document.getElementById('newsub-name');
+  if (nsn) nsn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('newsub-email').focus(); } });
+  /* Enter key for revised fields */
+  var rn = document.getElementById('revised-name');
+  if (rn) rn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('revised-email').focus(); } });
+  var re = document.getElementById('revised-email');
+  if (re) re.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); lookupSubmission(); } });
+});
+
+/* Enter key support on all code inputs */
+document.querySelectorAll('.portal-gate-input').forEach(function(input) {
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      var key = this.id.replace('code-', '');
+      checkCode(key);
+    }
+  });
+});
+</script>
+</body>
+</html>
