@@ -871,16 +871,26 @@ function ipTouchEnd() {
 
 async function ipUploadPhoto(file, personId, bookingId) {
   if (!file) return;
+
   // Convert HEIC to JPEG before uploading
-    var fileName = file.name.toLowerCase();
-    if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
-      try {
-        var jpegBlob = await HeicTo({ blob: file, type: 'image/jpeg', quality: 0.85 });
-        file = new File([jpegBlob], file.name.replace(/\.heic|\.heif/i, '.jpg'), { type: 'image/jpeg' });
-      } catch (heicErr) {
-        console.warn('HEIC conversion failed, uploading original:', heicErr);
-      }
+  var fileName = file.name.toLowerCase();
+  if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
+    try {
+      var jpegBlob = await HeicTo({ blob: file, type: 'image/jpeg', quality: 0.85 });
+      file = new File([jpegBlob], file.name.replace(/\.heic|\.heif/i, '.jpg'), { type: 'image/jpeg' });
+    } catch (heicErr) {
+      console.warn('HEIC conversion failed, uploading original:', heicErr);
     }
+  }
+
+  // Read file locally for MediaPipe — analysis runs on-device before upload
+  var mpDataUrl = await new Promise(function(res) {
+    var fr = new FileReader();
+    fr.onload  = function(e) { res(e.target.result); };
+    fr.onerror = function()  { res(null); };
+    fr.readAsDataURL(file);
+  });
+
   var db = getSupa(); if (!db) return;
 
   var path = 'booking_' + bookingId + '/person_' + personId + '_' + Date.now() + '.jpg';
@@ -900,7 +910,52 @@ async function ipUploadPhoto(file, personId, bookingId) {
     photo_url: photoUrl
   }).eq('id', personId);
 
-  showPersonContrast(personId, bookingId);
+  await showPersonContrast(personId, bookingId);
+
+  // Auto-detect contrast from local file data (photo stays on device)
+  if (mpDataUrl && typeof mpAnalyzeContrast === 'function') {
+    var ctn = document.getElementById('ip-contrast-preview');
+    if (ctn && ctn.offsetWidth) {
+      mpShowLoading(ctn);
+      var result = await mpAnalyzeContrast(mpDataUrl, ctn);
+      mpHideLoading(document.getElementById('ip-contrast-preview'));
+      if (result) ipApplyAutoContrast(result);
+    }
+  }
+}
+
+function ipApplyAutoContrast(result) {
+  ['skin', 'hair', 'eyes'].forEach(function(key) {
+    var r = result[key];
+    ipCTags[key].x = r.x;
+    ipCTags[key].y = r.y;
+    var tagEl = document.getElementById('ip-tag-' + key);
+    if (tagEl) { tagEl.style.left = r.x + 'px'; tagEl.style.top = r.y + 'px'; }
+    ipSetVal(key, r.val);
+  });
+  // Rebuild controls so range sliders reflect new values
+  var controls = document.getElementById('ip-contrast-controls');
+  if (controls) {
+    var clip = 'polygon(0% 0%, 100% 0%, 100% 20%, 75% 20%, 75% 80%, 100% 80%, 100% 100%, 0% 100%)';
+    controls.innerHTML = Object.keys(ipCTags).map(function(key) {
+      var t = ipCTags[key];
+      var gb = IP_GREY_VALS[t.val - 1].bg;
+      return '<div style="background:white;border:1px solid var(--sand);border-radius:10px;padding:14px 16px;margin-bottom:10px">'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+        + '<div style="width:14px;height:14px;border-radius:50%;background:' + t.col + ';flex-shrink:0"></div>'
+        + '<div style="font-size:12px;font-weight:600;color:var(--deep)">' + t.label + '</div>'
+        + '<div id="ip-ctrl-swatch-' + key + '" style="margin-left:auto;width:32px;height:20px;border-radius:4px;background:' + gb + ';border:1px solid var(--sand)"></div>'
+        + '<div id="ip-ctrl-num-' + key + '" style="font-size:12px;font-weight:700;color:var(--deep);min-width:16px;text-align:right">' + t.val + '</div>'
+        + '</div>'
+        + '<input type="range" min="1" max="10" value="' + t.val + '" style="width:100%;accent-color:' + t.col + ';cursor:pointer" oninput="ipSetVal(\'' + key + '\',this.value)">'
+        + '<div style="display:flex;justify-content:space-between;margin-top:3px">'
+        + '<span style="font-size:9px;color:var(--muted)">Dark 1</span>'
+        + '<span style="font-size:9px;color:var(--muted)">Light 10</span>'
+        + '</div></div>';
+    }).join('');
+  }
+  ipUpdateResult();
+  ipSaveContrast();
 }
 
 function ipClearPhoto(personId, bookingId) {

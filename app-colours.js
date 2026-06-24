@@ -2019,7 +2019,7 @@ function showPage(id) {
   if (id==='vietnam') renderVietnamTour();
   if (id==='sops') { renderSops(); renderPasswords(); }
   if (id==='vouchers') renderVoucherTab();
-  if (id==='online') renderOca();
+  if (id==='online') { renderOca(); if (typeof mpPreWarm === 'function') mpPreWarm(); }
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
   document.querySelectorAll('.nitem').forEach(function(n){ n.classList.remove('on'); });
   var pg = document.getElementById('pg-'+id);
@@ -2108,8 +2108,24 @@ function cctLoadPhoto(e) {
   reader.onload = function(ev) {
     clientContrastPhoto = ev.target.result;
     renderClientContrast();
+    cctAutoDetect();
   };
   reader.readAsDataURL(file);
+}
+
+function cctAutoDetect() {
+  if (!clientContrastPhoto || typeof mpAnalyzeContrast !== 'function') return;
+  var ctn = document.getElementById('client-contrast-preview');
+  if (!ctn || !ctn.offsetWidth) return;
+  mpShowLoading(ctn);
+  mpAnalyzeContrast(clientContrastPhoto, ctn).then(function(result) {
+    mpHideLoading(document.getElementById('client-contrast-preview'));
+    if (!result) return;
+    clientContrastTags.skin.val = result.skin.val; clientContrastTags.skin.x = result.skin.x; clientContrastTags.skin.y = result.skin.y;
+    clientContrastTags.hair.val = result.hair.val; clientContrastTags.hair.x = result.hair.x; clientContrastTags.hair.y = result.hair.y;
+    clientContrastTags.eyes.val = result.eyes.val; clientContrastTags.eyes.x = result.eyes.x; clientContrastTags.eyes.y = result.eyes.y;
+    renderClientContrast();
+  });
 }
 function cctClearPhoto() {
   clientContrastPhoto = null;

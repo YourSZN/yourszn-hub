@@ -222,16 +222,38 @@ function ocaPhotoUpload(input) {
   var reader = new FileReader();
   reader.onload = function(e) {
     ocaPhoto = e.target.result;
-    // update all photo previews
     document.querySelectorAll('.oca-upload-preview').forEach(function(img){
       img.src = ocaPhoto; img.style.display='block';
     });
     document.querySelectorAll('.oca-upload-placeholder').forEach(function(d){
       d.style.display='none';
     });
-    renderOca();
+    // Switch to fundamentals so auto-detect has a visible container
+    if (ocaTab !== 'fundamentals') setOcaTab('fundamentals');
+    else renderOca();
+    ocaAutoDetect();
   };
   reader.readAsDataURL(file);
+}
+
+function ocaAutoDetect() {
+  if (!ocaPhoto || typeof mpAnalyzeContrast !== 'function') return;
+  // Wait one tick for the DOM to fully render before measuring container
+  setTimeout(function() {
+    var ctn = document.getElementById('oca-fund-preview');
+    if (!ctn || !ctn.offsetWidth) return;
+    mpShowLoading(ctn);
+    mpAnalyzeContrast(ocaPhoto, ctn).then(function(result) {
+      mpHideLoading(document.getElementById('oca-fund-preview'));
+      if (!result) return;
+      ocaFundTags.skin.val = result.skin.val; ocaFundTags.skin.x = result.skin.x; ocaFundTags.skin.y = result.skin.y;
+      ocaFundTags.hair.val = result.hair.val; ocaFundTags.hair.x = result.hair.x; ocaFundTags.hair.y = result.hair.y;
+      ocaFundTags.eyes.val = result.eyes.val; ocaFundTags.eyes.x = result.eyes.x; ocaFundTags.eyes.y = result.eyes.y;
+      // Re-render just the fundamentals content
+      var content = document.getElementById('oca-content');
+      if (content) { content.innerHTML = renderOcaFundamentals(); setTimeout(ocaUpdateContrast, 50); }
+    });
+  }, 80);
 }
 
 function ocaPhotoClear() {
