@@ -2121,10 +2121,14 @@ function cctAutoDetect() {
   mpAnalyzeContrast(clientContrastPhoto, ctn).then(function(result) {
     mpHideLoading(document.getElementById('client-contrast-preview'));
     if (!result) return;
-    clientContrastTags.skin.val = result.skin.val; clientContrastTags.skin.x = result.skin.x; clientContrastTags.skin.y = result.skin.y;
-    clientContrastTags.hair.val = result.hair.val; clientContrastTags.hair.x = result.hair.x; clientContrastTags.hair.y = result.hair.y;
-    clientContrastTags.eyes.val = result.eyes.val; clientContrastTags.eyes.x = result.eyes.x; clientContrastTags.eyes.y = result.eyes.y;
+    console.log('[AutoContrast CCT] detected:', JSON.stringify(result));
+    clientContrastTags.skin.x = result.skin.x; clientContrastTags.skin.y = result.skin.y;
+    clientContrastTags.hair.x = result.hair.x; clientContrastTags.hair.y = result.hair.y;
+    clientContrastTags.eyes.x = result.eyes.x; clientContrastTags.eyes.y = result.eyes.y;
     renderClientContrast();
+    cctSetVal('skin', result.skin.val);
+    cctSetVal('hair', result.hair.val);
+    cctSetVal('eyes', result.eyes.val);
   });
 }
 function cctClearPhoto() {
@@ -2176,7 +2180,7 @@ function renderClientContrast() {
       +'<div id="cct-ctrl-swatch-'+key+'" style="margin-left:auto;width:32px;height:20px;border-radius:4px;background:'+greyBg+';border:1px solid var(--sand)"></div>'
       +'<div id="cct-ctrl-num-'+key+'" style="font-size:12px;font-weight:700;color:var(--deep);min-width:16px;text-align:right">'+t.val+'</div>'
       +'</div>'
-      +'<input type="range" min="1" max="10" value="'+t.val+'" style="width:100%;accent-color:'+t.col+';cursor:pointer" oninput="cctSetVal(\''+key+'\',this.value)">'
+      +'<input id="cct-slider-'+key+'" type="range" min="1" max="10" value="'+t.val+'" style="width:100%;accent-color:'+t.col+';cursor:pointer" oninput="cctSetVal(\''+key+'\',this.value)">'
       +'<div style="display:flex;justify-content:space-between;margin-top:3px">'
       +'<span style="font-size:9px;color:var(--muted)">Dark 1</span>'
       +'<span style="font-size:9px;color:var(--muted)">Light 10</span>'
@@ -2203,6 +2207,8 @@ function cctSetVal(key, val) {
   if (nm) { nm.textContent = val; nm.style.color = numCol; }
   if (csw) csw.style.background = greyBg;
   if (cnm) cnm.textContent = val;
+  var sl = document.getElementById('cct-slider-' + key);
+  if (sl) sl.value = val;
   cctUpdateResult();
 }
 

@@ -721,7 +721,7 @@ function ipRenderContrast(photoUrl) {
       +'<div id="ip-ctrl-swatch-'+key+'" style="margin-left:auto;width:32px;height:20px;border-radius:4px;background:'+greyBg+';border:1px solid var(--sand)"></div>'
       +'<div id="ip-ctrl-num-'+key+'" style="font-size:12px;font-weight:700;color:var(--deep);min-width:16px;text-align:right">'+t.val+'</div>'
       +'</div>'
-      +'<input type="range" min="1" max="10" value="'+t.val+'" style="width:100%;accent-color:'+t.col+';cursor:pointer" oninput="ipSetVal(\''+key+'\',this.value)">'
+      +'<input id="ip-slider-'+key+'" type="range" min="1" max="10" value="'+t.val+'" style="width:100%;accent-color:'+t.col+';cursor:pointer" oninput="ipSetVal(\''+key+'\',this.value)">'
       +'<div style="display:flex;justify-content:space-between;margin-top:3px">'
       +'<span style="font-size:9px;color:var(--muted)">Dark 1</span>'
       +'<span style="font-size:9px;color:var(--muted)">Light 10</span>'
@@ -751,6 +751,8 @@ function ipSetVal(key, val) {
   if (nm) { nm.textContent = val; nm.style.color = numCol; }
   if (csw) csw.style.background = greyBg;
   if (cnm) cnm.textContent = val;
+  var sl = document.getElementById('ip-slider-' + key);
+  if (sl) sl.value = val;
 
   ipUpdateResult();
 

@@ -246,12 +246,18 @@ function ocaAutoDetect() {
     mpAnalyzeContrast(ocaPhoto, ctn).then(function(result) {
       mpHideLoading(document.getElementById('oca-fund-preview'));
       if (!result) return;
-      ocaFundTags.skin.val = result.skin.val; ocaFundTags.skin.x = result.skin.x; ocaFundTags.skin.y = result.skin.y;
-      ocaFundTags.hair.val = result.hair.val; ocaFundTags.hair.x = result.hair.x; ocaFundTags.hair.y = result.hair.y;
-      ocaFundTags.eyes.val = result.eyes.val; ocaFundTags.eyes.x = result.eyes.x; ocaFundTags.eyes.y = result.eyes.y;
-      // Re-render just the fundamentals content
+      console.log('[AutoContrast OCA] detected:', JSON.stringify(result));
+      ocaFundTags.skin.x = result.skin.x; ocaFundTags.skin.y = result.skin.y;
+      ocaFundTags.hair.x = result.hair.x; ocaFundTags.hair.y = result.hair.y;
+      ocaFundTags.eyes.x = result.eyes.x; ocaFundTags.eyes.y = result.eyes.y;
+      // Re-render with new positions, then apply vals via setVal (updates slider + swatch)
       var content = document.getElementById('oca-content');
-      if (content) { content.innerHTML = renderOcaFundamentals(); setTimeout(ocaUpdateContrast, 50); }
+      if (content) {
+        content.innerHTML = renderOcaFundamentals();
+        ocaTagVal('skin', result.skin.val);
+        ocaTagVal('hair', result.hair.val);
+        ocaTagVal('eyes', result.eyes.val);
+      }
     });
   }, 80);
 }
@@ -879,7 +885,7 @@ function renderOcaFundamentals() {
       + '<div id="oca-ctrl-swatch-' + key + '" style="margin-left:auto;width:32px;height:20px;border-radius:4px;background:' + greyBg + ';border:1px solid var(--sand)"></div>'
       + '<div id="oca-ctrl-num-' + key + '" style="font-size:12px;font-weight:700;color:var(--deep);min-width:16px;text-align:right">' + t.val + '</div>'
       + '</div>'
-      + '<input type="range" min="1" max="10" value="' + t.val + '" '
+      + '<input id="oca-slider-' + key + '" type="range" min="1" max="10" value="' + t.val + '" '
       + 'style="width:100%;accent-color:' + t.col + ';cursor:pointer" '
       + 'oninput="ocaTagVal(\'' + key + '\',this.value)">'
       + '<div style="display:flex;justify-content:space-between;margin-top:3px">'
@@ -1270,6 +1276,8 @@ function ocaTagVal(key, val) {
   var cnm = document.getElementById('oca-ctrl-num-' + key);
   if (csw) csw.style.background = greyBg;
   if (cnm) cnm.textContent = val;
+  var sl = document.getElementById('oca-slider-' + key);
+  if (sl) sl.value = val;
   // Update contrast summary
   ocaUpdateContrast();
 }
