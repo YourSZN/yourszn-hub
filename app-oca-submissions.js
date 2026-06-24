@@ -252,16 +252,18 @@ function renderOcaSubmissions() {
   var content = document.getElementById('oca-content');
   if (!content) return;
 
+  var toggle = (typeof ocaSubSourceToggle === 'function') ? ocaSubSourceToggle() : '';
+
   if (ocaSubLoading) {
-    content.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted);font-size:14px">'
+    content.innerHTML = toggle + '<div style="text-align:center;padding:60px;color:var(--muted);font-size:14px">'
       + '<div style="margin-bottom:12px;font-size:24px">⏳</div>Loading submissions…</div>';
     return;
   }
 
   if (ocaSubView === 'detail' && ocaSubDetail) {
-    content.innerHTML = renderOcaSubDetail();
+    content.innerHTML = toggle + renderOcaSubDetail();
   } else {
-    content.innerHTML = renderOcaSubList();
+    content.innerHTML = toggle + renderOcaSubList();
   }
 }
 

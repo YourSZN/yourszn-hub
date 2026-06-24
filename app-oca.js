@@ -183,9 +183,24 @@ var OCA_GROUPS = {
 // ONLINE COLOUR ANALYSIS — State & Functions
 // ══════════════════════════════════════════════════
 var ocaPhoto       = null;   // base64 uploaded photo
-var ocaTab         = 'draping';
+var ocaTab         = 'fundamentals';
 var ocaSeasonTab   = 'Summer';
 var ocaCompSeasons = ['Light Summer', 'Light Spring', ''];  // up to 3
+var ocaSubSource   = 'oca';  // 'oca' or 'ivorey' — toggle within OCA Submissions tab
+
+function ocaSetSubSource(src) {
+  ocaSubSource = src;
+  renderOca();
+}
+
+function ocaSubSourceToggle() {
+  var oca    = ocaSubSource === 'oca';
+  var ivorey = ocaSubSource === 'ivorey';
+  return '<div style="display:flex;gap:6px;margin-bottom:20px">'
+    + '<button class="btn btns" style="font-size:12px;' + (oca    ? 'background:var(--charcoal);color:#fff;' : '') + '" onclick="ocaSetSubSource(\'oca\')">OCA Submissions</button>'
+    + '<button class="btn btns" style="font-size:12px;' + (ivorey ? 'background:var(--charcoal);color:#fff;' : '') + '" onclick="ocaSetSubSource(\'ivorey\')">Ivorey</button>'
+    + '</div>';
+}
 
 function setOcaTab(tab) {
   ocaTab = tab;
@@ -595,15 +610,17 @@ function renderOca() {
  } else if (ocaTab==='coolwarm') {
     content.innerHTML = renderOcaCoolWarm();
 } else if (ocaTab==='submissions') {
-    renderOcaSubmissions();
-    if (!ocaSubLoading && ocaSubView === 'list' && ocaSubList.length === 0) {
-      ocaSubLoadList();
-    }
-  } else if (ocaTab==='ivorey') {
-    if (ivoreyData.length === 0) {
-      ivoreyFetchData(function(){ renderIvoreySubmissions(); });
+    if (ocaSubSource === 'ivorey') {
+      if (ivoreyData.length === 0) {
+        ivoreyFetchData(function(){ renderIvoreySubmissions(); });
+      } else {
+        renderIvoreySubmissions();
+      }
     } else {
-      renderIvoreySubmissions();
+      renderOcaSubmissions();
+      if (!ocaSubLoading && ocaSubView === 'list' && ocaSubList.length === 0) {
+        ocaSubLoadList();
+      }
     }
   }
 }

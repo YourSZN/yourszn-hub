@@ -436,8 +436,10 @@ function renderIvoreySubmissions() {
   var panel = document.getElementById('oca-content');
   if (!panel) return;
 
+  var toggle = (typeof ocaSubSourceToggle === 'function') ? ocaSubSourceToggle() : '';
+
   if (ivoreyLoading) {
-    panel.innerHTML =
+    panel.innerHTML = toggle +
       '<div class="cwrap" style="padding:60px;text-align:center;">' +
       '<div style="display:inline-block;width:32px;height:32px;border:3px solid #ddd;border-top-color:#5588DD;border-radius:50%;animation:spin 0.8s linear infinite"></div>' +
       '<p style="color:#888;margin-top:12px;font-size:13px;">Loading Ivorey submissions…</p>' +
@@ -447,7 +449,7 @@ function renderIvoreySubmissions() {
   }
 
   if (ivoreyData.length === 0) {
-    panel.innerHTML =
+    panel.innerHTML = toggle +
       '<div class="cwrap" style="padding:40px;text-align:center;">' +
       '<p style="color:#888;">No submissions loaded</p>' +
       '<button class="btn btnp" onclick="ivoreyFetchData()" style="margin-top:12px;">Load Submissions</button>' +
@@ -568,5 +570,5 @@ function renderIvoreySubmissions() {
     h += '</div>';
   }
 
-  panel.innerHTML = h;
+  panel.innerHTML = toggle + h;
 }

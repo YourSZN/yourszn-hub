@@ -767,6 +767,7 @@
           <div class="ptitle">Online Colour Analysis</div>
           <div class="psub">Drape &amp; compare seasons on your client</div>
         </div>
+        <button class="btn" style="background:var(--rose);color:#fff;font-size:12px;padding:8px 18px;border-radius:8px;white-space:nowrap;flex-shrink:0" onclick="openReportModal()">Generate Report</button>
       </div>
 
       <!-- Photo upload bar -->
@@ -791,16 +792,13 @@
 
       <!-- Main tabs -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
-        <button id="oca-tab-draping"      class="vt-tab on" onclick="setOcaTab('draping')">&#9998; Draping Process</button>
-        <button id="oca-tab-fundamentals" class="vt-tab"    onclick="setOcaTab('fundamentals')">&#9680; Fundamentals</button>
-        <button id="oca-tab-metals"       class="vt-tab"    onclick="setOcaTab('metals')">&#10024; Metals</button>
-        <button id="oca-tab-blush"        class="vt-tab"    onclick="setOcaTab('blush')">&#127804; Blush</button>
-        <button id="oca-tab-coolwarm"     class="vt-tab"    onclick="setOcaTab('coolwarm')">&#127776; Cool vs Warm</button>
-        <button id="oca-tab-seasons"      class="vt-tab"    onclick="setOcaTab('seasons')">&#127809; Season Palettes</button>
-        <button id="oca-tab-compare"      class="vt-tab"    onclick="setOcaTab('compare')">&#9878; Compare Seasons</button>
-        <button id="oca-tab-submissions"    class="vt-tab"             onclick="setOcaTab('submissions')">📋 Submissions</button>
-        <button id="oca-tab-ivorey"         class="vt-tab"             onclick="setOcaTab('ivorey')">🟤 Ivorey Submissions</button>
-        <button class="btn" style="margin-left:auto;background:var(--rose);color:#fff;font-size:12px;padding:8px 18px;border-radius:8px;white-space:nowrap" onclick="openReportModal()">&#128196; Generate Report</button>
+        <button id="oca-tab-fundamentals" class="vt-tab on" onclick="setOcaTab('fundamentals')">Fundamentals</button>
+        <button id="oca-tab-metals"       class="vt-tab"    onclick="setOcaTab('metals')">Metals</button>
+        <button id="oca-tab-blush"        class="vt-tab"    onclick="setOcaTab('blush')">Blush</button>
+        <button id="oca-tab-coolwarm"     class="vt-tab"    onclick="setOcaTab('coolwarm')">Cool vs Warm</button>
+        <button id="oca-tab-seasons"      class="vt-tab"    onclick="setOcaTab('seasons')">Season Palettes</button>
+        <button id="oca-tab-compare"      class="vt-tab"    onclick="setOcaTab('compare')">Compare Seasons</button>
+        <button id="oca-tab-submissions"  class="vt-tab"    onclick="setOcaTab('submissions')">OCA Submissions</button>
       </div>
 
       <div id="oca-content"></div>
