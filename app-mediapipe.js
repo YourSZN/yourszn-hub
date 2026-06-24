@@ -1,21 +1,19 @@
 // ══════════════════════════════════════════════════════════════════
-// MEDIAPIPE AUTO-CONTRAST ANALYSIS
+// AUTO-CONTRAST FACE ANALYSIS  (face-api.js — no SharedArrayBuffer)
 // ──────────────────────────────────────────────────────────────────
-// Privacy: client photos never leave the device at any point.
-//   - Model file is self-hosted at /mediapipe/face_landmarker.task
-//   - All face detection runs in WebAssembly, client-side only
-//   - JS/WASM runtime loads from jsDelivr CDN (library only — no
-//     image data is ever sent externally)
+// Works in all browsers including Safari. No special server headers.
+// Privacy: client photos NEVER leave the device.
+//   - Model weights load from jsDelivr CDN (~270KB, not image data)
+//   - All face detection runs locally in the browser via TensorFlow.js
 // ══════════════════════════════════════════════════════════════════
 
-var _mpFaceLandmarker  = null;
-var _mpInitPromise     = null;
+var _faModule     = null;
+var _faInitPromise = null;
 
-var MP_MODEL_URL = '/mediapipe/face_landmarker.task';
-var MP_WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm/';
-var MP_LIB_URL   = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
+var FA_LIB    = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.esm.js';
+var FA_MODELS = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model/';
 
-// Luminance values matching GREY_VALS (#111 → #E8E8E8, shades 1–10)
+// Luminance thresholds matching GREY_VALS (#111 → #E8E8E8, shades 1–10)
 var MP_GREY_LUMS = [17, 34, 56, 80, 104, 132, 158, 184, 208, 232];
 
 function mpLumToShade(lum) {
@@ -27,74 +25,56 @@ function mpLumToShade(lum) {
   return best + 1;
 }
 
-// Lazy-load MediaPipe — only downloads when first needed
+// Lazy-load face-api.js + models (only on first use)
 function mpEnsureLoaded() {
-  if (_mpFaceLandmarker) return Promise.resolve(_mpFaceLandmarker);
-  if (_mpInitPromise)    return _mpInitPromise;
+  if (_faModule) return Promise.resolve(_faModule);
+  if (_faInitPromise) return _faInitPromise;
 
-  if (typeof SharedArrayBuffer === 'undefined') {
-    console.warn('[MediaPipe] SharedArrayBuffer unavailable — COOP/COEP headers missing. Auto-detect disabled.');
-    return Promise.reject(new Error('SharedArrayBuffer unavailable'));
-  }
-
-  _mpInitPromise = import(MP_LIB_URL).then(function(mod) {
-    var FaceLandmarker  = mod.FaceLandmarker;
-    var FilesetResolver = mod.FilesetResolver;
-    return FilesetResolver.forVisionTasks(MP_WASM_URL).then(function(vision) {
-      return FaceLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: window.location.origin + MP_MODEL_URL,
-          delegate: 'CPU'
-        },
-        runningMode: 'IMAGE',
-        numFaces: 1
-      });
+  _faInitPromise = import(FA_LIB).then(function(mod) {
+    var fa = mod.default || mod;
+    return Promise.all([
+      fa.nets.tinyFaceDetector.loadFromUri(FA_MODELS),
+      fa.nets.faceLandmark68TinyNet.loadFromUri(FA_MODELS)
+    ]).then(function() {
+      _faModule = fa;
+      return fa;
     });
-  }).then(function(lm) {
-    _mpFaceLandmarker = lm;
-    return lm;
   }).catch(function(e) {
-    _mpInitPromise = null;
+    _faInitPromise = null;
+    console.warn('[AutoContrast] Failed to load face detection:', e);
     throw e;
   });
 
-  return _mpInitPromise;
+  return _faInitPromise;
 }
 
-// Convert normalised landmark coords → container pixel position
+// Convert image-pixel coords → container pixel coords
 // Accounts for object-fit:cover; object-position:center top
 function mpNormToContainer(nx, ny, imgW, imgH, ctnW, ctnH) {
   var imgAspect = imgW / imgH;
   var ctnAspect = ctnW / ctnH;
   var scale, offX, offY;
-
   if (imgAspect > ctnAspect) {
-    // Wider image — fill height, crop sides equally
     scale = ctnH / imgH;
     offX  = (ctnW - imgW * scale) / 2;
     offY  = 0;
   } else {
-    // Taller image (portrait) — fill width, crop bottom (top-aligned)
     scale = ctnW / imgW;
     offX  = 0;
     offY  = 0;
   }
-
   return {
     x: Math.round(nx * imgW * scale + offX),
     y: Math.round(ny * imgH * scale + offY)
   };
 }
 
-// Sample average luminance from a patch around (nx, ny) on the original image
-function mpSampleLum(ctx, imgW, imgH, nx, ny, radius) {
-  var px = Math.round(nx * imgW);
-  var py = Math.round(ny * imgH);
+// Sample average luminance from a patch around (imgPx, imgPy) on the canvas
+function mpSampleLum(ctx, imgW, imgH, imgPx, imgPy, radius) {
   var r  = radius || 10;
-  var x0 = Math.max(0, px - r),  y0 = Math.max(0, py - r);
-  var x1 = Math.min(imgW, px + r), y1 = Math.min(imgH, py + r);
+  var x0 = Math.max(0, imgPx - r), y0 = Math.max(0, imgPy - r);
+  var x1 = Math.min(imgW, imgPx + r), y1 = Math.min(imgH, imgPy + r);
   if (x1 <= x0 || y1 <= y0) return 128;
-
   var data = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
   var total = 0;
   for (var i = 0; i < data.length; i += 4) {
@@ -103,22 +83,20 @@ function mpSampleLum(ctx, imgW, imgH, nx, ny, radius) {
   return total / (data.length / 4);
 }
 
-// Tag pointer is at the RIGHT end of the swatch:
-//   label (~35px) + gap (5px) + swatch (80px) = ~120px from tag's left edge
-//   Tag height = 36px, so vertical centre = 18px from top
+// Tag pointer sits at the right edge of the swatch:
+//   label (~35px) + gap (5px) + swatch (80px) = ~120px
+//   Tag height = 36px → vertical centre at 18px
 var MP_PTR_X = 120;
 var MP_PTR_Y = 18;
 
 // ──────────────────────────────────────────────────────────────────
-// Main API
-// Analyse a photo and return tag positions + shade values.
-//   dataUrl     — base64 image data URL (stays on device)
+// Main API — analyse a photo, return tag positions + shade values.
+//   dataUrl     — base64 data URL (stays on device)
 //   containerEl — the photo preview DOM element (for sizing)
-// Returns { hair, skin, eyes } each with { x, y, val }
-//         or null if no face detected / on error
+// Returns { hair, skin, eyes } each { x, y, val } or null
 // ──────────────────────────────────────────────────────────────────
 function mpAnalyzeContrast(dataUrl, containerEl) {
-  return mpEnsureLoaded().then(function(landmarker) {
+  return mpEnsureLoaded().then(function(fa) {
     return new Promise(function(resolve, reject) {
       var img = new Image();
       img.onload  = function() { resolve(img); };
@@ -126,66 +104,85 @@ function mpAnalyzeContrast(dataUrl, containerEl) {
       img.src = dataUrl;
     });
   }).then(function(img) {
-    var landmarker = _mpFaceLandmarker;
+    var fa = _faModule;
 
+    // Draw to canvas for pixel sampling
     var canvas  = document.createElement('canvas');
     canvas.width  = img.naturalWidth;
     canvas.height = img.naturalHeight;
     var ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
 
-    var result = landmarker.detect(img);
-    if (!result.faceLandmarks || !result.faceLandmarks.length) return null;
-
-    var lm   = result.faceLandmarks[0];
     var imgW = img.naturalWidth;
     var imgH = img.naturalHeight;
-    var ctnW = containerEl.offsetWidth;
-    var ctnH = containerEl.offsetHeight;
 
-    // Key landmarks
-    var forehead   = lm[10];   // top of forehead
-    var chin       = lm[152];  // chin
-    var leftCheek  = lm[234];  // left cheek (subject's right = screen left)
-    var leftIris   = lm[468];  // left iris centre
-    var rightIris  = lm[473];  // right iris centre
+    return fa.detectSingleFace(img, new fa.TinyFaceDetectorOptions({ scoreThreshold: 0.3 }))
+      .withFaceLandmarks(true)
+      .then(function(result) {
+        if (!result) { console.warn('[AutoContrast] No face detected'); return null; }
 
-    var faceH = chin.y - forehead.y;
+        var pts  = result.landmarks.positions; // {x,y} in image pixels
+        var ctnW = containerEl.offsetWidth;
+        var ctnH = containerEl.offsetHeight;
 
-    // Sample regions
-    var hairNorm = { x: forehead.x, y: Math.max(0.01, forehead.y - faceH * 0.4) };
-    var skinNorm = { x: leftCheek.x, y: leftCheek.y };
-    var eyesNorm = { x: (leftIris.x + rightIris.x) / 2, y: (leftIris.y + rightIris.y) / 2 };
+        // ── Landmark reference (68-pt model) ──
+        // 0-16: jaw    17-21: L brow    22-26: R brow
+        // 27-35: nose  36-41: L eye     42-47: R eye
+        //
+        // Chin: pts[8]   Top of brows: pts[17..26]
+        var chinY    = pts[8].y;
+        var browTopY = Math.min.apply(null, [17,18,19,20,21,22,23,24,25,26].map(function(i){ return pts[i].y; }));
+        var browCtrX = (pts[19].x + pts[24].x) / 2; // midpoint between brow arches
+        var faceH    = chinY - browTopY;
 
-    var hairLum = mpSampleLum(ctx, imgW, imgH, hairNorm.x, hairNorm.y, 14);
-    var skinLum = mpSampleLum(ctx, imgW, imgH, skinNorm.x, skinNorm.y, 14);
-    var eyesLum = mpSampleLum(ctx, imgW, imgH, eyesNorm.x, eyesNorm.y, 6);
+        // Hair: above brow centre by ~40% of face height
+        var hairPx = Math.round(browCtrX);
+        var hairPy = Math.round(Math.max(4, browTopY - faceH * 0.38));
 
-    // Convert to container pixel coords then offset for tag pointer
-    function tagPos(norm) {
-      var pt = mpNormToContainer(norm.x, norm.y, imgW, imgH, ctnW, ctnH);
-      return {
-        x: Math.max(0, pt.x - MP_PTR_X),
-        y: Math.max(0, pt.y - MP_PTR_Y)
-      };
-    }
+        // Skin: left cheek — between bottom of left eye and jaw
+        var leftEyeBottomY = Math.max(pts[40].y, pts[41].y);
+        var skinPx = Math.round(pts[3].x * 0.55 + pts[41].x * 0.45);
+        var skinPy = Math.round(leftEyeBottomY * 0.35 + pts[3].y * 0.65);
 
-    var hp = tagPos(hairNorm);
-    var sp = tagPos(skinNorm);
-    var ep = tagPos(eyesNorm);
+        // Eyes: centre of the combined eye region
+        var lEyeX = (pts[36].x + pts[39].x) / 2;
+        var lEyeY = (pts[36].y + pts[37].y + pts[38].y + pts[39].y + pts[40].y + pts[41].y) / 6;
+        var rEyeX = (pts[42].x + pts[45].x) / 2;
+        var rEyeY = (pts[42].y + pts[43].y + pts[44].y + pts[45].y + pts[46].y + pts[47].y) / 6;
+        var eyesPx = Math.round((lEyeX + rEyeX) / 2);
+        var eyesPy = Math.round((lEyeY + rEyeY) / 2);
 
-    return {
-      hair: { x: hp.x, y: hp.y, val: mpLumToShade(hairLum) },
-      skin: { x: sp.x, y: sp.y, val: mpLumToShade(skinLum) },
-      eyes: { x: ep.x, y: ep.y, val: mpLumToShade(eyesLum) }
-    };
+        // Sample luminance at each region
+        var hairLum = mpSampleLum(ctx, imgW, imgH, hairPx, hairPy, 16);
+        var skinLum = mpSampleLum(ctx, imgW, imgH, skinPx, skinPy, 16);
+        var eyesLum = mpSampleLum(ctx, imgW, imgH, eyesPx, eyesPy, 8);
+
+        // Convert image-pixel positions → container positions → tag left/top
+        function tagPos(ipx, ipy) {
+          var ct = mpNormToContainer(ipx / imgW, ipy / imgH, imgW, imgH, ctnW, ctnH);
+          return {
+            x: Math.max(0, ct.x - MP_PTR_X),
+            y: Math.max(0, ct.y - MP_PTR_Y)
+          };
+        }
+
+        var hp = tagPos(hairPx, hairPy);
+        var sp = tagPos(skinPx, skinPy);
+        var ep = tagPos(eyesPx, eyesPy);
+
+        return {
+          hair: { x: hp.x, y: hp.y, val: mpLumToShade(hairLum) },
+          skin: { x: sp.x, y: sp.y, val: mpLumToShade(skinLum) },
+          eyes: { x: ep.x, y: ep.y, val: mpLumToShade(eyesLum) }
+        };
+      });
   }).catch(function(e) {
-    console.warn('[MediaPipe] Analysis failed:', e);
+    console.warn('[AutoContrast] Analysis failed:', e);
     return null;
   });
 }
 
-// Loading overlay shown on the container while analysis runs
+// Loading overlay shown on the preview container
 function mpShowLoading(containerEl) {
   if (!containerEl || containerEl.querySelector('#mp-loading')) return;
   var d = document.createElement('div');
@@ -200,8 +197,7 @@ function mpHideLoading(containerEl) {
   if (el) el.remove();
 }
 
-// Pre-warm: start loading MediaPipe in the background so the first
-// auto-detect is faster. Call when the OCA page is opened.
+// Pre-warm: kick off model loading in the background
 function mpPreWarm() {
   mpEnsureLoaded().catch(function() {});
 }
