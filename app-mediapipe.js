@@ -32,6 +32,11 @@ function mpEnsureLoaded() {
   if (_mpFaceLandmarker) return Promise.resolve(_mpFaceLandmarker);
   if (_mpInitPromise)    return _mpInitPromise;
 
+  if (typeof SharedArrayBuffer === 'undefined') {
+    console.warn('[MediaPipe] SharedArrayBuffer unavailable — COOP/COEP headers missing. Auto-detect disabled.');
+    return Promise.reject(new Error('SharedArrayBuffer unavailable'));
+  }
+
   _mpInitPromise = import(MP_LIB_URL).then(function(mod) {
     var FaceLandmarker  = mod.FaceLandmarker;
     var FilesetResolver = mod.FilesetResolver;
