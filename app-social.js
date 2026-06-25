@@ -553,83 +553,93 @@ function smStrategyPillars() {
 
 // ══ POST MODAL ══
 
+function smLbl(text) {
+  return '<label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">' + text + '</label>';
+}
+
 function smPostModal() {
+  var leftCol = ''
+    + '<div>' + smLbl('Title *') + '<input id="sm-f-title" class="fi" placeholder="Post title…"></div>'
+
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +   '<div>' + smLbl('Stage') + '<select id="sm-f-stage" class="fi" onchange="smStageChange()">'
+    +     SM_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
+    +   '</select></div>'
+    +   '<div id="sm-date-wrap" style="display:none">' + smLbl('Scheduled Date') + '<input id="sm-f-date" type="date" class="fi"></div>'
+    + '</div>'
+
+    + '<div>' + smLbl('Platform')
+    +   '<div style="display:flex;gap:16px;padding-top:2px">'
+    +   ['TikTok','Instagram'].map(function(p){
+          return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none">'
+            + '<input type="checkbox" id="sm-f-plat-'+p.toLowerCase()+'" value="'+p+'" style="width:15px;height:15px;cursor:pointer"> '+p+'</label>';
+        }).join('')
+    +   '</div></div>'
+
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +   '<div>' + smLbl('Pillar') + '<select id="sm-f-pillar" class="fi"><option value="">— Select pillar —</option>'
+    +     SM_PILLARS.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('')
+    +   '</select></div>'
+    +   '<div>' + smLbl('Content Type') + '<select id="sm-f-ctype" class="fi"><option value="">— Select type —</option>'
+    +     SM_CONTENT_TYPES.map(function(t){ return '<option value="'+t+'">'+t+'</option>'; }).join('')
+    +   '</select></div>'
+    + '</div>'
+
+    + '<div>' + smLbl('Assigned To') + '<select id="sm-f-assign" class="fi"><option value="">— Unassigned —</option>'
+    +   ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
+    + '</select></div>'
+
+    + '<div>' + smLbl('Concept')
+    +   '<textarea id="sm-f-concept" class="fi" rows="4" placeholder="What\'s the idea…" style="resize:vertical"></textarea></div>'
+
+    + '<div>' + smLbl('Text on Screen')
+    +   '<textarea id="sm-f-tos" class="fi" rows="3" placeholder="On-screen text…" style="resize:vertical"></textarea></div>';
+
+  var rightCol = ''
+    + '<div>' + smLbl('Caption')
+    +   '<textarea id="sm-f-caption" class="fi" rows="5" placeholder="Caption + hashtags…" style="resize:vertical"></textarea></div>'
+
+    + '<div>' + smLbl('Google Drive Link')
+    +   '<input id="sm-f-drive" class="fi" placeholder="drive.google.com/…"></div>'
+
+    + '<div>' + smLbl('Inspiration Links')
+    +   '<div id="sm-inspo-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>'
+    +   '<div style="display:flex;gap:6px">'
+    +     '<input id="sm-inspo-label" class="fi" placeholder="Label (optional)" style="flex:1;font-size:12px;padding:7px 10px">'
+    +     '<input id="sm-inspo-url"   class="fi" placeholder="Paste URL…"       style="flex:2;font-size:12px;padding:7px 10px">'
+    +     '<button onclick="smAddInspoLink()" class="btn btnp" style="padding:7px 12px;font-size:12px;white-space:nowrap">+ Add</button>'
+    +   '</div></div>'
+
+    // ── Comments ──
+    + '<div id="sm-comments-section" style="border-top:1px solid var(--sand);padding-top:16px;margin-top:4px">'
+    +   '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Comments</div>'
+    +   '<div id="sm-comments-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;max-height:180px;overflow-y:auto"></div>'
+    +   '<div style="position:relative">'
+    +     '<textarea id="sm-comment-input" class="fi" rows="2" placeholder="Leave a comment… type @ to tag someone" style="resize:none;padding-right:70px" oninput="smCommentInput(this)" onkeydown="smCommentKey(event)"></textarea>'
+    +     '<button onclick="smAddComment()" class="btn btnp" style="position:absolute;bottom:8px;right:8px;padding:5px 12px;font-size:11px">Post</button>'
+    +   '</div>'
+    +   '<div id="sm-mention-dropdown" style="display:none;position:absolute;background:white;border:1px solid var(--sand);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:700;min-width:160px;overflow:hidden"></div>'
+    + '</div>';
+
   return '<div id="sm-post-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;overflow-y:auto;padding:20px">'
-    + '<div style="background:white;border-radius:16px;padding:28px;max-width:560px;width:100%;position:relative;max-height:90vh;overflow-y:auto">'
-    + '<button onclick="smCloseModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1">&#215;</button>'
+    + '<div style="background:white;border-radius:16px;padding:28px 32px;max-width:960px;width:100%;position:relative">'
+    + '<button onclick="smCloseModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&#215;</button>'
     + '<div id="sm-modal-heading" style="font-size:18px;font-weight:700;color:var(--deep);margin-bottom:22px">New Post</div>'
 
-    + '<div style="display:flex;flex-direction:column;gap:14px">'
-
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Title *</label>'
-    + '<input id="sm-f-title" class="fi" placeholder="Post title…"></div>'
-
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Stage</label>'
-    + '<select id="sm-f-stage" class="fi" onchange="smStageChange()">'
-    + SM_STAGES.map(function(s) { return '<option value="' + s.key + '">' + s.label + '</option>'; }).join('')
-    + '</select></div>'
-    + '<div id="sm-date-wrap" style="display:none"><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Scheduled Date</label>'
-    + '<input id="sm-f-date" type="date" class="fi"></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">'
+    +   '<div style="display:flex;flex-direction:column;gap:14px">' + leftCol + '</div>'
+    +   '<div style="display:flex;flex-direction:column;gap:14px">' + rightCol + '</div>'
     + '</div>'
 
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:8px;letter-spacing:.8px;text-transform:uppercase">Platform</label>'
-    + '<div style="display:flex;gap:16px">'
-    + ['TikTok', 'Instagram'].map(function(p) {
-        return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none">'
-          + '<input type="checkbox" id="sm-f-plat-' + p.toLowerCase() + '" value="' + p + '" style="width:15px;height:15px;cursor:pointer"> ' + p + '</label>';
-      }).join('')
-    + '</div></div>'
-
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Pillar</label>'
-    + '<select id="sm-f-pillar" class="fi"><option value="">— Select pillar —</option>'
-    + SM_PILLARS.map(function(p) { return '<option value="' + p + '">' + p + '</option>'; }).join('')
-    + '</select></div>'
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Content Type</label>'
-    + '<select id="sm-f-ctype" class="fi"><option value="">— Select type —</option>'
-    + SM_CONTENT_TYPES.map(function(t) { return '<option value="' + t + '">' + t + '</option>'; }).join('')
-    + '</select></div>'
+    + '<div id="sm-f-err" style="color:#EF4444;font-size:12px;display:none;margin-top:12px"></div>'
+    + '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--warm)">'
+    +   '<button id="sm-f-del" onclick="smDeletePost()" style="display:none;background:none;border:1px solid #EF4444;color:#EF4444;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:600">Delete</button>'
+    +   '<div style="display:flex;gap:8px;margin-left:auto">'
+    +     '<button onclick="smCloseModal()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;color:var(--charcoal)">Cancel</button>'
+    +     '<button onclick="smSavePost()" class="btn btnp" style="padding:8px 22px">Save</button>'
+    +   '</div>'
     + '</div>'
-
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Assigned To</label>'
-    + '<select id="sm-f-assign" class="fi"><option value="">— Unassigned —</option>'
-    + ['Latisha', 'Lemari'].map(function(n) { return '<option value="' + n + '">' + n + '</option>'; }).join('')
-    + '</select></div>'
-
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Concept</label>'
-    + '<textarea id="sm-f-concept" class="fi" rows="2" placeholder="What\'s the idea…" style="resize:vertical"></textarea></div>'
-
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Text on Screen</label>'
-    + '<textarea id="sm-f-tos" class="fi" rows="2" placeholder="On-screen text…" style="resize:vertical"></textarea></div>'
-
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Caption</label>'
-    + '<textarea id="sm-f-caption" class="fi" rows="3" placeholder="Caption + hashtags…" style="resize:vertical"></textarea></div>'
-
-    + '<div><label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">Google Drive Link</label>'
-    + '<input id="sm-f-drive" class="fi" placeholder="drive.google.com/…"></div>'
-
-    + '<div id="sm-f-err" style="color:#EF4444;font-size:12px;display:none"></div>'
-
-    + '<div style="display:flex;gap:8px;justify-content:space-between;padding-top:4px">'
-    + '<button id="sm-f-del" onclick="smDeletePost()" style="display:none;background:none;border:1px solid #EF4444;color:#EF4444;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:600">Delete</button>'
-    + '<div style="display:flex;gap:8px;margin-left:auto">'
-    + '<button onclick="smCloseModal()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;color:var(--charcoal)">Cancel</button>'
-    + '<button onclick="smSavePost()" class="btn btnp" style="padding:8px 22px">Save</button>'
-    + '</div></div>'
-
-    // ── Comments section (only shown when editing an existing post) ──
-    + '<div id="sm-comments-section" style="display:none;border-top:1px solid var(--sand);margin-top:8px;padding-top:20px">'
-    + '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px">Comments</div>'
-    + '<div id="sm-comments-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"></div>'
-    + '<div style="position:relative">'
-    +   '<textarea id="sm-comment-input" class="fi" rows="2" placeholder="Leave a comment… type @ to tag someone" style="resize:none;padding-right:70px" oninput="smCommentInput(this)" onkeydown="smCommentKey(event)"></textarea>'
-    +   '<button onclick="smAddComment()" class="btn btnp" style="position:absolute;bottom:8px;right:8px;padding:5px 12px;font-size:11px">Post</button>'
-    + '</div>'
-    + '<div id="sm-mention-dropdown" style="display:none;position:absolute;background:white;border:1px solid var(--sand);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:700;min-width:160px;overflow:hidden"></div>'
-    + '</div>'
-
-    + '</div></div></div>';
+    + '</div></div>';
 }
 
 function smStageChange() {
@@ -658,6 +668,8 @@ function smOpenModal(id, defaultStage, defaultDate) {
   document.getElementById('sm-f-caption').value = post ? (post.caption || '')       : '';
   document.getElementById('sm-f-drive').value   = post ? (post.driveLink || '')     : '';
 
+  smRenderInspoLinks(post ? (post.inspirationLinks || []) : []);
+
   ['TikTok', 'Instagram'].forEach(function(p) {
     var cb = document.getElementById('sm-f-plat-' + p.toLowerCase());
     if (cb) cb.checked = post ? (post.platform || []).indexOf(p) !== -1 : false;
@@ -669,13 +681,9 @@ function smOpenModal(id, defaultStage, defaultDate) {
   var errEl = document.getElementById('sm-f-err');
   if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
 
-  // Always show comments section; reset drafts for new posts
+  // Reset drafts and render comments (always visible in right column)
   _smDraftComments = [];
-  var commentsSec = document.getElementById('sm-comments-section');
-  if (commentsSec) {
-    commentsSec.style.display = 'block';
-    smRenderComments(post ? post.id : null);
-  }
+  smRenderComments(post ? post.id : null);
 
   modal.style.display = 'flex';
   setTimeout(function() { var t = document.getElementById('sm-f-title'); if (t) t.focus(); }, 80);
@@ -714,8 +722,9 @@ function smSavePost() {
     concept:      document.getElementById('sm-f-concept').value.trim(),
     textOnScreen: document.getElementById('sm-f-tos').value.trim(),
     caption:      document.getElementById('sm-f-caption').value.trim(),
-    driveLink:    document.getElementById('sm-f-drive').value.trim(),
-    comments:     existing ? (existing.comments || []) : _smDraftComments.slice(),
+    driveLink:         document.getElementById('sm-f-drive').value.trim(),
+    inspirationLinks:  smGetInspoLinks(),
+    comments:          existing ? (existing.comments || []) : _smDraftComments.slice(),
     createdAt:    existing ? (existing.createdAt || now) : now,
     lastModified: now
   };
@@ -746,6 +755,44 @@ function smDeletePost() {
   smCloseModal();
   saveData();
   renderSocialPage();
+}
+
+// ══ INSPIRATION LINKS ══
+
+var _smInspoLinks = [];
+
+function smRenderInspoLinks(links) {
+  _smInspoLinks = links ? links.slice() : [];
+  var el = document.getElementById('sm-inspo-list'); if (!el) return;
+  if (!_smInspoLinks.length) { el.innerHTML = ''; return; }
+  el.innerHTML = _smInspoLinks.map(function(lnk, i) {
+    var display = lnk.label || lnk.url;
+    return '<div style="display:flex;align-items:center;gap:6px;background:var(--warm);border-radius:8px;padding:6px 10px">'
+      + '<a href="' + esc(lnk.url) + '" target="_blank" rel="noopener" style="font-size:12px;color:#6366F1;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(lnk.url) + '">&#128279; ' + esc(display) + '</a>'
+      + '<button onclick="smRemoveInspoLink(' + i + ')" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);flex-shrink:0;padding:0 2px">&#10005;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function smAddInspoLink() {
+  var urlEl   = document.getElementById('sm-inspo-url');
+  var labelEl = document.getElementById('sm-inspo-label');
+  var url = urlEl ? urlEl.value.trim() : '';
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  _smInspoLinks.push({ label: labelEl ? labelEl.value.trim() : '', url: url });
+  if (urlEl)   urlEl.value   = '';
+  if (labelEl) labelEl.value = '';
+  smRenderInspoLinks(_smInspoLinks);
+}
+
+function smRemoveInspoLink(i) {
+  _smInspoLinks.splice(i, 1);
+  smRenderInspoLinks(_smInspoLinks);
+}
+
+function smGetInspoLinks() {
+  return _smInspoLinks.slice();
 }
 
 // ══ COMMENTS ══
