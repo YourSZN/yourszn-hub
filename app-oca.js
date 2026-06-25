@@ -818,21 +818,21 @@ var OCA_IMG = {
 // ══════════════════════════════════════════════════
 // Cool vs warm NEUTRAL drape pairs
 var OCA_CW_NEUTRALS = [
-  {label:'Optic White vs Cream',        cool:'#FAFAFA', warm:'#FFF5DC'},
-  {label:'Soft White vs Warm Ivory',    cool:'#F4F2EE', warm:'#FFF0D0'},
-  {label:'Cool Ivory vs Oatmeal',       cool:'#EDE8E2', warm:'#E8D4B8'},
-  {label:'Dove Grey vs Ecru',           cool:'#B4BCC8', warm:'#E0C898'},
-  {label:'Charcoal Grey vs Sand',       cool:'#3A3A3A', warm:'#D4BC90'},
-  {label:'Slate Grey vs Yellow Grey',   cool:'#7A8EA8', warm:'#B0A888'},
-  {label:'Cool Taupe vs Camel',         cool:'#A89E98', warm:'#C89A50'},
-  {label:'Mushroom vs Tan',             cool:'#B89890', warm:'#C08858'},
-  {label:'Rose Beige vs Caramel',       cool:'#D4A8A0', warm:'#A06030'},
-  {label:'Pewter vs Chocolate Brown',   cool:'#909898', warm:'#4A2010'},
-  {label:'Olive Khaki vs Cool Brown',   cool:'#8A8850', warm:'#8A4840'},
-  {label:'Navy vs Ultramarine Blue',    cool:'#0C1848', warm:'#384878'},
-  {label:'Black vs Espresso Brown',     cool:'#080808', warm:'#2A1208'},
-  {label:'Cool Navy vs Warm Navy',      cool:'#081840', warm:'#1E3850'},
-  {label:'Cool Grey vs Golden Yellow',  cool:'#607080', warm:'#B87828'}
+  {label:'Optic White vs Cream',        cool:'#ffffff', warm:'#fff3e0'},
+  {label:'Soft White vs Warm Ivory',    cool:'#faf3ec', warm:'#fff3e0'},
+  {label:'Cool Ivory vs Oatmeal',       cool:'#ebe2d9', warm:'#e5d3be'},
+  {label:'Dove Grey vs Ecru',           cool:'#b4bbc4', warm:'#e8d4bf'},
+  {label:'Charcoal Grey vs Sand',       cool:'#404040', warm:'#846f56'},
+  {label:'Slate Grey vs Yellow Grey',   cool:'#69727d', warm:'#b6a590'},
+  {label:'Cool Taupe vs Camel',         cool:'#a6958c', warm:'#cea279'},
+  {label:'Mushroom vs Tan',             cool:'#9d6660', warm:'#a96d41'},
+  {label:'Rose Beige vs Caramel',       cool:'#d3a59b', warm:'#ad7851'},
+  {label:'Pewter vs Chocolate Brown',   cool:'#838386', warm:'#7b7156'},
+  {label:'Cool Brown vs Olive Khaki',   cool:'#3d2420', warm:'#55321c'},
+  {label:'Navy vs Ultramarine Blue',    cool:'#161c52', warm:'#203a5d'},
+  {label:'Black vs Espresso Brown',     cool:'#161c52', warm:'#342415'},
+  {label:'Cool Navy vs Warm Navy',      cool:'#0b0f34', warm:'#0b1f34'},
+  {label:'Cool Grey vs Yellow Brown',   cool:'#80807f', warm:'#6d5535'}
 ];
 
 var ocaNeutVotes = {};
