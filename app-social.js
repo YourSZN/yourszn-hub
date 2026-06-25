@@ -37,6 +37,7 @@ var smCalMonth       = new Date().getMonth();
 var smCalYear        = new Date().getFullYear();
 var smIdeaBankFilter = 'All';
 var _smEditId        = null;
+var _smDraftComments = [];  // holds comments for a new (unsaved) post
 var smMentions       = {latisha:[], lemari:[]};  // unseen mention notifications per user
 
 // ── Was post modified in last 48h? ──
@@ -506,11 +507,12 @@ function smOpenModal(id, defaultStage, defaultDate) {
   var errEl = document.getElementById('sm-f-err');
   if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
 
-  // Show/hide comments section
+  // Always show comments section; reset drafts for new posts
+  _smDraftComments = [];
   var commentsSec = document.getElementById('sm-comments-section');
   if (commentsSec) {
-    commentsSec.style.display = post ? 'block' : 'none';
-    if (post) smRenderComments(post.id);
+    commentsSec.style.display = 'block';
+    smRenderComments(post ? post.id : null);
   }
 
   modal.style.display = 'flex';
@@ -551,7 +553,7 @@ function smSavePost() {
     textOnScreen: document.getElementById('sm-f-tos').value.trim(),
     caption:      document.getElementById('sm-f-caption').value.trim(),
     driveLink:    document.getElementById('sm-f-drive').value.trim(),
-    comments:     existing ? (existing.comments || []) : [],
+    comments:     existing ? (existing.comments || []) : _smDraftComments.slice(),
     createdAt:    existing ? (existing.createdAt || now) : now,
     lastModified: now
   };
@@ -591,8 +593,13 @@ var SM_STAFF_COLORS = {Latisha:'#C4956A', Lemari:'#7A8C6E'};
 
 function smRenderComments(postId) {
   var listEl = document.getElementById('sm-comments-list'); if (!listEl) return;
-  var post = socialPosts.find(function(p) { return p.id === postId; });
-  var comments = post ? (post.comments || []) : [];
+  var comments;
+  if (postId) {
+    var post = socialPosts.find(function(p) { return p.id === postId; });
+    comments = post ? (post.comments || []) : [];
+  } else {
+    comments = _smDraftComments;
+  }
 
   if (!comments.length) {
     listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">No comments yet — be the first to leave one.</div>';
@@ -632,29 +639,35 @@ function smAddComment() {
   var input = document.getElementById('sm-comment-input'); if (!input) return;
   var text  = input.value.trim(); if (!text) return;
 
-  var post = socialPosts.find(function(p) { return p.id === _smEditId; });
-  if (!post) return;
-
-  if (!post.comments) post.comments = [];
-  var now = Date.now();
+  var now    = Date.now();
   var author = smCurrentUser();
   var comment = { id: 'c' + now, author: author, text: text, createdAt: now };
-  post.comments.push(comment);
 
-  // Store mention notifications for tagged users
-  SM_STAFF.forEach(function(name) {
-    if (text.indexOf('@' + name) !== -1 && name !== author) {
-      var uid = name.toLowerCase();
-      if (!smMentions[uid]) smMentions[uid] = [];
-      smMentions[uid].push({ postId: _smEditId, commentId: comment.id, from: author, text: text, ts: now, seen: false });
-    }
-  });
+  if (_smEditId) {
+    // Editing an existing saved post
+    var post = socialPosts.find(function(p) { return p.id === _smEditId; });
+    if (!post) return;
+    if (!post.comments) post.comments = [];
+    post.comments.push(comment);
+
+    SM_STAFF.forEach(function(name) {
+      if (text.indexOf('@' + name) !== -1 && name !== author) {
+        var uid = name.toLowerCase();
+        if (!smMentions[uid]) smMentions[uid] = [];
+        smMentions[uid].push({ postId: _smEditId, commentId: comment.id, from: author, text: text, ts: now, seen: false });
+      }
+    });
+
+    saveData();
+    smUpdateNavBadge();
+  } else {
+    // New post not saved yet — buffer in draft
+    _smDraftComments.push(comment);
+  }
 
   input.value = '';
   smHideMentionDropdown();
-  saveData();
-  smRenderComments(_smEditId);
-  smUpdateNavBadge();
+  smRenderComments(_smEditId || null);
 }
 
 function smDeleteComment(postId, commentId) {
