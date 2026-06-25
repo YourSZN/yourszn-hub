@@ -2487,6 +2487,6 @@ function renderOcaDrapeCompare() {
   }
   custRow += '</div>';
 
-  return '<div>' + header + custRow + rows + '</div>';
+  return '<div>' + custRow + header + rows + '</div>';
 }
 
