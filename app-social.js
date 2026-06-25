@@ -380,26 +380,30 @@ function smStrategyGuide() {
     + '<strong>The goal</strong> is not to teach colour analysis theory for the sake of it. The goal is to make people feel seen in their shopping struggles, makeup struggles and style frustrations — <em>then</em> position colour analysis, online/in-person and the app as the solution.'
     + '</div>';
 
-  var shopping = section('#C4956A', '#C4956A',
-    label('Shopping hook examples') +
+  var shopping = section('Shopping Struggles', '#C4956A',
+    '<div style="font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:10px">Think about the problems people face <strong>before</strong> they know their season.</div>' +
+    label('Hook examples') +
     bullets([
       'Why does this colour look amazing on her but terrible on me?',
       'Why does online shopping feel so hit and miss?',
-      'If you keep buying clothes but never have anything to wear… look at the palette in your wardrobe. Is it matched to your season?',
+      'If you keep buying clothes but never have anything to wear… look at the palette in your wardrobe. Is it matched to your season? If not, you probably just don\'t realise what clothes you\'ll be excited to wear again and again and again…',
       'If you ever think "Why do I feel like I need makeup to look put together?"',
     ]) +
     label('Concept examples') +
-    concepts(['"You don\'t hate green. You just haven\'t found your green."', '"Why expensive wardrobes aren\'t always expensive…"', '"The reason your wardrobe feels boring..."', '"How I would shop at [brand] if I was a Soft Autumn."', '"My cart from [brand] if I was a Winter."'])
+    concepts(['"You don\'t hate green. You just haven\'t found your green."', '"Why expensive wardrobes aren\'t always expensive…"', '"The reason your wardrobe feels boring..."', '"How I would shop at [brand] if I was a Soft Autumn."', '"My cart from [brand] if I was a Winter."']) +
+    '<div style="background:#FFF9F0;border:1px solid #C4956A33;border-radius:8px;padding:11px 14px;margin-top:12px;font-size:12px;color:var(--charcoal);line-height:1.6">'
+      + '<strong>Natural app integration:</strong> You can always plug it at the end of videos — <em>"and if you haven\'t already, go and check out our Your SZN app."</em> The app removes the guesswork by showing clothing already categorised into your season.'
+      + '</div>'
   );
 
   var makeup = section('Makeup & Beauty', '#C49A8A',
-    '<div style="font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:8px">Think about frustrations people experience with makeup, fake tan, hair colour and jewellery.</div>' +
+    '<div style="font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:8px">Think about frustrations people experience with makeup, fake tan, hair colour and jewellery. What would people think/say/hear everyday?!</div>' +
     label('Examples') +
     bullets([
       'Foundation never looks quite right.',
       'Fake tan feels too harsh.',
       'Certain lip colours make teeth look yellow/skin look dull.',
-      'Gold or silver jewellery confusion — or how to mix metals by season.',
+      'Gold or silver jewellery confusion / OR… how to mix metals to best suit your season (e.g. earrings — wear the one that is in your season in the first hole, then swap the 2nd).',
       'Hair colours that overpower features.',
     ]) +
     label('Concept examples') +
@@ -441,7 +445,7 @@ function smStrategyGuide() {
     + [
         ['Observation', 'Tiffany Teal is everywhere right now. But what does that colour look like in your season?', '#C4956A'],
         ['Reframe',     'It\'s not about buying a whole new wardrobe. It\'s about making better wardrobe decisions.', '#7A8C6E'],
-        ['Myth Bust',   'Colour analysis isn\'t about obsessing over microscopic differences. It\'s about overall harmony.', '#6366F1'],
+        ['Myth Bust',   'Colour analysis isn\'t about obsessing over microscopic differences. It\'s about understanding the overall harmony a colour creates with you.', '#6366F1'],
         ['Problem + Solution', '"If you\'ve ever said \'I can\'t wear green\' — this might explain why."', '#059669'],
       ].map(function(c) {
         return '<div style="background:var(--warm);border-radius:10px;padding:12px">'
@@ -449,12 +453,14 @@ function smStrategyGuide() {
           + '<div style="font-size:12px;color:var(--charcoal);line-height:1.5;font-style:italic">"' + c[1] + '"</div>'
           + '</div>';
       }).join('')
-    + '</div></div>';
+    + '</div>'
+    + '<div style="font-size:12px;color:var(--charcoal);line-height:1.6;margin-top:10px">Captions should be short, clear and easy to understand. They should sound like a smart friend sharing an insight rather than a textbook.</div>'
+    + '</div>';
 
   var tone = '<div style="margin-bottom:24px;display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     + '<div style="background:var(--warm);border-radius:10px;padding:14px">'
     +   '<div style="font-size:11px;font-weight:700;color:#10B981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Aim for</div>'
-    +   bullets(['Knowledgeable', 'Relatable', 'Observant', 'Trend-aware', 'Opinionated but respectful', 'Friendly'])
+    +   bullets(['Knowledgeable', 'Relatable', 'Observant', 'Trend-aware', 'Opinionated but respectful of people\'s interests', 'Friendly'])
     + '</div>'
     + '<div style="background:var(--warm);border-radius:10px;padding:14px">'
     +   '<div style="font-size:11px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Avoid</div>'
