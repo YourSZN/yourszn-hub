@@ -829,8 +829,8 @@ var OCA_CW_NEUTRALS = [
   {label:'Rose Beige vs Caramel',       cool:'#d3a59b', warm:'#ad7851'},
   {label:'Pewter vs Chocolate Brown',   cool:'#838386', warm:'#7b7156'},
   {label:'Cool Brown vs Olive Khaki',   cool:'#3d2420', warm:'#55321c'},
-  {label:'Navy vs Ultramarine Blue',    cool:'#161c52', warm:'#203a5d'},
-  {label:'Black vs Espresso Brown',     cool:'#161c52', warm:'#342415'},
+  {label:'Navy vs Ultramarine Blue',    cool:'#060047', warm:'#0c2d40'},
+  {label:'Black vs Espresso Brown',     cool:'#000000', warm:'#342415'},
   {label:'Cool Navy vs Warm Navy',      cool:'#0b0f34', warm:'#0b1f34'},
   {label:'Cool Grey vs Yellow Brown',   cool:'#80807f', warm:'#6d5535'}
 ];
