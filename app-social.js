@@ -37,8 +37,9 @@ var smCalMonth       = new Date().getMonth();
 var smCalYear        = new Date().getFullYear();
 var smIdeaBankFilter = 'All';
 var _smEditId        = null;
-var _smDraftComments = [];  // holds comments for a new (unsaved) post
-var smMentions       = {latisha:[], lemari:[]};  // unseen mention notifications per user
+var _smDraftComments = [];
+var smMentions       = {latisha:[], lemari:[]};
+var smStrategyNotes  = '';
 
 // ── Was post modified in last 48h? ──
 function smRecentlyEdited(post) {
@@ -351,7 +352,161 @@ function smRenderStrategy() {
     + smStrategyCard('TikTok', '1x per day', tiktokSched)
     + smStrategyCard('Instagram Feed', 'Daily posts', igSched)
     + '</div>'
-    + smStrategyPillars();
+    + smStrategyPillars()
+    + smStrategyGuide()
+    + smStrategyNotepad();
+}
+
+function smStrategyGuide() {
+  function section(title, accent, body) {
+    return '<div style="border-left:3px solid ' + accent + ';padding-left:16px;margin-bottom:24px">'
+      + '<div style="font-size:13px;font-weight:700;color:' + accent + ';letter-spacing:.4px;text-transform:uppercase;margin-bottom:10px">' + title + '</div>'
+      + body
+      + '</div>';
+  }
+  function bullets(items) {
+    return '<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px">'
+      + items.map(function(i){ return '<li style="font-size:13px;color:var(--charcoal);line-height:1.55">' + i + '</li>'; }).join('')
+      + '</ul>';
+  }
+  function concepts(items) {
+    return '<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">'
+      + items.map(function(i){ return '<span style="font-size:12px;background:var(--warm);border:1px solid var(--sand);border-radius:20px;padding:4px 12px;color:var(--charcoal);font-style:italic">' + i + '</span>'; }).join('')
+      + '</div>';
+  }
+  function label(t) { return '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;margin-top:12px">' + t + '</div>'; }
+
+  var goal = '<div style="background:var(--warm);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:24px">'
+    + '<strong>The goal</strong> is not to teach colour analysis theory for the sake of it. The goal is to make people feel seen in their shopping struggles, makeup struggles and style frustrations — <em>then</em> position colour analysis, online/in-person and the app as the solution.'
+    + '</div>';
+
+  var shopping = section('#C4956A', '#C4956A',
+    label('Shopping hook examples') +
+    bullets([
+      'Why does this colour look amazing on her but terrible on me?',
+      'Why does online shopping feel so hit and miss?',
+      'If you keep buying clothes but never have anything to wear… look at the palette in your wardrobe. Is it matched to your season?',
+      'If you ever think "Why do I feel like I need makeup to look put together?"',
+    ]) +
+    label('Concept examples') +
+    concepts(['"You don\'t hate green. You just haven\'t found your green."', '"Why expensive wardrobes aren\'t always expensive…"', '"The reason your wardrobe feels boring..."', '"How I would shop at [brand] if I was a Soft Autumn."', '"My cart from [brand] if I was a Winter."'])
+  );
+
+  var makeup = section('Makeup & Beauty', '#C49A8A',
+    '<div style="font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:8px">Think about frustrations people experience with makeup, fake tan, hair colour and jewellery.</div>' +
+    label('Examples') +
+    bullets([
+      'Foundation never looks quite right.',
+      'Fake tan feels too harsh.',
+      'Certain lip colours make teeth look yellow/skin look dull.',
+      'Gold or silver jewellery confusion — or how to mix metals by season.',
+      'Hair colours that overpower features.',
+    ]) +
+    label('Concept examples') +
+    concepts(['"If you\'re cool toned like me, your fake tan may be fighting your season."', '"Not everyone suits bleach blonde hair and let me show you why"', '"The lipstick mistake I see every season make."', '"Why some brunettes are Summers and some are Winters."'])
+  );
+
+  var celeb = section('Celebrity & Pop Culture', '#7A8C6E',
+    '<div style="font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:8px">This content performs because people already have an opinion.</div>' +
+    label('Examples') +
+    bullets(['Celebrity colour season breakdowns.', 'Met Gala looks.', 'Red carpet looks.', 'Trending colours.', 'Viral fashion moments.']) +
+    label('Concept examples') +
+    concepts(['"Amanda Seyfried is a great example of why colour analysis isn\'t just warm vs cool."', '"Who actually suits Tiffany Blue?"', '"Celebrities who glow in their natural colouring."', '"The colour season behind this viral trend."'])
+  );
+
+  var edu = section('Education Through Observation', '#6366F1',
+    '<div style="font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:8px">Teach through examples, not theory. Help people recognise themselves in the content.</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+      + '<div style="background:#FEF2F2;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:#EF4444;margin-bottom:5px">AVOID</div><div style="font-size:12px;color:var(--charcoal)">"What is a Soft Autumn?"</div></div>'
+      + '<div style="background:#F0FDF4;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:#10B981;margin-bottom:5px">INSTEAD</div><div style="font-size:12px;color:var(--charcoal)">"You\'re probably a Soft Autumn if..."</div></div>'
+    + '</div>' +
+    label('More examples') +
+    bullets(['You\'re probably a Light Summer if…', 'Signs you\'re dressing against your season.', 'Why black isn\'t everyone\'s neutral.', 'What people often get wrong about colour analysis.'])
+  );
+
+  var app = section('App Showcase', '#059669',
+    '<div style="font-size:13px;color:var(--charcoal);line-height:1.6;margin-bottom:8px">The app should feel like a solution, not an ad. Always plug it at the end: <em>"and if you haven\'t already, go check out the Your SZN app."</em></div>' +
+    concepts(['"What I would buy from [brand] if I was a Spring."', '"Shopping for your season just got easier."', '"Tiffany Blue in every season."', '"How to find occasion wear for your season."', '"My favourite Winter finds this week."'])
+  );
+
+  var client = section('Client Transformation', '#8B5CF6',
+    label('Examples') +
+    bullets(['Before and after colour analysis.', 'Client reactions.', 'Common things clients say after being analysed.', 'The surprising things people learn.']) +
+    concepts(['"The compliment every client gets after their analysis."', '"The thing clients wish they\'d known sooner."'])
+  );
+
+  var captions = '<div style="margin-bottom:24px">'
+    + '<div style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:12px">Caption Structure</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'
+    + [
+        ['Observation', 'Tiffany Teal is everywhere right now. But what does that colour look like in your season?', '#C4956A'],
+        ['Reframe',     'It\'s not about buying a whole new wardrobe. It\'s about making better wardrobe decisions.', '#7A8C6E'],
+        ['Myth Bust',   'Colour analysis isn\'t about obsessing over microscopic differences. It\'s about overall harmony.', '#6366F1'],
+        ['Problem + Solution', '"If you\'ve ever said \'I can\'t wear green\' — this might explain why."', '#059669'],
+      ].map(function(c) {
+        return '<div style="background:var(--warm);border-radius:10px;padding:12px">'
+          + '<div style="font-size:10px;font-weight:700;color:' + c[2] + ';margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">' + c[0] + '</div>'
+          + '<div style="font-size:12px;color:var(--charcoal);line-height:1.5;font-style:italic">"' + c[1] + '"</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>';
+
+  var tone = '<div style="margin-bottom:24px;display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    + '<div style="background:var(--warm);border-radius:10px;padding:14px">'
+    +   '<div style="font-size:11px;font-weight:700;color:#10B981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Aim for</div>'
+    +   bullets(['Knowledgeable', 'Relatable', 'Observant', 'Trend-aware', 'Opinionated but respectful', 'Friendly'])
+    + '</div>'
+    + '<div style="background:var(--warm);border-radius:10px;padding:14px">'
+    +   '<div style="font-size:11px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Avoid</div>'
+    +   bullets(['Corporate language', 'Over-explaining', 'Technical jargon without context', 'Generic AI-sounding advice'])
+    + '</div>'
+    + '</div>'
+    + '<div style="background:#FFF9F0;border:1px solid #C4956A33;border-radius:10px;padding:12px 14px;font-size:12px;color:var(--charcoal);line-height:1.6">'
+    + '✦ <strong>Pro tip:</strong> Add random inner thoughts or few-word context bites (like this!!!) to make it feel less AI-like. The content should feel like someone who understands fashion, beauty and colour psychology and is always one step ahead.'
+    + '</div>';
+
+  var hashtags = '<div style="background:var(--warm);border-radius:10px;padding:16px;margin-bottom:24px">'
+    + '<div style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:12px">Hashtag Strategy</div>'
+    + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:10px">Always include: <span style="font-weight:700;color:#C4956A">#yourszn</span></div>'
+    + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:8px">Rotate: <span style="color:var(--muted)">#colouranalysis · #coloranalysis · #colouranalysistok · #coloranalyst</span></div>'
+    + '<div style="font-size:12px;color:var(--charcoal);margin-bottom:6px">Then add 1–2 topic-specific tags:</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + ['#faketan','#selftan','#patterns','#personalstyle','#shoppingtips','#wardrobetips','#celebritystyle','#redcarpetfashion'].map(function(h){
+        return '<span style="font-size:11px;background:white;border:1px solid var(--sand);border-radius:12px;padding:3px 10px;color:var(--charcoal)">' + h + '</span>';
+      }).join('')
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px">The caption and video topic/CC\'s should do most of the work!</div>'
+    + '</div>';
+
+  return '<div class="card" style="margin-bottom:16px">'
+    + '<div class="ch"><div class="ct">Content Strategy Guide</div><div style="font-size:11px;color:var(--muted)">From Tyla</div></div>'
+    + '<div class="cb">'
+    + goal
+    + shopping
+    + makeup
+    + celeb
+    + edu
+    + app
+    + client
+    + captions
+    + '<div style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:12px">Tone of Voice</div>'
+    + tone
+    + '<div style="height:24px"></div>'
+    + hashtags
+    + '</div></div>';
+}
+
+function smStrategyNotepad() {
+  return '<div class="card" style="margin-bottom:16px">'
+    + '<div class="ch"><div class="ct">Team Notes</div><div style="font-size:11px;color:var(--muted)">Saves automatically</div></div>'
+    + '<div class="cb">'
+    + '<textarea id="sm-strategy-notes" class="fi" rows="8" placeholder="Add running notes, ideas, reminders for the team…" style="resize:vertical;font-size:13px;line-height:1.6" oninput="smSaveStrategyNotes(this.value)">' + esc(smStrategyNotes) + '</textarea>'
+    + '</div></div>';
+}
+
+function smSaveStrategyNotes(val) {
+  smStrategyNotes = val;
+  saveData();
 }
 
 function smStrategyCard(platform, subtitle, schedule) {

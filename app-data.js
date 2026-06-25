@@ -13,7 +13,7 @@ function saveData() {
       celebData: celebData.map(function(c){ var cc=strip(c); if(cc.videos) cc.videos=cc.videos.map(strip); return cc; }),
       groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread,
       vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff, hiddenTasks:hiddenTasks,
-      socialPosts:socialPosts, smMentions:smMentions
+      socialPosts:socialPosts, smMentions:smMentions, smStrategyNotes:smStrategyNotes
     };
     // Always keep a local backup too
     try { localStorage.setItem('yszn_v1', JSON.stringify(payload)); } catch(e2){}
@@ -70,6 +70,7 @@ function _applyLoadedData(d) {
   if (d.ideaList)          ideaList          = d.ideaList;
   if (d.socialPosts)       socialPosts       = d.socialPosts;
   if (d.smMentions)        smMentions        = d.smMentions;
+  if (d.smStrategyNotes)   smStrategyNotes   = d.smStrategyNotes;
   try { smUpdateNavBadge(); } catch(e){}
   if (typeof d.metaWeekOff !== 'undefined') metaWeekOff = d.metaWeekOff;
   // Re-render everything after data loads
