@@ -128,47 +128,68 @@ function mpAnalyzeContrast(dataUrl, containerEl) {
         // ── Landmark reference (68-pt model) ──
         // 0-16: jaw    17-21: L brow    22-26: R brow
         // 27-35: nose  36-41: L eye     42-47: R eye
-        var box  = result.detection.box; // {x,y,width,height} in image pixels
+        var box   = result.detection.box;
         var faceW = box.width;
         var faceH = box.height;
-        var sampleR = Math.round(faceW * 0.06); // radius scales with face size
+        var r     = Math.max(6, Math.round(faceW * 0.055)); // sample radius scales with face
 
-        // HAIR — sample at the LEFT and RIGHT temporal regions (upper corners of
-        // the face bounding box).  Taking the DARKER of the two avoids light
-        // studio backgrounds that appear when hair is pulled back.
-        var hairLPx = Math.round(box.x + faceW * 0.12);
-        var hairLPy = Math.round(box.y + faceH * 0.08);
-        var hairRPx = Math.round(box.x + faceW * 0.88);
-        var hairRPy = Math.round(box.y + faceH * 0.08);
-        var hairLumL = mpSampleLum(ctx, imgW, imgH, hairLPx, hairLPy, sampleR);
-        var hairLumR = mpSampleLum(ctx, imgW, imgH, hairRPx, hairRPy, sampleR);
-        // Use whichever side is darker (true hair, not highlighted scalp/background)
-        var hairLum, hairPx, hairPy;
-        if (hairLumL <= hairLumR) {
-          hairLum = hairLumL; hairPx = hairLPx; hairPy = hairLPy;
-        } else {
-          hairLum = hairLumR; hairPx = hairRPx; hairPy = hairRPy;
+        var browTopY = Math.min.apply(null, [17,18,19,20,21,22,23,24,25,26].map(function(i){ return pts[i].y; }));
+        var browCtrX = (pts[19].x + pts[24].x) / 2;
+        var lmFaceH  = pts[8].y - browTopY;
+
+        // ── HAIR ────────────────────────────────────────────────────
+        // Scan 8 candidate positions across the temporal + crown region.
+        // Average the DARKEST THIRD — avoids bright highlights & light backgrounds.
+        var hairCands = [
+          [pts[17].x - faceW * 0.10, browTopY - lmFaceH * 0.04],   // L temple, brow level
+          [pts[17].x - faceW * 0.07, browTopY - lmFaceH * 0.18],   // L temple, slightly up
+          [pts[26].x + faceW * 0.10, browTopY - lmFaceH * 0.04],   // R temple, brow level
+          [pts[26].x + faceW * 0.07, browTopY - lmFaceH * 0.18],   // R temple, slightly up
+          [browCtrX - faceW * 0.18,  browTopY - lmFaceH * 0.28],   // upper-left
+          [browCtrX + faceW * 0.18,  browTopY - lmFaceH * 0.28],   // upper-right
+          [browCtrX,                  browTopY - lmFaceH * 0.32],   // crown centre
+          [browCtrX,                  browTopY - lmFaceH * 0.50],   // crown high
+        ].map(function(c) {
+          var cx = Math.round(Math.max(0, Math.min(imgW - 1, c[0])));
+          var cy = Math.round(Math.max(0, Math.min(imgH - 1, c[1])));
+          return { x: cx, y: cy, lum: mpSampleLum(ctx, imgW, imgH, cx, cy, r) };
+        }).sort(function(a, b) { return a.lum - b.lum; });
+
+        var darkN  = Math.max(1, Math.round(hairCands.length / 3));
+        var hairLum = hairCands.slice(0, darkN).reduce(function(s, c) { return s + c.lum; }, 0) / darkN;
+        var hairPx  = hairCands[0].x;
+        var hairPy  = hairCands[0].y;
+
+        // ── SKIN ─────────────────────────────────────────────────────
+        // Both cheeks (between eye bottom and jaw), averaged.
+        var skinLPx = Math.round(pts[3].x  * 0.5 + pts[41].x * 0.5);
+        var skinLPy = Math.round(pts[3].y  * 0.6 + pts[41].y * 0.4);
+        var skinRPx = Math.round(pts[13].x * 0.5 + pts[45].x * 0.5);
+        var skinRPy = Math.round(pts[13].y * 0.6 + pts[45].y * 0.4);
+        var skinLum = (mpSampleLum(ctx, imgW, imgH, skinLPx, skinLPy, r) +
+                       mpSampleLum(ctx, imgW, imgH, skinRPx, skinRPy, r)) / 2;
+        var skinPx  = Math.round((skinLPx + skinRPx) / 2);
+        var skinPy  = Math.round((skinLPy + skinRPy) / 2);
+
+        // ── EYES ─────────────────────────────────────────────────────
+        // Centroid of each eye's landmarks. Tiny radius to focus on the iris.
+        // Take the MINIMUM of centre + 4 nearby points (darkest = iris, not sclera).
+        var irisR = Math.max(2, Math.round(faceW * 0.018));
+        function scanEye(a, b) {
+          var ex = pts.slice(a, b).reduce(function(s, p) { return s + p.x; }, 0) / (b - a);
+          var ey = pts.slice(a, b).reduce(function(s, p) { return s + p.y; }, 0) / (b - a);
+          var offsets = [[0,0],[irisR,0],[-irisR,0],[0,irisR],[0,-irisR]];
+          var lums = offsets.map(function(o) {
+            return mpSampleLum(ctx, imgW, imgH, Math.round(ex + o[0]), Math.round(ey + o[1]), irisR);
+          });
+          lums.sort(function(a, b) { return a - b; });
+          return { x: ex, y: ey, lum: lums[0] }; // minimum = darkest = iris
         }
-
-        // SKIN — left cheek between eye bottom and jaw, weighted toward the jaw
-        var leftEyeBottomY = Math.max(pts[40].y, pts[41].y);
-        var skinPx = Math.round(pts[3].x * 0.55 + pts[41].x * 0.45);
-        var skinPy = Math.round(leftEyeBottomY * 0.35 + pts[3].y * 0.65);
-        var skinLum = mpSampleLum(ctx, imgW, imgH, skinPx, skinPy, sampleR);
-
-        // EYES — centroid of each eye's 6 landmarks, tiny radius to focus on
-        // the iris rather than averaging in the white sclera.
-        // Take the DARKER of the two (closer to true iris colour).
-        var lEyePx = Math.round(pts.slice(36,42).reduce(function(s,p){return s+p.x;},0)/6);
-        var lEyePy = Math.round(pts.slice(36,42).reduce(function(s,p){return s+p.y;},0)/6);
-        var rEyePx = Math.round(pts.slice(42,48).reduce(function(s,p){return s+p.x;},0)/6);
-        var rEyePy = Math.round(pts.slice(42,48).reduce(function(s,p){return s+p.y;},0)/6);
-        var irisR  = Math.max(3, Math.round(faceW * 0.025)); // ~2.5% of face width
-        var lEyeLum = mpSampleLum(ctx, imgW, imgH, lEyePx, lEyePy, irisR);
-        var rEyeLum = mpSampleLum(ctx, imgW, imgH, rEyePx, rEyePy, irisR);
-        var eyesLum = Math.min(lEyeLum, rEyeLum);
-        var eyesPx  = lEyeLum <= rEyeLum ? lEyePx : rEyePx;
-        var eyesPy  = lEyeLum <= rEyeLum ? lEyePy : rEyePy;
+        var lEye   = scanEye(36, 42);
+        var rEye   = scanEye(42, 48);
+        var eyesLum = Math.min(lEye.lum, rEye.lum);
+        var eyesPx  = Math.round(lEye.lum <= rEye.lum ? lEye.x : rEye.x);
+        var eyesPy  = Math.round(lEye.lum <= rEye.lum ? lEye.y : rEye.y);
 
         console.log('[AutoContrast] lums — hair:', Math.round(hairLum), 'skin:', Math.round(skinLum), 'eyes:', Math.round(eyesLum));
 
