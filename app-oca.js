@@ -781,7 +781,9 @@ function renderOca() {
     setTimeout(setupBlushDrag, 80);
  } else if (ocaTab==='coolwarm') {
     content.innerHTML = renderOcaCoolWarm();
-} else if (ocaTab==='submissions') {
+  } else if (ocaTab==='neutrals') {
+    content.innerHTML = renderOcaNeutralsCW();
+  } else if (ocaTab==='submissions') {
     if (ocaSubSource === 'ivorey') {
       if (ivoreyData.length === 0) {
         ivoreyFetchData(function(){ renderIvoreySubmissions(); });
@@ -814,6 +816,29 @@ var OCA_IMG = {
 // ══════════════════════════════════════════════════
 // COOL VS WARM DATA
 // ══════════════════════════════════════════════════
+// Cool vs warm NEUTRAL drape pairs
+var OCA_CW_NEUTRALS = [
+  {label:'Cool White vs Warm Cream',   cool:'#F4F4FA', warm:'#FFF8E8'},
+  {label:'Cool Grey vs Warm Greige',   cool:'#9898A8', warm:'#A89878'},
+  {label:'Cool Navy vs Warm Navy',     cool:'#0A1880', warm:'#0E3858'},
+  {label:'Cool Taupe vs Warm Taupe',   cool:'#A09898', warm:'#B09870'},
+  {label:'Cool Black vs Warm Black',   cool:'#0A0A14', warm:'#1C1008'},
+  {label:'Cool Camel vs Warm Camel',   cool:'#C0B0A0', warm:'#C89850'}
+];
+
+var ocaNeutVotes = {};
+
+function ocaNeutVote(idx, side) {
+  if (ocaNeutVotes[idx] === side) delete ocaNeutVotes[idx];
+  else ocaNeutVotes[idx] = side;
+  renderOca();
+}
+
+function ocaNeutClearVotes() {
+  ocaNeutVotes = {};
+  renderOca();
+}
+
 var OCA_CW = {
   dark: [
     {label:'Magenta vs Orange',      cool:'#CC1177', warm:'#E85500'},
@@ -2136,6 +2161,76 @@ function renderOcaCoolWarm() {
 function ocaSetCwMode(mode) {
   ocaCwMode = mode;
   renderOca();
+}
+
+function renderOcaNeutralsCW() {
+  var tally = {cool:0, warm:0, both:0};
+  OCA_CW_NEUTRALS.forEach(function(p, i) {
+    var v = ocaNeutVotes[i];
+    if (v==='cool') tally.cool++;
+    else if (v==='warm') tally.warm++;
+    else if (v==='both') tally.both++;
+  });
+
+  var tallyHtml = '<div style="display:flex;gap:12px;align-items:center;padding:14px 20px;background:var(--warm);border-radius:12px;margin-bottom:20px;flex-wrap:wrap">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px">TALLY</div>'
+    + '<div style="display:flex;gap:16px;flex:1">'
+    + '<div style="display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:3px;background:#5588DD"></div><span style="font-size:13px;font-weight:700;color:#5588DD">COOL: ' + tally.cool + '</span></div>'
+    + '<div style="display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:3px;background:#E07020"></div><span style="font-size:13px;font-weight:700;color:#E07020">WARM: ' + tally.warm + '</span></div>'
+    + '<div style="display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:3px;background:#888"></div><span style="font-size:13px;font-weight:700;color:#888">BOTH: ' + tally.both + '</span></div>'
+    + '</div>'
+    + '<button class="btn btns" style="font-size:11px;padding:4px 12px" onclick="ocaNeutClearVotes()">Clear All</button>'
+    + '</div>';
+
+  var cards = OCA_CW_NEUTRALS.map(function(p, i) {
+    var vote    = ocaNeutVotes[i] || '';
+    var coolSel = vote==='cool' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #5588DD' : 'background:rgba(255,255,255,0.25)';
+    var warmSel = vote==='warm' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #E07020' : 'background:rgba(255,255,255,0.25)';
+    var bothSel = vote==='both' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #555'   : 'background:rgba(255,255,255,0.25)';
+
+    var face = ocaPhoto
+      ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;pointer-events:none">'
+        + '<img src="' + ocaPhoto + '" style="height:100%;object-fit:cover;object-position:center top">'
+        + '</div>'
+      : '';
+
+    return '<div style="margin-bottom:28px;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15)">'
+      + '<div style="display:flex;width:100%;height:620px">'
+
+      + '<div style="flex:1;position:relative;background:' + p.cool + ';overflow:hidden">'
+      + face
+      + '<div onclick="ocaNeutVote(' + i + ',\'cool\')" style="position:absolute;top:14px;left:14px;width:38px;height:38px;border-radius:8px;border:2px solid rgba(0,0,0,0.2);' + coolSel + ';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#5588DD;z-index:10">'
+      + (vote==='cool' ? '&#10003;' : '') + '</div>'
+      + '<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
+      + '<span style="font-size:13px;font-weight:800;color:rgba(0,0,0,0.55);letter-spacing:2px">COOL</span>'
+      + '</div>'
+      + '</div>'
+
+      + '<div style="position:relative;width:52px;flex-shrink:0;background:linear-gradient(to right,' + p.cool + ',' + p.warm + ')">'
+      + '<div onclick="ocaNeutVote(' + i + ',\'both\')" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:8px;border:2px solid rgba(0,0,0,0.15);' + bothSel + ';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#555;z-index:10">'
+      + (vote==='both' ? '&#10003;' : '') + '</div>'
+      + '<div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);white-space:nowrap;pointer-events:none">'
+      + '<span style="font-size:10px;font-weight:700;color:rgba(0,0,0,0.4);letter-spacing:1px">BOTH</span>'
+      + '</div>'
+      + '</div>'
+
+      + '<div style="flex:1;position:relative;background:' + p.warm + ';overflow:hidden">'
+      + face
+      + '<div onclick="ocaNeutVote(' + i + ',\'warm\')" style="position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:8px;border:2px solid rgba(0,0,0,0.2);' + warmSel + ';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#E07020;z-index:10">'
+      + (vote==='warm' ? '&#10003;' : '') + '</div>'
+      + '<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
+      + '<span style="font-size:13px;font-weight:800;color:rgba(0,0,0,0.55);letter-spacing:2px">WARM</span>'
+      + '</div>'
+      + '</div>'
+
+      + '</div>'
+      + '<div style="background:#1a1a1a;padding:6px 20px;text-align:center">'
+      + '<span style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:500">' + p.label + '</span>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  return '<div>' + tallyHtml + cards + '</div>';
 }
 
 
