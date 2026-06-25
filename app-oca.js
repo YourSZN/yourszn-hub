@@ -2467,7 +2467,7 @@ function renderOcaDrapeCompare() {
       + '</div>';
   }
 
-  var custRow = '<div style="border-top:2px solid var(--sand);padding-top:24px;margin-top:8px">'
+  var custRow = '<div style="border-bottom:2px solid var(--sand);padding-bottom:24px;margin-bottom:24px">'
     +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Custom Comparison</div>'
     +'<div style="display:flex;gap:16px;margin-bottom:16px">'
     // left picker
@@ -2487,6 +2487,6 @@ function renderOcaDrapeCompare() {
   }
   custRow += '</div>';
 
-  return '<div>' + header + rows + custRow + '</div>';
+  return '<div>' + header + custRow + rows + '</div>';
 }
 
