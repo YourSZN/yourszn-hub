@@ -75,24 +75,30 @@ var OCA_SEASONS = {
   'Light Summer': {
     desc: 'Cool, light, soft. Delicate cool tones with a silvery, airy quality.',
     swatches: [
-      {name:'Sky Blue',        hex:'#88C0F0'},
-      {name:'Periwinkle',      hex:'#8888D8'},
-      {name:'Burgundy',        hex:'#C02848'},
-      {name:'Mint Green',      hex:'#50C090'},
-      {name:'Cream Yellow',    hex:'#F0E8A0'},
-      {name:'Soft Pink',       hex:'#F0A0C8'},
-      {name:'Rose Pink',       hex:'#E06888'},
-      {name:'Ice White',       hex:'#EEF0FF'},
-      {name:'Powder Blue',     hex:'#B0D8F0'},
-      {name:'Soft Mauve',      hex:'#C8A0B8'},
-      {name:'Mist Blue',       hex:'#A8C0D8'},
-      {name:'Lavender',        hex:'#C0A8E8'}
+      {name:'Light Aqua',      hex:'#7DE4DC'},
+      {name:'Sky Blue',        hex:'#9CCCF0'},
+      {name:'Cornflower Blue', hex:'#5888D0'},
+      {name:'Periwinkle',      hex:'#A8A0D0'},
+      {name:'Lavender',        hex:'#9070C0'},
+      {name:'Blue Violet',     hex:'#7570C2'},
+      {name:'Mint',            hex:'#7DBCAA'},
+      {name:'Sage Green',      hex:'#58A06A'},
+      {name:'Burgundy',        hex:'#9C1E35'},
+      {name:'Raspberry',       hex:'#C85565'},
+      {name:'Salmon Rose',     hex:'#D07878'},
+      {name:'Soft Pink',       hex:'#EE98B2'},
+      {name:'Mauve Lavender',  hex:'#B898B8'},
+      {name:'Dusty Pink',      hex:'#D08898'},
+      {name:'Pale Lemon',      hex:'#ECEC82'},
+      {name:'Yellow Green',    hex:'#E2E060'},
+      {name:'Dusty Teal',      hex:'#6898A0'},
+      {name:'Slate Blue',      hex:'#7480A0'}
     ],
     neutrals: [
-      {name:'Soft White',      hex:'#F8F4F0'},
-      {name:'Rose Beige',      hex:'#E8D4CC'},
-      {name:'Silver Grey',     hex:'#A8A8A8'},
-      {name:'Soft Navy',       hex:'#4A5878'}
+      {name:'Warm Grey Mauve', hex:'#887280'},
+      {name:'Cool Grey',       hex:'#8E90A0'},
+      {name:'Soft Black',      hex:'#382830'},
+      {name:'White',           hex:'#F8F8F8'}
     ]
   },
   'True Summer': {
