@@ -155,19 +155,25 @@ function mpAnalyzeContrast(dataUrl, containerEl) {
           return { x: cx, y: cy, lum: mpSampleLum(ctx, imgW, imgH, cx, cy, r) };
         }).sort(function(a, b) { return a.lum - b.lum; });
 
-        var darkN  = Math.max(1, Math.round(hairCands.length / 3));
-        var hairLum = hairCands.slice(0, darkN).reduce(function(s, c) { return s + c.lum; }, 0) / darkN;
-        var hairPx  = hairCands[0].x;
-        var hairPy  = hairCands[0].y;
+        // 25th-percentile — skips the 2 darkest outliers (shadows/clothing)
+        // without rising all the way to mid-grey
+        var p25 = Math.round(hairCands.length * 0.25);
+        var hairLum = hairCands[p25].lum;
+        var hairPx  = hairCands[p25].x;
+        var hairPy  = hairCands[p25].y;
 
         // ── SKIN ─────────────────────────────────────────────────────
-        // Both cheeks (between eye bottom and jaw), averaged.
+        // Three samples: both cheeks + nose bridge (evenly lit, avoids shadows).
+        // Average all three so shadow-side cheek doesn't drag the reading down.
         var skinLPx = Math.round(pts[3].x  * 0.5 + pts[41].x * 0.5);
         var skinLPy = Math.round(pts[3].y  * 0.6 + pts[41].y * 0.4);
         var skinRPx = Math.round(pts[13].x * 0.5 + pts[45].x * 0.5);
         var skinRPy = Math.round(pts[13].y * 0.6 + pts[45].y * 0.4);
+        var skinNPx = Math.round(pts[27].x); // nose bridge top (landmark 27)
+        var skinNPy = Math.round((pts[27].y + pts[28].y) / 2);
         var skinLum = (mpSampleLum(ctx, imgW, imgH, skinLPx, skinLPy, r) +
-                       mpSampleLum(ctx, imgW, imgH, skinRPx, skinRPy, r)) / 2;
+                       mpSampleLum(ctx, imgW, imgH, skinRPx, skinRPy, r) +
+                       mpSampleLum(ctx, imgW, imgH, skinNPx, skinNPy, r)) / 3;
         var skinPx  = Math.round((skinLPx + skinRPx) / 2);
         var skinPy  = Math.round((skinLPy + skinRPy) / 2);
 
@@ -183,7 +189,7 @@ function mpAnalyzeContrast(dataUrl, containerEl) {
             return mpSampleLum(ctx, imgW, imgH, Math.round(ex + o[0]), Math.round(ey + o[1]), irisR);
           });
           lums.sort(function(a, b) { return a - b; });
-          return { x: ex, y: ey, lum: lums[0] }; // minimum = darkest = iris
+          return { x: ex, y: ey, lum: lums[1] }; // 2nd-darkest skips pupil black
         }
         var lEye   = scanEye(36, 42);
         var rEye   = scanEye(42, 48);
