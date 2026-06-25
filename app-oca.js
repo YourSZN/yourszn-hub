@@ -6,24 +6,28 @@ var OCA_SEASONS = {
   'Light Spring': {
     desc: 'Warm, light, clear. Bright warm tones with a light, fresh quality.',
     swatches: [
-      {name:'Aqua',            hex:'#4DD9E8'},
-      {name:'Lavender',        hex:'#A882D4'},
-      {name:'Coral',           hex:'#FF8060'},
-      {name:'Lime Green',      hex:'#8AE030'},
-      {name:'Pale Yellow',     hex:'#F5E87A'},
-      {name:'Orange',          hex:'#F07830'},
-      {name:'Hot Pink',        hex:'#F03880'},
-      {name:'Peach',           hex:'#FFE0C8'},
-      {name:'Butter',          hex:'#FFF5A0'},
-      {name:'Warm Turquoise',  hex:'#5ADDD0'},
-      {name:'Apricot',         hex:'#FFBF80'},
-      {name:'Soft Red',        hex:'#E82020'}
+      {name:'Light Mint',      hex:'#5EE8D4'},
+      {name:'Light Blue',      hex:'#78D8EE'},
+      {name:'Turquoise',       hex:'#48CEB8'},
+      {name:'Teal',            hex:'#3ABCAE'},
+      {name:'Purple',          hex:'#8858C8'},
+      {name:'Soft Lavender',   hex:'#A070C8'},
+      {name:'Apple Green',     hex:'#90D868'},
+      {name:'Lime Green',      hex:'#A8E868'},
+      {name:'Cerise',          hex:'#E82878'},
+      {name:'Coral Pink',      hex:'#F07888'},
+      {name:'Coral Red',       hex:'#F04848'},
+      {name:'Pale Yellow',     hex:'#F8F068'},
+      {name:'Peach Salmon',    hex:'#F08060'},
+      {name:'Orange',          hex:'#EE7028'},
+      {name:'Apricot',         hex:'#EEB880'},
+      {name:'Blush',           hex:'#F8DCC8'}
     ],
     neutrals: [
-      {name:'Ivory',           hex:'#FFFAE8'},
-      {name:'Camel',           hex:'#C8A070'},
-      {name:'Warm Grey',       hex:'#C8C4B8'},
-      {name:'Soft Navy',       hex:'#3D5070'}
+      {name:'Brown',           hex:'#784820'},
+      {name:'Caramel',         hex:'#BE8448'},
+      {name:'Warm Tan',        hex:'#AE8448'},
+      {name:'Cream',           hex:'#FFF8F0'}
     ]
   },
   'True Spring': {
