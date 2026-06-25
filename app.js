@@ -2,9 +2,9 @@
 // CONFIG — change PINs here
 // ══════════════════════════════════════
 var USERS = {
-latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','staff','finances','vietnam','sops','marketing','online','comms'] },
+latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','staff','finances','vietnam','sops','social','marketing','online','comms'] },
   salma:   { name:'Salma',   role:'Admin Support', pin:'2222', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','marketing','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', pin:'3333', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','marketing','online','comms'] }
+  lemari:  { name:'Lemari',  role:'Content · Video', pin:'3333', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','social','marketing','online','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
@@ -21,6 +21,7 @@ var NAV = [
   { id:'finances',  lbl:'Finances',     sec:null,          icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'vietnam',   lbl:'Vietnam Tour', sec:'Projects',    icon:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>' },
   { id:'sops',      lbl:'SOPs',         sec:'Resources',   icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
+  { id:'social',    lbl:'Social Media',  sec:'Operations',  icon:'<path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>' },
   { id:'marketing', lbl:'Marketing',    sec:'Operations',  icon:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' },
     { id:'online',    lbl:'Online Analysis', sec:null, icon:'<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M15 6l4-3M9 6L5 3"/>' },
 ];

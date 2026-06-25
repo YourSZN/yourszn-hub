@@ -12,7 +12,8 @@ function saveData() {
       metaSchedData: (function(){ var o={}; Object.keys(metaSchedData).forEach(function(k){ o[k]=strip(metaSchedData[k]); }); return o; })(),
       celebData: celebData.map(function(c){ var cc=strip(c); if(cc.videos) cc.videos=cc.videos.map(strip); return cc; }),
       groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread,
-      vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff, hiddenTasks:hiddenTasks
+      vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff, hiddenTasks:hiddenTasks,
+      socialPosts:socialPosts
     };
     // Always keep a local backup too
     try { localStorage.setItem('yszn_v1', JSON.stringify(payload)); } catch(e2){}
@@ -67,6 +68,7 @@ function _applyLoadedData(d) {
   if (d.commsUnread)       commsUnread       = d.commsUnread;
   if (d.vtData)            vtData            = d.vtData;
   if (d.ideaList)          ideaList          = d.ideaList;
+  if (d.socialPosts)       socialPosts       = d.socialPosts;
   if (typeof d.metaWeekOff !== 'undefined') metaWeekOff = d.metaWeekOff;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
