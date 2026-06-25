@@ -32,11 +32,12 @@ var SM_PILLAR_COLORS = {
 
 var SM_CONTENT_TYPES = ['Quick Chat', 'Reel', 'Carousel', 'Quick Comparisons', 'Review/Overlays', 'Celebrity Analysis', 'Consultation'];
 
-var smActiveTab     = 'pipeline';
-var smCalMonth      = new Date().getMonth();
-var smCalYear       = new Date().getFullYear();
+var smActiveTab      = 'pipeline';
+var smCalMonth       = new Date().getMonth();
+var smCalYear        = new Date().getFullYear();
 var smIdeaBankFilter = 'All';
-var _smEditId       = null;
+var _smEditId        = null;
+var smMentions       = {latisha:[], lemari:[]};  // unseen mention notifications per user
 
 // ── Was post modified in last 48h? ──
 function smRecentlyEdited(post) {
@@ -142,13 +143,18 @@ function smRenderPipeline() {
         ? '<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated ' + smRelTime(post.lastModified) + '</span></div>'
         : '';
 
+      var commentCount = (post.comments || []).length;
+      var commentBadge = commentCount
+        ? '<span style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:3px">&#128172; ' + commentCount + '</span>'
+        : '';
+
       html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + (isNew ? '#FFFBEB' : 'white') + ';border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.1)\'" onmouseout="this.style.boxShadow=\'none\'">'
         + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:6px;line-height:1.35">' + esc(post.title) + '</div>'
         + updBadge
         + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' + platTags + '</div>' : '')
         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
         +   (pillarDot ? '<div style="display:flex;align-items:center;min-width:0"><span>' + pillarDot + '</span><span style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (post.pillar ? post.pillar.split(' ')[0] : '') + '</span></div>' : '<div></div>')
-        +   assignBadge
+        +   '<div style="display:flex;align-items:center;gap:6px">' + commentBadge + assignBadge + '</div>'
         + '</div>'
         + dateLine
         + '</div>';
@@ -449,6 +455,17 @@ function smPostModal() {
     + '<button onclick="smSavePost()" class="btn btnp" style="padding:8px 22px">Save</button>'
     + '</div></div>'
 
+    // ── Comments section (only shown when editing an existing post) ──
+    + '<div id="sm-comments-section" style="display:none;border-top:1px solid var(--sand);margin-top:8px;padding-top:20px">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px">Comments</div>'
+    + '<div id="sm-comments-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px"></div>'
+    + '<div style="position:relative">'
+    +   '<textarea id="sm-comment-input" class="fi" rows="2" placeholder="Leave a comment… type @ to tag someone" style="resize:none;padding-right:70px" oninput="smCommentInput(this)" onkeydown="smCommentKey(event)"></textarea>'
+    +   '<button onclick="smAddComment()" class="btn btnp" style="position:absolute;bottom:8px;right:8px;padding:5px 12px;font-size:11px">Post</button>'
+    + '</div>'
+    + '<div id="sm-mention-dropdown" style="display:none;position:absolute;background:white;border:1px solid var(--sand);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:700;min-width:160px;overflow:hidden"></div>'
+    + '</div>'
+
     + '</div></div></div>';
 }
 
@@ -489,6 +506,13 @@ function smOpenModal(id, defaultStage, defaultDate) {
   var errEl = document.getElementById('sm-f-err');
   if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
 
+  // Show/hide comments section
+  var commentsSec = document.getElementById('sm-comments-section');
+  if (commentsSec) {
+    commentsSec.style.display = post ? 'block' : 'none';
+    if (post) smRenderComments(post.id);
+  }
+
   modal.style.display = 'flex';
   setTimeout(function() { var t = document.getElementById('sm-f-title'); if (t) t.focus(); }, 80);
 }
@@ -527,6 +551,7 @@ function smSavePost() {
     textOnScreen: document.getElementById('sm-f-tos').value.trim(),
     caption:      document.getElementById('sm-f-caption').value.trim(),
     driveLink:    document.getElementById('sm-f-drive').value.trim(),
+    comments:     existing ? (existing.comments || []) : [],
     createdAt:    existing ? (existing.createdAt || now) : now,
     lastModified: now
   };
@@ -557,6 +582,167 @@ function smDeletePost() {
   smCloseModal();
   saveData();
   renderSocialPage();
+}
+
+// ══ COMMENTS ══
+
+var SM_STAFF = ['Latisha', 'Lemari'];
+var SM_STAFF_COLORS = {Latisha:'#C4956A', Lemari:'#7A8C6E'};
+
+function smRenderComments(postId) {
+  var listEl = document.getElementById('sm-comments-list'); if (!listEl) return;
+  var post = socialPosts.find(function(p) { return p.id === postId; });
+  var comments = post ? (post.comments || []) : [];
+
+  if (!comments.length) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:4px 0">No comments yet — be the first to leave one.</div>';
+    return;
+  }
+
+  listEl.innerHTML = comments.map(function(c) {
+    var initials = c.author ? c.author.slice(0, 1).toUpperCase() : '?';
+    var col = SM_STAFF_COLORS[c.author] || '#9CA3AF';
+    return '<div style="display:flex;gap:10px;align-items:flex-start">'
+      + '<div style="width:28px;height:28px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">' + initials + '</div>'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'
+      +     '<span style="font-size:12px;font-weight:700;color:var(--charcoal)">' + esc(c.author || '') + '</span>'
+      +     '<span style="font-size:10px;color:var(--muted)">' + smRelTime(c.createdAt) + '</span>'
+      +     (c.author === smCurrentUser() ? '<button onclick="smDeleteComment(\'' + postId + '\',\'' + c.id + '\')" style="background:none;border:none;font-size:10px;color:var(--muted);cursor:pointer;padding:0;margin-left:auto">&#10005;</button>' : '')
+      +   '</div>'
+      +   '<div style="font-size:13px;color:var(--charcoal);line-height:1.5;background:var(--warm);border-radius:8px;padding:8px 10px">' + smFormatMentions(esc(c.text)) + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function smCurrentUser() {
+  if (typeof curUser === 'undefined') return '';
+  return curUser ? curUser.charAt(0).toUpperCase() + curUser.slice(1) : '';
+}
+
+function smFormatMentions(html) {
+  return html.replace(/@(Latisha|Lemari)/g, function(match, name) {
+    var col = SM_STAFF_COLORS[name] || '#9CA3AF';
+    return '<span style="font-weight:700;color:' + col + ';background:' + col + '18;border-radius:4px;padding:1px 4px">@' + name + '</span>';
+  });
+}
+
+function smAddComment() {
+  var input = document.getElementById('sm-comment-input'); if (!input) return;
+  var text  = input.value.trim(); if (!text) return;
+
+  var post = socialPosts.find(function(p) { return p.id === _smEditId; });
+  if (!post) return;
+
+  if (!post.comments) post.comments = [];
+  var now = Date.now();
+  var author = smCurrentUser();
+  var comment = { id: 'c' + now, author: author, text: text, createdAt: now };
+  post.comments.push(comment);
+
+  // Store mention notifications for tagged users
+  SM_STAFF.forEach(function(name) {
+    if (text.indexOf('@' + name) !== -1 && name !== author) {
+      var uid = name.toLowerCase();
+      if (!smMentions[uid]) smMentions[uid] = [];
+      smMentions[uid].push({ postId: _smEditId, commentId: comment.id, from: author, text: text, ts: now, seen: false });
+    }
+  });
+
+  input.value = '';
+  smHideMentionDropdown();
+  saveData();
+  smRenderComments(_smEditId);
+  smUpdateNavBadge();
+}
+
+function smDeleteComment(postId, commentId) {
+  var post = socialPosts.find(function(p) { return p.id === postId; });
+  if (!post) return;
+  post.comments = (post.comments || []).filter(function(c) { return c.id !== commentId; });
+  saveData();
+  smRenderComments(postId);
+}
+
+// ── @mention autocomplete ──
+
+var _smMentionQuery = '';
+
+function smCommentInput(textarea) {
+  var val = textarea.value;
+  var pos = textarea.selectionStart;
+  var before = val.slice(0, pos);
+  var atMatch = before.match(/@(\w*)$/);
+
+  if (atMatch) {
+    _smMentionQuery = atMatch[1].toLowerCase();
+    var matches = SM_STAFF.filter(function(n) { return n.toLowerCase().startsWith(_smMentionQuery); });
+    if (matches.length) { smShowMentionDropdown(matches, textarea); return; }
+  }
+  smHideMentionDropdown();
+}
+
+function smCommentKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    var dd = document.getElementById('sm-mention-dropdown');
+    if (dd && dd.style.display !== 'none') { e.preventDefault(); return; }
+    e.preventDefault();
+    smAddComment();
+  }
+  if (e.key === 'Escape') smHideMentionDropdown();
+}
+
+function smShowMentionDropdown(names, textarea) {
+  var dd = document.getElementById('sm-mention-dropdown'); if (!dd) return;
+  var rect = textarea.getBoundingClientRect();
+  dd.style.cssText = 'display:block;position:fixed;left:' + rect.left + 'px;top:' + (rect.top - (names.length * 40 + 8)) + 'px;background:white;border:1px solid var(--sand);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:700;min-width:160px;overflow:hidden';
+  dd.innerHTML = names.map(function(n) {
+    var col = SM_STAFF_COLORS[n] || '#9CA3AF';
+    return '<div onclick="smInsertMention(\'' + n + '\')" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--charcoal)" onmouseover="this.style.background=\'var(--warm)\'" onmouseout="this.style.background=\'\'">'
+      + '<div style="width:22px;height:22px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white">' + n.charAt(0) + '</div>'
+      + '@' + n
+      + '</div>';
+  }).join('');
+}
+
+function smHideMentionDropdown() {
+  var dd = document.getElementById('sm-mention-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function smInsertMention(name) {
+  var input = document.getElementById('sm-comment-input'); if (!input) return;
+  var val   = input.value;
+  var pos   = input.selectionStart;
+  var before = val.slice(0, pos);
+  var after  = val.slice(pos);
+  var replaced = before.replace(/@\w*$/, '@' + name + ' ');
+  input.value = replaced + after;
+  input.focus();
+  var newPos = replaced.length;
+  input.setSelectionRange(newPos, newPos);
+  smHideMentionDropdown();
+}
+
+// ── Mention nav badge ──
+
+function smUpdateNavBadge() {
+  var uid  = typeof curUser !== 'undefined' ? curUser : '';
+  var unseen = uid && smMentions[uid] ? smMentions[uid].filter(function(m) { return !m.seen; }).length : 0;
+  var navItem = document.getElementById('n-social'); if (!navItem) return;
+  var existing = navItem.querySelector('.sm-mention-badge');
+  if (unseen > 0) {
+    if (!existing) {
+      existing = document.createElement('span');
+      existing.className = 'sm-mention-badge';
+      existing.style.cssText = 'background:#E1306C;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto;min-width:18px;text-align:center';
+      navItem.appendChild(existing);
+    }
+    existing.textContent = unseen;
+  } else if (existing) {
+    existing.remove();
+  }
 }
 
 // ── Date format helper ──
