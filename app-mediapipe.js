@@ -138,29 +138,31 @@ function mpAnalyzeContrast(dataUrl, containerEl) {
         var lmFaceH  = pts[8].y - browTopY;
 
         // ── HAIR ────────────────────────────────────────────────────
-        // Scan 8 candidate positions across the temporal + crown region.
-        // Average the DARKEST THIRD — avoids bright highlights & light backgrounds.
+        // Tag always displays at the crown (40% above brow top) — clean + predictable.
+        // Sampling: 8 candidates ALL strictly ≥30% above the brow line so none
+        // land on eyebrows (which are as dark as scalp hair but in the wrong spot).
+        // 25th-percentile of sorted samples skips ~2 shadow/background outliers.
+        // hairPx/hairPy are IMAGE pixel coords — tagPos() converts to container.
+        var hairPx = Math.round(browCtrX);
+        var hairPy = Math.round(Math.max(4, browTopY - lmFaceH * 0.40));
+
         var hairCands = [
-          [pts[17].x - faceW * 0.10, browTopY - lmFaceH * 0.04],   // L temple, brow level
-          [pts[17].x - faceW * 0.07, browTopY - lmFaceH * 0.18],   // L temple, slightly up
-          [pts[26].x + faceW * 0.10, browTopY - lmFaceH * 0.04],   // R temple, brow level
-          [pts[26].x + faceW * 0.07, browTopY - lmFaceH * 0.18],   // R temple, slightly up
-          [browCtrX - faceW * 0.18,  browTopY - lmFaceH * 0.28],   // upper-left
-          [browCtrX + faceW * 0.18,  browTopY - lmFaceH * 0.28],   // upper-right
-          [browCtrX,                  browTopY - lmFaceH * 0.32],   // crown centre
-          [browCtrX,                  browTopY - lmFaceH * 0.50],   // crown high
+          [browCtrX,                 browTopY - lmFaceH * 0.40],  // crown centre
+          [browCtrX,                 browTopY - lmFaceH * 0.58],  // high crown
+          [browCtrX - faceW * 0.13,  browTopY - lmFaceH * 0.38],  // left of crown
+          [browCtrX + faceW * 0.13,  browTopY - lmFaceH * 0.38],  // right of crown
+          [browCtrX - faceW * 0.22,  browTopY - lmFaceH * 0.45],  // far left
+          [browCtrX + faceW * 0.22,  browTopY - lmFaceH * 0.45],  // far right
+          [pts[17].x - faceW * 0.04, browTopY - lmFaceH * 0.32],  // L temporal (≥30%)
+          [pts[26].x + faceW * 0.04, browTopY - lmFaceH * 0.32],  // R temporal (≥30%)
         ].map(function(c) {
           var cx = Math.round(Math.max(0, Math.min(imgW - 1, c[0])));
           var cy = Math.round(Math.max(0, Math.min(imgH - 1, c[1])));
-          return { x: cx, y: cy, lum: mpSampleLum(ctx, imgW, imgH, cx, cy, r) };
+          return { lum: mpSampleLum(ctx, imgW, imgH, cx, cy, r) };
         }).sort(function(a, b) { return a.lum - b.lum; });
 
-        // 25th-percentile — skips the 2 darkest outliers (shadows/clothing)
-        // without rising all the way to mid-grey
-        var p25 = Math.round(hairCands.length * 0.25);
+        var p25    = Math.round(hairCands.length * 0.25);
         var hairLum = hairCands[p25].lum;
-        var hairPx  = hairCands[p25].x;
-        var hairPy  = hairCands[p25].y;
 
         // ── SKIN ─────────────────────────────────────────────────────
         // Three samples: both cheeks + nose bridge (evenly lit, avoids shadows).
