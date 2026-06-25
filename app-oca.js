@@ -2359,6 +2359,11 @@ function ocaDrapeGetByFamilies(seasonName, familyKeys) {
   });
 }
 
+function ocaDrapeClearVotes() {
+  Object.keys(ocaDrape.rows).forEach(function(k) { if (k!=='custom') ocaDrape.rows[k].vote = ''; });
+  renderOca();
+}
+
 function ocaDrapeRenderRow(rowKey, label, swL, swR, lLabel, rLabel) {
   if (!ocaDrape.rows[rowKey]) {
     ocaDrape.rows[rowKey] = { l: swL.length ? swL[0].hex : '', r: swR.length ? swR[0].hex : '', vote: '' };
@@ -2367,43 +2372,53 @@ function ocaDrapeRenderRow(rowKey, label, swL, swR, lLabel, rLabel) {
   var lHex = st.l || (swL.length ? swL[0].hex : '');
   var rHex = st.r || (swR.length ? swR[0].hex : '');
 
-  // name lookup
   var lName = '', rName = '';
   for (var i=0; i<swL.length; i++) { if (swL[i].hex===lHex) { lName=swL[i].name; break; } }
   for (var i=0; i<swR.length; i++) { if (swR[i].hex===rHex) { rName=swR[i].name; break; } }
 
-  var s1 = ocaDrape.s1, s2 = ocaDrape.s2;
-  var lSel = st.vote==='l' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #5588DD' : 'background:rgba(255,255,255,0.25)';
-  var rSel = st.vote==='r' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #E07020' : 'background:rgba(255,255,255,0.25)';
-  var bSel = st.vote==='b' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #888'    : 'background:rgba(255,255,255,0.25)';
-
-  var rowLabelHtml = '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--charcoal)">' + label + '</div>';
-  var tallyBtns = '<div style="display:flex;gap:6px;margin-left:auto;align-items:center">'
-    + '<button onclick="ocaDrapeVote(\''+rowKey+'\',\'l\')" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(85,136,221,0.4);color:#5588DD;cursor:pointer;'+lSel+'">'+s1+'</button>'
-    + '<button onclick="ocaDrapeVote(\''+rowKey+'\',\'b\')" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(136,136,136,0.4);color:#888;cursor:pointer;'+bSel+'">BOTH</button>'
-    + '<button onclick="ocaDrapeVote(\''+rowKey+'\',\'r\')" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(224,112,32,0.4);color:#E07020;cursor:pointer;'+rSel+'">'+s2+'</button>'
-    + '</div>';
-
-  var headerHtml = '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--warm);border-radius:10px;margin-bottom:12px;flex-wrap:wrap">'
-    + rowLabelHtml + tallyBtns + '</div>';
+  var vote = st.vote;
+  var lSel = vote==='l' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #5588DD' : 'background:rgba(255,255,255,0.25)';
+  var rSel = vote==='r' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #E07020' : 'background:rgba(255,255,255,0.25)';
+  var bSel = vote==='b' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #555'    : 'background:rgba(255,255,255,0.25)';
+  var lTick = vote==='l' ? '&#10003;' : '';
+  var rTick = vote==='r' ? '&#10003;' : '';
+  var bTick = vote==='b' ? '&#10003;' : '';
 
   var face = ocaPhoto
     ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;pointer-events:none"><img src="'+ocaPhoto+'" style="height:100%;object-fit:cover;object-position:center top"></div>'
     : '';
 
   var lBg = lHex || '#ccc', rBg = rHex || '#ccc';
-  var lLc = isLightColour(lBg) ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
-  var rLc = isLightColour(rBg) ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
+  var lLc = isLightColour(lBg) ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+  var rLc = isLightColour(rBg) ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)';
+
+  var rowLabelHtml = '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">'+label+'</div>';
 
   var compHtml = '<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:12px">'
     +'<div style="display:flex;width:100%;height:620px">'
+
+    // Left panel with checkbox top-left
     +'<div style="flex:1;position:relative;background:'+lBg+';overflow:hidden">'+face
+    +'<div onclick="ocaDrapeVote(\''+rowKey+'\',\'l\')" style="position:absolute;top:14px;left:14px;width:38px;height:38px;border-radius:8px;border:2px solid rgba(255,255,255,0.8);'+lSel+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#5588DD;z-index:10">'+lTick+'</div>'
     +'<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
-    +'<span style="font-size:11px;font-weight:800;color:'+lLc+';letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,0.15)">'+lName.toUpperCase()+'</span></div></div>'
-    +'<div style="width:3px;flex-shrink:0;background:rgba(255,255,255,0.5)"></div>'
+    +'<div style="font-size:12px;font-weight:800;color:'+lLc+';text-shadow:0 1px 4px rgba(0,0,0,0.25)">'+lName+'</div>'
+    +'<div style="font-size:10px;color:'+lLc+';opacity:0.75">'+lLabel+'</div>'
+    +'</div></div>'
+
+    // BOTH gradient strip with checkbox
+    +'<div style="position:relative;width:52px;flex-shrink:0;background:linear-gradient(to right,'+lBg+','+rBg+')">'
+    +'<div onclick="ocaDrapeVote(\''+rowKey+'\',\'b\')" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:8px;border:2px solid rgba(255,255,255,0.8);'+bSel+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#555;z-index:10">'+bTick+'</div>'
+    +'<div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);white-space:nowrap;pointer-events:none"><span style="font-size:10px;font-weight:700;color:rgba(0,0,0,0.45)">BOTH</span></div>'
+    +'</div>'
+
+    // Right panel with checkbox top-right
     +'<div style="flex:1;position:relative;background:'+rBg+';overflow:hidden">'+face
+    +'<div onclick="ocaDrapeVote(\''+rowKey+'\',\'r\')" style="position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:8px;border:2px solid rgba(255,255,255,0.8);'+rSel+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#E07020;z-index:10">'+rTick+'</div>'
     +'<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
-    +'<span style="font-size:11px;font-weight:800;color:'+rLc+';letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,0.15)">'+rName.toUpperCase()+'</span></div></div>'
+    +'<div style="font-size:12px;font-weight:800;color:'+rLc+';text-shadow:0 1px 4px rgba(0,0,0,0.25)">'+rName+'</div>'
+    +'<div style="font-size:10px;color:'+rLc+';opacity:0.75">'+rLabel+'</div>'
+    +'</div></div>'
+
     +'</div>'
     +'<div style="background:#1a1a1a;padding:5px 20px;text-align:center">'
     +'<span style="font-size:11px;color:rgba(255,255,255,0.65)">'+lName+' vs '+rName+'</span>'
@@ -2424,7 +2439,7 @@ function ocaDrapeRenderRow(rowKey, label, swL, swR, lLabel, rLabel) {
     +'<div style="flex:1"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">'+rLabel+'</div>'+swatchPicker(swR,'r',rHex)+'</div>'
     +'</div>';
 
-  return headerHtml + compHtml + pickersHtml;
+  return rowLabelHtml + compHtml + pickersHtml;
 }
 
 function renderOcaDrapeCompare() {
@@ -2442,6 +2457,22 @@ function renderOcaDrapeCompare() {
     +'<select onchange="ocaDrapeSetSeason(\'s1\',this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--deep)">'+mkOpts(s1)+'</select></div>'
     +'<div style="flex:1"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Season 2</div>'
     +'<select onchange="ocaDrapeSetSeason(\'s2\',this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--deep)">'+mkOpts(s2)+'</select></div>'
+    +'</div>';
+
+  var tally = {l:0, r:0, b:0};
+  Object.keys(ocaDrape.rows).forEach(function(k) {
+    if (k==='custom') return;
+    var v = ocaDrape.rows[k].vote;
+    if (v==='l') tally.l++; else if (v==='r') tally.r++; else if (v==='b') tally.b++;
+  });
+  var tallyBar = '<div style="display:flex;gap:12px;align-items:center;padding:14px 20px;background:var(--warm);border-radius:12px;margin-bottom:20px;flex-wrap:wrap">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.5px">TALLY</div>'
+    +'<div style="display:flex;gap:16px;flex:1">'
+    +'<div style="font-size:13px;font-weight:700;color:#5588DD">'+s1+': '+tally.l+'</div>'
+    +'<div style="font-size:13px;font-weight:700;color:#888">BOTH: '+tally.b+'</div>'
+    +'<div style="font-size:13px;font-weight:700;color:#E07020">'+s2+': '+tally.r+'</div>'
+    +'</div>'
+    +'<button class="btn btns" style="font-size:11px;padding:4px 12px" onclick="ocaDrapeClearVotes()">Clear All</button>'
     +'</div>';
 
   var rows = '';
@@ -2487,6 +2518,6 @@ function renderOcaDrapeCompare() {
   }
   custRow += '</div>';
 
-  return '<div>' + custRow + header + rows + '</div>';
+  return '<div>' + custRow + header + tallyBar + rows + '</div>';
 }
 
