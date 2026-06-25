@@ -795,6 +795,8 @@ function renderOca() {
     content.innerHTML = renderOcaNeutralsCW();
   } else if (ocaTab==='custom') {
     content.innerHTML = renderOcaCustomCompare();
+  } else if (ocaTab==='drape') {
+    content.innerHTML = renderOcaDrapeCompare();
   } else if (ocaTab==='submissions') {
     if (ocaSubSource === 'ivorey') {
       if (ivoreyData.length === 0) {
@@ -2338,4 +2340,229 @@ function renderOcaNeutralsCW() {
   return '<div>' + tallyHtml + cards + '</div>';
 }
 
+// ── Drape Compare ──────────────────────────────────────────────────────────
+
+var OCA_DRAPE_FAMILIES = [
+  {key:'blue',    label:'Blues',         keywords:['blue','sky','cornflower','periwinkle','slate blue','powder','cobalt','sapphire','ice','mist blue']},
+  {key:'teal',    label:'Teals & Aquas', keywords:['teal','turquoise','aqua','mint','seafoam','dusty teal']},
+  {key:'green',   label:'Greens',        keywords:['green','lime','sage','olive','forest','apple green','bright green','yellow green']},
+  {key:'purple',  label:'Purples',       keywords:['purple','violet','lavender','lilac','plum','orchid','periwinkle','blue violet','mauve lavender','soft lavender','dusty purple']},
+  {key:'pink',    label:'Pinks',         keywords:['pink','blush','rose','dusky','cerise','mauve','mushroom','rose beige','hot pink','coral pink','salmon rose']},
+  {key:'red',     label:'Reds',          keywords:['red','crimson','burgundy','raspberry','brick','rust','coral red','warm red']},
+  {key:'orange',  label:'Oranges',       keywords:['orange','coral','peach','apricot','salmon','terracotta','burnt orange','peach salmon']},
+  {key:'yellow',  label:'Yellows',       keywords:['yellow','lemon','butter','gold','mustard','ochre','pale lemon','pale yellow','golden']}
+];
+
+var OCA_CROSS_ROWS = [
+  {key:'pink_orange',  label:'Pink vs Orange',  fL:'pink',   fR:'orange'},
+  {key:'red_pink',     label:'Red vs Pink',     fL:'red',    fR:'pink'},
+  {key:'blue_purple',  label:'Blue vs Purple',  fL:'blue',   fR:'purple'},
+  {key:'black_brown',  label:'Black vs Brown',  special:'darkneut'}
+];
+
+var ocaDrape = {
+  s1: 'Light Spring',
+  s2: 'Light Summer',
+  rows: {},
+  custL: {seas:'', hex:'', name:''},
+  custR: {seas:'', hex:'', name:''}
+};
+
+function ocaDrapeSetSeason(which, val) {
+  ocaDrape[which] = val;
+  ocaDrape.rows = {};
+  renderOca();
+}
+
+function ocaDrapeSelect(rowKey, side, hex) {
+  if (!ocaDrape.rows[rowKey]) ocaDrape.rows[rowKey] = {l:'', r:'', vote:''};
+  ocaDrape.rows[rowKey][side] = hex;
+  renderOca();
+}
+
+function ocaDrapeVote(rowKey, vote) {
+  if (!ocaDrape.rows[rowKey]) ocaDrape.rows[rowKey] = {l:'', r:'', vote:''};
+  ocaDrape.rows[rowKey].vote = (ocaDrape.rows[rowKey].vote === vote) ? '' : vote;
+  renderOca();
+}
+
+function ocaDrapeSetCustSeas(side, val) {
+  if (side==='l') { ocaDrape.custL.seas=val; ocaDrape.custL.hex=''; ocaDrape.custL.name=''; }
+  else            { ocaDrape.custR.seas=val; ocaDrape.custR.hex=''; ocaDrape.custR.name=''; }
+  renderOca();
+}
+
+function ocaDrapeSetCustSwatch(side, val) {
+  var p = val ? val.split('|') : ['',''];
+  if (side==='l') { ocaDrape.custL.hex=p[0]; ocaDrape.custL.name=p[1]||''; }
+  else            { ocaDrape.custR.hex=p[0]; ocaDrape.custR.name=p[1]||''; }
+  renderOca();
+}
+
+function ocaDrapeGetByFamily(seasonName, familyKey) {
+  var s = OCA_SEASONS[seasonName]; if (!s) return [];
+  var all = (s.swatches||[]).concat(s.neutrals||[]);
+  var fam = null;
+  for (var i=0; i<OCA_DRAPE_FAMILIES.length; i++) { if (OCA_DRAPE_FAMILIES[i].key===familyKey) { fam=OCA_DRAPE_FAMILIES[i]; break; } }
+  if (!fam) return [];
+  return all.filter(function(sw) {
+    var n = sw.name.toLowerCase();
+    return fam.keywords.some(function(k){ return n.indexOf(k)>=0; });
+  });
+}
+
+function ocaDrapeRenderRow(rowKey, label, swL, swR, lLabel, rLabel) {
+  if (!ocaDrape.rows[rowKey]) {
+    ocaDrape.rows[rowKey] = { l: swL.length ? swL[0].hex : '', r: swR.length ? swR[0].hex : '', vote: '' };
+  }
+  var st = ocaDrape.rows[rowKey];
+  var lHex = st.l || (swL.length ? swL[0].hex : '');
+  var rHex = st.r || (swR.length ? swR[0].hex : '');
+
+  // name lookup
+  var lName = '', rName = '';
+  for (var i=0; i<swL.length; i++) { if (swL[i].hex===lHex) { lName=swL[i].name; break; } }
+  for (var i=0; i<swR.length; i++) { if (swR[i].hex===rHex) { rName=swR[i].name; break; } }
+
+  var s1 = ocaDrape.s1, s2 = ocaDrape.s2;
+  var lSel = st.vote==='l' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #5588DD' : 'background:rgba(255,255,255,0.25)';
+  var rSel = st.vote==='r' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #E07020' : 'background:rgba(255,255,255,0.25)';
+  var bSel = st.vote==='b' ? 'background:rgba(255,255,255,0.95);box-shadow:0 0 0 3px #888'    : 'background:rgba(255,255,255,0.25)';
+
+  var rowLabelHtml = '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--charcoal)">' + label + '</div>';
+  var tallyBtns = '<div style="display:flex;gap:6px;margin-left:auto;align-items:center">'
+    + '<button onclick="ocaDrapeVote(\''+rowKey+'\',\'l\')" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(85,136,221,0.4);color:#5588DD;cursor:pointer;'+lSel+'">'+s1+'</button>'
+    + '<button onclick="ocaDrapeVote(\''+rowKey+'\',\'b\')" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(136,136,136,0.4);color:#888;cursor:pointer;'+bSel+'">BOTH</button>'
+    + '<button onclick="ocaDrapeVote(\''+rowKey+'\',\'r\')" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid rgba(224,112,32,0.4);color:#E07020;cursor:pointer;'+rSel+'">'+s2+'</button>'
+    + '</div>';
+
+  var headerHtml = '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--warm);border-radius:10px;margin-bottom:12px;flex-wrap:wrap">'
+    + rowLabelHtml + tallyBtns + '</div>';
+
+  var face = ocaPhoto
+    ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;pointer-events:none"><img src="'+ocaPhoto+'" style="height:100%;object-fit:cover;object-position:center top"></div>'
+    : '';
+
+  var lBg = lHex || '#ccc', rBg = rHex || '#ccc';
+  var lLc = isLightColour(lBg) ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
+  var rLc = isLightColour(rBg) ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
+
+  var compHtml = '<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:12px">'
+    +'<div style="display:flex;width:100%;height:620px">'
+    +'<div style="flex:1;position:relative;background:'+lBg+';overflow:hidden">'+face
+    +'<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
+    +'<span style="font-size:11px;font-weight:800;color:'+lLc+';letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,0.15)">'+lName.toUpperCase()+'</span></div></div>'
+    +'<div style="width:3px;flex-shrink:0;background:rgba(255,255,255,0.5)"></div>'
+    +'<div style="flex:1;position:relative;background:'+rBg+';overflow:hidden">'+face
+    +'<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
+    +'<span style="font-size:11px;font-weight:800;color:'+rLc+';letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,0.15)">'+rName.toUpperCase()+'</span></div></div>'
+    +'</div>'
+    +'<div style="background:#1a1a1a;padding:5px 20px;text-align:center">'
+    +'<span style="font-size:11px;color:rgba(255,255,255,0.65)">'+lName+' vs '+rName+'</span>'
+    +'</div></div>';
+
+  function swatchPicker(swatches, side, curHex) {
+    if (!swatches.length) return '<div style="font-size:11px;color:var(--muted);padding:6px 0">None in this season</div>';
+    return '<div style="display:flex;flex-wrap:wrap;gap:7px">'
+      + swatches.map(function(sw) {
+          var sel = sw.hex===curHex ? 'box-shadow:0 0 0 3px var(--deep);transform:scale(1.12)' : 'box-shadow:0 1px 4px rgba(0,0,0,0.18)';
+          return '<div onclick="ocaDrapeSelect(\''+rowKey+'\',\''+side+'\',\''+sw.hex+'\')" title="'+sw.name+'" style="width:42px;height:42px;border-radius:10px;background:'+sw.hex+';cursor:pointer;border:2px solid rgba(255,255,255,0.6);transition:transform .1s;'+sel+'"></div>';
+        }).join('')
+      + '</div>';
+  }
+
+  var pickersHtml = '<div style="display:flex;gap:16px;margin-bottom:36px">'
+    +'<div style="flex:1"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">'+lLabel+'</div>'+swatchPicker(swL,'l',lHex)+'</div>'
+    +'<div style="flex:1"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">'+rLabel+'</div>'+swatchPicker(swR,'r',rHex)+'</div>'
+    +'</div>';
+
+  return headerHtml + compHtml + pickersHtml;
+}
+
+function renderOcaDrapeCompare() {
+  var s1 = ocaDrape.s1, s2 = ocaDrape.s2;
+  var seasonKeys = Object.keys(OCA_SEASONS);
+
+  var mkOpts = function(sel) {
+    return seasonKeys.map(function(k) {
+      return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+k+'</option>';
+    }).join('');
+  };
+
+  var header = '<div style="display:flex;gap:12px;margin-bottom:24px">'
+    +'<div style="flex:1"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Season 1</div>'
+    +'<select onchange="ocaDrapeSetSeason(\'s1\',this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--deep)">'+mkOpts(s1)+'</select></div>'
+    +'<div style="flex:1"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Season 2</div>'
+    +'<select onchange="ocaDrapeSetSeason(\'s2\',this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--deep)">'+mkOpts(s2)+'</select></div>'
+    +'</div>';
+
+  var rows = '';
+
+  // Same-family rows
+  OCA_DRAPE_FAMILIES.forEach(function(fam) {
+    var sw1 = ocaDrapeGetByFamily(s1, fam.key);
+    var sw2 = ocaDrapeGetByFamily(s2, fam.key);
+    if (!sw1.length && !sw2.length) return;
+    rows += ocaDrapeRenderRow(fam.key, fam.label, sw1, sw2, s1, s2);
+  });
+
+  // Cross-family rows
+  OCA_CROSS_ROWS.forEach(function(cr) {
+    var swL, swR;
+    if (cr.special==='darkneut') {
+      var neu1 = (OCA_SEASONS[s1]&&OCA_SEASONS[s1].neutrals)||[];
+      var neu2 = (OCA_SEASONS[s2]&&OCA_SEASONS[s2].neutrals)||[];
+      var allNeu = neu1.concat(neu2);
+      swL = allNeu.filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('black')>=0; });
+      swR = allNeu.filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('brown')>=0||n.indexOf('espresso')>=0||n.indexOf('chocolate')>=0; });
+    } else {
+      var s1L = ocaDrapeGetByFamily(s1, cr.fL);
+      var s2L = ocaDrapeGetByFamily(s2, cr.fL);
+      var s1R = ocaDrapeGetByFamily(s1, cr.fR);
+      var s2R = ocaDrapeGetByFamily(s2, cr.fR);
+      swL = s1L.concat(s2L);
+      swR = s1R.concat(s2R);
+    }
+    if (!swL.length && !swR.length) return;
+    var parts = cr.label.split(' vs ');
+    rows += ocaDrapeRenderRow(cr.key, cr.label, swL, swR, parts[0], parts[1]);
+  });
+
+  // Custom row
+  var cL = ocaDrape.custL, cR = ocaDrape.custR;
+  var mkSwatchOpts = function(seas, curHex) {
+    var opts = '<option value="">— Colour —</option>';
+    if (seas && OCA_SEASONS[seas]) {
+      var all = (OCA_SEASONS[seas].swatches||[]).concat(OCA_SEASONS[seas].neutrals||[]);
+      opts += all.map(function(sw){ return '<option value="'+sw.hex+'|'+sw.name+'"'+(sw.hex===curHex?' selected':'')+'>'+sw.name+'</option>'; }).join('');
+    }
+    return opts;
+  };
+
+  var custRow = '<div style="border-top:2px solid var(--sand);padding-top:24px;margin-top:8px">'
+    +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Custom Comparison</div>'
+    +'<div style="display:flex;gap:12px;margin-bottom:16px">'
+    // left picker
+    +'<div style="flex:1;display:flex;flex-direction:column;gap:8px">'
+    +'<select onchange="ocaDrapeSetCustSeas(\'l\',this.value)" style="padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)"><option value="">— Season —</option>'+mkOpts(cL.seas)+'</select>'
+    +'<div style="display:flex;gap:8px;align-items:center">'
+    +(cL.hex?'<div style="width:28px;height:28px;border-radius:6px;background:'+cL.hex+';border:1px solid rgba(0,0,0,0.1);flex-shrink:0"></div>':'<div style="width:28px;height:28px;border-radius:6px;background:var(--sand);border:1px dashed var(--muted);flex-shrink:0"></div>')
+    +'<select onchange="ocaDrapeSetCustSwatch(\'l\',this.value)" '+(cL.seas?'':'disabled ')+'style="flex:1;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)">'+mkSwatchOpts(cL.seas,cL.hex)+'</select>'
+    +'</div></div>'
+    // right picker
+    +'<div style="flex:1;display:flex;flex-direction:column;gap:8px">'
+    +'<select onchange="ocaDrapeSetCustSeas(\'r\',this.value)" style="padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)"><option value="">— Season —</option>'+mkOpts(cR.seas)+'</select>'
+    +'<div style="display:flex;gap:8px;align-items:center">'
+    +(cR.hex?'<div style="width:28px;height:28px;border-radius:6px;background:'+cR.hex+';border:1px solid rgba(0,0,0,0.1);flex-shrink:0"></div>':'<div style="width:28px;height:28px;border-radius:6px;background:var(--sand);border:1px dashed var(--muted);flex-shrink:0"></div>')
+    +'<select onchange="ocaDrapeSetCustSwatch(\'r\',this.value)" '+(cR.seas?'':'disabled ')+'style="flex:1;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)">'+mkSwatchOpts(cR.seas,cR.hex)+'</select>'
+    +'</div></div>'
+    +'</div>';
+
+  if (cL.hex && cR.hex) {
+    custRow += ocaDrapeRenderRow('custom', 'Custom', [{hex:cL.hex,name:cL.name}], [{hex:cR.hex,name:cR.name}], cL.seas||'Left', cR.seas||'Right');
+  }
+  custRow += '</div>';
+
+  return '<div>' + header + rows + custRow + '</div>';
+}
 
