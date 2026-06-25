@@ -6,155 +6,277 @@ var OCA_SEASONS = {
   'Light Spring': {
     desc: 'Warm, light, clear. Bright warm tones with a light, fresh quality.',
     swatches: [
-      {name:'Aqua',        hex:'#4DD9E8'},
-      {name:'Lavender',    hex:'#A882D4'},
-      {name:'Tan',         hex:'#C49060'},
-      {name:'Red',         hex:'#E82020'},
-      {name:'Lime Green',  hex:'#8AE030'},
-      {name:'Pale Yellow', hex:'#F5E87A'},
-      {name:'Orange',      hex:'#F07830'},
-      {name:'Hot Pink',    hex:'#F03880'},
-      {name:'Peach',       hex:'#FFE0C8'}
+      {name:'Aqua',            hex:'#4DD9E8'},
+      {name:'Lavender',        hex:'#A882D4'},
+      {name:'Coral',           hex:'#FF8060'},
+      {name:'Lime Green',      hex:'#8AE030'},
+      {name:'Pale Yellow',     hex:'#F5E87A'},
+      {name:'Orange',          hex:'#F07830'},
+      {name:'Hot Pink',        hex:'#F03880'},
+      {name:'Peach',           hex:'#FFE0C8'},
+      {name:'Butter',          hex:'#FFF5A0'},
+      {name:'Warm Turquoise',  hex:'#5ADDD0'},
+      {name:'Apricot',         hex:'#FFBF80'},
+      {name:'Soft Red',        hex:'#E82020'}
+    ],
+    neutrals: [
+      {name:'Ivory',           hex:'#FFFAE8'},
+      {name:'Camel',           hex:'#C8A070'},
+      {name:'Warm Grey',       hex:'#C8C4B8'},
+      {name:'Soft Navy',       hex:'#3D5070'}
     ]
   },
   'True Spring': {
     desc: 'Warm, clear, medium. Golden warmth with clear, saturated colours.',
     swatches: [
-      {name:'Turquoise',   hex:'#3ECEC0'},
-      {name:'Orchid',      hex:'#CC6EC8'},
-      {name:'Brown',       hex:'#7A3810'},
-      {name:'Coral Red',   hex:'#D84040'},
-      {name:'Lime',        hex:'#A0CC20'},
-      {name:'Golden Yellow',hex:'#F5C800'},
-      {name:'Orange',      hex:'#F06820'},
-      {name:'Hot Pink',    hex:'#F03870'}
+      {name:'Turquoise',       hex:'#3ECEC0'},
+      {name:'Orchid',          hex:'#CC6EC8'},
+      {name:'Coral Red',       hex:'#D84040'},
+      {name:'Lime',            hex:'#A0CC20'},
+      {name:'Golden Yellow',   hex:'#F5C800'},
+      {name:'Orange',          hex:'#F06820'},
+      {name:'Hot Pink',        hex:'#F03870'},
+      {name:'Peacock Blue',    hex:'#18A8C0'},
+      {name:'Apricot',         hex:'#FFAB70'},
+      {name:'Bright Green',    hex:'#3CC830'},
+      {name:'Warm Coral',      hex:'#F06050'},
+      {name:'Golden Tan',      hex:'#D49040'}
+    ],
+    neutrals: [
+      {name:'Cream',           hex:'#FFF8E8'},
+      {name:'Camel',           hex:'#C49A60'},
+      {name:'Warm Brown',      hex:'#7A3810'},
+      {name:'Warm Ivory',      hex:'#FFFDF0'}
     ]
   },
   'Bright Spring': {
     desc: 'Warm, bright, clear. High contrast with vivid, saturated warm hues.',
     swatches: [
-      {name:'Cyan',        hex:'#00D8F0'},
-      {name:'Magenta',     hex:'#D040D0'},
-      {name:'Brown',       hex:'#6A2808'},
-      {name:'Red',         hex:'#E81818'},
-      {name:'Lime Green',  hex:'#98E000'},
-      {name:'Yellow',      hex:'#F8E000'},
-      {name:'Orange',      hex:'#F86000'},
-      {name:'Hot Pink',    hex:'#F02888'}
+      {name:'Cyan',            hex:'#00D8F0'},
+      {name:'Magenta',         hex:'#D040D0'},
+      {name:'Red',             hex:'#E81818'},
+      {name:'Lime Green',      hex:'#98E000'},
+      {name:'Yellow',          hex:'#F8E000'},
+      {name:'Orange',          hex:'#F86000'},
+      {name:'Hot Pink',        hex:'#F02888'},
+      {name:'Vivid Teal',      hex:'#00BFC0'},
+      {name:'Electric Blue',   hex:'#0080FF'},
+      {name:'Vivid Green',     hex:'#40E020'},
+      {name:'Vivid Coral',     hex:'#FF5030'},
+      {name:'Bright Lime',     hex:'#B8F000'}
+    ],
+    neutrals: [
+      {name:'Pure White',      hex:'#FAFAFA'},
+      {name:'Warm Ivory',      hex:'#FFFCE8'},
+      {name:'Camel',           hex:'#C89848'},
+      {name:'Warm Black',      hex:'#201008'}
     ]
   },
   'Light Summer': {
     desc: 'Cool, light, soft. Delicate cool tones with a silvery, airy quality.',
     swatches: [
-      {name:'Sky Blue',    hex:'#88C0F0'},
-      {name:'Periwinkle',  hex:'#8888D8'},
-      {name:'Silver Grey', hex:'#A8A8A8'},
-      {name:'Burgundy',    hex:'#C02848'},
-      {name:'Mint Green',  hex:'#50C090'},
-      {name:'Cream Yellow',hex:'#F0E8A0'},
-      {name:'Soft Pink',   hex:'#F0A0C8'},
-      {name:'Rose Pink',   hex:'#E06888'},
-      {name:'Ice White',   hex:'#EEF0FF'}
+      {name:'Sky Blue',        hex:'#88C0F0'},
+      {name:'Periwinkle',      hex:'#8888D8'},
+      {name:'Burgundy',        hex:'#C02848'},
+      {name:'Mint Green',      hex:'#50C090'},
+      {name:'Cream Yellow',    hex:'#F0E8A0'},
+      {name:'Soft Pink',       hex:'#F0A0C8'},
+      {name:'Rose Pink',       hex:'#E06888'},
+      {name:'Ice White',       hex:'#EEF0FF'},
+      {name:'Powder Blue',     hex:'#B0D8F0'},
+      {name:'Soft Mauve',      hex:'#C8A0B8'},
+      {name:'Mist Blue',       hex:'#A8C0D8'},
+      {name:'Lavender',        hex:'#C0A8E8'}
+    ],
+    neutrals: [
+      {name:'Soft White',      hex:'#F8F4F0'},
+      {name:'Rose Beige',      hex:'#E8D4CC'},
+      {name:'Silver Grey',     hex:'#A8A8A8'},
+      {name:'Soft Navy',       hex:'#4A5878'}
     ]
   },
   'True Summer': {
     desc: 'Cool, medium, muted. Soft blue-based tones with a dusty, elegant quality.',
     swatches: [
-      {name:'Cornflower',  hex:'#5878C8'},
-      {name:'Lilac',       hex:'#9070C8'},
-      {name:'Cocoa Brown', hex:'#6A4840'},
-      {name:'Raspberry',   hex:'#C03050'},
-      {name:'Teal',        hex:'#388880'},
-      {name:'Lime Yellow', hex:'#D8E040'},
-      {name:'Hot Pink',    hex:'#D83880'},
-      {name:'Charcoal',    hex:'#585858'}
+      {name:'Cornflower',      hex:'#5878C8'},
+      {name:'Lilac',           hex:'#9070C8'},
+      {name:'Raspberry',       hex:'#C03050'},
+      {name:'Teal',            hex:'#388880'},
+      {name:'Lime Yellow',     hex:'#D8E040'},
+      {name:'Hot Pink',        hex:'#D83880'},
+      {name:'Blue-Grey',       hex:'#8898C0'},
+      {name:'Soft Lavender',   hex:'#B0A0C8'},
+      {name:'Muted Rose',      hex:'#C87898'},
+      {name:'Dusty Blue',      hex:'#7090B0'},
+      {name:'Dusty Teal',      hex:'#508888'},
+      {name:'Soft Fuchsia',    hex:'#C05090'}
+    ],
+    neutrals: [
+      {name:'Soft White',      hex:'#F5F0F0'},
+      {name:'Medium Grey',     hex:'#909098'},
+      {name:'Dusty Navy',      hex:'#3A4870'},
+      {name:'Cocoa Brown',     hex:'#6A4840'}
     ]
   },
   'Soft Summer': {
     desc: 'Cool, soft, muted. Dusty cool tones with a subtle, blended quality.',
     swatches: [
-      {name:'Navy Blue',   hex:'#364880'},
-      {name:'Dusty Purple',hex:'#8868A8'},
-      {name:'Dark Mauve',  hex:'#6A3848'},
-      {name:'Burgundy',    hex:'#B83048'},
-      {name:'Dark Teal',   hex:'#2E6858'},
-      {name:'Pale Gold',   hex:'#E0D080'},
-      {name:'Dusky Pink',  hex:'#D87898'}
+      {name:'Navy Blue',       hex:'#364880'},
+      {name:'Dusty Purple',    hex:'#8868A8'},
+      {name:'Burgundy',        hex:'#B83048'},
+      {name:'Dark Teal',       hex:'#2E6858'},
+      {name:'Pale Gold',       hex:'#E0D080'},
+      {name:'Dusky Pink',      hex:'#D87898'},
+      {name:'Dusty Teal',      hex:'#5E8888'},
+      {name:'Soft Lavender',   hex:'#ACA0C8'},
+      {name:'Muted Coral',     hex:'#C88880'},
+      {name:'Dusty Rose',      hex:'#C09098'},
+      {name:'Soft Plum',       hex:'#886878'},
+      {name:'Steel Blue',      hex:'#5878A0'}
+    ],
+    neutrals: [
+      {name:'Off White',       hex:'#F5F0EC'},
+      {name:'Warm Grey',       hex:'#A8A4A0'},
+      {name:'Soft Navy',       hex:'#424B6A'},
+      {name:'Dark Mauve',      hex:'#6A3848'}
     ]
   },
   'Soft Autumn': {
     desc: 'Warm, soft, muted. Earthy tones with a warm, gentle, blended quality.',
     swatches: [
-      {name:'Teal Blue',   hex:'#1E6878'},
-      {name:'Dusty Mauve', hex:'#B87898'},
-      {name:'Warm Brown',  hex:'#8A5828'},
-      {name:'Brick Red',   hex:'#B83018'},
-      {name:'Sage Green',  hex:'#788840'},
-      {name:'Warm Yellow', hex:'#E8D840'},
-      {name:'Terracotta',  hex:'#C86830'}
+      {name:'Teal Blue',       hex:'#1E6878'},
+      {name:'Dusty Mauve',     hex:'#B87898'},
+      {name:'Warm Brown',      hex:'#8A5828'},
+      {name:'Brick Red',       hex:'#B83018'},
+      {name:'Sage Green',      hex:'#788840'},
+      {name:'Warm Yellow',     hex:'#E8D840'},
+      {name:'Terracotta',      hex:'#C86830'},
+      {name:'Warm Teal',       hex:'#4A8880'},
+      {name:'Muted Camel',     hex:'#C8A868'},
+      {name:'Dusty Coral',     hex:'#D08870'},
+      {name:'Warm Mauve',      hex:'#B08078'},
+      {name:'Warm Olive',      hex:'#8A8840'}
+    ],
+    neutrals: [
+      {name:'Warm Ivory',      hex:'#FFF5E0'},
+      {name:'Warm Taupe',      hex:'#C8B898'},
+      {name:'Warm Khaki',      hex:'#9A9058'},
+      {name:'Dark Brown',      hex:'#583820'}
     ]
   },
   'True Autumn': {
     desc: 'Warm, medium, muted. Rich earthy tones with deep golden warmth.',
     swatches: [
-      {name:'Teal',        hex:'#286880'},
-      {name:'Purple',      hex:'#7048A0'},
-      {name:'Dark Brown',  hex:'#602808'},
-      {name:'Rust Red',    hex:'#B82818'},
-      {name:'Olive',       hex:'#607020'},
-      {name:'Mustard',     hex:'#D8A020'},
-      {name:'Burnt Orange',hex:'#D05010'},
-      {name:'Salmon Pink', hex:'#D06050'}
+      {name:'Teal',            hex:'#286880'},
+      {name:'Purple',          hex:'#7048A0'},
+      {name:'Dark Brown',      hex:'#602808'},
+      {name:'Rust Red',        hex:'#B82818'},
+      {name:'Olive',           hex:'#607020'},
+      {name:'Mustard',         hex:'#D8A020'},
+      {name:'Burnt Orange',    hex:'#D05010'},
+      {name:'Salmon Pink',     hex:'#D06050'},
+      {name:'Copper',          hex:'#C07038'},
+      {name:'Warm Peach',      hex:'#E09060'},
+      {name:'Forest Green',    hex:'#2A5020'},
+      {name:'Dark Gold',       hex:'#B87820'}
+    ],
+    neutrals: [
+      {name:'Warm Cream',      hex:'#FFF0D0'},
+      {name:'Camel',           hex:'#BF9060'},
+      {name:'Chocolate',       hex:'#5A2E10'},
+      {name:'Dark Olive',      hex:'#484818'}
     ]
   },
   'Dark Autumn': {
     desc: 'Warm, dark, muted. Deep rich tones with strong earthy intensity.',
     swatches: [
-      {name:'Dark Teal',   hex:'#0E4860'},
-      {name:'Dark Purple', hex:'#602070'},
-      {name:'Dark Brown',  hex:'#481008'},
-      {name:'Dark Red',    hex:'#881008'},
-      {name:'Olive Green', hex:'#485010'},
-      {name:'Ochre',       hex:'#C08010'},
-      {name:'Burnt Orange',hex:'#B83000'}
+      {name:'Dark Teal',       hex:'#0E4860'},
+      {name:'Dark Purple',     hex:'#602070'},
+      {name:'Dark Red',        hex:'#881008'},
+      {name:'Olive Green',     hex:'#485010'},
+      {name:'Ochre',           hex:'#C08010'},
+      {name:'Burnt Orange',    hex:'#B83000'},
+      {name:'Forest Green',    hex:'#1E4A28'},
+      {name:'Deep Teal',       hex:'#0A3840'},
+      {name:'Dark Copper',     hex:'#8A4010'},
+      {name:'Warm Rust',       hex:'#922810'},
+      {name:'Deep Plum',       hex:'#581830'},
+      {name:'Dark Moss',       hex:'#3A4010'}
+    ],
+    neutrals: [
+      {name:'Ivory Cream',     hex:'#F5EDD0'},
+      {name:'Camel Brown',     hex:'#9A6828'},
+      {name:'Dark Chocolate',  hex:'#3A1A08'},
+      {name:'Black Brown',     hex:'#181008'}
     ]
   },
   'Dark Winter': {
     desc: 'Cool, dark, clear. Deep, rich tones with cool intensity and high contrast.',
     swatches: [
-      {name:'Dark Navy',   hex:'#080830'},
-      {name:'Dark Violet', hex:'#380868'},
-      {name:'Black',       hex:'#080808'},
-      {name:'Crimson',     hex:'#980020'},
-      {name:'Dark Green',  hex:'#0A3828'},
-      {name:'Olive Yellow',hex:'#909000'},
-      {name:'Magenta',     hex:'#980058'}
+      {name:'Dark Navy',       hex:'#080830'},
+      {name:'Dark Violet',     hex:'#380868'},
+      {name:'Crimson',         hex:'#980020'},
+      {name:'Dark Green',      hex:'#0A3828'},
+      {name:'Olive Yellow',    hex:'#909000'},
+      {name:'Magenta',         hex:'#980058'},
+      {name:'Deep Plum',       hex:'#3A0848'},
+      {name:'Icy Blue',        hex:'#1C2860'},
+      {name:'Deep Teal',       hex:'#083838'},
+      {name:'Midnight Blue',   hex:'#080840'},
+      {name:'Dark Ruby',       hex:'#600018'},
+      {name:'Deep Jade',       hex:'#0A4030'}
+    ],
+    neutrals: [
+      {name:'Pure White',      hex:'#F8F8FF'},
+      {name:'Icy Grey',        hex:'#C0C0C8'},
+      {name:'Charcoal',        hex:'#282830'},
+      {name:'Black',           hex:'#080808'}
     ]
   },
   'True Winter': {
     desc: 'Cool, dark, clear. Pure cool tones with high contrast and sharp clarity.',
     swatches: [
-      {name:'Royal Blue',  hex:'#1818A0'},
-      {name:'Purple',      hex:'#7820C0'},
-      {name:'Dark Burgundy',hex:'#480818'},
-      {name:'Crimson',     hex:'#A00018'},
-      {name:'Forest Green',hex:'#0A4828'},
-      {name:'Yellow',      hex:'#C8C000'},
-      {name:'Magenta',     hex:'#C00878'},
-      {name:'Black',       hex:'#080808'}
+      {name:'Royal Blue',      hex:'#1818A0'},
+      {name:'Purple',          hex:'#7820C0'},
+      {name:'Dark Burgundy',   hex:'#480818'},
+      {name:'Crimson',         hex:'#A00018'},
+      {name:'Forest Green',    hex:'#0A4828'},
+      {name:'Yellow',          hex:'#C8C000'},
+      {name:'Magenta',         hex:'#C00878'},
+      {name:'True Red',        hex:'#CC0018'},
+      {name:'Sapphire',        hex:'#1840B8'},
+      {name:'Vivid Teal',      hex:'#0090A0'},
+      {name:'Vivid Pink',      hex:'#E00080'},
+      {name:'Ice Blue',        hex:'#5888E0'}
+    ],
+    neutrals: [
+      {name:'Pure White',      hex:'#F8F8FF'},
+      {name:'Icy Grey',        hex:'#C8C8D0'},
+      {name:'Navy',            hex:'#0A0A50'},
+      {name:'Black',           hex:'#080808'}
     ]
   },
   'Bright Winter': {
     desc: 'Cool, bright, clear. Vivid cool tones with sharp contrast and icy clarity.',
     swatches: [
-      {name:'Royal Blue',  hex:'#2828D0'},
-      {name:'Violet',      hex:'#8030D0'},
-      {name:'Black',       hex:'#080808'},
-      {name:'Red',         hex:'#E00808'},
-      {name:'Green',       hex:'#00A030'},
-      {name:'Yellow',      hex:'#F0E000'},
-      {name:'Orange',      hex:'#F06000'},
-      {name:'Hot Pink',    hex:'#E80878'}
+      {name:'Royal Blue',      hex:'#2828D0'},
+      {name:'Violet',          hex:'#8030D0'},
+      {name:'Red',             hex:'#E00808'},
+      {name:'Green',           hex:'#00A030'},
+      {name:'Yellow',          hex:'#F0E000'},
+      {name:'Orange',          hex:'#F06000'},
+      {name:'Hot Pink',        hex:'#E80878'},
+      {name:'Vivid Teal',      hex:'#00B8C8'},
+      {name:'Electric Blue',   hex:'#0050FF'},
+      {name:'Vivid Fuchsia',   hex:'#E000A0'},
+      {name:'Bright Emerald',  hex:'#00B840'},
+      {name:'Vivid Coral',     hex:'#FF4030'}
+    ],
+    neutrals: [
+      {name:'Pure White',      hex:'#FAFAFA'},
+      {name:'Icy Silver',      hex:'#D0D0D8'},
+      {name:'Navy',            hex:'#0C0C58'},
+      {name:'Black',           hex:'#080808'}
     ]
   }
 };
@@ -292,6 +414,27 @@ function renderOcaPalette(seasonName, size) {
       + '</div>';
   }).join('');
 
+  var neutralsHtml = '';
+  if (season.neutrals && season.neutrals.length) {
+    var neutralSwatches = season.neutrals.map(function(sw) {
+      var textCol = isLightColour(sw.hex) ? '#333' : '#fff';
+      var photoHtml = ocaPhoto
+        ? '<img src="'+ocaPhoto+'" style="width:'+photoSize+'px;height:'+photoSize+'px;border-radius:50%;object-fit:cover;object-position:center top;border:2px solid rgba(255,255,255,0.8);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none">'
+        : '<div style="width:'+photoSize+'px;height:'+photoSize+'px;border-radius:50%;border:2px dashed rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:'+(isCompare?14:18)+'px">&#128247;</div>';
+      return '<div style="position:relative;width:'+swSize+'px;height:'+swSize+'px;background:'+sw.hex+';border-radius:8px;overflow:hidden;flex-shrink:0;cursor:default" title="'+sw.name+'">'
+        + photoHtml
+        + '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.35);padding:2px 4px;text-align:center">'
+        +   '<div style="font-size:9px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+sw.name+'</div>'
+        +   '<div style="font-size:8px;color:rgba(255,255,255,0.8)">'+sw.hex+'</div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+    neutralsHtml = '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--sand)">'
+      + '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">Neutrals</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start">'+neutralSwatches+'</div>'
+      + '</div>';
+  }
+
   return '<div class="card" style="'+(isCompare?'flex:1;min-width:0':'')+'margin-bottom:'+(isCompare?'0':'20px')+'">'
     + '<div class="ch"><div>'
     +   '<div class="ct">'+seasonName+'</div>'
@@ -301,6 +444,7 @@ function renderOcaPalette(seasonName, size) {
     +   '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-start">'
     +     swatches
     +   '</div>'
+    +   neutralsHtml
     + '</div>'
     + '</div>';
 }
