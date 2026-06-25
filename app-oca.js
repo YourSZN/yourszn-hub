@@ -793,6 +793,8 @@ function renderOca() {
     content.innerHTML = renderOcaCoolWarm();
   } else if (ocaTab==='neutrals') {
     content.innerHTML = renderOcaNeutralsCW();
+  } else if (ocaTab==='custom') {
+    content.innerHTML = renderOcaCustomCompare();
   } else if (ocaTab==='submissions') {
     if (ocaSubSource === 'ivorey') {
       if (ivoreyData.length === 0) {
@@ -2180,6 +2182,90 @@ function renderOcaCoolWarm() {
 function ocaSetCwMode(mode) {
   ocaCwMode = mode;
   renderOca();
+}
+
+// ── Custom Compare ──────────────────────────────────────────────────
+var ocaCustomPanes = [
+  {season:'', hex:'', name:''},
+  {season:'', hex:'', name:''}
+];
+
+function ocaSetCustomSeason(idx, season) {
+  ocaCustomPanes[idx].season = season;
+  ocaCustomPanes[idx].hex    = '';
+  ocaCustomPanes[idx].name   = '';
+  renderOca();
+}
+
+function ocaSetCustomSwatch(idx, val) {
+  if (!val) { ocaCustomPanes[idx].hex = ''; ocaCustomPanes[idx].name = ''; }
+  else { var p = val.split('|'); ocaCustomPanes[idx].hex = p[0]; ocaCustomPanes[idx].name = p[1] || ''; }
+  renderOca();
+}
+
+function renderOcaCustomCompare() {
+  var selectors = ocaCustomPanes.map(function(pane, idx) {
+    var seasonOpts = '<option value="">— Pick season —</option>'
+      + Object.keys(OCA_SEASONS).map(function(s) {
+          return '<option value="'+s+'"'+(pane.season===s?' selected':'')+'>'+s+'</option>';
+        }).join('');
+
+    var swatchOpts = '<option value="">— Pick colour —</option>';
+    if (pane.season && OCA_SEASONS[pane.season]) {
+      var all = (OCA_SEASONS[pane.season].swatches||[]).concat(OCA_SEASONS[pane.season].neutrals||[]);
+      swatchOpts += all.map(function(sw) {
+        var v = sw.hex+'|'+sw.name;
+        return '<option value="'+v+'"'+(pane.hex===sw.hex?' selected':'')+'>'+sw.name+'</option>';
+      }).join('');
+    }
+
+    var preview = pane.hex
+      ? '<div style="width:32px;height:32px;border-radius:6px;background:'+pane.hex+';border:1px solid rgba(0,0,0,0.12);flex-shrink:0"></div>'
+      : '<div style="width:32px;height:32px;border-radius:6px;background:var(--sand);border:1px dashed var(--muted);flex-shrink:0"></div>';
+
+    return '<div style="flex:1;background:white;border-radius:12px;padding:16px;border:1px solid var(--sand)">'
+      + '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Colour '+(idx+1)+'</div>'
+      + '<select onchange="ocaSetCustomSeason('+idx+',this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;margin-bottom:8px;background:white;color:var(--deep)">'
+      + seasonOpts+'</select>'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + preview
+      + '<select onchange="ocaSetCustomSwatch('+idx+',this.value)" '+(pane.season?'':'disabled ')+'style="flex:1;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)">'
+      + swatchOpts+'</select>'
+      + '</div></div>';
+  }).join('');
+
+  var p0 = ocaCustomPanes[0], p1 = ocaCustomPanes[1];
+  var compHtml;
+
+  if (p0.hex && p1.hex) {
+    var face = ocaPhoto
+      ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;pointer-events:none">'
+        +'<img src="'+ocaPhoto+'" style="height:100%;object-fit:cover;object-position:center top"></div>'
+      : '';
+    var lc0 = isLightColour(p0.hex) ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
+    var lc1 = isLightColour(p1.hex) ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)';
+
+    compHtml = '<div style="border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15)">'
+      +'<div style="display:flex;width:100%;height:620px">'
+      +'<div style="flex:1;position:relative;background:'+p0.hex+';overflow:hidden">'+face
+      +'<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
+      +'<span style="font-size:13px;font-weight:800;color:'+lc0+';letter-spacing:1px">'+p0.name.toUpperCase()+'</span></div></div>'
+      +'<div style="width:3px;flex-shrink:0;background:rgba(255,255,255,0.5)"></div>'
+      +'<div style="flex:1;position:relative;background:'+p1.hex+';overflow:hidden">'+face
+      +'<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
+      +'<span style="font-size:13px;font-weight:800;color:'+lc1+';letter-spacing:1px">'+p1.name.toUpperCase()+'</span></div></div>'
+      +'</div>'
+      +'<div style="background:#1a1a1a;padding:6px 20px;text-align:center">'
+      +'<span style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:500">'+p0.name+' ('+p0.season+') vs '+p1.name+' ('+p1.season+')</span>'
+      +'</div></div>';
+  } else {
+    compHtml = '<div style="background:var(--warm);border-radius:12px;padding:48px;text-align:center;color:var(--muted);font-size:13px">'
+      +'Select a colour on both sides to see the comparison.</div>';
+  }
+
+  return '<div>'
+    +'<div style="display:flex;gap:12px;margin-bottom:20px">'+selectors+'</div>'
+    +compHtml+'</div>';
 }
 
 function renderOcaNeutralsCW() {
