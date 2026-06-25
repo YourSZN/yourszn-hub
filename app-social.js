@@ -57,6 +57,7 @@ function smRelTime(ts) {
 
 // ── Main page render ──
 function renderSocialPage() {
+  smSeedIdeas();
   var el = document.getElementById('social-page-content'); if (!el) return;
 
   var tabs = [
@@ -925,6 +926,50 @@ function smFmtDate(dateStr) {
   var parts  = dateStr.split('-');
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return parseInt(parts[2]) + ' ' + months[parseInt(parts[1]) - 1];
+}
+
+// ══ IDEA BANK SEEDS ══
+
+var SM_SEED_IDEAS = [
+  // ── Content ideas ──
+  { id:'seed_1',  pillar:'Colour Education',               title:'Brands that do colour analysis right',             concept:'As a professional colour analyst it tickles my brain in the best way when brands dress their models in their season… [brand] is a great example of that… continue with examples of specific brands + models.' },
+  { id:'seed_2',  pillar:'Client Sessions',                title:"My client's style before/after colour analysis",    concept:'Get past clients to send before styled/outfit pics and after. Show side-by-side transformation.' },
+  { id:'seed_3',  pillar:'Personal Expertise & Opinions',  title:'Why copying celebrity outfits rarely works',        concept:"If you've gone on Pinterest and tried to replicate a celebrity's outfit because you have the same features as them and it just hasn't worked… explain why features alone don't account for season." },
+  { id:'seed_4',  pillar:'Personal Expertise & Opinions',  title:'Shopping right after your colour analysis may be harder before it gets easier',  concept:'Walk through the transition period — then plug the app at the end: "this is why I\'ve made it easier for you…"' },
+  { id:'seed_5',  pillar:'Shopping By Season',             title:"Where I'd be shopping my [season] staples right now", concept:'Series format — swap out [season] each video. Show specific pieces from specific stores.' },
+  { id:'seed_6',  pillar:'Colour Education',               title:"If you're a big black wearer… navy may actually suit you better", concept:'Show examples of who this applies to. Can extend to lipstick shades, sunglasses shades etc. Simple specific change, profound outcome.' },
+  { id:'seed_7',  pillar:'Personal Expertise & Opinions',  title:'If you buy clothes because they look good on the model…', concept:"How often have you returned them? If you shop without taking the model's features into account and just think the outfit is fire because of them… explain why this fails." },
+  { id:'seed_8',  pillar:'Colour Education',               title:'Problems olive skin girls know too well',           concept:'Relatable hook for olive-toned people. Frustrations, mismatch moments, and the colour analysis solution.' },
+  { id:'seed_9',  pillar:'Colour Education',               title:'Problems cool-toned brunettes know too well',       concept:'Relatable hook for cool-toned brunettes. Same structure as olive skin post.' },
+  { id:'seed_10', pillar:'Colour Education',               title:'White tee and jeans is the cool girl vibe… but could I convince you to try off-white?', concept:'Talk about who suits beige instead of white and what that does for someone chasing the clean/model-off-duty aesthetic. Show examples.' },
+  { id:'seed_11', pillar:'Colour Education',               title:'Your [undertone] matters more than the trend',      concept:'Series! Swap [undertone] for another word. Break down current trends/patterns — e.g. zebra print is all the rage right now, who does it work for and who does it not work for?' },
+  { id:'seed_12', pillar:'Colour Education',               title:'If you want your teeth to look whiter, your makeup should reflect your season', concept:'Catchy hook — test grabs like this. Explain the link between season and which shades brighten vs dull the smile.' },
+  { id:'seed_13', pillar:'Client Sessions',                title:'What [colour] do you think my client looks best in?', concept:'Screenshot colour swatches. Eliminate until you get to the end and explain as you go. Interactive/poll format.' },
+  { id:'seed_14', pillar:'Shopping By Season',             title:'How to tell if a colour is warm or cool when shopping online', concept:'Practical guide — what to look for in product photos, descriptions and swatches when you can\'t see it in person.' },
+  { id:'seed_15', pillar:'Personal Expertise & Opinions',  title:'Colour analysis can save you money',               concept:"You'll stop buying those tops you said 'I'll wear them for an event' about but never reach for because deep down you know you wouldn't always wear them." },
+  // ── Compilations ──
+  { id:'seed_16', pillar:'Client Sessions',                title:'My face when the client picks the exact colours I knew they\'d hate', concept:'Compilation — clips of bad reactions, max 3 secs each.' },
+  { id:'seed_17', pillar:'Client Sessions',                title:"I'll never get over watching a client discover their season", concept:'Compilation — clips of positive reactions, max 3 secs each.' },
+  { id:'seed_18', pillar:'Client Sessions',                title:"Me figuring out how I'm going to break it to my clients when they don't see that these are their worst colours", concept:'Compilation — clips of the opposite reactions you expected them to have, max 3 secs each.' },
+];
+
+function smSeedIdeas() {
+  var existingIds = socialPosts.map(function(p){ return p.id; });
+  var added = false;
+  var now = Date.now();
+  SM_SEED_IDEAS.forEach(function(seed) {
+    if (existingIds.indexOf(seed.id) === -1) {
+      socialPosts.push({
+        id: seed.id, title: seed.title, stage: 'idea',
+        scheduledDate: null, platform: [], pillar: seed.pillar,
+        contentType: '', assignedTo: '', concept: seed.concept,
+        textOnScreen: '', caption: '', driveLink: '',
+        comments: [], createdAt: now, lastModified: now
+      });
+      added = true;
+    }
+  });
+  if (added) saveData();
 }
 
 // ── Legacy stubs (keep these so old save/load refs don't break) ──

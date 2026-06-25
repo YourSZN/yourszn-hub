@@ -72,6 +72,7 @@ function _applyLoadedData(d) {
   if (d.smMentions)        smMentions        = d.smMentions;
   if (d.smStrategyNotes)   smStrategyNotes   = d.smStrategyNotes;
   try { smUpdateNavBadge(); } catch(e){}
+  try { smSeedIdeas(); } catch(e){}
   if (typeof d.metaWeekOff !== 'undefined') metaWeekOff = d.metaWeekOff;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
