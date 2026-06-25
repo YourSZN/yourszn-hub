@@ -1200,6 +1200,12 @@
 <script src="app-finances.js"></script>
 <script src="app-comms.js"></script>
 <script src="app.js"></script>
+<script>
+  // Pre-warm face detection models on page load so they're ready
+  // for any section (OCA, Clients appointment slots, per-person contrast)
+  window.addEventListener('load', function() {
+    if (typeof mpPreWarm === 'function') mpPreWarm();
+  });
 </script>
 
   <!-- ══ HIDE CONFIRM MODAL ══ -->

@@ -2115,21 +2115,23 @@ function cctLoadPhoto(e) {
 
 function cctAutoDetect() {
   if (!clientContrastPhoto || typeof mpAnalyzeContrast !== 'function') return;
-  var ctn = document.getElementById('client-contrast-preview');
-  if (!ctn || !ctn.offsetWidth) return;
-  mpShowLoading(ctn);
-  mpAnalyzeContrast(clientContrastPhoto, ctn).then(function(result) {
-    mpHideLoading(document.getElementById('client-contrast-preview'));
-    if (!result) return;
-    console.log('[AutoContrast CCT] detected:', JSON.stringify(result));
-    clientContrastTags.skin.x = result.skin.x; clientContrastTags.skin.y = result.skin.y;
-    clientContrastTags.hair.x = result.hair.x; clientContrastTags.hair.y = result.hair.y;
-    clientContrastTags.eyes.x = result.eyes.x; clientContrastTags.eyes.y = result.eyes.y;
-    renderClientContrast();
-    cctSetVal('skin', result.skin.val);
-    cctSetVal('hair', result.hair.val);
-    cctSetVal('eyes', result.eyes.val);
-  });
+  setTimeout(function() {
+    var ctn = document.getElementById('client-contrast-preview');
+    if (!ctn || !ctn.offsetWidth) return;
+    mpShowLoading(ctn);
+    mpAnalyzeContrast(clientContrastPhoto, ctn).then(function(result) {
+      mpHideLoading(document.getElementById('client-contrast-preview'));
+      if (!result) return;
+      console.log('[AutoContrast CCT] detected:', JSON.stringify(result));
+      clientContrastTags.skin.x = result.skin.x; clientContrastTags.skin.y = result.skin.y;
+      clientContrastTags.hair.x = result.hair.x; clientContrastTags.hair.y = result.hair.y;
+      clientContrastTags.eyes.x = result.eyes.x; clientContrastTags.eyes.y = result.eyes.y;
+      renderClientContrast();
+      cctSetVal('skin', result.skin.val);
+      cctSetVal('hair', result.hair.val);
+      cctSetVal('eyes', result.eyes.val);
+    });
+  }, 80);
 }
 function cctClearPhoto() {
   clientContrastPhoto = null;
