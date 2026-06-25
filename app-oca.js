@@ -2343,13 +2343,11 @@ function renderOcaNeutralsCW() {
 // ── Drape Compare ──────────────────────────────────────────────────────────
 
 var OCA_DRAPE_FAMILIES = [
-  {key:'blue',   label:'Blues & Blue-Greens'},
-  {key:'green',  label:'Greens'},
-  {key:'purple', label:'Purples'},
-  {key:'pink',   label:'Pinks'},
-  {key:'red',    label:'Reds'},
-  {key:'orange', label:'Oranges'},
-  {key:'yellow', label:'Yellows'}
+  {key:'blue',   label:'Blues & Blue-Greens', keys:['blue']},
+  {key:'purple', label:'Purples',             keys:['purple']},
+  {key:'green',  label:'Greens',              keys:['green']},
+  {key:'warm',   label:'Pinks, Reds & Oranges', keys:['pink','red','orange']},
+  {key:'yellow', label:'Yellows',             keys:['yellow']}
 ];
 
 // Each swatch belongs to exactly ONE family — explicit map wins, then priority keyword order
@@ -2394,12 +2392,6 @@ function ocaDrapeSwatchFamily(name) {
   return null;
 }
 
-var OCA_CROSS_ROWS = [
-  {key:'pink_orange',  label:'Pink vs Orange',  fL:'pink',   fR:'orange'},
-  {key:'red_pink',     label:'Red vs Pink',     fL:'red',    fR:'pink'},
-  {key:'blue_purple',  label:'Blue vs Purple',  fL:'blue',   fR:'purple'},
-  {key:'black_brown',  label:'Black vs Brown',  special:'darkneut'}
-];
 
 var ocaDrape = {
   s1: 'Light Spring',
@@ -2441,10 +2433,14 @@ function ocaDrapeSetCustSwatch(side, val) {
 }
 
 function ocaDrapeGetByFamily(seasonName, familyKey) {
+  return ocaDrapeGetByFamilies(seasonName, [familyKey]);
+}
+
+function ocaDrapeGetByFamilies(seasonName, familyKeys) {
   var s = OCA_SEASONS[seasonName]; if (!s) return [];
   var all = (s.swatches||[]).concat(s.neutrals||[]);
   return all.filter(function(sw) {
-    return ocaDrapeSwatchFamily(sw.name) === familyKey;
+    return familyKeys.indexOf(ocaDrapeSwatchFamily(sw.name)) >= 0;
   });
 }
 
@@ -2535,30 +2531,11 @@ function renderOcaDrapeCompare() {
 
   var rows = '';
 
-  // Same-family rows
   OCA_DRAPE_FAMILIES.forEach(function(fam) {
-    var sw1 = ocaDrapeGetByFamily(s1, fam.key);
-    var sw2 = ocaDrapeGetByFamily(s2, fam.key);
+    var sw1 = ocaDrapeGetByFamilies(s1, fam.keys);
+    var sw2 = ocaDrapeGetByFamilies(s2, fam.keys);
     if (!sw1.length && !sw2.length) return;
     rows += ocaDrapeRenderRow(fam.key, fam.label, sw1, sw2, s1, s2);
-  });
-
-  // Cross-family rows
-  OCA_CROSS_ROWS.forEach(function(cr) {
-    var swL, swR;
-    if (cr.special==='darkneut') {
-      swL = ((OCA_SEASONS[s1]&&OCA_SEASONS[s1].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('black')>=0; })
-           .concat(((OCA_SEASONS[s2]&&OCA_SEASONS[s2].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('black')>=0; }));
-      swR = ((OCA_SEASONS[s1]&&OCA_SEASONS[s1].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('brown')>=0||n.indexOf('espresso')>=0||n.indexOf('chocolate')>=0; })
-           .concat(((OCA_SEASONS[s2]&&OCA_SEASONS[s2].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('brown')>=0||n.indexOf('espresso')>=0||n.indexOf('chocolate')>=0; }));
-    } else {
-      // Left = Season 1's both families combined; Right = Season 2's both families combined
-      // This keeps it clearly S1 vs S2, with a broader pool so you can compare eg S1 pink vs S2 orange
-      swL = ocaDrapeGetByFamily(s1, cr.fL).concat(ocaDrapeGetByFamily(s1, cr.fR));
-      swR = ocaDrapeGetByFamily(s2, cr.fL).concat(ocaDrapeGetByFamily(s2, cr.fR));
-    }
-    if (!swL.length && !swR.length) return;
-    rows += ocaDrapeRenderRow(cr.key, cr.label, swL, swR, s1, s2);
   });
 
   // Custom row
