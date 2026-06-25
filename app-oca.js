@@ -2343,15 +2343,56 @@ function renderOcaNeutralsCW() {
 // ── Drape Compare ──────────────────────────────────────────────────────────
 
 var OCA_DRAPE_FAMILIES = [
-  {key:'blue',    label:'Blues',         keywords:['blue','sky','cornflower','periwinkle','slate blue','powder','cobalt','sapphire','ice','mist blue']},
-  {key:'teal',    label:'Teals & Aquas', keywords:['teal','turquoise','aqua','mint','seafoam','dusty teal']},
-  {key:'green',   label:'Greens',        keywords:['green','lime','sage','olive','forest','apple green','bright green','yellow green']},
-  {key:'purple',  label:'Purples',       keywords:['purple','violet','lavender','lilac','plum','orchid','periwinkle','blue violet','mauve lavender','soft lavender','dusty purple']},
-  {key:'pink',    label:'Pinks',         keywords:['pink','blush','rose','dusky','cerise','mauve','mushroom','rose beige','hot pink','coral pink','salmon rose']},
-  {key:'red',     label:'Reds',          keywords:['red','crimson','burgundy','raspberry','brick','rust','coral red','warm red']},
-  {key:'orange',  label:'Oranges',       keywords:['orange','coral','peach','apricot','salmon','terracotta','burnt orange','peach salmon']},
-  {key:'yellow',  label:'Yellows',       keywords:['yellow','lemon','butter','gold','mustard','ochre','pale lemon','pale yellow','golden']}
+  {key:'blue',   label:'Blues & Blue-Greens'},
+  {key:'green',  label:'Greens'},
+  {key:'purple', label:'Purples'},
+  {key:'pink',   label:'Pinks'},
+  {key:'red',    label:'Reds'},
+  {key:'orange', label:'Oranges'},
+  {key:'yellow', label:'Yellows'}
 ];
+
+// Each swatch belongs to exactly ONE family — explicit map wins, then priority keyword order
+var OCA_DRAPE_SWATCH_MAP = {
+  // purples (ambiguous names that also contain other keywords)
+  'blue violet':'purple','mauve lavender':'purple','periwinkle':'purple',
+  // pinks
+  'coral pink':'pink','salmon rose':'pink','cerise':'pink','hot pink':'pink',
+  'dusty pink':'pink','soft pink':'pink','rose beige':'pink','blush':'pink','salmon pink':'pink',
+  // reds
+  'coral red':'red','raspberry':'red','burgundy':'red',
+  // oranges
+  'peach salmon':'orange','warm peach':'orange',
+  // greens
+  'yellow green':'green','lime green':'green','apple green':'green','bright green':'green',
+  'light mint':'green','warm teal':'blue',
+  // yellows
+  'pale lemon':'yellow','pale yellow':'yellow','golden yellow':'yellow',
+  // blues
+  'dusty teal':'blue','light aqua':'blue','light blue':'blue','slate blue':'blue'
+};
+
+function ocaDrapeSwatchFamily(name) {
+  var n = name.toLowerCase();
+  if (OCA_DRAPE_SWATCH_MAP[n]) return OCA_DRAPE_SWATCH_MAP[n];
+  // priority order: teal/aqua → blue first (before green captures 'mint')
+  if (n.indexOf('teal')>=0||n.indexOf('turquoise')>=0||n.indexOf('aqua')>=0||n.indexOf('seafoam')>=0) return 'blue';
+  // purple before blue so 'blue violet' style names don't fall to blue
+  if (n.indexOf('purple')>=0||n.indexOf('violet')>=0||n.indexOf('lavender')>=0||n.indexOf('lilac')>=0||n.indexOf('plum')>=0||n.indexOf('orchid')>=0) return 'purple';
+  // blue
+  if (n.indexOf('blue')>=0||n.indexOf('sky')>=0||n.indexOf('cornflower')>=0||n.indexOf('cobalt')>=0||n.indexOf('sapphire')>=0||n.indexOf('peacock')>=0) return 'blue';
+  // green (mint goes here, not blue)
+  if (n.indexOf('green')>=0||n.indexOf('sage')>=0||n.indexOf('olive')>=0||n.indexOf('mint')>=0||n.indexOf('forest')>=0||n.indexOf('khaki')>=0||n.indexOf('lime')>=0) return 'green';
+  // red before pink (raspberry, burgundy already in map; 'red' keyword)
+  if (n.indexOf('red')>=0||n.indexOf('crimson')>=0||n.indexOf('rust')>=0||n.indexOf('brick')>=0) return 'red';
+  // pink (check mauve here — plain 'mauve' → pink, but 'mauve lavender' → purple via map)
+  if (n.indexOf('pink')>=0||n.indexOf('rose')>=0||n.indexOf('blush')>=0||n.indexOf('cerise')>=0||n.indexOf('mauve')>=0) return 'pink';
+  // orange (coral goes here — 'coral pink'/'coral red' already in map)
+  if (n.indexOf('orange')>=0||n.indexOf('coral')>=0||n.indexOf('peach')>=0||n.indexOf('apricot')>=0||n.indexOf('salmon')>=0||n.indexOf('terracotta')>=0) return 'orange';
+  // yellow
+  if (n.indexOf('yellow')>=0||n.indexOf('lemon')>=0||n.indexOf('butter')>=0||(n.indexOf('gold')>=0&&n.indexOf('golden')>=0)||n.indexOf('mustard')>=0||n.indexOf('ochre')>=0) return 'yellow';
+  return null;
+}
 
 var OCA_CROSS_ROWS = [
   {key:'pink_orange',  label:'Pink vs Orange',  fL:'pink',   fR:'orange'},
@@ -2402,12 +2443,8 @@ function ocaDrapeSetCustSwatch(side, val) {
 function ocaDrapeGetByFamily(seasonName, familyKey) {
   var s = OCA_SEASONS[seasonName]; if (!s) return [];
   var all = (s.swatches||[]).concat(s.neutrals||[]);
-  var fam = null;
-  for (var i=0; i<OCA_DRAPE_FAMILIES.length; i++) { if (OCA_DRAPE_FAMILIES[i].key===familyKey) { fam=OCA_DRAPE_FAMILIES[i]; break; } }
-  if (!fam) return [];
   return all.filter(function(sw) {
-    var n = sw.name.toLowerCase();
-    return fam.keywords.some(function(k){ return n.indexOf(k)>=0; });
+    return ocaDrapeSwatchFamily(sw.name) === familyKey;
   });
 }
 
