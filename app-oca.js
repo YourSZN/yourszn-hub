@@ -2547,22 +2547,18 @@ function renderOcaDrapeCompare() {
   OCA_CROSS_ROWS.forEach(function(cr) {
     var swL, swR;
     if (cr.special==='darkneut') {
-      var neu1 = (OCA_SEASONS[s1]&&OCA_SEASONS[s1].neutrals)||[];
-      var neu2 = (OCA_SEASONS[s2]&&OCA_SEASONS[s2].neutrals)||[];
-      var allNeu = neu1.concat(neu2);
-      swL = allNeu.filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('black')>=0; });
-      swR = allNeu.filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('brown')>=0||n.indexOf('espresso')>=0||n.indexOf('chocolate')>=0; });
+      swL = ((OCA_SEASONS[s1]&&OCA_SEASONS[s1].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('black')>=0; })
+           .concat(((OCA_SEASONS[s2]&&OCA_SEASONS[s2].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('black')>=0; }));
+      swR = ((OCA_SEASONS[s1]&&OCA_SEASONS[s1].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('brown')>=0||n.indexOf('espresso')>=0||n.indexOf('chocolate')>=0; })
+           .concat(((OCA_SEASONS[s2]&&OCA_SEASONS[s2].neutrals)||[]).filter(function(sw){ var n=sw.name.toLowerCase(); return n.indexOf('brown')>=0||n.indexOf('espresso')>=0||n.indexOf('chocolate')>=0; }));
     } else {
-      var s1L = ocaDrapeGetByFamily(s1, cr.fL);
-      var s2L = ocaDrapeGetByFamily(s2, cr.fL);
-      var s1R = ocaDrapeGetByFamily(s1, cr.fR);
-      var s2R = ocaDrapeGetByFamily(s2, cr.fR);
-      swL = s1L.concat(s2L);
-      swR = s1R.concat(s2R);
+      // Left = Season 1's both families combined; Right = Season 2's both families combined
+      // This keeps it clearly S1 vs S2, with a broader pool so you can compare eg S1 pink vs S2 orange
+      swL = ocaDrapeGetByFamily(s1, cr.fL).concat(ocaDrapeGetByFamily(s1, cr.fR));
+      swR = ocaDrapeGetByFamily(s2, cr.fL).concat(ocaDrapeGetByFamily(s2, cr.fR));
     }
     if (!swL.length && !swR.length) return;
-    var parts = cr.label.split(' vs ');
-    rows += ocaDrapeRenderRow(cr.key, cr.label, swL, swR, parts[0], parts[1]);
+    rows += ocaDrapeRenderRow(cr.key, cr.label, swL, swR, s1, s2);
   });
 
   // Custom row
