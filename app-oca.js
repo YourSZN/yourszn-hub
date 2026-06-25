@@ -2540,32 +2540,31 @@ function renderOcaDrapeCompare() {
 
   // Custom row
   var cL = ocaDrape.custL, cR = ocaDrape.custR;
-  var mkSwatchOpts = function(seas, curHex) {
-    var opts = '<option value="">— Colour —</option>';
-    if (seas && OCA_SEASONS[seas]) {
-      var all = (OCA_SEASONS[seas].swatches||[]).concat(OCA_SEASONS[seas].neutrals||[]);
-      opts += all.map(function(sw){ return '<option value="'+sw.hex+'|'+sw.name+'"'+(sw.hex===curHex?' selected':'')+'>'+sw.name+'</option>'; }).join('');
-    }
-    return opts;
-  };
+
+  function custSwatchGrid(seas, side, curHex) {
+    if (!seas || !OCA_SEASONS[seas]) return '<div style="font-size:11px;color:var(--muted);padding:6px 0">Pick a season above</div>';
+    var all = (OCA_SEASONS[seas].swatches||[]).concat(OCA_SEASONS[seas].neutrals||[]);
+    return '<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:10px">'
+      + all.map(function(sw) {
+          var sel = sw.hex===curHex ? 'box-shadow:0 0 0 3px var(--deep);transform:scale(1.12)' : 'box-shadow:0 1px 4px rgba(0,0,0,0.18)';
+          return '<div onclick="ocaDrapeSetCustSwatch(\''+side+'\',\''+sw.hex+'|'+sw.name+'\')" title="'+sw.name+'" style="width:42px;height:42px;border-radius:10px;background:'+sw.hex+';cursor:pointer;border:2px solid rgba(255,255,255,0.6);transition:transform .1s;'+sel+'"></div>';
+        }).join('')
+      + '</div>';
+  }
 
   var custRow = '<div style="border-top:2px solid var(--sand);padding-top:24px;margin-top:8px">'
     +'<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Custom Comparison</div>'
-    +'<div style="display:flex;gap:12px;margin-bottom:16px">'
+    +'<div style="display:flex;gap:16px;margin-bottom:16px">'
     // left picker
-    +'<div style="flex:1;display:flex;flex-direction:column;gap:8px">'
-    +'<select onchange="ocaDrapeSetCustSeas(\'l\',this.value)" style="padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)"><option value="">— Season —</option>'+mkOpts(cL.seas)+'</select>'
-    +'<div style="display:flex;gap:8px;align-items:center">'
-    +(cL.hex?'<div style="width:28px;height:28px;border-radius:6px;background:'+cL.hex+';border:1px solid rgba(0,0,0,0.1);flex-shrink:0"></div>':'<div style="width:28px;height:28px;border-radius:6px;background:var(--sand);border:1px dashed var(--muted);flex-shrink:0"></div>')
-    +'<select onchange="ocaDrapeSetCustSwatch(\'l\',this.value)" '+(cL.seas?'':'disabled ')+'style="flex:1;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)">'+mkSwatchOpts(cL.seas,cL.hex)+'</select>'
-    +'</div></div>'
+    +'<div style="flex:1">'
+    +'<select onchange="ocaDrapeSetCustSeas(\'l\',this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)"><option value="">— Season —</option>'+mkOpts(cL.seas)+'</select>'
+    + custSwatchGrid(cL.seas, 'l', cL.hex)
+    +'</div>'
     // right picker
-    +'<div style="flex:1;display:flex;flex-direction:column;gap:8px">'
-    +'<select onchange="ocaDrapeSetCustSeas(\'r\',this.value)" style="padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)"><option value="">— Season —</option>'+mkOpts(cR.seas)+'</select>'
-    +'<div style="display:flex;gap:8px;align-items:center">'
-    +(cR.hex?'<div style="width:28px;height:28px;border-radius:6px;background:'+cR.hex+';border:1px solid rgba(0,0,0,0.1);flex-shrink:0"></div>':'<div style="width:28px;height:28px;border-radius:6px;background:var(--sand);border:1px dashed var(--muted);flex-shrink:0"></div>')
-    +'<select onchange="ocaDrapeSetCustSwatch(\'r\',this.value)" '+(cR.seas?'':'disabled ')+'style="flex:1;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)">'+mkSwatchOpts(cR.seas,cR.hex)+'</select>'
-    +'</div></div>'
+    +'<div style="flex:1">'
+    +'<select onchange="ocaDrapeSetCustSeas(\'r\',this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--sand);border-radius:8px;font-size:12px;background:white;color:var(--deep)"><option value="">— Season —</option>'+mkOpts(cR.seas)+'</select>'
+    + custSwatchGrid(cR.seas, 'r', cR.hex)
+    +'</div>'
     +'</div>';
 
   if (cL.hex && cR.hex) {
