@@ -128,34 +128,49 @@ function mpAnalyzeContrast(dataUrl, containerEl) {
         // ── Landmark reference (68-pt model) ──
         // 0-16: jaw    17-21: L brow    22-26: R brow
         // 27-35: nose  36-41: L eye     42-47: R eye
-        //
-        // Chin: pts[8]   Top of brows: pts[17..26]
-        var chinY    = pts[8].y;
-        var browTopY = Math.min.apply(null, [17,18,19,20,21,22,23,24,25,26].map(function(i){ return pts[i].y; }));
-        var browCtrX = (pts[19].x + pts[24].x) / 2; // midpoint between brow arches
-        var faceH    = chinY - browTopY;
+        var box  = result.detection.box; // {x,y,width,height} in image pixels
+        var faceW = box.width;
+        var faceH = box.height;
+        var sampleR = Math.round(faceW * 0.06); // radius scales with face size
 
-        // Hair: above brow centre by ~40% of face height
-        var hairPx = Math.round(browCtrX);
-        var hairPy = Math.round(Math.max(4, browTopY - faceH * 0.38));
+        // HAIR — sample at the LEFT and RIGHT temporal regions (upper corners of
+        // the face bounding box).  Taking the DARKER of the two avoids light
+        // studio backgrounds that appear when hair is pulled back.
+        var hairLPx = Math.round(box.x + faceW * 0.12);
+        var hairLPy = Math.round(box.y + faceH * 0.08);
+        var hairRPx = Math.round(box.x + faceW * 0.88);
+        var hairRPy = Math.round(box.y + faceH * 0.08);
+        var hairLumL = mpSampleLum(ctx, imgW, imgH, hairLPx, hairLPy, sampleR);
+        var hairLumR = mpSampleLum(ctx, imgW, imgH, hairRPx, hairRPy, sampleR);
+        // Use whichever side is darker (true hair, not highlighted scalp/background)
+        var hairLum, hairPx, hairPy;
+        if (hairLumL <= hairLumR) {
+          hairLum = hairLumL; hairPx = hairLPx; hairPy = hairLPy;
+        } else {
+          hairLum = hairLumR; hairPx = hairRPx; hairPy = hairRPy;
+        }
 
-        // Skin: left cheek — between bottom of left eye and jaw
+        // SKIN — left cheek between eye bottom and jaw, weighted toward the jaw
         var leftEyeBottomY = Math.max(pts[40].y, pts[41].y);
         var skinPx = Math.round(pts[3].x * 0.55 + pts[41].x * 0.45);
         var skinPy = Math.round(leftEyeBottomY * 0.35 + pts[3].y * 0.65);
+        var skinLum = mpSampleLum(ctx, imgW, imgH, skinPx, skinPy, sampleR);
 
-        // Eyes: centre of the combined eye region
-        var lEyeX = (pts[36].x + pts[39].x) / 2;
-        var lEyeY = (pts[36].y + pts[37].y + pts[38].y + pts[39].y + pts[40].y + pts[41].y) / 6;
-        var rEyeX = (pts[42].x + pts[45].x) / 2;
-        var rEyeY = (pts[42].y + pts[43].y + pts[44].y + pts[45].y + pts[46].y + pts[47].y) / 6;
-        var eyesPx = Math.round((lEyeX + rEyeX) / 2);
-        var eyesPy = Math.round((lEyeY + rEyeY) / 2);
+        // EYES — centroid of each eye's 6 landmarks, tiny radius to focus on
+        // the iris rather than averaging in the white sclera.
+        // Take the DARKER of the two (closer to true iris colour).
+        var lEyePx = Math.round(pts.slice(36,42).reduce(function(s,p){return s+p.x;},0)/6);
+        var lEyePy = Math.round(pts.slice(36,42).reduce(function(s,p){return s+p.y;},0)/6);
+        var rEyePx = Math.round(pts.slice(42,48).reduce(function(s,p){return s+p.x;},0)/6);
+        var rEyePy = Math.round(pts.slice(42,48).reduce(function(s,p){return s+p.y;},0)/6);
+        var irisR  = Math.max(3, Math.round(faceW * 0.025)); // ~2.5% of face width
+        var lEyeLum = mpSampleLum(ctx, imgW, imgH, lEyePx, lEyePy, irisR);
+        var rEyeLum = mpSampleLum(ctx, imgW, imgH, rEyePx, rEyePy, irisR);
+        var eyesLum = Math.min(lEyeLum, rEyeLum);
+        var eyesPx  = lEyeLum <= rEyeLum ? lEyePx : rEyePx;
+        var eyesPy  = lEyeLum <= rEyeLum ? lEyePy : rEyePy;
 
-        // Sample luminance at each region
-        var hairLum = mpSampleLum(ctx, imgW, imgH, hairPx, hairPy, 16);
-        var skinLum = mpSampleLum(ctx, imgW, imgH, skinPx, skinPy, 16);
-        var eyesLum = mpSampleLum(ctx, imgW, imgH, eyesPx, eyesPy, 8);
+        console.log('[AutoContrast] lums — hair:', Math.round(hairLum), 'skin:', Math.round(skinLum), 'eyes:', Math.round(eyesLum));
 
         // Convert image-pixel positions → container positions → tag left/top
         function tagPos(ipx, ipy) {
