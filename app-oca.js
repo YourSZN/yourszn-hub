@@ -818,12 +818,21 @@ var OCA_IMG = {
 // ══════════════════════════════════════════════════
 // Cool vs warm NEUTRAL drape pairs
 var OCA_CW_NEUTRALS = [
-  {label:'Cool White vs Warm Cream',   cool:'#F4F4FA', warm:'#FFF8E8'},
-  {label:'Cool Grey vs Warm Greige',   cool:'#9898A8', warm:'#A89878'},
-  {label:'Cool Navy vs Warm Navy',     cool:'#0A1880', warm:'#0E3858'},
-  {label:'Cool Taupe vs Warm Taupe',   cool:'#A09898', warm:'#B09870'},
-  {label:'Cool Black vs Warm Black',   cool:'#0A0A14', warm:'#1C1008'},
-  {label:'Cool Camel vs Warm Camel',   cool:'#C0B0A0', warm:'#C89850'}
+  {label:'Optic White vs Cream',        cool:'#FAFAFA', warm:'#FFF5DC'},
+  {label:'Soft White vs Warm Ivory',    cool:'#F4F2EE', warm:'#FFF0D0'},
+  {label:'Cool Ivory vs Oatmeal',       cool:'#EDE8E2', warm:'#E8D4B8'},
+  {label:'Dove Grey vs Ecru',           cool:'#B4BCC8', warm:'#E0C898'},
+  {label:'Charcoal Grey vs Sand',       cool:'#3A3A3A', warm:'#D4BC90'},
+  {label:'Slate Grey vs Yellow Grey',   cool:'#7A8EA8', warm:'#B0A888'},
+  {label:'Cool Taupe vs Camel',         cool:'#A89E98', warm:'#C89A50'},
+  {label:'Mushroom vs Tan',             cool:'#B89890', warm:'#C08858'},
+  {label:'Rose Beige vs Caramel',       cool:'#D4A8A0', warm:'#A06030'},
+  {label:'Pewter vs Chocolate Brown',   cool:'#909898', warm:'#4A2010'},
+  {label:'Cool Brown vs Olive Khaki',   cool:'#8A4840', warm:'#8A8850'},
+  {label:'Navy vs Ultramarine Blue',    cool:'#0C1848', warm:'#1E2A80'},
+  {label:'Black vs Espresso Brown',     cool:'#080808', warm:'#2A1208'},
+  {label:'Cool Navy vs Warm Navy',      cool:'#1C3060', warm:'#1A2A58'},
+  {label:'Cool Grey vs Golden Yellow',  cool:'#8898A8', warm:'#C8A028'}
 ];
 
 var ocaNeutVotes = {};
