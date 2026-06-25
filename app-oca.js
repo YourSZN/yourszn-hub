@@ -828,11 +828,11 @@ var OCA_CW_NEUTRALS = [
   {label:'Mushroom vs Tan',             cool:'#B89890', warm:'#C08858'},
   {label:'Rose Beige vs Caramel',       cool:'#D4A8A0', warm:'#A06030'},
   {label:'Pewter vs Chocolate Brown',   cool:'#909898', warm:'#4A2010'},
-  {label:'Cool Brown vs Olive Khaki',   cool:'#8A4840', warm:'#8A8850'},
-  {label:'Navy vs Ultramarine Blue',    cool:'#0C1848', warm:'#1E2A80'},
+  {label:'Olive Khaki vs Cool Brown',   cool:'#8A8850', warm:'#8A4840'},
+  {label:'Navy vs Ultramarine Blue',    cool:'#0C1848', warm:'#384878'},
   {label:'Black vs Espresso Brown',     cool:'#080808', warm:'#2A1208'},
-  {label:'Cool Navy vs Warm Navy',      cool:'#1C3060', warm:'#1A2A58'},
-  {label:'Cool Grey vs Golden Yellow',  cool:'#8898A8', warm:'#C8A028'}
+  {label:'Cool Navy vs Warm Navy',      cool:'#081840', warm:'#1E3850'},
+  {label:'Cool Grey vs Golden Yellow',  cool:'#607080', warm:'#B87828'}
 ];
 
 var ocaNeutVotes = {};
