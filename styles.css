@@ -51,7 +51,9 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .nsec{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:14px 28px 6px;}
 .sout{margin:0 20px 8px;padding:10px;border-radius:8px;border:1px solid var(--sand);background:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
 .sout:hover{background:var(--sand);color:var(--deep);}
-.main{margin-left:220px;min-height:100vh;padding:40px 48px;flex:1;}
+.main{margin-left:220px;min-height:100vh;padding:40px 48px;flex:1;transition:margin-left .25s ease;}
+body.oca-fs .sidebar{display:none;}
+body.oca-fs .main{margin-left:0;}
 .page{display:none;}
 .page.on{display:block;animation:fi .3s ease;}
 @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
