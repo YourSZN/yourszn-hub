@@ -79,8 +79,13 @@ function renderSocialPage() {
   else if (smActiveTab === 'ideas')    contentHtml = smRenderIdeaBank();
   else if (smActiveTab === 'strategy') contentHtml = smRenderStrategy();
 
-  el.innerHTML = tabHtml + contentHtml + smPostModal();
+  el.innerHTML = tabHtml + contentHtml;
 
+  // Render modal into its own root outside .main so position:fixed works correctly
+  var modalRoot = document.getElementById('sm-modal-root');
+  if (modalRoot && !document.getElementById('sm-post-modal')) {
+    modalRoot.innerHTML = smPostModal();
+  }
   var modal = document.getElementById('sm-post-modal');
   if (modal) modal.onclick = function(e) { if (e.target === modal) smCloseModal(); };
 }
@@ -88,7 +93,7 @@ function renderSocialPage() {
 function smSetTab(tab) {
   smActiveTab = tab;
   renderSocialPage();
-  var m = document.querySelector('.main'); if (m) m.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
 }
 
 // ══ PIPELINE ══
@@ -642,8 +647,8 @@ function smPostModal() {
     +   '<div id="sm-mention-dropdown" style="display:none;position:absolute;background:white;border:1px solid var(--sand);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:700;min-width:160px;overflow:hidden"></div>'
     + '</div>';
 
-  return '<div id="sm-post-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;overflow-y:auto;padding:24px 16px">'
-    + '<div style="background:white;border-radius:16px;padding:28px 32px;max-width:1000px;width:100%;position:relative">'
+  return '<div id="sm-post-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;overflow-y:auto;padding:40px 16px">'
+    + '<div style="background:white;border-radius:16px;padding:28px 32px;max-width:1000px;width:100%;position:relative;margin:0 auto">'
     + '<button onclick="smCloseModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&#215;</button>'
     + '<div id="sm-modal-heading" style="font-size:18px;font-weight:700;color:var(--deep);margin-bottom:22px">New Post</div>'
 
@@ -724,7 +729,7 @@ function smOpenModal(id, defaultStage, defaultDate) {
   _smDraftComments = [];
   smRenderComments(post ? post.id : null);
 
-  modal.style.display = 'flex';
+  modal.style.display = 'block';
   setTimeout(function() { var t = document.getElementById('sm-f-title'); if (t) t.focus(); }, 80);
 }
 

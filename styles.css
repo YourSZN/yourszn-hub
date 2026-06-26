@@ -37,7 +37,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 
 /* ── APP SHELL ── */
 #app{display:none;}
-#app.show{display:flex;height:100vh;}
+#app.show{display:flex;min-height:100vh;}
 .sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:#F9F5F0;border-right:1px solid #E5DDD4;display:flex;flex-direction:column;padding:32px 0;z-index:100;}
 .slogo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:var(--deep);letter-spacing:3px;text-transform:uppercase;padding:0 28px 24px;border-bottom:1px solid var(--sand);}
 .slogo span{color:var(--deep);font-style:italic;}
@@ -51,7 +51,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .nsec{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:14px 28px 6px;}
 .sout{margin:0 20px 8px;padding:10px;border-radius:8px;border:1px solid var(--sand);background:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
 .sout:hover{background:var(--sand);color:var(--deep);}
-.main{margin-left:220px;height:100vh;overflow-y:auto;padding:40px 48px;flex:1;scroll-behavior:smooth;}
+.main{margin-left:220px;min-height:100vh;padding:40px 48px;flex:1;}
 .page{display:none;}
 .page.on{display:block;animation:fi .3s ease;}
 @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
