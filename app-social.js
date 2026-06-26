@@ -558,9 +558,11 @@ function smLbl(text) {
 }
 
 function smPostModal() {
-  var leftCol = ''
-    + '<div>' + smLbl('Title *') + '<input id="sm-f-title" class="fi" placeholder="Post title…"></div>'
+  // ── Row 1: Title (full width) ──────────────────────────────────────
+  var titleRow = '<div>' + smLbl('Title *') + '<input id="sm-f-title" class="fi" placeholder="Post title…"></div>';
 
+  // ── Row 2: two columns — metadata left, caption/links/comments right ─
+  var leftCol = ''
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     +   '<div>' + smLbl('Stage') + '<select id="sm-f-stage" class="fi" onchange="smStageChange()">'
     +     SM_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
@@ -569,7 +571,7 @@ function smPostModal() {
     + '</div>'
 
     + '<div>' + smLbl('Platform')
-    +   '<div style="display:flex;gap:16px;padding-top:2px">'
+    +   '<div style="display:flex;gap:16px;padding-top:3px">'
     +   ['TikTok','Instagram'].map(function(p){
           return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none">'
             + '<input type="checkbox" id="sm-f-plat-'+p.toLowerCase()+'" value="'+p+'" style="width:15px;height:15px;cursor:pointer"> '+p+'</label>';
@@ -587,17 +589,11 @@ function smPostModal() {
 
     + '<div>' + smLbl('Assigned To') + '<select id="sm-f-assign" class="fi"><option value="">— Unassigned —</option>'
     +   ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
-    + '</select></div>'
-
-    + '<div>' + smLbl('Concept')
-    +   '<textarea id="sm-f-concept" class="fi" rows="4" placeholder="What\'s the idea…" style="resize:vertical"></textarea></div>'
-
-    + '<div>' + smLbl('Text on Screen')
-    +   '<textarea id="sm-f-tos" class="fi" rows="3" placeholder="On-screen text…" style="resize:vertical"></textarea></div>';
+    + '</select></div>';
 
   var rightCol = ''
     + '<div>' + smLbl('Caption')
-    +   '<textarea id="sm-f-caption" class="fi" rows="5" placeholder="Caption + hashtags…" style="resize:vertical"></textarea></div>'
+    +   '<textarea id="sm-f-caption" class="fi" rows="4" placeholder="Caption + hashtags…" style="resize:vertical"></textarea></div>'
 
     + '<div>' + smLbl('Google Drive Link')
     +   '<input id="sm-f-drive" class="fi" placeholder="drive.google.com/…"></div>'
@@ -611,9 +607,9 @@ function smPostModal() {
     +   '</div></div>'
 
     // ── Comments ──
-    + '<div id="sm-comments-section" style="border-top:1px solid var(--sand);padding-top:16px;margin-top:4px">'
+    + '<div id="sm-comments-section" style="border-top:1px solid var(--sand);padding-top:14px">'
     +   '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Comments</div>'
-    +   '<div id="sm-comments-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;max-height:180px;overflow-y:auto"></div>'
+    +   '<div id="sm-comments-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;max-height:160px;overflow-y:auto"></div>'
     +   '<div style="position:relative">'
     +     '<textarea id="sm-comment-input" class="fi" rows="2" placeholder="Leave a comment… type @ to tag someone" style="resize:none;padding-right:70px" oninput="smCommentInput(this)" onkeydown="smCommentKey(event)"></textarea>'
     +     '<button onclick="smAddComment()" class="btn btnp" style="position:absolute;bottom:8px;right:8px;padding:5px 12px;font-size:11px">Post</button>'
@@ -621,14 +617,27 @@ function smPostModal() {
     +   '<div id="sm-mention-dropdown" style="display:none;position:absolute;background:white;border:1px solid var(--sand);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:700;min-width:160px;overflow:hidden"></div>'
     + '</div>';
 
-  return '<div id="sm-post-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;overflow-y:auto;padding:20px">'
-    + '<div style="background:white;border-radius:16px;padding:28px 32px;max-width:960px;width:100%;position:relative">'
-    + '<button onclick="smCloseModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&#215;</button>'
-    + '<div id="sm-modal-heading" style="font-size:18px;font-weight:700;color:var(--deep);margin-bottom:22px">New Post</div>'
+  // ── Row 3: Concept + Text on Screen (full width) ──────────────────
+  var bottomRow = ''
+    + '<div style="display:grid;grid-template-columns:3fr 2fr;gap:20px">'
+    +   '<div>' + smLbl('Concept')
+    +     '<textarea id="sm-f-concept" class="fi" rows="5" placeholder="What\'s the idea…" style="resize:vertical;width:100%"></textarea></div>'
+    +   '<div>' + smLbl('Text on Screen')
+    +     '<textarea id="sm-f-tos" class="fi" rows="5" placeholder="On-screen text…" style="resize:vertical;width:100%"></textarea></div>'
+    + '</div>';
 
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">'
-    +   '<div style="display:flex;flex-direction:column;gap:14px">' + leftCol + '</div>'
-    +   '<div style="display:flex;flex-direction:column;gap:14px">' + rightCol + '</div>'
+  return '<div id="sm-post-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;overflow-y:auto;padding:20px">'
+    + '<div style="background:white;border-radius:16px;padding:28px 32px;max-width:1020px;width:100%;position:relative">'
+    + '<button onclick="smCloseModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&#215;</button>'
+    + '<div id="sm-modal-heading" style="font-size:18px;font-weight:700;color:var(--deep);margin-bottom:20px">New Post</div>'
+
+    + '<div style="display:flex;flex-direction:column;gap:18px">'
+    +   titleRow
+    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">'
+    +     '<div style="display:flex;flex-direction:column;gap:14px">' + leftCol + '</div>'
+    +     '<div style="display:flex;flex-direction:column;gap:14px">' + rightCol + '</div>'
+    +   '</div>'
+    +   bottomRow
     + '</div>'
 
     + '<div id="sm-f-err" style="color:#EF4444;font-size:12px;display:none;margin-top:12px"></div>'
