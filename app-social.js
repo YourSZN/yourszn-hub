@@ -23,11 +23,11 @@ var SM_PILLARS = [
 ];
 
 var SM_PILLAR_COLORS = {
-  'Personal Expertise & Opinions': '#C49A8A',
-  'Colour Education':               '#7A8C6E',
-  'Shopping By Season':             '#C4956A',
-  'Client Sessions':                '#6366F1',
-  'Static Posts':                   '#9CA3AF'
+  'Personal Expertise & Opinions': '#EF4444',
+  'Colour Education':               '#3B82F6',
+  'Shopping By Season':             '#22C55E',
+  'Client Sessions':                '#8B5CF6',
+  'Static Posts':                   '#F97316'
 };
 
 var SM_CONTENT_TYPES = ['Quick Chat', 'Reel', 'Carousel', 'Quick Comparisons', 'Review/Overlays', 'Celebrity Analysis', 'Consultation'];
@@ -151,7 +151,8 @@ function smRenderPipeline() {
         ? '<span style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:3px">&#128172; ' + commentCount + '</span>'
         : '';
 
-      html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + (isNew ? '#FFFBEB' : 'white') + ';border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.1)\'" onmouseout="this.style.boxShadow=\'none\'">'
+      var pipelineAccent = pillarCol ? 'inset 4px 0 0 ' + pillarCol : 'none';
+      html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + (isNew ? '#FFFBEB' : 'white') + ';border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';border-radius:10px;padding:10px;padding-left:12px;margin-bottom:8px;cursor:pointer;box-shadow:' + pipelineAccent + ';transition:filter .15s" onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
         + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:6px;line-height:1.35">' + esc(post.title) + '</div>'
         + updBadge
         + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' + platTags + '</div>' : '')
