@@ -556,17 +556,27 @@ function smStrategyPillars() {
 function smLbl(text) {
   return '<label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.8px;text-transform:uppercase">' + text + '</label>';
 }
+var SM_FI = 'class="fi" style="width:100%;box-sizing:border-box"';
+var SM_TA = function(id, rows, placeholder, extra) {
+  return '<textarea id="' + id + '" class="fi" rows="' + rows + '" placeholder="' + placeholder + '" style="width:100%;box-sizing:border-box;resize:vertical' + (extra ? ';' + extra : '') + '"></textarea>';
+};
+var SM_SEL = function(id, extra) {
+  return '<select id="' + id + '" class="fi" style="width:100%;box-sizing:border-box"' + (extra || '') + '>';
+};
+var SM_IN = function(id, type, placeholder) {
+  return '<input id="' + id + '" type="' + (type||'text') + '" class="fi" placeholder="' + placeholder + '" style="width:100%;box-sizing:border-box">';
+};
 
 function smPostModal() {
   // Left col: Title, Stage, Platform, Pillar+Type, Assigned To, Text on Screen
   var leftCol = ''
-    + '<div>' + smLbl('Title *') + '<input id="sm-f-title" class="fi" placeholder="Post title…"></div>'
+    + '<div>' + smLbl('Title *') + SM_IN('sm-f-title', 'text', 'Post title…') + '</div>'
 
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +   '<div>' + smLbl('Stage') + '<select id="sm-f-stage" class="fi" onchange="smStageChange()">'
+    +   '<div>' + smLbl('Stage') + SM_SEL('sm-f-stage', ' onchange="smStageChange()"')
     +     SM_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
     +   '</select></div>'
-    +   '<div id="sm-date-wrap" style="display:none">' + smLbl('Scheduled Date') + '<input id="sm-f-date" type="date" class="fi"></div>'
+    +   '<div id="sm-date-wrap" style="display:none">' + smLbl('Scheduled Date') + SM_IN('sm-f-date','date','') + '</div>'
     + '</div>'
 
     + '<div>' + smLbl('Platform')
@@ -578,40 +588,36 @@ function smPostModal() {
     +   '</div></div>'
 
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +   '<div>' + smLbl('Pillar') + '<select id="sm-f-pillar" class="fi"><option value="">— Select pillar —</option>'
+    +   '<div>' + smLbl('Pillar') + SM_SEL('sm-f-pillar') + '<option value="">— Select pillar —</option>'
     +     SM_PILLARS.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('')
     +   '</select></div>'
-    +   '<div>' + smLbl('Content Type') + '<select id="sm-f-ctype" class="fi"><option value="">— Select type —</option>'
+    +   '<div>' + smLbl('Content Type') + SM_SEL('sm-f-ctype') + '<option value="">— Select type —</option>'
     +     SM_CONTENT_TYPES.map(function(t){ return '<option value="'+t+'">'+t+'</option>'; }).join('')
     +   '</select></div>'
     + '</div>'
 
-    + '<div>' + smLbl('Assigned To') + '<select id="sm-f-assign" class="fi"><option value="">— Unassigned —</option>'
+    + '<div>' + smLbl('Assigned To') + SM_SEL('sm-f-assign') + '<option value="">— Unassigned —</option>'
     +   ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
     + '</select></div>'
 
-    + '<div>' + smLbl('Text on Screen')
-    +   '<textarea id="sm-f-tos" class="fi" rows="4" placeholder="On-screen text…" style="resize:vertical"></textarea></div>';
+    + '<div>' + smLbl('Text on Screen') + SM_TA('sm-f-tos', 4, 'On-screen text…') + '</div>';
 
   // Right col: Caption, Drive Link, Inspiration Links
   var rightCol = ''
-    + '<div>' + smLbl('Caption')
-    +   '<textarea id="sm-f-caption" class="fi" rows="6" placeholder="Caption + hashtags…" style="resize:vertical"></textarea></div>'
+    + '<div>' + smLbl('Caption') + SM_TA('sm-f-caption', 6, 'Caption + hashtags…') + '</div>'
 
-    + '<div>' + smLbl('Google Drive Link')
-    +   '<input id="sm-f-drive" class="fi" placeholder="drive.google.com/…"></div>'
+    + '<div>' + smLbl('Google Drive Link') + SM_IN('sm-f-drive','text','drive.google.com/…') + '</div>'
 
     + '<div>' + smLbl('Inspiration Links')
     +   '<div id="sm-inspo-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>'
     +   '<div style="display:flex;gap:6px">'
-    +     '<input id="sm-inspo-label" class="fi" placeholder="Label (optional)" style="flex:1;font-size:12px;padding:7px 10px">'
-    +     '<input id="sm-inspo-url"   class="fi" placeholder="Paste URL…"       style="flex:2;font-size:12px;padding:7px 10px">'
-    +     '<button onclick="smAddInspoLink()" class="btn btnp" style="padding:7px 12px;font-size:12px;white-space:nowrap">+ Add</button>'
+    +     '<input id="sm-inspo-label" class="fi" placeholder="Label (optional)" style="flex:1;min-width:0;box-sizing:border-box;font-size:12px">'
+    +     '<input id="sm-inspo-url"   class="fi" placeholder="Paste URL…"       style="flex:2;min-width:0;box-sizing:border-box;font-size:12px">'
+    +     '<button onclick="smAddInspoLink()" class="btn btnp" style="padding:7px 12px;font-size:12px;white-space:nowrap;flex-shrink:0">+ Add</button>'
     +   '</div></div>';
 
   // Full-width bottom: Concept then Comments
-  var conceptRow = '<div>' + smLbl('Concept')
-    + '<textarea id="sm-f-concept" class="fi" rows="5" placeholder="What\'s the idea…" style="resize:vertical"></textarea></div>';
+  var conceptRow = '<div>' + smLbl('Concept') + SM_TA('sm-f-concept', 5, "What's the idea…") + '</div>';
 
   var commentsRow = '<div id="sm-comments-section">'
     +   '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Comments</div>'
