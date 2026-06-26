@@ -158,7 +158,11 @@ function smRenderPipeline() {
         + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' + platTags + '</div>' : '')
         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
         +   (pillarDot ? '<div style="display:flex;align-items:center;min-width:0"><span>' + pillarDot + '</span><span style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (post.pillar ? post.pillar.split(' ')[0] : '') + '</span></div>' : '<div></div>')
-        +   '<div style="display:flex;align-items:center;gap:6px">' + commentBadge + assignBadge + '</div>'
+        +   '<div style="display:flex;align-items:center;gap:4px">'
+        +     smContentTypeIcon(post.contentType)
+        +     (post.script ? smScriptIcon() : '')
+        +     commentBadge + assignBadge
+        +   '</div>'
         + '</div>'
         + dateLine
         + '</div>';
@@ -318,6 +322,8 @@ function smIdeaGroup(pillar, posts) {
       + (post.concept ? '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">' + esc(post.concept.slice(0, 100)) + (post.concept.length > 100 ? '…' : '') + '</div>' : '')
       + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">'
       +   platTags
+      +   smContentTypeIcon(post.contentType)
+      +   (post.script ? smScriptIcon() : '')
       +   (post.assignedTo ? '<span style="font-size:9px;font-weight:700;background:var(--sand);color:var(--charcoal);padding:2px 7px;border-radius:6px">' + post.assignedTo + '</span>' : '')
       +   (isNew ? '<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated ' + smRelTime(post.lastModified) + '</span>' : '')
       + '</div>'
@@ -651,6 +657,12 @@ function smPostModal() {
     // Full-width: Concept
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">' + conceptRow + '</div>'
 
+    // Full-width: Script
+    +   '<div style="border-top:1px solid var(--warm);padding-top:18px">'
+    +     smLbl('Script')
+    +     SM_TA('sm-f-script', 6, 'Write or paste the script here…')
+    +   '</div>'
+
     // Full-width: Comments
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">' + commentsRow + '</div>'
 
@@ -692,6 +704,7 @@ function smOpenModal(id, defaultStage, defaultDate) {
   document.getElementById('sm-f-tos').value     = post ? (post.textOnScreen || '')  : '';
   document.getElementById('sm-f-caption').value = post ? (post.caption || '')       : '';
   document.getElementById('sm-f-drive').value   = post ? (post.driveLink || '')     : '';
+  document.getElementById('sm-f-script').value  = post ? (post.script || '')        : '';
 
   smRenderInspoLinks(post ? (post.inspirationLinks || []) : []);
 
@@ -748,6 +761,7 @@ function smSavePost() {
     textOnScreen: document.getElementById('sm-f-tos').value.trim(),
     caption:      document.getElementById('sm-f-caption').value.trim(),
     driveLink:         document.getElementById('sm-f-drive').value.trim(),
+    script:            document.getElementById('sm-f-script').value.trim(),
     inspirationLinks:  smGetInspoLinks(),
     comments:          existing ? (existing.comments || []) : _smDraftComments.slice(),
     createdAt:    existing ? (existing.createdAt || now) : now,
@@ -821,6 +835,25 @@ function smGetInspoLinks() {
 }
 
 // ══ COMMENTS ══
+
+var SM_VIDEO_TYPES = ['Quick Chat', 'Reel', 'Quick Comparisons', 'Review/Overlays', 'Celebrity Analysis', 'Consultation'];
+
+function smContentTypeIcon(contentType) {
+  if (!contentType) return '';
+  var isVideo = SM_VIDEO_TYPES.indexOf(contentType) !== -1;
+  var icon = isVideo
+    ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M8 5v14l11-7z"/></svg>'
+    : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>';
+  var label = isVideo ? 'Video' : 'Static';
+  var col   = isVideo ? '#6366F1' : '#F97316';
+  return '<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;color:' + col + ';background:' + col + '18;border-radius:5px;padding:2px 6px">' + icon + label + '</span>';
+}
+
+function smScriptIcon() {
+  return '<span title="Script added" style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;color:#059669;background:#05996918;border-radius:5px;padding:2px 6px">'
+    + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+    + 'Script</span>';
+}
 
 var SM_STAFF = ['Latisha', 'Lemari'];
 var SM_STAFF_COLORS = {Latisha:'#C4956A', Lemari:'#7A8C6E'};
