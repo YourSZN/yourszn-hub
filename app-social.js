@@ -40,6 +40,7 @@ var _smEditId        = null;
 var _smDraftComments = [];
 var smMentions       = {latisha:[], lemari:[]};
 var smStrategyNotes  = '';
+var smAnalyticsLog   = []; // [{id, weekEnding, tt:{views,followers,likes,bestPost}, ig:{reach,followers,likes,bestPost}, notes}]
 
 // ── Was post modified in last 48h? ──
 function smRecentlyEdited(post) {
@@ -61,10 +62,11 @@ function renderSocialPage() {
   var el = document.getElementById('social-page-content'); if (!el) return;
 
   var tabs = [
-    {key:'pipeline', label:'Pipeline'},
-    {key:'calendar', label:'Calendar'},
-    {key:'ideas',    label:'Idea Bank'},
-    {key:'strategy', label:'Posting Strategy'},
+    {key:'pipeline',  label:'Pipeline'},
+    {key:'calendar',  label:'Calendar'},
+    {key:'ideas',     label:'Idea Bank'},
+    {key:'strategy',  label:'Posting Strategy'},
+    {key:'analytics', label:'Analytics'},
   ];
 
   var tabHtml = '<div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">'
@@ -74,10 +76,11 @@ function renderSocialPage() {
     + '</div>';
 
   var contentHtml = '';
-  if      (smActiveTab === 'pipeline') contentHtml = smRenderPipeline();
-  else if (smActiveTab === 'calendar') contentHtml = smRenderCalendar();
-  else if (smActiveTab === 'ideas')    contentHtml = smRenderIdeaBank();
-  else if (smActiveTab === 'strategy') contentHtml = smRenderStrategy();
+  if      (smActiveTab === 'pipeline')  contentHtml = smRenderPipeline();
+  else if (smActiveTab === 'calendar')  contentHtml = smRenderCalendar();
+  else if (smActiveTab === 'ideas')     contentHtml = smRenderIdeaBank();
+  else if (smActiveTab === 'strategy')  contentHtml = smRenderStrategy();
+  else if (smActiveTab === 'analytics') contentHtml = smRenderAnalytics();
 
   el.innerHTML = tabHtml + contentHtml;
 
@@ -1037,6 +1040,182 @@ function smFmtDate(dateStr) {
   var parts  = dateStr.split('-');
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return parseInt(parts[2]) + ' ' + months[parseInt(parts[1]) - 1];
+}
+
+// ══ ANALYTICS ══
+
+function smRenderAnalytics() {
+  var log = (smAnalyticsLog || []).slice().sort(function(a,b){ return a.weekEnding < b.weekEnding ? 1 : -1; });
+  var recent = log.slice(0, 8).reverse(); // oldest→newest for charts
+
+  // ── Summary cards ──
+  var ttViewsTotal = 0, ttFollowersTotal = 0, igReachTotal = 0, igFollowersTotal = 0;
+  recent.forEach(function(e){
+    ttViewsTotal    += (e.tt && e.tt.views)     ? parseInt(e.tt.views)     || 0 : 0;
+    ttFollowersTotal+= (e.tt && e.tt.followers) ? parseInt(e.tt.followers) || 0 : 0;
+    igReachTotal    += (e.ig && e.ig.reach)     ? parseInt(e.ig.reach)     || 0 : 0;
+    igFollowersTotal+= (e.ig && e.ig.followers) ? parseInt(e.ig.followers) || 0 : 0;
+  });
+
+  function fmtNum(n) { return n >= 1000 ? (n/1000).toFixed(1) + 'k' : String(n); }
+
+  var cards = [
+    { label:'TikTok Views',        value: log.length ? fmtNum(ttViewsTotal)     : '—', sub:'last ' + recent.length + ' weeks', col:'#6366F1' },
+    { label:'TikTok New Followers',value: log.length ? (ttFollowersTotal >= 0 ? '+' : '') + fmtNum(ttFollowersTotal) : '—', sub:'last ' + recent.length + ' weeks', col:'#6366F1' },
+    { label:'Instagram Reach',     value: log.length ? fmtNum(igReachTotal)     : '—', sub:'last ' + recent.length + ' weeks', col:'#E1306C' },
+    { label:'IG New Followers',    value: log.length ? (igFollowersTotal >= 0 ? '+' : '') + fmtNum(igFollowersTotal) : '—', sub:'last ' + recent.length + ' weeks', col:'#E1306C' },
+  ];
+
+  var cardHtml = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">'
+    + cards.map(function(c){
+        return '<div style="background:white;border:1px solid var(--sand);border-radius:12px;padding:16px 18px;border-top:3px solid ' + c.col + '">'
+          + '<div style="font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">' + c.label + '</div>'
+          + '<div style="font-size:26px;font-weight:700;color:var(--deep);line-height:1">' + c.value + '</div>'
+          + '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + c.sub + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+
+  // ── Bar charts ──
+  function barChart(entries, valueFn, color, label) {
+    if (!entries.length) return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">No data yet</div>';
+    var vals = entries.map(function(e){ return parseInt(valueFn(e)) || 0; });
+    var maxV = Math.max.apply(null, vals) || 1;
+    return '<div style="display:flex;align-items:flex-end;gap:6px;height:100px;padding-bottom:22px;position:relative">'
+      + entries.map(function(e, i){
+          var h = Math.max(4, Math.round((vals[i] / maxV) * 84));
+          var lbl = e.weekEnding ? e.weekEnding.slice(5).replace('-','/') : '';
+          return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'
+            + '<div title="' + vals[i] + '" style="width:100%;background:' + color + ';border-radius:4px 4px 0 0;height:' + h + 'px;opacity:.85;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.85"></div>'
+            + '<div style="font-size:9px;color:var(--muted);white-space:nowrap">' + lbl + '</div>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+  }
+
+  var chartsHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px">'
+    + '<div style="background:white;border:1px solid var(--sand);border-radius:12px;padding:18px 20px">'
+    +   '<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6366F1;margin-bottom:14px">TikTok Views</div>'
+    +   barChart(recent, function(e){ return e.tt ? e.tt.views : 0; }, '#6366F1', 'Views')
+    + '</div>'
+    + '<div style="background:white;border:1px solid var(--sand);border-radius:12px;padding:18px 20px">'
+    +   '<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#E1306C;margin-bottom:14px">Instagram Reach</div>'
+    +   barChart(recent, function(e){ return e.ig ? e.ig.reach : 0; }, '#E1306C', 'Reach')
+    + '</div>'
+    + '</div>';
+
+  // ── Log table ──
+  var tableHtml = '';
+  if (log.length) {
+    tableHtml = '<div style="background:white;border:1px solid var(--sand);border-radius:12px;overflow:hidden;margin-bottom:24px">'
+      + '<table style="width:100%;border-collapse:collapse">'
+      + '<thead><tr style="background:var(--warm)">'
+      + '<th style="padding:10px 14px;text-align:left;font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted)">Week ending</th>'
+      + '<th style="padding:10px 14px;text-align:right;color:#6366F1;font-size:10px;letter-spacing:.7px;text-transform:uppercase">TT Views</th>'
+      + '<th style="padding:10px 14px;text-align:right;color:#6366F1;font-size:10px;letter-spacing:.7px;text-transform:uppercase">TT +Followers</th>'
+      + '<th style="padding:10px 14px;text-align:right;color:#E1306C;font-size:10px;letter-spacing:.7px;text-transform:uppercase">IG Reach</th>'
+      + '<th style="padding:10px 14px;text-align:right;color:#E1306C;font-size:10px;letter-spacing:.7px;text-transform:uppercase">IG +Followers</th>'
+      + '<th style="padding:10px 14px;text-align:left;font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted)">Best post</th>'
+      + '<th style="padding:10px 14px;width:32px"></th>'
+      + '</tr></thead><tbody>'
+      + log.map(function(e, i){
+          var bg = i % 2 === 0 ? 'white' : 'var(--warm)';
+          var best = (e.tt && e.tt.bestPost) ? e.tt.bestPost : (e.ig && e.ig.bestPost) ? e.ig.bestPost : '—';
+          return '<tr style="background:' + bg + '">'
+            + '<td style="padding:10px 14px;font-size:12px;font-weight:600;color:var(--deep)">' + (e.weekEnding || '—') + '</td>'
+            + '<td style="padding:10px 14px;text-align:right;font-size:13px;color:#6366F1;font-weight:600">' + fmtNum(parseInt((e.tt && e.tt.views) || 0)) + '</td>'
+            + '<td style="padding:10px 14px;text-align:right;font-size:13px;color:#6366F1">' + (parseInt((e.tt && e.tt.followers) || 0) >= 0 ? '+' : '') + (parseInt((e.tt && e.tt.followers) || 0)) + '</td>'
+            + '<td style="padding:10px 14px;text-align:right;font-size:13px;color:#E1306C;font-weight:600">' + fmtNum(parseInt((e.ig && e.ig.reach) || 0)) + '</td>'
+            + '<td style="padding:10px 14px;text-align:right;font-size:13px;color:#E1306C">' + (parseInt((e.ig && e.ig.followers) || 0) >= 0 ? '+' : '') + (parseInt((e.ig && e.ig.followers) || 0)) + '</td>'
+            + '<td style="padding:10px 14px;font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(best.slice(0,60)) + '</td>'
+            + '<td style="padding:10px 8px;text-align:center"><button onclick="smDeleteAnalyticsEntry(\'' + e.id + '\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px" title="Delete">✕</button></td>'
+            + '</tr>';
+        }).join('')
+      + '</tbody></table></div>';
+  } else {
+    tableHtml = '<div style="background:white;border:1px solid var(--sand);border-radius:12px;padding:40px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:24px">No entries yet — log your first week above.</div>';
+  }
+
+  // ── Entry form ──
+  var today = new Date(); var dd = String(today.getDate()).padStart(2,'0'); var mm = String(today.getMonth()+1).padStart(2,'0'); var yyyy = today.getFullYear();
+  var todayStr = yyyy + '-' + mm + '-' + dd;
+
+  var formHtml = '<div id="sm-analytics-form" style="background:white;border:1px solid var(--sand);border-radius:12px;padding:22px 24px;margin-bottom:24px">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--deep);margin-bottom:18px">Log this week</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">'
+
+    // TikTok column
+    + '<div>'
+    + '<div style="font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#6366F1;margin-bottom:12px;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#6366F1"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.16 8.16 0 004.77 1.52V6.76a4.85 4.85 0 01-1-.07z"/></svg> TikTok</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Views this week</label>' + SM_IN('sm-al-tt-views','number','e.g. 4200') + '</div>'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">New followers</label>' + SM_IN('sm-al-tt-followers','number','e.g. 38') + '</div>'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Likes this week</label>' + SM_IN('sm-al-tt-likes','number','e.g. 210') + '</div>'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Best post title</label>' + SM_IN('sm-al-tt-best','text','Which post performed best?') + '</div>'
+    + '</div></div>'
+
+    // Instagram column
+    + '<div>'
+    + '<div style="font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#E1306C;margin-bottom:12px;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E1306C" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#E1306C" stroke="none"/></svg> Instagram</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Reach this week</label>' + SM_IN('sm-al-ig-reach','number','e.g. 1800') + '</div>'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">New followers</label>' + SM_IN('sm-al-ig-followers','number','e.g. 12') + '</div>'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Likes this week</label>' + SM_IN('sm-al-ig-likes','number','e.g. 95') + '</div>'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Best post title</label>' + SM_IN('sm-al-ig-best','text','Which post performed best?') + '</div>'
+    + '</div></div>'
+    + '</div>'
+
+    // Week ending + notes + save
+    + '<div style="display:grid;grid-template-columns:180px 1fr auto;gap:12px;align-items:end;margin-top:4px">'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Week ending</label>' + SM_IN('sm-al-week','date','') + '</div>'
+    + '<div><label style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Notes / wins / observations</label>' + SM_IN('sm-al-notes','text','e.g. Reel about colour blocking went viral…') + '</div>'
+    + '<button class="btn btnp" onclick="smSaveAnalyticsEntry()" style="white-space:nowrap;padding:9px 20px">Save Entry</button>'
+    + '</div>'
+    + '</div>';
+
+  // Set default week ending to next Sunday
+  setTimeout(function(){
+    var w = document.getElementById('sm-al-week');
+    if (w && !w.value) {
+      var d = new Date(); var day = d.getDay(); var diff = day === 0 ? 0 : 7 - day;
+      d.setDate(d.getDate() + diff);
+      w.value = d.toISOString().slice(0,10);
+    }
+  }, 50);
+
+  return formHtml + cardHtml + chartsHtml + tableHtml;
+}
+
+function smSaveAnalyticsEntry() {
+  var weekEnding = (document.getElementById('sm-al-week') || {}).value || '';
+  if (!weekEnding) { alert('Please set a week ending date.'); return; }
+  var entry = {
+    id: 'al_' + Date.now(),
+    weekEnding: weekEnding,
+    tt: {
+      views:     parseInt(document.getElementById('sm-al-tt-views').value)     || 0,
+      followers: parseInt(document.getElementById('sm-al-tt-followers').value) || 0,
+      likes:     parseInt(document.getElementById('sm-al-tt-likes').value)     || 0,
+      bestPost:  document.getElementById('sm-al-tt-best').value.trim(),
+    },
+    ig: {
+      reach:     parseInt(document.getElementById('sm-al-ig-reach').value)     || 0,
+      followers: parseInt(document.getElementById('sm-al-ig-followers').value) || 0,
+      likes:     parseInt(document.getElementById('sm-al-ig-likes').value)     || 0,
+      bestPost:  document.getElementById('sm-al-ig-best').value.trim(),
+    },
+    notes: document.getElementById('sm-al-notes').value.trim(),
+  };
+  smAnalyticsLog.push(entry);
+  saveData();
+  renderSocialPage();
+}
+
+function smDeleteAnalyticsEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  smAnalyticsLog = smAnalyticsLog.filter(function(e){ return e.id !== id; });
+  saveData();
+  renderSocialPage();
 }
 
 // ══ IDEA BANK SEEDS ══
