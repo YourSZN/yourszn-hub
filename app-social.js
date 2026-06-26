@@ -301,13 +301,18 @@ function smIdeaGroup(pillar, posts) {
     + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">';
 
   posts.forEach(function(post) {
-    var isNew = smRecentlyEdited(post);
-    var platTags = (post.platform || []).map(function(p) {
+    var isNew     = smRecentlyEdited(post);
+    var pillarCol = SM_PILLAR_COLORS[post.pillar] || '#9CA3AF';
+    var platTags  = (post.platform || []).map(function(p) {
       var c = p === 'TikTok' ? '#010101' : '#E1306C';
       return '<span style="font-size:9px;font-weight:700;color:white;background:' + c + ';padding:2px 6px;border-radius:6px">' + p + '</span>';
     }).join('');
 
-    html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + (isNew ? '#FFFBEB' : 'white') + ';border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.1)\'" onmouseout="this.style.boxShadow=\'none\'">'
+    var bg        = isNew ? '#FFFBEB' : 'white';
+    var cardBorder= isNew ? '2px solid #F59E0B' : '1px solid var(--sand)';
+    var accentShadow = 'inset 4px 0 0 ' + pillarCol;
+
+    html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + bg + ';border:' + cardBorder + ';border-radius:10px;padding:12px;padding-left:14px;cursor:pointer;box-shadow:' + accentShadow + ';transition:filter .15s" onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
       + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:5px;line-height:1.35">' + esc(post.title) + '</div>'
       + (post.concept ? '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5">' + esc(post.concept.slice(0, 100)) + (post.concept.length > 100 ? '…' : '') + '</div>' : '')
       + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">'
@@ -1023,6 +1028,7 @@ function smSeedIdeas() {
   var existingIds = socialPosts.map(function(p){ return p.id; });
   var added = false;
   var now = Date.now();
+  var seedTs = now - (7 * 24 * 3600 * 1000); // 1 week ago — not "recently edited"
   SM_SEED_IDEAS.forEach(function(seed) {
     if (existingIds.indexOf(seed.id) === -1) {
       socialPosts.push({
@@ -1030,12 +1036,21 @@ function smSeedIdeas() {
         scheduledDate: null, platform: [], pillar: seed.pillar,
         contentType: '', assignedTo: '', concept: seed.concept,
         textOnScreen: '', caption: '', driveLink: '',
-        comments: [], createdAt: now, lastModified: now
+        comments: [], createdAt: seedTs, lastModified: seedTs
       });
       added = true;
     }
   });
-  if (added) saveData();
+  // Patch any already-seeded ideas that still have a very recent timestamp
+  var patched = false;
+  socialPosts.forEach(function(p) {
+    if (p.id && p.id.indexOf('seed_') === 0 && (now - p.lastModified) < 3600 * 1000) {
+      p.lastModified = seedTs;
+      p.createdAt    = seedTs;
+      patched = true;
+    }
+  });
+  if (added || patched) saveData();
 }
 
 // ── Legacy stubs (keep these so old save/load refs don't break) ──
