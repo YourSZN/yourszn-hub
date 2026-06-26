@@ -795,6 +795,8 @@ function renderOca() {
     content.innerHTML = renderOcaNeutralsCW();
   } else if (ocaTab==='drape') {
     content.innerHTML = renderOcaDrapeCompare();
+  } else if (ocaTab==='snapshot') {
+    content.innerHTML = renderOcaSnapshot();
   } else if (ocaTab==='submissions') {
     if (ocaSubSource === 'ivorey') {
       if (ivoreyData.length === 0) {
