@@ -88,6 +88,7 @@ function renderSocialPage() {
 function smSetTab(tab) {
   smActiveTab = tab;
   renderSocialPage();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ══ PIPELINE ══

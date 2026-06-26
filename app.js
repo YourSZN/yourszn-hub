@@ -567,7 +567,7 @@ function showPage(id) {
   if (pg) pg.classList.add('on');
   if (ni) ni.classList.add('on');
   if (id === 'comms')  { renderCommsPage(); }
-  if (id === 'social') { renderSocialPage(); }
+  if (id === 'social') { renderSocialPage(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (id === 'adcreative') { renderAdCreativePage(); }
   if (id === 'clients') renderInPersonTab();
   if (id === 'dashboard' || id === 'clients') { if (typeof ipCheckPhotoNotifications === 'function') ipCheckPhotoNotifications(); }
