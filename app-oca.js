@@ -799,6 +799,8 @@ function renderOca() {
     content.innerHTML = renderOcaSnapshot();
   } else if (ocaTab==='report') {
     content.innerHTML = renderOcaReport();
+  } else if (ocaTab==='boards') {
+    content.innerHTML = renderOcaBoards();
   } else if (ocaTab==='submissions') {
     if (ocaSubSource === 'ivorey') {
       if (ivoreyData.length === 0) {
