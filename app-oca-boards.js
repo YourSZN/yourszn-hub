@@ -76,23 +76,23 @@ function renderOcaBoardExpanded() {
   function mkBoard(seasonName, isWinner) {
     var colours = OCA_SEASON_BOARDS[seasonName] || [];
     var stripes = colours.map(function(h){ return '<div style="flex:1;background:'+h+'"></div>'; }).join('');
-    var boardH = ocaBoardsCompare ? '260px' : '320px';
+    var boardH = ocaBoardsCompare ? 'calc(100vh - 230px)' : 'calc(100vh - 200px)';
+    var photoW = ocaBoardsCompare ? '38%' : '32%';
 
-    return '<div style="border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)'+(isWinner?';outline:3px solid var(--deep)':'')+'">'
+    return '<div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15)'+(isWinner?';outline:3px solid var(--deep)':'')+'">'
       // Stripe bar with photo overlay
       + '<div style="position:relative;height:'+boardH+'">'
       +   '<div style="display:flex;height:100%;position:absolute;inset:0">' + stripes + '</div>'
       +   (photo
-            ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'
-              + '<div style="width:'+(ocaBoardsCompare?'130px':'180px')+';height:'+(ocaBoardsCompare?'170px':'230px')+';border-radius:14px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.35);border:3px solid rgba(255,255,255,.85)">'
-              + '<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center top">'
-              + '</div></div>'
+            ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:0">'
+              + '<img src="'+photo+'" style="width:'+photoW+';height:96%;object-fit:cover;object-position:center top;filter:drop-shadow(0 8px 32px rgba(0,0,0,.5))">'
+              + '</div>'
             : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'
               + '<div style="font-size:11px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.25);padding:8px 14px;border-radius:8px">Upload a client photo</div>'
               + '</div>')
       + '</div>'
       // Footer
-      + '<div style="padding:14px 18px;background:white;border-top:1px solid #F0EAE2;display:flex;align-items:center;justify-content:space-between;gap:12px">'
+      + '<div style="padding:12px 18px;background:white;border-top:1px solid #F0EAE2;display:flex;align-items:center;justify-content:space-between;gap:12px">'
       +   '<div>'
       +     '<div style="font-size:14px;font-weight:700;color:var(--deep)">' + seasonName + '</div>'
       +     '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + (OCA_SEASONS[seasonName] ? OCA_SEASONS[seasonName].desc : '') + '</div>'
