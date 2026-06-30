@@ -943,50 +943,45 @@
     <!-- ═══════════════════════════ ONLINE COLOUR ANALYSIS ═══════════════════════════ -->
     <div class="page" id="pg-online">
       <div class="ph">
-        <div>
-          <div class="ptitle">Online Colour Analysis</div>
-          <div class="psub">Drape &amp; compare seasons on your client</div>
+        <div style="display:flex;align-items:center;gap:14px;min-width:0">
+          <!-- Compact avatar in header — click to upload, hover to clear -->
+          <div style="position:relative;flex-shrink:0">
+            <div onclick="document.getElementById('oca-photo-input').click()" title="Upload client photo" style="cursor:pointer">
+              <img id="oca-photo-preview" class="oca-upload-preview" src="" style="display:none;width:48px;height:48px;border-radius:50%;object-fit:cover;object-position:center top;border:2.5px solid var(--rose)">
+              <div id="oca-photo-placeholder" class="oca-upload-placeholder" style="width:48px;height:48px;border-radius:50%;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px dashed var(--tan)">&#128247;</div>
+            </div>
+            <button onclick="ocaPhotoClear()" title="Remove photo" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--muted);border:none;color:white;font-size:10px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;padding:0" id="oca-photo-clear-btn">&#215;</button>
+            <div onclick="document.getElementById('oca-photo-input').click()" style="position:absolute;bottom:0;right:0;background:var(--rose);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;cursor:pointer">+</div>
+          </div>
+          <div>
+            <div class="ptitle">Online Colour Analysis</div>
+            <div class="psub">Drape &amp; compare seasons on your client</div>
+          </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
           <button id="oca-expand-btn" class="btn" style="background:white;border:1px solid var(--sand);color:var(--deep);font-size:12px;padding:8px 14px;border-radius:8px;white-space:nowrap" onclick="ocaToggleFullscreen()" title="Expand / collapse sidebar">⛶ Expand</button>
           <button class="btn" style="background:var(--rose);color:#fff;font-size:12px;padding:8px 18px;border-radius:8px;white-space:nowrap" onclick="openReportModal()">Generate Report</button>
         </div>
+        <input type="file" id="oca-photo-input" accept="image/*" style="display:none" onchange="ocaPhotoUpload(this)">
       </div>
 
-      <!-- Photo upload bar -->
-      <div id="oca-photo-bar" class="card" style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-          <div style="position:relative;cursor:pointer;flex-shrink:0" onclick="document.getElementById('oca-photo-input').click()">
-            <img id="oca-photo-preview" src="" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:contain;object-position:center top;border:3px solid var(--rose)">
-            <div id="oca-photo-placeholder" style="width:72px;height:72px;border-radius:50%;background:var(--sand);display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;border:2px dashed var(--muted)">&#128247;</div>
-            <div style="position:absolute;bottom:2px;right:2px;background:var(--rose);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700">+</div>
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:4px">Client Photo</div>
-            <div class="oca-photo-desc" style="font-size:12px;color:var(--muted);margin-bottom:10px">Upload a clear front-facing photo. It will appear on every colour swatch for comparison.</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btnp" style="font-size:12px" onclick="document.getElementById('oca-photo-input').click()">&#128247; Upload Photo</button>
-              <button class="btn btns" style="font-size:12px" onclick="ocaPhotoClear()">Clear</button>
-            </div>
-          </div>
-          <input type="file" id="oca-photo-input" accept="image/*" style="display:none" onchange="ocaPhotoUpload(this)">
-        </div>
-      </div>
+      <!-- hidden shell keeps oca-photo-bar id for fullscreen CSS -->
+      <div id="oca-photo-bar" style="display:none"></div>
 
-      <!-- Main tabs -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
-        <button id="oca-tab-fundamentals" class="vt-tab on" onclick="setOcaTab('fundamentals')">Fundamentals</button>
-        <button id="oca-tab-metals"       class="vt-tab"    onclick="setOcaTab('metals')">Metals</button>
-        <button id="oca-tab-blush"        class="vt-tab"    onclick="setOcaTab('blush')">Blush</button>
-        <button id="oca-tab-coolwarm"     class="vt-tab"    onclick="setOcaTab('coolwarm')">Cool vs Warm</button>
-        <button id="oca-tab-neutrals"     class="vt-tab"    onclick="setOcaTab('neutrals')">Neutrals</button>
-        <button id="oca-tab-seasons"      class="vt-tab"    onclick="setOcaTab('seasons')">Season Palettes</button>
-        <button id="oca-tab-compare"      class="vt-tab"    onclick="setOcaTab('compare')">Compare Seasons</button>
-        <button id="oca-tab-drape"        class="vt-tab"    onclick="setOcaTab('drape')">Drape Compare</button>
-        <button id="oca-tab-snapshot"     class="vt-tab"    onclick="setOcaTab('snapshot')">Season Snapshot</button>
-        <button id="oca-tab-boards"       class="vt-tab"    onclick="setOcaTab('boards')">Season Boards</button>
-        <button id="oca-tab-report"       class="vt-tab"    onclick="setOcaTab('report')">Generate Report</button>
-        <button id="oca-tab-submissions"  class="vt-tab"    onclick="setOcaTab('submissions')">OCA Submissions</button>
+      <!-- Main tabs — single scrollable row -->
+      <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:20px;padding-bottom:6px;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch">
+        <button id="oca-tab-fundamentals" class="vt-tab on" onclick="setOcaTab('fundamentals')" style="white-space:nowrap;flex-shrink:0">Fundamentals</button>
+        <button id="oca-tab-metals"       class="vt-tab"    onclick="setOcaTab('metals')"       style="white-space:nowrap;flex-shrink:0">Metals</button>
+        <button id="oca-tab-blush"        class="vt-tab"    onclick="setOcaTab('blush')"        style="white-space:nowrap;flex-shrink:0">Blush</button>
+        <button id="oca-tab-coolwarm"     class="vt-tab"    onclick="setOcaTab('coolwarm')"     style="white-space:nowrap;flex-shrink:0">Cool vs Warm</button>
+        <button id="oca-tab-neutrals"     class="vt-tab"    onclick="setOcaTab('neutrals')"     style="white-space:nowrap;flex-shrink:0">Neutrals</button>
+        <button id="oca-tab-seasons"      class="vt-tab"    onclick="setOcaTab('seasons')"      style="white-space:nowrap;flex-shrink:0">Season Palettes</button>
+        <button id="oca-tab-compare"      class="vt-tab"    onclick="setOcaTab('compare')"      style="white-space:nowrap;flex-shrink:0">Compare Seasons</button>
+        <button id="oca-tab-drape"        class="vt-tab"    onclick="setOcaTab('drape')"        style="white-space:nowrap;flex-shrink:0">Drape Compare</button>
+        <button id="oca-tab-snapshot"     class="vt-tab"    onclick="setOcaTab('snapshot')"     style="white-space:nowrap;flex-shrink:0">Season Snapshot</button>
+        <button id="oca-tab-boards"       class="vt-tab"    onclick="setOcaTab('boards')"       style="white-space:nowrap;flex-shrink:0">Season Boards</button>
+        <button id="oca-tab-report"       class="vt-tab"    onclick="setOcaTab('report')"       style="white-space:nowrap;flex-shrink:0">Generate Report</button>
+        <button id="oca-tab-submissions"  class="vt-tab"    onclick="setOcaTab('submissions')"  style="white-space:nowrap;flex-shrink:0">OCA Submissions</button>
       </div>
 
       <div id="oca-content"></div>
