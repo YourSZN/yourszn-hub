@@ -104,10 +104,10 @@ function voucherPreview() {
 
   // Load Google Fonts into the canvas via FontFace API
   var fontsReady = Promise.all([
-    document.fonts.load('300 1px "Cormorant Garamond"'),
-    document.fonts.load('italic 300 1px "Cormorant Garamond"'),
-    document.fonts.load('italic 500 1px "Cormorant Garamond"'),
-    document.fonts.load('500 1px "Cormorant Garamond"'),
+    document.fonts.load('300 1px "Fraunces"'),
+    document.fonts.load('italic 300 1px "Fraunces"'),
+    document.fonts.load('italic 500 1px "Fraunces"'),
+    document.fonts.load('500 1px "Fraunces"'),
   ]);
 
   function draw(bgImg, logoImg) {
@@ -149,8 +149,8 @@ function voucherPreview() {
     // ── GIFT VOUCHER heading ──
     ctx.save();
     ctx.fillStyle = '#1C1C1C';
-    // Spaced-out display heading — Cormorant Garamond bold-ish
-    ctx.font = '500 148px "Cormorant Garamond", Georgia, serif';
+    // Spaced-out display heading — Fraunces bold-ish
+    ctx.font = '500 148px "Fraunces", Georgia, serif';
     ctx.letterSpacing = '11px';
     ctx.fillText('GIFT VOUCHER', RX, 220);
     ctx.restore();
@@ -224,7 +224,7 @@ ctx.restore();
     var footL1 = 'To book please visit website www.yourszn.com.au';
     var footL2 = code ? 'and use code: ' + code + ' at checkout' : '';
     ctx.save();
-    ctx.font = '500 34px "Cormorant Garamond", Georgia, serif';
+    ctx.font = '500 34px "Fraunces", Georgia, serif';
     ctx.fillStyle = '#1C1C1C';
     ctx.textAlign = 'right';
     ctx.fillText(footL1, W - 72, H - (footL2 ? 84 : 52));
@@ -235,7 +235,7 @@ ctx.restore();
     var num = vg('v-num');
     var date = vg('v-date');
     ctx.save();
-    ctx.font = '300 36px "Cormorant Garamond", Georgia, serif';
+    ctx.font = '300 36px "Fraunces", Georgia, serif';
     ctx.fillStyle = '#1C1C1C';
     ctx.fillText('No.' + num, 64, H - 80);
     ctx.fillText('(' + date + ')', 64, H - 36);

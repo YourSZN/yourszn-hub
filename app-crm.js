@@ -154,12 +154,12 @@ function renderCRMPage() {
     + ['Summer','Winter','Autumn','Spring'].map(function(fam) {
         var n = crmClients.filter(function(c){ return crmSeasonFamily(c.season)===fam; }).length;
         return '<div style="flex:1;min-width:80px;background:white;border-radius:10px;padding:10px 14px;border:1px solid var(--sand);text-align:center">'
-          + '<div style="font-size:20px;font-weight:700;color:'+CRM_SEASON_COLOR[fam]+';font-family:\'Cormorant Garamond\',serif">'+n+'</div>'
+          + '<div style="font-size:20px;font-weight:700;color:'+CRM_SEASON_COLOR[fam]+';font-family:\'Fraunces\',serif">'+n+'</div>'
           + '<div style="font-size:10px;letter-spacing:.5px;color:var(--muted);margin-top:1px">'+fam+'</div>'
           + '</div>';
       }).join('')
     + '<div style="flex:1;min-width:80px;background:var(--deep);border-radius:10px;padding:10px 14px;border:1px solid var(--sand);text-align:center">'
-    +   '<div style="font-size:20px;font-weight:700;color:white;font-family:\'Cormorant Garamond\',serif">'+crmClients.length+'</div>'
+    +   '<div style="font-size:20px;font-weight:700;color:white;font-family:\'Fraunces\',serif">'+crmClients.length+'</div>'
     +   '<div style="font-size:10px;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-top:1px">Total</div>'
     + '</div>'
     + '</div>';
@@ -183,7 +183,7 @@ function renderCRMPage() {
 
     var avatarInner = c.photoBase64
       ? '<img src="'+c.photoBase64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
-      : '<span style="font-family:\'Cormorant Garamond\',serif;font-size:16px;font-weight:600;color:white">'+init+'</span>';
+      : '<span style="font-family:\'Fraunces\',serif;font-size:16px;font-weight:600;color:white">'+init+'</span>';
 
     var tagBadges = (c.tags||[]).slice(0,3).map(function(t){
       var active = t === crmTagFilter;
@@ -264,7 +264,7 @@ function openCRMProfile(id) {
   // ── LEFT: AVATAR + QUICK ACTIONS + CONTACT ───────────
   var avatarInner = c.photoBase64
     ? '<img src="'+c.photoBase64+'" style="width:100%;height:100%;object-fit:cover">'
-    : '<span style="font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:600;color:white">'+init+'</span>';
+    : '<span style="font-family:\'Fraunces\',serif;font-size:28px;font-weight:600;color:white">'+init+'</span>';
 
   var quickActions = curUser==='latisha'
     ? '<div style="display:flex;gap:6px;justify-content:center;margin-top:12px">'
@@ -284,7 +284,7 @@ function openCRMProfile(id) {
         + '</label>'
         : '')
     + '</div>'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;font-weight:600;color:var(--deep);margin-bottom:6px">'+esc(c.firstName+' '+c.lastName)+'</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:18px;font-weight:600;color:var(--deep);margin-bottom:6px">'+esc(c.firstName+' '+c.lastName)+'</div>'
     + (c.season
         ? '<span style="font-size:11px;font-weight:600;color:white;background:'+col+';border-radius:8px;padding:3px 12px">'+esc(c.season)+'</span>'
         : '<span style="font-size:11px;color:var(--muted);background:var(--warm);border:1px solid var(--sand);border-radius:8px;padding:3px 12px">Awaiting analysis</span>')
@@ -471,11 +471,11 @@ function openCRMProfile(id) {
   var statCards =
     '<div style="display:flex;gap:8px;margin-bottom:18px">'
     + '<div style="flex:1;background:'+(bothZero?'var(--warm)':'#D1FAE5')+';border-radius:8px;padding:9px 11px;border:1px solid '+(bothZero?'var(--sand)':'#6EE7B7')+'">'
-    +   '<div style="font-size:15px;font-weight:700;color:'+(bothZero?'var(--muted)':'#065F46')+';font-family:\'Cormorant Garamond\',serif">$'+totalPaid.toFixed(0)+'</div>'
+    +   '<div style="font-size:15px;font-weight:700;color:'+(bothZero?'var(--muted)':'#065F46')+';font-family:\'Fraunces\',serif">$'+totalPaid.toFixed(0)+'</div>'
     +   '<div style="font-size:10px;color:'+(bothZero?'var(--muted)':'#065F46')+';opacity:.8;margin-top:1px">Total Paid</div>'
     + '</div>'
     + '<div style="flex:1;background:'+(totalPend>0?'#FEF3C7':'var(--warm)')+';border-radius:8px;padding:9px 11px;border:1px solid '+(totalPend>0?'#FCD34D':'var(--sand)')+'">'
-    +   '<div style="font-size:15px;font-weight:700;color:'+(totalPend>0?'#92400E':'var(--muted)')+';font-family:\'Cormorant Garamond\',serif">$'+totalPend.toFixed(0)+'</div>'
+    +   '<div style="font-size:15px;font-weight:700;color:'+(totalPend>0?'#92400E':'var(--muted)')+';font-family:\'Fraunces\',serif">$'+totalPend.toFixed(0)+'</div>'
     +   '<div style="font-size:10px;color:'+(totalPend>0?'#92400E':'var(--muted)')+';opacity:.8;margin-top:1px">Outstanding</div>'
     + '</div>'
     + '</div>';
@@ -583,7 +583,7 @@ function openCRMProfile(id) {
       ].map(function(s, i, arr) {
         return '<div style="flex:1;padding:9px 12px;'+(i<arr.length-1?'border-right:1px solid var(--sand)':'')+';text-align:center">'
           + '<div style="font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px">'+s.label+'</div>'
-          + '<div style="font-size:15px;font-weight:600;color:var(--deep);font-family:\'Cormorant Garamond\',serif">'+s.val+'</div>'
+          + '<div style="font-size:15px;font-weight:600;color:var(--deep);font-family:\'Fraunces\',serif">'+s.val+'</div>'
           + '</div>';
       }).join('')
     + '</div>';
@@ -592,7 +592,7 @@ function openCRMProfile(id) {
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
     + '<button onclick="closeCRMProfile()" style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;padding:5px 0;flex-shrink:0">← Clients</button>'
     + '<div style="height:16px;width:1px;background:var(--sand);flex-shrink:0"></div>'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:var(--deep);font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.firstName+' '+c.lastName)+'</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:20px;color:var(--deep);font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.firstName+' '+c.lastName)+'</div>'
     + (c.season ? '<span style="font-size:11px;font-weight:600;color:white;background:'+col+';border-radius:8px;padding:3px 11px;flex-shrink:0">'+esc(c.season)+'</span>' : '')
     + (curUser==='latisha' ? '<button onclick="openCRMNewModal(\''+c.id+'\')" class="btn btns" style="font-size:12px;flex-shrink:0">✎ Edit</button>' : '')
     + '</div>'
@@ -653,7 +653,7 @@ function crmLogReply(clientId) {
   modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
   modal.innerHTML =
     '<div style="background:white;border-radius:16px;padding:28px;width:400px;max-width:92vw">'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:var(--deep);margin-bottom:16px">Log a received reply</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:20px;color:var(--deep);margin-bottom:16px">Log a received reply</div>'
     + '<div class="fg" style="margin-bottom:10px"><label class="fl">Channel</label>'
     +   '<select class="fsel" id="lr-channel" style="font-size:13px"><option value="email">Email</option><option value="sms">SMS</option></select></div>'
     + '<div class="fg" style="margin-bottom:10px"><label class="fl">Subject (optional)</label>'
@@ -1142,7 +1142,7 @@ function crmOpenApptEditModal(bookingId, clientId) {
   modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
   modal.innerHTML =
     '<div style="background:white;border-radius:16px;padding:28px;width:420px;max-width:92vw">'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:20px;color:var(--deep);margin-bottom:18px">Edit Appointment</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:20px;color:var(--deep);margin-bottom:18px">Edit Appointment</div>'
     + '<div class="fg" style="margin-bottom:12px"><label class="fl">Date &amp; Time</label>'
     +   '<input type="datetime-local" id="ae-date" class="fi" style="font-size:13px"></div>'
     + '<div class="fg" style="margin-bottom:12px"><label class="fl">Status</label>'
@@ -1229,7 +1229,7 @@ function crmNewBookingModal(clientId) {
   modal.onclick = function(e) { if (e.target===modal) modal.remove(); };
   modal.innerHTML =
     '<div style="background:white;border-radius:16px;padding:28px;width:420px;max-width:92vw">'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--deep);margin-bottom:18px">Book Appointment</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:22px;color:var(--deep);margin-bottom:18px">Book Appointment</div>'
     + '<div class="fg" style="margin-bottom:12px"><label class="fl">Client</label>'
     +   '<div style="font-size:13px;color:var(--deep);padding:9px 12px;border:1px solid var(--sand);border-radius:8px;background:#FDFBF8">'+esc((c.firstName+' '+c.lastName).trim())+(c.email?' <span style="color:var(--muted);font-size:11px">· '+esc(c.email)+'</span>':'')+'</div></div>'
     + '<div class="fg" style="margin-bottom:12px"><label class="fl">Date &amp; Time</label>'

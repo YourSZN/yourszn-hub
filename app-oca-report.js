@@ -421,7 +421,7 @@ function ocaBuildReportHTML() {
 
   function pageTitle(step, title) {
     return '<div style="font-size:7px;letter-spacing:2.5px;text-transform:uppercase;color:#8C7C6C;margin-bottom:4px">'+step+'</div>'
-      + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:34px;font-weight:300;color:#1C1712;line-height:1.1;margin-bottom:8px">'+title+'</div>'
+      + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:34px;font-weight:300;color:#1C1712;line-height:1.1;margin-bottom:8px">'+title+'</div>'
       + '<div style="width:38px;height:2px;background:'+accent+';margin-bottom:20px"></div>';
   }
 
@@ -447,8 +447,8 @@ function ocaBuildReportHTML() {
         ? '<div style="width:176px;height:176px;border-radius:50%;overflow:hidden;border:4px solid '+accent+';margin-bottom:6px"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center top"></div>'
         : '<div style="width:176px;height:176px;border-radius:50%;background:#E8E0D6;margin-bottom:6px"></div>')
     + '<div style="width:40px;height:1px;background:#DDD5C8;margin:16px auto"></div>'
-    + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:#8C7C6C;margin-bottom:5px">Online Colour Analysis</div>'
-    + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:46px;font-weight:300;font-style:italic;color:#1C1712;line-height:1.1;margin-bottom:5px">'+(r.clientName||'Your Client')+'</div>'
+    + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:#8C7C6C;margin-bottom:5px">Online Colour Analysis</div>'
+    + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:46px;font-weight:300;font-style:italic;color:#1C1712;line-height:1.1;margin-bottom:5px">'+(r.clientName||'Your Client')+'</div>'
     + '<div style="font-size:11px;color:#8C7C6C;margin-bottom:40px">'+dateStr+'</div>'
     + (r.primarySeason ? '<div style="width:48px;height:2px;background:'+accent+';margin-bottom:12px"></div><div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:'+accent+';font-weight:600">'+r.primarySeason+'</div>' : '')
     + '<div style="position:absolute;bottom:32px;left:0;right:0;text-align:center"><div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:#C4B4A4">portal.yourszn.com.au</div></div>'
@@ -579,14 +579,14 @@ function ocaBuildReportHTML() {
     + '<div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap">'
     + '<div style="flex:1.3;min-width:170px;padding:20px;background:'+accent+';border-radius:13px;color:white">'
     + '<div style="font-size:7px;letter-spacing:2.5px;text-transform:uppercase;opacity:.8;margin-bottom:7px">Primary Season</div>'
-    + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:24px;font-weight:300;margin-bottom:5px">'+(r.primarySeason||'—')+'</div>'
+    + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:24px;font-weight:300;margin-bottom:5px">'+(r.primarySeason||'—')+'</div>'
     + '<div style="font-size:9.5px;line-height:1.7;opacity:.9">'+(season?season.desc:'')+'</div>'
     + '</div>'
     + '<div style="flex:1;min-width:140px;display:flex;flex-direction:column;gap:8px">'
     + [{data:sisterAData,name:r.sisterA,num:1},{data:sisterBData,name:r.sisterB,num:2}].map(function(s){
         return '<div style="padding:12px 14px;background:white;border:1.5px solid #E5DDD4;border-radius:11px;flex:1">'
           + '<div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:#8C7C6C;margin-bottom:3px">Sister Season '+s.num+'</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:18px;font-weight:300;color:#1C1712">'+(s.name||'—')+'</div>'
+          + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:18px;font-weight:300;color:#1C1712">'+(s.name||'—')+'</div>'
           + (s.data?'<div style="font-size:9px;color:#8C7C6C;line-height:1.6;margin-top:2px">'+s.data.desc+'</div>':'')
           + '</div>';
       }).join('')
@@ -605,7 +605,7 @@ function ocaBuildReportHTML() {
       + '<div style="display:flex;height:100%">'+stripes+'</div>'
       + (photo?'<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center"><img src="'+photo+'" style="height:96%;object-fit:cover;object-position:center top;filter:drop-shadow(0 8px 32px rgba(0,0,0,.45))"></div>':'')
       + '</div>'
-      + '<div style="text-align:center;margin-top:10px;font-family:\'Cormorant Garamond\',Georgia,serif;font-size:16px;font-weight:300;color:#1C1712">'+r.primarySeason+(season?' — '+season.desc.split('.')[0]:'')+'</div>'
+      + '<div style="text-align:center;margin-top:10px;font-family:\'Fraunces\',Georgia,serif;font-size:16px;font-weight:300;color:#1C1712">'+r.primarySeason+(season?' — '+season.desc.split('.')[0]:'')+'</div>'
     ));
   }
 
@@ -639,7 +639,7 @@ function ocaBuildReportHTML() {
   pages.push(rp(
     '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(297mm - 108px);text-align:center">'
     + '<div style="font-size:7px;letter-spacing:4px;text-transform:uppercase;color:#C4B4A4;margin-bottom:30px">YOUR SZN</div>'
-    + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:50px;font-weight:300;font-style:italic;color:#1C1712;margin-bottom:16px">Thank You</div>'
+    + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:50px;font-weight:300;font-style:italic;color:#1C1712;margin-bottom:16px">Thank You</div>'
     + '<div style="width:40px;height:2px;background:'+accent+';margin-bottom:20px"></div>'
     + '<div style="font-size:11.5px;line-height:2;color:#3C3028;max-width:320px;margin-bottom:12px">Thank you for trusting me with your colour analysis! I hope you find as much joy and value in this experience as I\'ve had working with you.</div>'
     + '<div style="font-size:10.5px;line-height:2;color:#3C3028;max-width:320px;margin-bottom:30px">If you\'re pleased with the experience, sharing your journey with friends and family would mean the world to me. And don\'t forget to refer back to this report whenever you need a little colour guidance.</div>'

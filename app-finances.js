@@ -136,11 +136,11 @@ function renderFinSection(elId, data, type, groupByCat) {
         incCards += '<div style="display:flex;gap:20px;margin-bottom:14px">'
           + '<div style="flex:1;text-align:center;padding:12px;background:var(--warm);border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Clients</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep)">'+e.clients+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:28px;color:var(--deep)">'+e.clients+'</div>'
           + '</div>'
           + '<div style="flex:1;text-align:center;padding:12px;background:var(--warm);border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Rate</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep)">$'+e.rate+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:28px;color:var(--deep)">$'+e.rate+'</div>'
           + '</div>'
           + '</div>'
           + '<div class="er" style="border-top:1px solid var(--warm);padding-top:10px">'
@@ -153,7 +153,7 @@ function renderFinSection(elId, data, type, groupByCat) {
         // Subscribers / E-guides — simpler layout
         incCards += '<div style="text-align:center;padding:16px 0">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">'+(e.id===3?'Subscribers':'Sales')+' '+pl+'</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:36px;color:var(--deep)">'+displayAmt+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:36px;color:var(--deep)">'+displayAmt+'</div>'
           + '</div>';
         if (e.notes) incCards += '<div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center">'+esc(e.notes)+'</div>';
       }
@@ -175,11 +175,11 @@ function renderFinSection(elId, data, type, groupByCat) {
         inner = '<div style="display:flex;gap:20px;margin-bottom:14px">'
           + '<div style="flex:1;text-align:center;padding:12px;background:var(--warm);border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Clients</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep)">'+e.clients+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:28px;color:var(--deep)">'+e.clients+'</div>'
           + '</div>'
           + '<div style="flex:1;text-align:center;padding:12px;background:var(--warm);border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Rate</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep)">$'+e.rate+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:28px;color:var(--deep)">$'+e.rate+'</div>'
           + '</div>'
           + '</div>'
           + '<div class="er" style="border-top:1px solid var(--warm);padding-top:10px">'
@@ -192,11 +192,11 @@ function renderFinSection(elId, data, type, groupByCat) {
         inner = '<div style="display:flex;gap:16px;margin-bottom:14px">'
           + '<div style="flex:1;text-align:center;padding:12px;background:var(--warm);border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Total Subscribers</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:var(--deep)">'+( e.totalSubs||0)+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:32px;color:var(--deep)">'+( e.totalSubs||0)+'</div>'
           + '</div>'
           + '<div style="flex:1;text-align:center;padding:12px;background:#D1FAE5;border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">New This Week</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:#065F46">'+(e.newThisWeek||0)+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:32px;color:#065F46">'+(e.newThisWeek||0)+'</div>'
           + '</div>'
           + '</div>'
           + '<div style="display:flex;gap:8px;margin-bottom:12px">'
@@ -219,11 +219,11 @@ function renderFinSection(elId, data, type, groupByCat) {
         inner = '<div style="display:flex;gap:16px;margin-bottom:14px">'
           + '<div style="flex:1;text-align:center;padding:12px;background:var(--warm);border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Sold This Week</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:var(--deep)">'+( e.soldThisWeek||0)+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:32px;color:var(--deep)">'+( e.soldThisWeek||0)+'</div>'
           + '</div>'
           + '<div style="flex:1;text-align:center;padding:12px;background:var(--warm);border-radius:10px">'
           + '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Price Each</div>'
-          + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:32px;color:var(--deep)">'+(e.guidePrice>0?'$'+(e.guidePrice):'—')+'</div>'
+          + '<div style="font-family:\'Fraunces\',serif;font-size:32px;color:var(--deep)">'+(e.guidePrice>0?'$'+(e.guidePrice):'—')+'</div>'
           + '</div>'
           + '</div>'
           + '<div style="display:flex;gap:8px;margin-bottom:12px">'
@@ -258,7 +258,7 @@ function renderFinSection(elId, data, type, groupByCat) {
       + '<div class="fin-net-val">'+fmtAmtRound(grandTotal)+'</div></div>'
       + '<div style="text-align:center">'
       + '<div class="fin-net-lbl" style="color:#B45309">GST (10%)</div>'
-      + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;color:#92400E">− '+fmtAmtRound(gstAmt)+'</div>'
+      + '<div style="font-family:\'Fraunces\',serif;font-size:24px;color:#92400E">− '+fmtAmtRound(gstAmt)+'</div>'
       + '</div>'
       + '<div style="text-align:right">'
       + '<div class="fin-net-lbl">After GST '+pl+'</div>'
@@ -350,7 +350,7 @@ function renderNetBar() {
     + '<div><div class="fin-net-lbl">Net '+(net>=0?'Surplus':'Shortfall')+' '+pl+'</div>'
     + '<div class="fin-net-val">'+(net<0?'-':'')+fmtAmtRound(Math.abs(net))+'</div></div>'
     + (totalInc>0 ? '<div style="text-align:right"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">To break even '+(pl)+' you need</div>'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:24px;color:var(--deep)">'+fmtAmtRound(totalExp)+'</div></div>' : '')
+    + '<div style="font-family:\'Fraunces\',serif;font-size:24px;color:var(--deep)">'+fmtAmtRound(totalExp)+'</div></div>' : '')
     + '</div>';
 }
 

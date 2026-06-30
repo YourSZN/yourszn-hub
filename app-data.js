@@ -521,7 +521,7 @@ function rPage(content) {
 
 function rHeader(title) {
   return '<div style="text-align:center;margin-bottom:24px;margin-top:-8px">'
-    + '<div style="display:inline-block;background:#2d2d2d;color:#fff;font-family:Cormorant Garamond,serif;font-size:22px;padding:10px 40px;border-radius:40px;font-style:italic;letter-spacing:.5px;border:3px solid #d4b8a0;font-weight:400">'+title+'</div>'
+    + '<div style="display:inline-block;background:#2d2d2d;color:#fff;font-family:Fraunces,serif;font-size:22px;padding:10px 40px;border-radius:40px;font-style:italic;letter-spacing:.5px;border:3px solid #d4b8a0;font-weight:400">'+title+'</div>'
     + '</div>';
 }
 
@@ -844,7 +844,7 @@ function buildSubseasonPage(rowStart, rowEnd, pageNum) {
 
   var colHeaders = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px">'
     + seasons.map(function(sn){
-        return '<div style="text-align:center;font-size:14px;font-weight:700;color:#222;font-family:Cormorant Garamond,serif">'+sn+'</div>';
+        return '<div style="text-align:center;font-size:14px;font-weight:700;color:#222;font-family:Fraunces,serif">'+sn+'</div>';
       }).join('')
     + '</div>';
 

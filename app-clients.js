@@ -102,9 +102,9 @@ function buildOwnerPersonCard(uid) {
   var wrap = document.createElement('div'); wrap.className='tpcard'; wrap.id='tpcard-'+uid;
   wrap.innerHTML =
     '<div class="tpcard-hd" onclick="toggleTaskCard(\''+uid+'\')">'+
-      '<div class="uav-sm" style="background:'+col+';width:34px;height:34px;font-size:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:white;font-family:\'Cormorant Garamond\',serif;flex-shrink:0">'+init+'</div>'+
+      '<div class="uav-sm" style="background:'+col+';width:34px;height:34px;font-size:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:white;font-family:\'Fraunces\',serif;flex-shrink:0">'+init+'</div>'+
       '<div>'+
-        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
+        '<div style="font-family:\'Fraunces\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
         '<div style="font-size:11px;color:var(--muted)">'+tot+' task'+(tot!==1?'s':'')+' this week · '+dn+' done</div>'+
       '</div>'+
       '<div class="tpcard-exp'+(isOpen?' open':'')+'" id="tpexp-'+uid+'">&#x25BE;</div>'+
@@ -776,7 +776,7 @@ function renderTeamSection(){
       div.innerHTML=
         '<div class="smcard-av2" style="background:'+(UCOLORS[uid]||'#9E8B7A')+';width:40px;height:40px;font-size:16px;flex-shrink:0">'+UINIT[uid]+'</div>'+
         '<div style="flex:1">'+
-          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
+          '<div style="font-family:\'Fraunces\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
           '<div style="font-size:11px;color:var(--muted)">'+u.role+'</div>'+
           '<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:3px">Tasks are private · request access to view</div>'+
         '</div>'+
@@ -1108,13 +1108,13 @@ function renderMyhubTeam() {
           '</div><div style="font-size:10px;color:var(--muted);margin-top:3px">'+wtDn+'/'+wtTot+' tasks this week</div>'
         :'<div style="font-size:11px;color:var(--muted);margin-top:4px">No tasks this week</div>';
       div.innerHTML=
-        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
-        '<div style="flex:1"><div style="font-family:\'Cormorant Garamond\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
+        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Fraunces\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
+        '<div style="flex:1"><div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
         '<div style="font-size:11px;color:var(--muted)">'+u.role+'</div>'+bar+'</div>';
     } else {
       div.innerHTML=
-        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
-        '<div style="flex:1"><div style="font-family:\'Cormorant Garamond\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
+        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Fraunces\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
+        '<div style="flex:1"><div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
         '<div style="font-size:11px;color:var(--muted)">'+u.role+'</div>'+
         '<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:3px">&#128274; Tasks private — request access above</div></div>';
     }

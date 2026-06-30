@@ -993,7 +993,7 @@ function buildTaskSummaryBar(weekOff, uid) {
   }).length;
   var card = 'border-radius:10px;padding:14px 18px;flex:1;min-width:100px;';
   var lbl  = 'font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;';
-  var num  = 'font-size:26px;font-family:\'Cormorant Garamond\',serif;font-weight:400;line-height:1;';
+  var num  = 'font-size:26px;font-family:\'Fraunces\',serif;font-weight:400;line-height:1;';
   var html = '<div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">';
   html += '<div style="background:white;border:1px solid var(--sand);'+card+'">'
         + '<div style="color:var(--muted);'+lbl+'">Total</div>'
@@ -1055,9 +1055,9 @@ function buildOwnerPersonCard(uid) {
   var wrap = document.createElement('div'); wrap.className='tpcard'; wrap.id='tpcard-'+uid;
   wrap.innerHTML =
     '<div class="tpcard-hd" onclick="toggleTaskCard(\''+uid+'\')">'+
-      '<div class="uav-sm" style="background:'+col+';width:34px;height:34px;font-size:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:white;font-family:\'Cormorant Garamond\',serif;flex-shrink:0">'+init+'</div>'+
+      '<div class="uav-sm" style="background:'+col+';width:34px;height:34px;font-size:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:white;font-family:\'Fraunces\',serif;flex-shrink:0">'+init+'</div>'+
       '<div>'+
-        '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
+        '<div style="font-family:\'Fraunces\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
         '<div style="font-size:11px;color:var(--muted)">'+tot+' task'+(tot!==1?'s':'')+' this week · '+dn+' done</div>'+
       '</div>'+
       '<div class="tpcard-exp'+(isOpen?' open':'')+'" id="tpexp-'+uid+'">&#x25BE;</div>'+
@@ -1606,7 +1606,7 @@ function renderStaffTaskView(uid) {
 
   existing.innerHTML =
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
-    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--deep);flex:1">' + USERS[uid].name + '\'s Tasks</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:18px;color:var(--deep);flex:1">' + USERS[uid].name + '\'s Tasks</div>'
     + '<button onclick="changeStaffViewWeek(\''+uid+'\',-1)" style="padding:5px 12px;border:1px solid var(--sand);border-radius:8px;background:white;cursor:pointer;font-size:12px;color:var(--deep)">‹ Prev</button>'
     + '<span style="font-size:12px;color:var(--muted);white-space:nowrap">' + weekLabel(off) + '</span>'
     + '<button onclick="changeStaffViewWeek(\''+uid+'\',1)" style="padding:5px 12px;border:1px solid var(--sand);border-radius:8px;background:white;cursor:pointer;font-size:12px;color:var(--deep)">Next ›</button>'
@@ -1833,7 +1833,7 @@ function renderTeamSection(){
       div.innerHTML=
         '<div class="smcard-av2" style="background:'+(UCOLORS[uid]||'#9E8B7A')+';width:40px;height:40px;font-size:16px;flex-shrink:0">'+UINIT[uid]+'</div>'+
         '<div style="flex:1">'+
-          '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
+          '<div style="font-family:\'Fraunces\',serif;font-size:18px;color:var(--deep)">'+u.name+'</div>'+
           '<div style="font-size:11px;color:var(--muted)">'+u.role+'</div>'+
           '<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:3px">Tasks are private · request access to view</div>'+
         '</div>'+
@@ -2230,13 +2230,13 @@ function renderMyhubTeam() {
           '</div><div style="font-size:10px;color:var(--muted);margin-top:3px">'+wtDn+'/'+wtTot+' tasks this week</div>'
         :'<div style="font-size:11px;color:var(--muted);margin-top:4px">No tasks this week</div>';
       div.innerHTML=
-        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
-        '<div style="flex:1"><div style="font-family:\'Cormorant Garamond\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
+        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Fraunces\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
+        '<div style="flex:1"><div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
         '<div style="font-size:11px;color:var(--muted)">'+u.role+'</div>'+bar+'</div>';
     } else {
       div.innerHTML=
-        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
-        '<div style="flex:1"><div style="font-family:\'Cormorant Garamond\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
+        '<div style="width:40px;height:40px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;font-family:\'Fraunces\',serif;font-size:18px;color:white;flex-shrink:0">'+UINIT[oid]+'</div>'+
+        '<div style="flex:1"><div style="font-family:\'Fraunces\',serif;font-size:17px;color:var(--deep)">'+u.name+'</div>'+
         '<div style="font-size:11px;color:var(--muted)">'+u.role+'</div>'+
         '<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:3px">&#128274; Tasks private — request access above</div></div>';
     }
@@ -4896,7 +4896,7 @@ function rPage(content) {
 
 function rHeader(title) {
   return '<div style="text-align:center;margin-bottom:24px;margin-top:-8px">'
-    + '<div style="display:inline-block;background:#2d2d2d;color:#fff;font-family:Cormorant Garamond,serif;font-size:22px;padding:10px 40px;border-radius:40px;font-style:italic;letter-spacing:.5px;border:3px solid #d4b8a0;font-weight:400">'+title+'</div>'
+    + '<div style="display:inline-block;background:#2d2d2d;color:#fff;font-family:Fraunces,serif;font-size:22px;padding:10px 40px;border-radius:40px;font-style:italic;letter-spacing:.5px;border:3px solid #d4b8a0;font-weight:400">'+title+'</div>'
     + '</div>';
 }
 
@@ -5219,7 +5219,7 @@ function buildSubseasonPage(rowStart, rowEnd, pageNum) {
 
   var colHeaders = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px">'
     + seasons.map(function(sn){
-        return '<div style="text-align:center;font-size:14px;font-weight:700;color:#222;font-family:Cormorant Garamond,serif">'+sn+'</div>';
+        return '<div style="text-align:center;font-size:14px;font-weight:700;color:#222;font-family:Fraunces,serif">'+sn+'</div>';
       }).join('')
     + '</div>';
 

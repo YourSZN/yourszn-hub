@@ -1162,7 +1162,7 @@ function renderAdTiles() {
       + ' style="flex:1;min-width:140px;background:' + (on ? t.border : t.color) + ';border:2px solid ' + t.border + ';'
       + 'border-radius:14px;padding:18px 20px;cursor:pointer;transition:all .15s;user-select:none">'
       + '<div style="font-size:26px;margin-bottom:8px">' + t.icon + '</div>'
-      + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--deep);margin-bottom:6px">' + t.type + '</div>'
+      + '<div style="font-family:\'Fraunces\',serif;font-size:22px;color:var(--deep);margin-bottom:6px">' + t.type + '</div>'
       + '<div style="display:flex;gap:12px">'
       + '<span style="font-size:12px;color:var(--muted)"><strong style="color:var(--charcoal)">' + total + '</strong> total</span>'
       + '<span style="font-size:12px;color:var(--muted)"><strong style="color:#065F46">' + active + '</strong> active</span>'
