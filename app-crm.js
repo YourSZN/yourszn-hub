@@ -56,7 +56,7 @@ function crmFmtDateShort(d) {
 }
 function todayISO() { return new Date().toISOString().split('T')[0]; }
 function crmSectionHd(t) {
-  return '<div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px">'+t+'</div>';
+  return '<div class="crm-sec-hd">'+t+'</div>';
 }
 
 function crmContrastDisplay(level, col) {
