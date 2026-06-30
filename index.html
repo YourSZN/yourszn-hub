@@ -6,7 +6,7 @@
 <title>Your SZN — Business Hub</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600&family=Almarai:wght@300;400;700;800&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=4">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -139,7 +139,8 @@
 
 <!-- ═══ APP ═══ -->
 <div id="app">
-  <aside class="sidebar">
+  <aside class="sidebar" id="app-sidebar">
+    <button id="sb-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar" style="position:absolute;top:16px;right:-12px;width:24px;height:24px;border-radius:50%;background:#F9F5F0;border:1px solid #E5DDD4;color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:101;line-height:1;box-shadow:0 1px 4px rgba(28,23,18,.1);">&#8249;</button>
     <div class="slogo">Your <span>SZN</span></div>
     <div class="suser">
       <div class="sulab">Logged in as</div>
@@ -1694,6 +1695,19 @@ function ocaToggleFullscreen() {
   var btn = document.getElementById('oca-expand-btn');
   if (btn) btn.innerHTML = fs ? '&#x26F6; Collapse' : '&#x26F6; Expand';
 }
+function toggleSidebar() {
+  var collapsed = document.body.classList.toggle('sb-collapsed');
+  var btn = document.getElementById('sb-toggle-btn');
+  if (btn) btn.innerHTML = collapsed ? '&#8250;' : '&#8249;';
+  try { localStorage.setItem('sb_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+}
+(function() {
+  try { if (localStorage.getItem('sb_collapsed') === '1') {
+    document.body.classList.add('sb-collapsed');
+    var btn = document.getElementById('sb-toggle-btn');
+    if (btn) btn.innerHTML = '&#8250;';
+  }} catch(e) {}
+})();
 </script>
 </body>
 </html>

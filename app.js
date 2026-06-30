@@ -535,7 +535,7 @@ function buildNav(allowed) {
     }
     var btn = document.createElement('div');
     btn.className = 'nitem'; btn.id = 'n-'+item.id;
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+item.icon+'</svg>'+item.lbl;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0">'+item.icon+'</svg><span class="nav-lbl">'+item.lbl+'</span>';
     if (item.id==='comms') {
       var bdg = document.createElement('span');
       bdg.id = 'n-comms-badge';

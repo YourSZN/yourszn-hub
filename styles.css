@@ -803,3 +803,24 @@ th { font-family:'Inter',sans-serif; font-size:10px; font-weight:600; letter-spa
         #report-pages-container { padding: 0 !important; gap: 0 !important; }
         .rp-page { page-break-after: always; box-shadow: none !important; border-radius: 0 !important; }
       }
+
+/* ── COLLAPSIBLE SIDEBAR ── */
+.sidebar{transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+body.sb-collapsed .sidebar{width:56px;}
+body.sb-collapsed .main{margin-left:56px;}
+body.sb-collapsed .slogo,
+body.sb-collapsed .suser,
+body.sb-collapsed .nsec,
+body.sb-collapsed .sout,
+body.sb-collapsed .nav-lbl{opacity:0;pointer-events:none;}
+body.sb-collapsed .nitem{padding:10px 0;justify-content:center;}
+body.sb-collapsed .nitem svg{margin:0 auto;}
+body.sb-collapsed #sb-toggle-btn{right:-12px;}
+
+/* ── CARD DEPTH (subtle lift, no colour change) ── */
+.sc{box-shadow:0 1px 0 rgba(28,23,18,.04),0 2px 6px rgba(28,23,18,.05);}
+.card{box-shadow:0 1px 0 rgba(28,23,18,.04),0 2px 6px rgba(28,23,18,.05);}
+
+/* ── PRIMARY BUTTON — half shade deeper ── */
+.btnp{background:#E8E0D6 !important;color:#1C1712 !important;border:1.5px solid #1C1712 !important;}
+.btnp:hover{background:#DDD4C8 !important;}
