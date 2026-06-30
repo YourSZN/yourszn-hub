@@ -7,6 +7,7 @@ var crmIdSeq           = 100;
 var crmSearch          = '';
 var crmSeasonFilter    = '';
 var crmTagFilter       = '';
+var crmStatusFilter    = '';
 var crmOpenProfileId   = null;
 var crmEditingId       = null;
 var crmSessionClientId = null;
@@ -31,6 +32,23 @@ var CRM_CONTRAST = [
   { val:'medium',    label:'Medium',    dots:3 },
   { val:'high',      label:'High',      dots:4 },
   { val:'very-high', label:'Very High', dots:5 }
+];
+
+var CRM_STATUS = {
+  'lead':          { label:'Enquiry',       bg:'#F3F4F6', col:'#6B7280', border:'#E5E7EB' },
+  'booked':        { label:'Booked',        bg:'#EFF6FF', col:'#1D4ED8', border:'#BFDBFE' },
+  'analysis-done': { label:'Analysis Done', bg:'#FFF7ED', col:'#C2410C', border:'#FED7AA' },
+  'report-sent':   { label:'Report Sent',   bg:'#F0FDF4', col:'#15803D', border:'#86EFAC' },
+  'complete':      { label:'Complete',      bg:'#F5F3FF', col:'#6D28D9', border:'#DDD6FE' }
+};
+var CRM_STATUS_ORDER = ['lead','booked','analysis-done','report-sent','complete'];
+
+var CRM_CHECKLIST = [
+  { key:'photoReceived',  label:'Photo received' },
+  { key:'analysisDone',   label:'Analysis done'  },
+  { key:'seasonAssigned', label:'Season assigned' },
+  { key:'reportSent',     label:'Report sent'    },
+  { key:'followUpDone',   label:'Follow-up done' }
 ];
 
 function crmSeasonFamily(s) {
@@ -69,6 +87,99 @@ function crmContrastDisplay(level, col) {
     dots += '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle;background:'+(i<=n?col:'var(--sand)')+'"></span>';
   }
   return dots + '<span style="font-size:11px;color:var(--muted);vertical-align:middle;margin-left:4px">'+label+'</span>';
+}
+
+// ── Status pill ───────────────────────────────────────
+function crmStatusPill(status, clientId) {
+  var s = CRM_STATUS[status] || CRM_STATUS['lead'];
+  var label = s.label;
+  if (curUser !== 'latisha') {
+    return '<span style="font-size:10px;font-weight:600;border-radius:20px;padding:2px 9px;background:'+s.bg+';color:'+s.col+';border:1px solid '+s.border+'">'+label+'</span>';
+  }
+  var opts = CRM_STATUS_ORDER.map(function(v) {
+    var o = CRM_STATUS[v];
+    return '<option value="'+v+'"'+(v===status?' selected':'')+'>'+o.label+'</option>';
+  }).join('');
+  return '<select onchange="crmSetStatus(\''+clientId+'\',this.value)" onclick="event.stopPropagation()" '
+    + 'style="font-size:10px;font-weight:600;border-radius:20px;padding:2px 8px;background:'+s.bg+';color:'+s.col+';border:1px solid '+s.border+';cursor:pointer;appearance:none;-webkit-appearance:none;outline:none">'+opts+'</select>';
+}
+
+function crmSetStatus(clientId, status) {
+  var c = crmClients.find(function(x){ return x.id === clientId; });
+  if (!c) return;
+  c.status = status;
+  // Log the change to the activity feed
+  if (!c.activityLog) c.activityLog = [];
+  c.activityLog.push({ type:'status', status:status, at: new Date().toISOString() });
+  saveData();
+  if (crmOpenProfileId === clientId) openCRMProfile(clientId);
+  else renderCRMPage();
+}
+
+// ── OCA checklist ─────────────────────────────────────
+function crmToggleChecklist(clientId, key) {
+  var c = crmClients.find(function(x){ return x.id === clientId; });
+  if (!c) return;
+  if (!c.ocaChecklist) c.ocaChecklist = {};
+  c.ocaChecklist[key] = !c.ocaChecklist[key];
+  // Auto-advance status when all checklist items done
+  if (key === 'reportSent' && c.ocaChecklist[key] && (!c.status || c.status === 'analysis-done')) {
+    c.status = 'report-sent';
+    if (!c.activityLog) c.activityLog = [];
+    c.activityLog.push({ type:'status', status:'report-sent', at: new Date().toISOString() });
+  }
+  if (key === 'followUpDone' && c.ocaChecklist[key] && c.status === 'report-sent') {
+    c.status = 'complete';
+    if (!c.activityLog) c.activityLog = [];
+    c.activityLog.push({ type:'status', status:'complete', at: new Date().toISOString() });
+  }
+  saveData();
+  openCRMProfile(clientId);
+}
+
+// ── Activity feed ─────────────────────────────────────
+function crmBuildActivityFeed(c) {
+  var events = [];
+  var push = function(isoDate, icon, text, sub) {
+    if (isoDate) events.push({ at: isoDate, icon: icon, text: text, sub: sub || '' });
+  };
+
+  if (c.createdAt) push(c.createdAt + 'T00:00:00Z', '👤', 'Client created', '');
+
+  (c.correspondence || []).forEach(function(m) {
+    if (!m.sentAt) return;
+    var inbound = m.direction === 'inbound';
+    push(m.sentAt, inbound ? '💬' : '✉',
+      inbound ? 'Message received' : 'Message sent',
+      (m.subject || (m.body||'').slice(0, 40) || '') + (m.channel === 'sms' ? ' · SMS' : ' · Email'));
+  });
+
+  (c.payments || []).forEach(function(p) {
+    if (!p.date) return;
+    push(p.date + 'T12:00:00Z', '$',
+      '$' + parseFloat(p.amount).toFixed(0) + ' · ' + (p.status === 'paid' ? 'Paid' : p.status === 'overdue' ? 'Overdue' : 'Pending'),
+      p.description || p.type || '');
+  });
+
+  (c.sessions || []).forEach(function(s) {
+    if (!s.date) return;
+    push(s.date + 'T12:00:00Z', '🎨', 'Session: ' + (s.type || 'OCA'), s.season || '');
+  });
+
+  (c.documents || []).forEach(function(d) {
+    if (!d.addedAt) return;
+    push(d.addedAt + 'T12:00:00Z', '📎', 'Document added', d.name || '');
+  });
+
+  (c.activityLog || []).forEach(function(a) {
+    if (a.type === 'status' && a.status && a.at) {
+      var s = CRM_STATUS[a.status];
+      push(a.at, '●', 'Status → ' + (s ? s.label : a.status), '');
+    }
+  });
+
+  events.sort(function(a, b) { return b.at.localeCompare(a.at); });
+  return events.slice(0, 10);
 }
 
 // ── Photo resize helper ───────────────────────────────
@@ -110,6 +221,7 @@ function renderCRMPage() {
     if (!ok) return false;
     if (crmSeasonFilter && (c.season||'') !== crmSeasonFilter) return false;
     if (crmTagFilter    && (c.tags||[]).indexOf(crmTagFilter) === -1) return false;
+    if (crmStatusFilter && (c.status||'lead') !== crmStatusFilter) return false;
     return true;
   });
 
@@ -134,6 +246,20 @@ function renderCRMPage() {
       : '')
     + '<button class="btn btnp" onclick="openCRMNewModal(null)" style="font-size:12px;white-space:nowrap">+ New Client</button>'
     + '</div>';
+
+  // Status filter
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">'
+    + '<span style="font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap">Status:</span>';
+  CRM_STATUS_ORDER.forEach(function(v) {
+    var s = CRM_STATUS[v];
+    var active = v === crmStatusFilter;
+    html += '<button onclick="crmStatusFilter=\''+(active?'':v)+'\';renderCRMPage()" style="font-size:10px;font-weight:600;border-radius:20px;padding:2px 10px;cursor:pointer;'
+      + (active
+        ? 'background:'+s.col+';color:white;border:1px solid '+s.col
+        : 'background:'+s.bg+';color:'+s.col+';border:1px solid '+s.border)
+      + '">'+s.label+(active?' ×':'')+'</button>';
+  });
+  html += '</div>';
 
   if (allTags.length) {
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'
@@ -211,6 +337,7 @@ function renderCRMPage() {
           ? '<span style="font-size:11px;font-weight:600;color:white;background:'+col+';border-radius:8px;padding:3px 10px;white-space:nowrap">'+esc(c.season)+'</span>'
           : '<span style="color:var(--muted);font-size:11px">—</span>')
       + '</td>'
+      + '<td style="padding:10px 12px 10px 0" onclick="event.stopPropagation()">'+crmStatusPill(c.status||'lead', c.id)+'</td>'
       + '<td style="padding:10px 12px 10px 0;font-size:11px;color:var(--muted);white-space:nowrap">'+esc(c.phone||'—')+'</td>'
       + '<td style="padding:10px 12px 10px 0"><div style="display:flex;gap:4px;flex-wrap:wrap">'+tagBadges+'</div></td>'
       + '<td style="padding:10px 12px 10px 0;white-space:nowrap">'
@@ -229,7 +356,7 @@ function renderCRMPage() {
     '<div style="overflow-x:auto;border:1px solid var(--sand);border-radius:12px;background:white">'
     + '<table style="width:100%;border-collapse:collapse">'
     + '<thead><tr style="text-align:left;border-bottom:1px solid var(--sand)">'
-    + ['','Name','Season','Phone','Tags','Balance','Last Session',''].map(function(h){
+    + ['','Name','Season','Status','Phone','Tags','Balance','Last Session',''].map(function(h){
         return '<th style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 12px 10px 0">'+h+'</th>';
       }).join('')
     + '</tr></thead>'
@@ -274,6 +401,18 @@ function openCRMProfile(id) {
     + '</div>'
     : '';
 
+  var statusRow = curUser === 'latisha'
+    ? '<div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">'
+    + CRM_STATUS_ORDER.map(function(v) {
+        var s = CRM_STATUS[v];
+        var active = (c.status || 'lead') === v;
+        return '<button onclick="crmSetStatus(\''+c.id+'\',\''+v+'\')" style="text-align:left;font-size:11px;font-weight:'+(active?'700':'500')+';padding:5px 10px;border-radius:7px;cursor:pointer;border:1px solid '+(active?s.border:'transparent')+';background:'+(active?s.bg:'transparent')+';color:'+(active?s.col:'var(--muted)')+'">'+
+          '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+(active?s.col:'var(--sand)')+';margin-right:7px;vertical-align:middle"></span>'+
+          s.label+'</button>';
+      }).join('')
+    + '</div>'
+    : '<div style="margin-top:8px">'+crmStatusPill(c.status||'lead', c.id)+'</div>';
+
   var avatarSection =
     '<div style="text-align:center;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--sand)">'
     + '<div style="position:relative;width:72px;margin:0 auto 10px">'
@@ -288,6 +427,7 @@ function openCRMProfile(id) {
     + (c.season
         ? '<span style="font-size:11px;font-weight:600;color:white;background:'+col+';border-radius:8px;padding:3px 12px">'+esc(c.season)+'</span>'
         : '<span style="font-size:11px;color:var(--muted);background:var(--warm);border:1px solid var(--sand);border-radius:8px;padding:3px 12px">Awaiting analysis</span>')
+    + statusRow
     + quickActions
     + '</div>';
 
@@ -553,8 +693,52 @@ function openCRMProfile(id) {
     + '</div>'
     + '</div>';
 
+  // OCA Workflow Checklist
+  var checklist = c.ocaChecklist || {};
+  // Auto-detect season assigned from data
+  if (c.season && !checklist.seasonAssigned) checklist.seasonAssigned = true;
+
+  var checklistHtml = crmSectionHd('OCA Workflow')
+    + '<div style="margin-bottom:18px;background:var(--warm);border-radius:10px;padding:10px 12px;border:1px solid var(--sand)">'
+    + CRM_CHECKLIST.map(function(item, i) {
+        var done = !!checklist[item.key];
+        var isLast = i === CRM_CHECKLIST.length - 1;
+        return '<div style="display:flex;align-items:center;gap:9px;'+(isLast?'':'padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--sand)')+'">'
+          + (curUser === 'latisha'
+            ? '<button onclick="crmToggleChecklist(\''+c.id+'\',\''+item.key+'\')" style="width:18px;height:18px;border-radius:4px;border:1.5px solid '+(done?'var(--rose)':'var(--sand)')+';background:'+(done?'var(--rose)':'white')+';cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;padding:0;line-height:1">'+(done?'✓':'')+'</button>'
+            : '<div style="width:18px;height:18px;border-radius:4px;border:1.5px solid '+(done?'var(--rose)':'var(--sand)')+';background:'+(done?'var(--rose)':'white')+';flex-shrink:0;display:flex;align-items:center;justify-content:center;color:white;font-size:11px">'+(done?'✓':'')+'</div>')
+          + '<span style="font-size:11px;color:'+(done?'var(--deep)':'var(--muted)')+';'+(done?'text-decoration:none':'')+'">'+item.label+'</span>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+
+  // Activity Feed
+  var feedEvents = crmBuildActivityFeed(c);
+  var feedHtml = crmSectionHd('Activity')
+    + '<div style="margin-bottom:22px">'
+    + (feedEvents.length
+      ? feedEvents.map(function(ev) {
+          var timeStr = '';
+          try {
+            var d = new Date(ev.at);
+            var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+            timeStr = d.getDate() + ' ' + mo;
+          } catch(e) {}
+          return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--warm)">'
+            + '<div style="width:24px;height:24px;border-radius:50%;background:var(--warm);border:1px solid var(--sand);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px">'+ev.icon+'</div>'
+            + '<div style="flex:1;min-width:0">'
+            +   '<div style="font-size:11px;font-weight:600;color:var(--deep);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(ev.text)+'</div>'
+            +   (ev.sub ? '<div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(ev.sub)+'</div>' : '')
+            + '</div>'
+            + '<div style="font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap;margin-top:1px">'+timeStr+'</div>'
+            + '</div>';
+        }).join('')
+      : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0">No activity yet.</div>')
+    + '</div>';
+
   var rightCol =
-    statCards
+    checklistHtml
+    + statCards
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
     + crmSectionHd('Transactions')
     + (curUser==='latisha' ? '<button onclick="openCRMPaymentModal(\''+c.id+'\')" class="btn btns" style="font-size:11px">+ Add</button>' : '')
@@ -570,7 +754,8 @@ function openCRMProfile(id) {
     + (curUser==='latisha' ? '<button onclick="crmNewBookingModal(\''+c.id+'\')" class="btn btns" style="font-size:11px">+ Book</button>' : '')
     + '</div>'
     + '<div id="crm-appt-section" style="margin-bottom:22px"><div style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0">Loading…</div></div>'
-    + docsSection;
+    + docsSection
+    + '<div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--sand)">'+feedHtml+'</div>';
 
   // ── Assemble ──────────────────────────────────────────
   // Stats strip below breadcrumb
@@ -594,6 +779,7 @@ function openCRMProfile(id) {
     + '<div style="height:16px;width:1px;background:var(--sand);flex-shrink:0"></div>'
     + '<div style="font-family:\'Fraunces\',serif;font-size:20px;color:var(--deep);font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.firstName+' '+c.lastName)+'</div>'
     + (c.season ? '<span style="font-size:11px;font-weight:600;color:white;background:'+col+';border-radius:8px;padding:3px 11px;flex-shrink:0">'+esc(c.season)+'</span>' : '')
+    + '<span style="flex-shrink:0">'+crmStatusPill(c.status||'lead', c.id)+'</span>'
     + (curUser==='latisha' ? '<button onclick="openCRMNewModal(\''+c.id+'\')" class="btn btns" style="font-size:12px;flex-shrink:0">✎ Edit</button>' : '')
     + '</div>'
     + statsStrip
