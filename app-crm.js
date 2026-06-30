@@ -486,6 +486,11 @@ function openCRMProfile(id) {
     + (curUser==='latisha' ? '<button onclick="openAddSessionModal(\''+c.id+'\')" class="btn btns" style="font-size:11px">+ Add</button>' : '')
     + '</div>'
     + '<div style="margin-bottom:22px">'+sessList+'</div>'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+    + crmSectionHd('Appointments')
+    + (curUser==='latisha' ? '<button onclick="crmNewBookingModal(\''+c.id+'\')" class="btn btns" style="font-size:11px">+ Book</button>' : '')
+    + '</div>'
+    + '<div id="crm-appt-section" style="margin-bottom:22px"><div style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0">Loading…</div></div>'
     + docsSection;
 
   // ── Assemble ──────────────────────────────────────────
@@ -502,6 +507,7 @@ function openCRMProfile(id) {
     + '<div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">'+centerCol+'</div>'
     + '<div style="width:280px;flex-shrink:0;border-left:1px solid var(--sand);padding:20px;overflow-y:auto;background:#FDFBF8">'+rightCol+'</div>'
     + '</div>';
+  crmLoadAppointments(id);
 }
 
 function closeCRMProfile() {
@@ -852,4 +858,228 @@ function crmImportIvorey() {
   });
   saveData(); renderCRMPage();
   alert(imported+' client'+(imported!==1?'s':'')+' imported.');
+}
+
+// ════════════════════════════════════════════════════════
+// APPOINTMENTS (in_person_bookings via Supabase)
+// ════════════════════════════════════════════════════════
+
+var APPT_STATUS = {
+  pending:  'background:#FEF3C7;color:#92400E',
+  uploaded: 'background:#DBEAFE;color:#1E40AF',
+  analysed: 'background:#EDE9FE;color:#5B21B6',
+  complete: 'background:#D1FAE5;color:#065F46'
+};
+
+async function crmLoadAppointments(clientId) {
+  var sEl = document.getElementById('crm-appt-section');
+  if (!sEl) return;
+  var c = crmClients.find(function(x){ return x.id===clientId; });
+  if (!c) return;
+
+  var db = getSupa();
+  if (!db) {
+    sEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Supabase not connected.</div>';
+    return;
+  }
+
+  var fullName = (c.firstName+' '+c.lastName).trim();
+  var result;
+  if (c.email) {
+    result = await db.from('in_person_bookings').select('*')
+      .eq('client_email', c.email.toLowerCase())
+      .order('appointment_date', { ascending: false });
+    // also pull by name in case email differs
+    if (!result.error && (!result.data || !result.data.length)) {
+      result = await db.from('in_person_bookings').select('*')
+        .ilike('client_name', '%'+fullName+'%')
+        .order('appointment_date', { ascending: false });
+    }
+  } else {
+    result = await db.from('in_person_bookings').select('*')
+      .ilike('client_name', '%'+fullName+'%')
+      .order('appointment_date', { ascending: false });
+  }
+
+  if (result.error) {
+    sEl.innerHTML = '<div style="font-size:12px;color:#EF4444;padding:8px 0">Failed to load appointments.</div>';
+    return;
+  }
+
+  var rows = result.data || [];
+  if (!rows.length) {
+    sEl.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">No appointments yet.</div>';
+    return;
+  }
+
+  var now = new Date();
+  sEl.innerHTML = rows.map(function(b) {
+    var ss  = APPT_STATUS[b.status] || APPT_STATUS.pending;
+    var d   = b.appointment_date ? new Date(b.appointment_date) : null;
+    var isPast = d && d < now;
+    var dateStr = d ? d.toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'}) : '—';
+    var timeStr = d && b.appointment_date && b.appointment_date.indexOf('T') > -1
+      ? d.toLocaleTimeString('en-AU', {hour:'2-digit',minute:'2-digit'})
+      : '';
+    var statusOpts = ['pending','uploaded','analysed','complete']
+      .map(function(s){ return '<option value="'+s+'"'+(b.status===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>'; }).join('');
+
+    return '<div id="appt-row-'+b.id+'" style="padding:9px 0;border-bottom:1px solid var(--warm)">'
+      + '<div style="display:flex;align-items:flex-start;gap:8px">'
+      +   '<div style="flex:1;min-width:0">'
+      +     '<div style="font-size:12px;font-weight:600;color:'+(isPast?'var(--muted)':'var(--deep)')+'">'+dateStr+(timeStr?' · <span style="font-weight:400">'+timeStr+'</span>':'')+'</div>'
+      +     (b.notes ? '<div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(b.notes)+'">'+esc(b.notes)+'</div>' : '')
+      +   '</div>'
+      +   '<span style="font-size:10px;font-weight:700;border-radius:5px;padding:2px 7px;flex-shrink:0;'+ss+'">'+b.status.toUpperCase()+'</span>'
+      + '</div>'
+      + (curUser==='latisha'
+        ? '<div style="display:flex;gap:5px;margin-top:6px">'
+        +   '<button onclick="crmToggleApptEdit(\''+b.id+'\')" style="font-size:10px;padding:2px 8px;border:1px solid var(--sand);border-radius:5px;background:white;color:var(--muted);cursor:pointer">Edit</button>'
+        +   '<button onclick="crmDeleteAppt(\''+b.id+'\',\''+clientId+'\')" style="font-size:10px;padding:2px 8px;border:1px solid #FEE2E2;border-radius:5px;background:#FEF2F2;color:#EF4444;cursor:pointer">Delete</button>'
+        + '</div>'
+        : '')
+      // inline edit form (hidden by default)
+      + '<div id="appt-edit-'+b.id+'" style="display:none;margin-top:8px;background:var(--warm);border-radius:8px;padding:10px;border:1px solid var(--sand)">'
+      +   '<div style="margin-bottom:6px">'
+      +     '<label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Date &amp; Time</label>'
+      +     '<input type="datetime-local" id="appt-date-'+b.id+'" value="'+(b.appointment_date?b.appointment_date.replace(' ','T').slice(0,16):'')+'" class="fi" style="font-size:12px">'
+      +   '</div>'
+      +   '<div style="margin-bottom:6px">'
+      +     '<label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Status</label>'
+      +     '<select id="appt-status-'+b.id+'" class="fsel" style="font-size:12px">'+statusOpts+'</select>'
+      +   '</div>'
+      +   '<div style="margin-bottom:8px">'
+      +     '<label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">Notes</label>'
+      +     '<textarea id="appt-notes-'+b.id+'" class="fi" rows="2" style="font-size:12px;resize:none">'+esc(b.notes||'')+'</textarea>'
+      +   '</div>'
+      +   '<div style="font-size:11px;color:#EF4444;min-height:16px;margin-bottom:6px" id="appt-err-'+b.id+'"></div>'
+      +   '<div style="display:flex;gap:6px">'
+      +     '<button onclick="crmSaveApptEdit(\''+b.id+'\',\''+clientId+'\')" class="btn btnp" style="font-size:11px;flex:1">Save</button>'
+      +     '<button onclick="crmToggleApptEdit(\''+b.id+'\')" class="btn btns" style="font-size:11px">Cancel</button>'
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function crmToggleApptEdit(bookingId) {
+  var f = document.getElementById('appt-edit-'+bookingId);
+  if (!f) return;
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function crmSaveApptEdit(bookingId, clientId) {
+  var db = getSupa(); if (!db) return;
+  var dateEl   = document.getElementById('appt-date-'+bookingId);
+  var statusEl = document.getElementById('appt-status-'+bookingId);
+  var notesEl  = document.getElementById('appt-notes-'+bookingId);
+  var errEl    = document.getElementById('appt-err-'+bookingId);
+
+  var dateVal  = dateEl ? dateEl.value : '';
+  if (!dateVal) { if (errEl) errEl.textContent = 'Date is required.'; return; }
+
+  var { error } = await db.from('in_person_bookings').update({
+    appointment_date: dateVal,
+    status:           statusEl ? statusEl.value : 'pending',
+    notes:            notesEl  ? notesEl.value.trim() : '',
+    updated_at:       new Date().toISOString()
+  }).eq('id', bookingId);
+
+  if (error) { if (errEl) errEl.textContent = 'Save failed: '+error.message; return; }
+  crmLoadAppointments(clientId);
+}
+
+async function crmDeleteAppt(bookingId, clientId) {
+  if (!confirm('Delete this appointment? This cannot be undone.')) return;
+  var db = getSupa(); if (!db) return;
+  await db.from('in_person_bookings').delete().eq('id', bookingId);
+  crmLoadAppointments(clientId);
+}
+
+// New appointment modal — pre-filled with client details, no page navigation on save
+function crmNewBookingModal(clientId) {
+  if (curUser !== 'latisha') return;
+  var c = crmClients.find(function(x){ return x.id===clientId; });
+  if (!c) return;
+
+  var old = document.getElementById('crm-appt-new-modal');
+  if (old) old.remove();
+
+  var now = new Date();
+  var localISO = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+
+  var modal = document.createElement('div');
+  modal.id = 'crm-appt-new-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(28,23,18,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.onclick = function(e) { if (e.target===modal) modal.remove(); };
+  modal.innerHTML =
+    '<div style="background:white;border-radius:16px;padding:28px;width:420px;max-width:92vw;box-shadow:0 12px 40px rgba(0,0,0,.15)">'
+    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;color:var(--deep);margin-bottom:18px">Book Appointment</div>'
+    + '<div class="fg" style="margin-bottom:12px">'
+    +   '<label class="fl">Client</label>'
+    +   '<div style="font-size:13px;color:var(--deep);padding:9px 12px;border:1px solid var(--sand);border-radius:8px;background:#FDFBF8">'+esc((c.firstName+' '+c.lastName).trim())+(c.email?' <span style="color:var(--muted);font-size:11px">· '+esc(c.email)+'</span>':'')+'</div>'
+    + '</div>'
+    + '<div class="fg" style="margin-bottom:12px">'
+    +   '<label class="fl">Date &amp; Time</label>'
+    +   '<input type="datetime-local" id="crm-appt-dt" value="'+localISO+'" class="fi" style="font-size:13px">'
+    + '</div>'
+    + '<div class="fg" style="margin-bottom:16px">'
+    +   '<label class="fl">Status</label>'
+    +   '<select id="crm-appt-st" class="fsel" style="font-size:13px">'
+    +     '<option value="pending">Pending</option>'
+    +     '<option value="uploaded">Uploaded</option>'
+    +     '<option value="analysed">Analysed</option>'
+    +     '<option value="complete">Complete</option>'
+    +   '</select>'
+    + '</div>'
+    + '<div class="fg" style="margin-bottom:18px">'
+    +   '<label class="fl">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>'
+    +   '<textarea class="fi" id="crm-appt-nt" rows="2" placeholder="e.g. Gold package — bring swatches" style="font-size:13px;resize:none"></textarea>'
+    + '</div>'
+    + '<div id="crm-appt-new-err" style="color:#EF4444;font-size:12px;min-height:18px;margin-bottom:8px"></div>'
+    + '<div style="display:flex;gap:10px;justify-content:flex-end">'
+    +   '<button onclick="document.getElementById(\'crm-appt-new-modal\').remove()" class="btn btns">Cancel</button>'
+    +   '<button onclick="crmSaveNewAppt(\''+clientId+'\')" class="btn btnp" id="crm-appt-save-btn">Book</button>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(modal);
+  setTimeout(function(){ var d=document.getElementById('crm-appt-dt'); if(d) d.focus(); }, 80);
+}
+
+async function crmSaveNewAppt(clientId) {
+  var c       = crmClients.find(function(x){ return x.id===clientId; });
+  if (!c) return;
+  var dateEl  = document.getElementById('crm-appt-dt');
+  var statEl  = document.getElementById('crm-appt-st');
+  var notesEl = document.getElementById('crm-appt-nt');
+  var errEl   = document.getElementById('crm-appt-new-err');
+  var btn     = document.getElementById('crm-appt-save-btn');
+
+  var dateVal = dateEl ? dateEl.value : '';
+  if (!dateVal) { if (errEl) errEl.textContent='Please select a date and time.'; return; }
+
+  var db = getSupa();
+  if (!db) { if (errEl) errEl.textContent='Supabase not configured — check connection.'; return; }
+
+  if (btn) { btn.disabled=true; btn.textContent='Booking…'; }
+
+  var { error } = await db.from('in_person_bookings').insert({
+    client_name:      (c.firstName+' '+c.lastName).trim(),
+    client_email:     (c.email||'').toLowerCase(),
+    appointment_date: dateVal,
+    status:           statEl ? statEl.value : 'pending',
+    notes:            notesEl ? notesEl.value.trim() : '',
+    created_at:       new Date().toISOString(),
+    updated_at:       new Date().toISOString()
+  });
+
+  if (error) {
+    if (errEl) errEl.textContent = 'Failed: '+error.message;
+    if (btn) { btn.disabled=false; btn.textContent='Book'; }
+    return;
+  }
+
+  var m = document.getElementById('crm-appt-new-modal');
+  if (m) m.remove();
+  crmLoadAppointments(clientId);
 }
