@@ -238,8 +238,6 @@ function ocaPhotoUpload(input) {
 function ocaPhotoClear() {
   ocaPhoto = null;
   document.getElementById('oca-photo-input').value = '';
-  var cb = document.getElementById('oca-photo-clear-btn');
-  if (cb) cb.style.display = 'none';
   renderOca();
 }
 
@@ -585,8 +583,6 @@ function renderOca() {
     if(ocaPhoto){ prev.src=ocaPhoto; prev.style.display='block'; plac.style.display='none'; }
     else { prev.style.display='none'; plac.style.display='flex'; }
   }
-  var cb = document.getElementById('oca-photo-clear-btn');
-  if (cb) cb.style.display = ocaPhoto ? 'flex' : 'none';
 
   if (ocaTab==='draping') {
     content.innerHTML = renderOcaDraping();
