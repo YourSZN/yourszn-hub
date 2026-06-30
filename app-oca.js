@@ -1095,7 +1095,7 @@ function renderOcaFundamentals() {
 
     // 1. COLOUR SAMPLING — top
     + '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Colour Sampling</div>'
-    + '<div style="display:grid;grid-template-columns:65fr 35fr;gap:20px;margin-bottom:32px">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px">'
     + '<div class="card"><div class="ch"><div class="ct">Sample from Photo</div>'
     + '<div style="font-size:11px;color:var(--muted)">Select a slot on the right, then click the photo to sample.</div></div>'
     + '<div class="cb">'
@@ -1109,7 +1109,7 @@ function renderOcaFundamentals() {
 
     // 2. CONTRAST
     + '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Contrast</div>'
-    + '<div style="display:grid;grid-template-columns:65fr 35fr;gap:20px;margin-bottom:32px">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px">'
     + '<div class="card"><div class="ch"><div class="ct">Contrast</div>'
     + '<div style="font-size:11px;color:var(--muted)">Drag each tag over the matching feature.</div></div>'
     + '<div class="cb">'
@@ -1127,7 +1127,7 @@ function renderOcaFundamentals() {
 
     // 3. SKIN TONE
     + '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Skin Tone</div>'
-    + '<div style="display:grid;grid-template-columns:65fr 35fr;gap:20px;margin-bottom:24px">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">'
     + '<div class="card"><div class="ch"><div class="ct">Undertone Draping</div>'
     + '<div style="font-size:11px;color:var(--muted)">Drag a strip over the face to match undertone.</div></div>'
     + '<div class="cb"><div id="oca-tone-preview" style="position:relative;width:100%;padding-top:115%;border-radius:8px;overflow:hidden;background:var(--sand)">'
