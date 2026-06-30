@@ -6,7 +6,7 @@
 <title>Your SZN — Business Hub</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600&family=Almarai:wght@300;400;700;800&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -139,17 +139,16 @@
 
 <!-- ═══ APP ═══ -->
 <div id="app">
-  <aside class="sidebar" id="app-sidebar">
-    <button class="sb-toggle" id="sb-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar">&#8249;</button>
+  <aside class="sidebar">
     <div class="slogo">Your <span>SZN</span></div>
     <div class="suser">
       <div class="sulab">Logged in as</div>
       <div class="suname" id="uname-display"></div>
     </div>
     <nav class="snav" id="snav"></nav>
-    <div class="sb-data-btns" style="padding:0 16px 12px;display:flex;flex-direction:column;gap:6px;overflow:hidden;">
-      <button onclick="exportData()" style="width:100%;background:var(--rose);color:#fff;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;white-space:nowrap;">&#128190; Export Data</button>
-      <label style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:7px;font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;text-align:center;display:block;box-sizing:border-box;color:rgba(255,255,255,.6);white-space:nowrap;">&#128194; Import Data<input type="file" accept=".json" onchange="importData(this.files[0])" style="display:none;"></label>
+    <div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:6px;">
+      <button onclick="exportData()" style="width:100%;background:var(--rose);color:#fff;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;">&#128190; Export Data</button>
+      <label style="width:100%;background:var(--warm);border:1.5px solid var(--sand);border-radius:8px;padding:7px;font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;text-align:center;display:block;box-sizing:border-box;">&#128194; Import Data<input type="file" accept=".json" onchange="importData(this.files[0])" style="display:none;"></label>
     </div>
     <button class="sout" onclick="doLogout()">Sign Out</button>
   </aside>
@@ -1695,19 +1694,6 @@ function ocaToggleFullscreen() {
   var btn = document.getElementById('oca-expand-btn');
   if (btn) btn.innerHTML = fs ? '&#x26F6; Collapse' : '&#x26F6; Expand';
 }
-function toggleSidebar() {
-  var collapsed = document.body.classList.toggle('sb-collapsed');
-  var btn = document.getElementById('sb-toggle-btn');
-  if (btn) btn.innerHTML = collapsed ? '&#8250;' : '&#8249;';
-  try { localStorage.setItem('sb_collapsed', collapsed ? '1' : '0'); } catch(e) {}
-}
-(function() {
-  try { if (localStorage.getItem('sb_collapsed') === '1') {
-    document.body.classList.add('sb-collapsed');
-    var btn = document.getElementById('sb-toggle-btn');
-    if (btn) btn.innerHTML = '&#8250;';
-  }} catch(e) {}
-})();
 </script>
 </body>
 </html>
