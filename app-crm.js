@@ -13,6 +13,7 @@ var crmSessionClientId = null;
 var crmPaymentClientId = null;
 var crmComposeClientId = null;
 var crmSending         = false;
+var crmDocFormOpen     = false;
 
 var CRM_SEASON_COLOR = {
   Summer: '#5B8DB8', Winter: '#7052A3', Autumn: '#B86E35', Spring: '#5E8F45'
@@ -22,6 +23,13 @@ var CRM_SEASONS = [
   'Light Summer','True Summer','Soft Summer',
   'Soft Autumn','True Autumn','Dark Autumn',
   'Dark Winter','True Winter','Bright Winter'
+];
+var CRM_CONTRAST = [
+  { val:'very-low',  label:'Very Low',  dots:1 },
+  { val:'low',       label:'Low',       dots:2 },
+  { val:'medium',    label:'Medium',    dots:3 },
+  { val:'high',      label:'High',      dots:4 },
+  { val:'very-high', label:'Very High', dots:5 }
 ];
 
 function crmSeasonFamily(s) {
@@ -44,6 +52,37 @@ function crmSectionHd(t) {
   return '<div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px">'+t+'</div>';
 }
 
+function crmContrastDisplay(level, col) {
+  var map = {'very-low':1,'low':2,'medium':3,'high':4,'very-high':5};
+  var n   = map[level] || 0;
+  if (!n) return '<span style="color:var(--muted);font-size:12px">Not recorded</span>';
+  var label = (CRM_CONTRAST[n-1]||{}).label || '';
+  var dots  = '';
+  for (var i=1; i<=5; i++) {
+    dots += '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle;background:'+(i<=n?col:'var(--sand)')+'"></span>';
+  }
+  return dots + '<span style="font-size:11px;color:var(--muted);vertical-align:middle;margin-left:4px">'+label+'</span>';
+}
+
+// ── Photo resize helper ───────────────────────────────
+function crmResizeImage(file, maxW, maxH, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      var scale = Math.min(maxW/w, maxH/h, 1);
+      var canvas = document.createElement('canvas');
+      canvas.width  = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      cb(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 // ════════════════════════════════════════════════════════
 // MAIN LIST VIEW
 // ════════════════════════════════════════════════════════
@@ -52,8 +91,6 @@ function renderCRMPage() {
   var el = document.getElementById('clients-profiles-panel');
   if (!el) return;
   crmOpenProfileId = null;
-
-  // Close any stale overlay/panel
   var ov = document.getElementById('crm-overlay');
   if (ov) ov.style.display = 'none';
   var sp = document.getElementById('crm-profile-panel');
@@ -65,7 +102,7 @@ function renderCRMPage() {
       (c.firstName+' '+c.lastName).toLowerCase().indexOf(q) > -1 ||
       (c.email||'').toLowerCase().indexOf(q) > -1 ||
       (c.season||'').toLowerCase().indexOf(q) > -1 ||
-      (c.tags||[]).some(function(t){ return t.indexOf(q) > -1; });
+      (c.tags||[]).some(function(t){ return t.toLowerCase().indexOf(q) > -1; });
     if (!ok) return false;
     if (crmSeasonFilter && (c.season||'') !== crmSeasonFilter) return false;
     if (crmTagFilter    && (c.tags||[]).indexOf(crmTagFilter) === -1) return false;
@@ -74,28 +111,43 @@ function renderCRMPage() {
 
   var allTags = [];
   crmClients.forEach(function(c) {
-    (c.tags||[]).forEach(function(t){ if (allTags.indexOf(t)===-1) allTags.push(t); });
+    (c.tags||[]).forEach(function(t){ if (t && allTags.indexOf(t)===-1) allTags.push(t); });
   });
   allTags.sort();
 
+  // ── Filter bar ──
   var html =
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">'
-    + '<input class="fi" placeholder="Search by name, email, or season…" value="'+esc(crmSearch)+'" '
-    +   'oninput="crmSearch=this.value;renderCRMPage()" style="flex:1;min-width:180px;font-size:13px">'
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+    + '<div style="position:relative;flex:1;min-width:180px">'
+    +   '<input class="fi" placeholder="Search by name, email, season or tag…" value="'+esc(crmSearch)+'" '
+    +   'oninput="crmSearch=this.value;renderCRMPage()" style="font-size:13px;padding-right:30px">'
+    +   (crmSearch ? '<button onclick="crmSearch=\'\';renderCRMPage()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1">×</button>' : '')
+    + '</div>'
     + '<select class="fsel" onchange="crmSeasonFilter=this.value;renderCRMPage()" style="font-size:12px">'
     +   CRM_SEASONS.map(function(s){ return '<option value="'+s+'"'+(s===crmSeasonFilter?' selected':'')+'>'+(s||'All Seasons')+'</option>'; }).join('')
     + '</select>'
-    + (allTags.length
-      ? '<select class="fsel" onchange="crmTagFilter=this.value;renderCRMPage()" style="font-size:12px">'
-      +   [''].concat(allTags).map(function(t){ return '<option value="'+t+'"'+(t===crmTagFilter?' selected':'')+'>'+(t||'All Tags')+'</option>'; }).join('')
-      + '</select>'
-      : '')
     + (typeof ivoreyData !== 'undefined' && ivoreyData.length && curUser==='latisha'
       ? '<button class="btn btns" onclick="crmImportIvorey()" style="font-size:12px;white-space:nowrap">↓ Import OCA</button>'
       : '')
     + '<button class="btn btnp" onclick="openCRMNewModal(null)" style="font-size:12px;white-space:nowrap">+ New Client</button>'
     + '</div>';
 
+  // ── Tag chips row ──
+  if (allTags.length) {
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'
+      + '<span style="font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap">Filter by tag:</span>';
+    allTags.forEach(function(t) {
+      var active = t === crmTagFilter;
+      html += '<button onclick="crmTagFilter=\''+(active?'':t.replace(/'/g,"\\'"))+'\';renderCRMPage()" style="font-size:11px;border-radius:20px;padding:3px 11px;cursor:pointer;'
+        + (active
+          ? 'background:var(--deep);color:white;border:1px solid var(--deep)'
+          : 'background:var(--warm);color:var(--deep);border:1px solid var(--sand)')
+        + '">'+esc(t)+(active?' ×':'')+'</button>';
+    });
+    html += '</div>';
+  }
+
+  // ── Season stat cards ──
   html +=
     '<div style="display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap">'
     + ['Summer','Winter','Autumn','Spring'].map(function(fam) {
@@ -113,7 +165,7 @@ function renderCRMPage() {
 
   if (!list.length) {
     el.innerHTML = html + '<div style="padding:60px 0;text-align:center;color:var(--muted);font-size:13px">'
-      + (crmClients.length ? 'No clients match your search.' : 'No client profiles yet — click "+ New Client" or "↓ Import OCA" to get started.')
+      + (crmClients.length ? 'No clients match your search.' : 'No client profiles yet — click "+ New Client" to get started.')
       + '</div>';
     return;
   }
@@ -122,20 +174,35 @@ function renderCRMPage() {
     var col  = crmSeasonColor(c.season);
     var init = ((c.firstName||'').charAt(0)+(c.lastName||'').charAt(0)).toUpperCase() || '?';
     var lastSess = c.sessions&&c.sessions.length ? c.sessions[c.sessions.length-1].date : '';
-    var tagBadges = (c.tags||[]).slice(0,2).map(function(t){
-      return '<span style="font-size:10px;background:var(--warm);border:1px solid var(--sand);border-radius:7px;padding:2px 6px;white-space:nowrap">'+esc(t)+'</span>';
-    }).join(' ');
     var outstanding = (c.payments||[])
       .filter(function(p){ return p.status==='pending'||p.status==='overdue'; })
       .reduce(function(s,p){ return s+p.amount; },0);
+    var docCount   = (c.documents||[]).length;
+    var photoCount = (c.photos||[]).length;
+
+    var avatarInner = c.photoBase64
+      ? '<img src="'+c.photoBase64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : '<span style="font-family:\'Cormorant Garamond\',serif;font-size:16px;font-weight:600;color:white">'+init+'</span>';
+
+    var tagBadges = (c.tags||[]).slice(0,3).map(function(t){
+      var active = t === crmTagFilter;
+      return '<span onclick="event.stopPropagation();crmTagFilter=\''+(active?'':t.replace(/'/g,"\\'"))+'\';renderCRMPage()" '
+        + 'style="font-size:10px;border-radius:7px;padding:2px 7px;cursor:pointer;white-space:nowrap;'
+        + (active ? 'background:var(--deep);color:white' : 'background:var(--warm);border:1px solid var(--sand);color:var(--deep)')
+        + '">'+esc(t)+'</span>';
+    }).join(' ');
 
     return '<tr onclick="openCRMProfile(\''+c.id+'\')" style="cursor:pointer;border-bottom:1px solid var(--warm)"'
       + ' onmouseover="this.style.background=\'#FBF8F4\'" onmouseout="this.style.background=\'\'">'
       + '<td style="padding:10px 10px 10px 0;width:44px">'
-      +   '<div style="width:38px;height:38px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;color:white;font-family:\'Cormorant Garamond\',serif;font-size:16px;font-weight:600">'+init+'</div>'
+      +   '<div style="width:38px;height:38px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">'+avatarInner+'</div>'
       + '</td>'
       + '<td style="padding:10px 12px 10px 0">'
-      +   '<div style="font-weight:600;color:var(--deep);font-size:13px">'+esc(c.firstName+' '+c.lastName)+'</div>'
+      +   '<div style="display:flex;align-items:center;gap:6px">'
+      +     '<span style="font-weight:600;color:var(--deep);font-size:13px">'+esc(c.firstName+' '+c.lastName)+'</span>'
+      +     (docCount   ? '<span title="'+docCount+' document'+(docCount!==1?'s':'')+'" style="font-size:11px;color:var(--muted)">📎'+docCount+'</span>' : '')
+      +     (photoCount ? '<span title="'+photoCount+' photo'+(photoCount!==1?'s':'')+'" style="font-size:11px;color:var(--muted)">🖼'+photoCount+'</span>' : '')
+      +   '</div>'
       +   (c.email ? '<div style="font-size:11px;color:var(--muted);margin-top:1px">'+esc(c.email)+'</div>' : '')
       + '</td>'
       + '<td style="padding:10px 12px 10px 0">'
@@ -181,53 +248,97 @@ function openCRMProfile(id) {
   if (!el || !c) return;
   crmOpenProfileId   = id;
   crmComposeClientId = id;
+  crmDocFormOpen     = false;
 
   var col  = crmSeasonColor(c.season);
   var init = ((c.firstName||'').charAt(0)+(c.lastName||'').charAt(0)).toUpperCase() || '?';
 
   // ── LEFT SIDEBAR ──────────────────────────────────────
-  var tagHtml = (c.tags&&c.tags.length)
-    ? c.tags.map(function(t){ return '<span style="font-size:11px;background:#EDE9FE;color:#5B21B6;border-radius:8px;padding:3px 9px;display:inline-block;margin:2px">'+esc(t)+'</span>'; }).join('')
-    : '<span style="color:var(--muted);font-size:12px">No tags</span>';
 
-  var sisterHtml = (c.sisterSeasons&&c.sisterSeasons.length)
-    ? c.sisterSeasons.map(function(s){ return '<span style="font-size:11px;background:var(--warm);border-radius:8px;padding:2px 8px;border:1px solid var(--sand);display:inline-block;margin:2px">'+esc(s)+'</span>'; }).join('')
-    : '<span style="color:var(--muted);font-size:12px">None recorded</span>';
+  var avatarInner = c.photoBase64
+    ? '<img src="'+c.photoBase64+'" style="width:100%;height:100%;object-fit:cover">'
+    : '<span style="font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:600;color:white">'+init+'</span>';
 
-  var leftCol =
-    // Avatar + name
+  var avatarSection =
     '<div style="text-align:center;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--sand)">'
-    + '<div style="width:64px;height:64px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;color:white;font-family:\'Cormorant Garamond\',serif;font-size:26px;font-weight:600;margin:0 auto 12px">'+init+'</div>'
+    + '<div style="position:relative;width:72px;margin:0 auto 12px">'
+    +   '<div style="width:72px;height:72px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;overflow:hidden">'+avatarInner+'</div>'
+    +   (curUser==='latisha'
+        ? '<label title="Change profile photo" style="position:absolute;bottom:0;right:-4px;cursor:pointer;background:white;border:1px solid var(--sand);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 1px 4px rgba(0,0,0,.12)">'
+        +   '📷<input type="file" accept="image/*" style="display:none" onchange="crmUploadPhoto(event,\''+c.id+'\')">'
+        + '</label>'
+        : '')
+    + '</div>'
     + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;font-weight:600;color:var(--deep);margin-bottom:6px">'+esc(c.firstName+' '+c.lastName)+'</div>'
     + (c.season ? '<span style="font-size:11px;font-weight:600;color:white;background:'+col+';border-radius:8px;padding:3px 12px">'+esc(c.season)+'</span>' : '<span style="font-size:11px;color:var(--muted)">No season recorded</span>')
-    + '</div>'
-    // Contact
-    + crmSectionHd('Contact')
+    + '</div>';
+
+  var contactSection =
+    crmSectionHd('Contact')
     + '<div style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">'
     + (c.email ? '<div><span style="font-size:10px;color:var(--muted);display:block">Email</span><a href="mailto:'+esc(c.email)+'" style="font-size:12px;color:var(--deep);text-decoration:none;word-break:break-all">'+esc(c.email)+'</a></div>' : '')
     + (c.phone ? '<div><span style="font-size:10px;color:var(--muted);display:block">Phone</span><span style="font-size:12px;color:var(--deep)">'+esc(c.phone)+'</span></div>' : '')
     + '<div><span style="font-size:10px;color:var(--muted);display:block">Source</span><span style="font-size:12px;color:var(--deep)">'+cap(c.source||'—')+'</span></div>'
     + '<div><span style="font-size:10px;color:var(--muted);display:block">Client since</span><span style="font-size:12px;color:var(--deep)">'+crmFmtDate(c.createdAt)+'</span></div>'
-    + '</div>'
-    // Tags
-    + crmSectionHd('Tags')
-    + '<div style="margin-bottom:18px">'+tagHtml+'</div>'
-    // Season details
-    + (c.season
-      ? '<div style="background:var(--warm);border-radius:10px;padding:12px;margin-bottom:18px;border:1px solid var(--sand)">'
-        + crmSectionHd('Season Result')
-        + '<div style="margin-bottom:8px"><span style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Sister Seasons</span>'+sisterHtml+'</div>'
-        + (c.seasonNotes ? '<div style="font-size:11px;color:var(--brown);line-height:1.55;margin-top:10px;padding-top:10px;border-top:1px solid var(--sand)">'+esc(c.seasonNotes)+'</div>' : '')
-        + '</div>'
-      : '')
-    // Notes
-    + crmSectionHd('Internal Notes')
+    + '</div>';
+
+  var tagHtml = (c.tags&&c.tags.length)
+    ? c.tags.map(function(t){ return '<span onclick="closeCRMProfile();crmTagFilter=\''+t.replace(/'/g,"\\'")+'\';" title="Filter by: '+esc(t)+'" style="font-size:11px;background:#EDE9FE;color:#5B21B6;border-radius:8px;padding:3px 9px;display:inline-block;margin:2px;cursor:pointer">'+esc(t)+'</span>'; }).join('')
+    : '<span style="color:var(--muted);font-size:12px">No tags</span>';
+
+  var tagsSection = crmSectionHd('Tags') + '<div style="margin-bottom:18px">'+tagHtml+'</div>';
+
+  var sisterHtml = (c.sisterSeasons&&c.sisterSeasons.length)
+    ? c.sisterSeasons.map(function(s){ return '<span style="font-size:11px;background:var(--warm);border-radius:8px;padding:2px 8px;border:1px solid var(--sand);display:inline-block;margin:2px">'+esc(s)+'</span>'; }).join('')
+    : '<span style="color:var(--muted);font-size:12px">None recorded</span>';
+
+  var seasonSection = c.season
+    ? '<div style="background:var(--warm);border-radius:10px;padding:12px;margin-bottom:18px;border:1px solid var(--sand)">'
+      + crmSectionHd('Season Result')
+      + '<div style="margin-bottom:10px"><span style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Sister Seasons</span>'+sisterHtml+'</div>'
+      + '<div style="margin-bottom:'+(c.seasonNotes?'10':'0')+'px"><span style="font-size:10px;color:var(--muted);display:block;margin-bottom:5px">Contrast Level</span>'
+      +   crmContrastDisplay(c.contrastLevel||'', col)
+      + '</div>'
+      + (c.seasonNotes ? '<div style="font-size:11px;color:var(--brown);line-height:1.55;padding-top:10px;border-top:1px solid var(--sand)">'+esc(c.seasonNotes)+'</div>' : '')
+      + '</div>'
+    : '';
+
+  var notesSection =
+    crmSectionHd('Internal Notes')
     + (curUser==='latisha'
       ? '<textarea class="fi" style="width:100%;font-size:12px;resize:vertical;box-sizing:border-box;min-height:80px" placeholder="Private notes…" oninput="crmSaveNote(\''+c.id+'\',this.value)">'+esc(c.notes||'')+'</textarea>'
       : '<div style="font-size:12px;color:var(--brown)">'+esc(c.notes||'—')+'</div>');
 
+  // Photo gallery
+  var photos = c.photos || [];
+  var photoSection =
+    '<div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--sand)">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    + crmSectionHd('Photos'+(photos.length?' ('+photos.length+')':''))
+    + (curUser==='latisha'
+      ? '<label style="font-size:11px;color:var(--accent);cursor:pointer;border:1px solid var(--sand);border-radius:7px;padding:2px 9px;white-space:nowrap;background:white">'
+      +   '+ Add<input type="file" accept="image/*" style="display:none" onchange="crmAddPhoto(event,\''+c.id+'\')">'
+      + '</label>'
+      : '')
+    + '</div>'
+    + (photos.length
+      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+        + photos.map(function(ph) {
+            return '<div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--warm)">'
+              + '<img src="'+ph.base64+'" style="width:100%;height:100%;object-fit:cover" title="'+esc(ph.name)+'">'
+              + (curUser==='latisha'
+                ? '<button onclick="crmDeletePhoto(\''+c.id+'\',\''+ph.id+'\')" title="Remove" style="position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.5);border:none;color:white;font-size:11px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center">×</button>'
+                : '')
+              + '</div>';
+          }).join('')
+        + '</div>'
+      : '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px 0">No photos yet.</div>')
+    + '</div>';
+
+  var leftCol = avatarSection + contactSection + tagsSection + seasonSection + notesSection + photoSection;
+
   // ── CENTER: MESSAGE THREAD + COMPOSE ─────────────────
-  var msgs = (c.correspondence||[]).slice(); // oldest first
+  var msgs    = (c.correspondence||[]).slice();
   var CH_ICON = { email:'✉', sms:'💬' };
   var threadHtml = msgs.length
     ? msgs.map(function(m) {
@@ -244,12 +355,12 @@ function openCRMProfile(id) {
           + '</div>'
           + '</div>';
       }).join('')
-    : '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">No messages yet — send the first one below.</div>';
+    : '<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:120px;color:var(--muted);font-size:13px">No messages yet.</div>';
 
   var apiOk = !!localStorage.getItem('yszn_api_key');
 
   var centerCol =
-    '<div id="crm-thread" style="flex:1;overflow-y:auto;padding:20px 20px 0;display:flex;flex-direction:column">'+threadHtml+'</div>'
+    '<div id="crm-thread" style="flex:1;overflow-y:auto;padding:20px 20px 12px">'+threadHtml+'</div>'
     + (!apiOk && curUser==='latisha'
       ? '<div style="padding:8px 16px;background:#FEF3C7;border-top:1px solid #F59E0B;font-size:11px;color:#92400E;display:flex;align-items:center;gap:8px;flex-shrink:0">'
         + '⚠ Set up API key to enable sending. '
@@ -257,7 +368,7 @@ function openCRMProfile(id) {
         + '</div>'
       : '')
     + (curUser==='latisha'
-      ? '<div style="padding:14px 16px;border-top:1px solid var(--sand);background:#FDFBF8;flex-shrink:0">'
+      ? '<div style="padding:12px 16px;border-top:1px solid var(--sand);background:#FDFBF8;flex-shrink:0">'
         + '<div style="display:flex;gap:8px;margin-bottom:8px">'
         +   '<select class="fsel" id="crm-compose-channel" onchange="crmComposeToggleUI(this.value)" style="font-size:12px;flex-shrink:0">'
         +   '<option value="email">✉ Email</option><option value="sms">💬 SMS</option>'
@@ -275,7 +386,7 @@ function openCRMProfile(id) {
         + '</div>'
       : '');
 
-  // ── RIGHT: PAYMENTS + SESSIONS ────────────────────────
+  // ── RIGHT: PAYMENTS + SESSIONS + DOCUMENTS ────────────
   var payments  = c.payments || [];
   var totalPaid = payments.filter(function(p){ return p.status==='paid'; }).reduce(function(s,p){ return s+p.amount; },0);
   var totalPend = payments.filter(function(p){ return p.status==='pending'||p.status==='overdue'; }).reduce(function(s,p){ return s+p.amount; },0);
@@ -287,7 +398,7 @@ function openCRMProfile(id) {
         return '<div style="display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:1px solid var(--warm)">'
           + '<div style="flex:1;min-width:0">'
           +   '<div style="font-size:13px;font-weight:600;color:var(--deep)">$'+p.amount.toFixed(2)+' <span style="font-size:10px;font-weight:400;color:var(--muted)">AUD</span></div>'
-          +   '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.description||p.type||'—')+'</div>'
+          +   '<div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.description||p.type||'—')+'</div>'
           +   '<div style="font-size:10px;color:var(--muted);margin-top:1px">'+crmFmtDate(p.date)+(p.invoiceRef?' · '+esc(p.invoiceRef):'')+'</div>'
           + '</div>'
           + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">'
@@ -314,8 +425,47 @@ function openCRMProfile(id) {
           + '</div>';
       }).join('');
 
+  // Documents
+  var docs    = c.documents || [];
+  var docIcons = { pdf:'📄', image:'🖼', link:'🔗', other:'📎' };
+  var docList = docs.length
+    ? docs.map(function(d) {
+        return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--warm)">'
+          + '<span style="font-size:16px;flex-shrink:0">'+(docIcons[d.type]||'📎')+'</span>'
+          + '<div style="flex:1;min-width:0">'
+          +   '<a href="'+esc(d.url)+'" target="_blank" rel="noopener" style="font-size:12px;color:var(--deep);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(d.name)+'">'+esc(d.name)+'</a>'
+          +   '<div style="font-size:10px;color:var(--muted)">'+crmFmtDate(d.addedAt)+'</div>'
+          + '</div>'
+          + (curUser==='latisha'
+            ? '<button onclick="crmDeleteDocument(\''+c.id+'\',\''+d.id+'\')" style="border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;flex-shrink:0;padding:0 2px">×</button>'
+            : '')
+          + '</div>';
+      }).join('')
+    : '<div style="font-size:12px;color:var(--muted);padding:8px 0;text-align:center">No documents yet.</div>';
+
+  var docsSection =
+    '<div style="margin-bottom:8px">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+    + crmSectionHd('Documents'+(docs.length?' ('+docs.length+')':''))
+    + (curUser==='latisha' ? '<button onclick="crmToggleDocForm(\''+c.id+'\')" class="btn btns" style="font-size:11px">+ Add</button>' : '')
+    + '</div>'
+    + docList
+    + '<div id="crm-doc-form" style="display:none;margin-top:8px;background:var(--warm);border-radius:8px;padding:10px;border:1px solid var(--sand)">'
+    + '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'
+    +   '<input class="fi" id="crm-doc-name" placeholder="Document name (e.g. Style Guide PDF)" style="font-size:12px">'
+    +   '<input class="fi" id="crm-doc-url" placeholder="Paste link (Google Drive, Dropbox…)" style="font-size:12px">'
+    +   '<select class="fsel" id="crm-doc-type" style="font-size:12px">'
+    +     '<option value="pdf">PDF</option><option value="image">Image</option><option value="link">Link</option><option value="other">Other</option>'
+    +   '</select>'
+    + '</div>'
+    + '<div style="display:flex;gap:6px">'
+    +   '<button onclick="crmAddDocument(\''+c.id+'\')" class="btn btnp" style="font-size:12px;flex:1">Save</button>'
+    +   '<button onclick="crmToggleDocForm()" class="btn btns" style="font-size:12px">Cancel</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+
   var rightCol =
-    // Payment summary cards
     '<div style="display:flex;gap:8px;margin-bottom:12px">'
     + '<div style="flex:1;background:#D1FAE5;border-radius:8px;padding:9px 11px">'
     +   '<div style="font-size:15px;font-weight:700;color:#065F46;font-family:\'Cormorant Garamond\',serif">$'+totalPaid.toFixed(2)+'</div>'
@@ -326,22 +476,20 @@ function openCRMProfile(id) {
     +   '<div style="font-size:10px;color:#92400E;opacity:.7;margin-top:1px">Outstanding</div>'
     + '</div>'
     + '</div>'
-    // Payments header + list
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
     + crmSectionHd('Transactions')
     + (curUser==='latisha' ? '<button onclick="openCRMPaymentModal(\''+c.id+'\')" class="btn btns" style="font-size:11px">+ Add</button>' : '')
     + '</div>'
     + '<div style="margin-bottom:22px">'+payList+'</div>'
-    // Sessions header + list
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
     + crmSectionHd('Sessions')
     + (curUser==='latisha' ? '<button onclick="openAddSessionModal(\''+c.id+'\')" class="btn btns" style="font-size:11px">+ Add</button>' : '')
     + '</div>'
-    + sessList;
+    + '<div style="margin-bottom:22px">'+sessList+'</div>'
+    + docsSection;
 
-  // ── Assemble full-page layout ─────────────────────────
+  // ── Assemble ──────────────────────────────────────────
   el.innerHTML =
-    // Top bar
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
     + '<button onclick="closeCRMProfile()" style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;padding:5px 0;flex-shrink:0">← Clients</button>'
     + '<div style="height:16px;width:1px;background:var(--sand);flex-shrink:0"></div>'
@@ -349,11 +497,10 @@ function openCRMProfile(id) {
     + (c.season ? '<span style="font-size:11px;font-weight:600;color:white;background:'+col+';border-radius:8px;padding:3px 11px;flex-shrink:0">'+esc(c.season)+'</span>' : '')
     + (curUser==='latisha' ? '<button onclick="openCRMNewModal(\''+c.id+'\')" class="btn btns" style="font-size:12px;flex-shrink:0">✎ Edit</button>' : '')
     + '</div>'
-    // 3-column panel
     + '<div style="display:flex;border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:white;height:calc(100vh - 260px);min-height:500px">'
     + '<div style="width:250px;flex-shrink:0;border-right:1px solid var(--sand);padding:20px;overflow-y:auto;background:#FDFBF8">'+leftCol+'</div>'
     + '<div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">'+centerCol+'</div>'
-    + '<div style="width:270px;flex-shrink:0;border-left:1px solid var(--sand);padding:20px;overflow-y:auto;background:#FDFBF8">'+rightCol+'</div>'
+    + '<div style="width:280px;flex-shrink:0;border-left:1px solid var(--sand);padding:20px;overflow-y:auto;background:#FDFBF8">'+rightCol+'</div>'
     + '</div>';
 }
 
@@ -366,6 +513,70 @@ function closeCRMProfile() {
 function crmSaveNote(id, val) {
   var c = crmClients.find(function(x){ return x.id===id; });
   if (c) { c.notes = val; saveData(); }
+}
+
+// ── Photo handlers ────────────────────────────────────
+function crmUploadPhoto(event, clientId) {
+  var file = event.target.files[0];
+  if (!file) return;
+  crmResizeImage(file, 400, 400, function(dataUrl) {
+    var c = crmClients.find(function(x){ return x.id===clientId; });
+    if (!c) return;
+    c.photoBase64 = dataUrl;
+    saveData(); openCRMProfile(clientId);
+  });
+}
+
+function crmAddPhoto(event, clientId) {
+  var file = event.target.files[0];
+  if (!file) return;
+  crmResizeImage(file, 900, 900, function(dataUrl) {
+    var c = crmClients.find(function(x){ return x.id===clientId; });
+    if (!c) return;
+    if (!c.photos) c.photos = [];
+    c.photos.push({ id:'ph'+Date.now(), name:file.name, base64:dataUrl, addedAt:todayISO() });
+    saveData(); openCRMProfile(clientId);
+  });
+}
+
+function crmDeletePhoto(clientId, photoId) {
+  if (!confirm('Remove this photo?')) return;
+  var c = crmClients.find(function(x){ return x.id===clientId; });
+  if (!c||!c.photos) return;
+  c.photos = c.photos.filter(function(p){ return p.id!==photoId; });
+  saveData(); openCRMProfile(clientId);
+}
+
+// ── Document handlers ─────────────────────────────────
+function crmToggleDocForm() {
+  var f = document.getElementById('crm-doc-form');
+  if (!f) return;
+  crmDocFormOpen = !crmDocFormOpen;
+  f.style.display = crmDocFormOpen ? 'block' : 'none';
+  if (crmDocFormOpen) { var n = document.getElementById('crm-doc-name'); if (n) n.focus(); }
+}
+
+function crmAddDocument(clientId) {
+  var nameEl = document.getElementById('crm-doc-name');
+  var urlEl  = document.getElementById('crm-doc-url');
+  var typeEl = document.getElementById('crm-doc-type');
+  var name   = nameEl ? nameEl.value.trim() : '';
+  var url    = urlEl  ? urlEl.value.trim()  : '';
+  if (!name) { if (nameEl) nameEl.focus(); return; }
+  if (!url)  { if (urlEl)  urlEl.focus();  return; }
+  var c = crmClients.find(function(x){ return x.id===clientId; });
+  if (!c) return;
+  if (!c.documents) c.documents = [];
+  c.documents.push({ id:'doc'+Date.now(), name:name, url:url, type:typeEl?typeEl.value:'other', addedAt:todayISO() });
+  saveData(); openCRMProfile(clientId);
+}
+
+function crmDeleteDocument(clientId, docId) {
+  if (!confirm('Remove this document link?')) return;
+  var c = crmClients.find(function(x){ return x.id===clientId; });
+  if (!c||!c.documents) return;
+  c.documents = c.documents.filter(function(d){ return d.id!==docId; });
+  saveData(); openCRMProfile(clientId);
 }
 
 // ── Inline compose helpers ────────────────────────────
@@ -480,16 +691,14 @@ function saveCRMPayment() {
     invoiceRef:  document.getElementById('crm-pay-ref').value.trim()
   });
   closeCRMPaymentModal();
-  saveData(); renderCRMPage();
-  openCRMProfile(crmPaymentClientId);
+  saveData(); openCRMProfile(crmPaymentClientId);
 }
 
 function crmMarkPaid(clientId, payId) {
   var c = crmClients.find(function(x){ return x.id===clientId; });
   if (!c||!c.payments) return;
   c.payments = c.payments.map(function(p){ return p.id===payId ? Object.assign({},p,{status:'paid'}) : p; });
-  saveData(); renderCRMPage();
-  openCRMProfile(clientId);
+  saveData(); openCRMProfile(clientId);
 }
 
 function crmDeletePayment(clientId, payId) {
@@ -497,8 +706,7 @@ function crmDeletePayment(clientId, payId) {
   var c = crmClients.find(function(x){ return x.id===clientId; });
   if (!c||!c.payments) return;
   c.payments = c.payments.filter(function(p){ return p.id!==payId; });
-  saveData(); renderCRMPage();
-  openCRMProfile(clientId);
+  saveData(); openCRMProfile(clientId);
 }
 
 // ════════════════════════════════════════════════════════
@@ -510,15 +718,16 @@ function openCRMNewModal(id) {
   var c = id ? crmClients.find(function(x){ return x.id===id; }) : null;
   crmEditingId = id || null;
   document.getElementById('crm-m-heading').textContent  = c ? 'Edit Client' : 'New Client';
-  document.getElementById('crm-m-fname').value          = c ? c.firstName||''                  : '';
-  document.getElementById('crm-m-lname').value          = c ? c.lastName||''                   : '';
-  document.getElementById('crm-m-email').value          = c ? c.email||''                      : '';
-  document.getElementById('crm-m-phone').value          = c ? c.phone||''                      : '';
-  document.getElementById('crm-m-season').value         = c ? c.season||''                     : '';
-  document.getElementById('crm-m-sisters').value        = c ? (c.sisterSeasons||[]).join(', ') : '';
-  document.getElementById('crm-m-tags').value           = c ? (c.tags||[]).join(', ')          : '';
-  document.getElementById('crm-m-source').value         = c ? c.source||'online'               : 'online';
-  document.getElementById('crm-m-season-notes').value   = c ? c.seasonNotes||''                : '';
+  document.getElementById('crm-m-fname').value          = c ? c.firstName||''                    : '';
+  document.getElementById('crm-m-lname').value          = c ? c.lastName||''                     : '';
+  document.getElementById('crm-m-email').value          = c ? c.email||''                        : '';
+  document.getElementById('crm-m-phone').value          = c ? c.phone||''                        : '';
+  document.getElementById('crm-m-season').value         = c ? c.season||''                       : '';
+  document.getElementById('crm-m-sisters').value        = c ? (c.sisterSeasons||[]).join(', ')   : '';
+  document.getElementById('crm-m-season-notes').value   = c ? c.seasonNotes||''                  : '';
+  document.getElementById('crm-m-contrast').value       = c ? c.contrastLevel||''                : '';
+  document.getElementById('crm-m-tags').value           = c ? (c.tags||[]).join(', ')            : '';
+  document.getElementById('crm-m-source').value         = c ? c.source||'online'                 : 'online';
   document.getElementById('crm-m-err').textContent      = '';
   document.getElementById('crm-m-del').style.display    = c ? 'inline-block' : 'none';
   document.getElementById('crm-modal').style.display    = 'flex';
@@ -539,13 +748,17 @@ function saveCRMClient() {
     phone:          document.getElementById('crm-m-phone').value.trim(),
     season:         document.getElementById('crm-m-season').value,
     sisterSeasons:  sisters,
+    contrastLevel:  document.getElementById('crm-m-contrast').value,
     tags:           tags,
     source:         document.getElementById('crm-m-source').value,
     seasonNotes:    document.getElementById('crm-m-season-notes').value.trim(),
-    notes:          exist ? (exist.notes||'')          : '',
-    sessions:       exist ? (exist.sessions||[])       : [],
-    payments:       exist ? (exist.payments||[])       : [],
-    correspondence: exist ? (exist.correspondence||[]) : [],
+    notes:          exist ? (exist.notes||'')           : '',
+    photoBase64:    exist ? (exist.photoBase64||'')     : '',
+    photos:         exist ? (exist.photos||[])          : [],
+    documents:      exist ? (exist.documents||[])       : [],
+    sessions:       exist ? (exist.sessions||[])        : [],
+    payments:       exist ? (exist.payments||[])        : [],
+    correspondence: exist ? (exist.correspondence||[])  : [],
     createdAt:      exist ? (exist.createdAt||todayISO()) : todayISO()
   };
   if (crmEditingId) {
@@ -555,7 +768,7 @@ function saveCRMClient() {
   }
   closeCRMModal();
   saveData(); renderCRMPage();
-  if (crmOpenProfileId === crmEditingId) openCRMProfile(crmEditingId);
+  if (crmOpenProfileId && crmOpenProfileId === crmEditingId) openCRMProfile(crmEditingId);
 }
 
 function deleteCRMClient() {
@@ -598,8 +811,7 @@ function saveCRMSession() {
   });
   if (season && !c.season) c.season = season;
   closeCRMSessionModal();
-  saveData(); renderCRMPage();
-  openCRMProfile(crmSessionClientId);
+  saveData(); openCRMProfile(crmSessionClientId);
 }
 
 function crmDeleteSession(clientId, sessId) {
@@ -607,8 +819,7 @@ function crmDeleteSession(clientId, sessId) {
   var c = crmClients.find(function(x){ return x.id===clientId; });
   if (!c||!c.sessions) return;
   c.sessions = c.sessions.filter(function(s){ return s.id!==sessId; });
-  saveData(); renderCRMPage();
-  openCRMProfile(clientId);
+  saveData(); openCRMProfile(clientId);
 }
 
 // ════════════════════════════════════════════════════════
@@ -631,9 +842,9 @@ function crmImportIvorey() {
     var parts = fullName.split(' ');
     crmClients.push({
       id:'c'+(crmIdSeq++), firstName:parts[0]||'', lastName:parts.slice(1).join(' ')||'',
-      email:email, phone:'', season:season, sisterSeasons:[],
+      email:email, phone:'', season:season, sisterSeasons:[], contrastLevel:'',
       tags:['online ca'].concat(season?[season.toLowerCase()]:[]),
-      source:'online', seasonNotes:notes, notes:'',
+      source:'online', seasonNotes:notes, notes:'', photoBase64:'', photos:[], documents:[],
       sessions: season ? [{id:'ss'+Date.now()+'i'+imported,date:todayISO(),type:'Online CA',season:season,notes:notes,reportUrl:''}] : [],
       payments:[], correspondence:[], createdAt:todayISO()
     });
