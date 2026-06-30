@@ -292,8 +292,9 @@
         <div id="clients-header-actions"><button class="btn btnp" onclick="clearClients()">Clear All</button></div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn clients-subtab on" id="cst-slots" onclick="showClientsTab('slots')">Appointment Slots</button>
-        <button class="btn clients-subtab" id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
+        <button class="btn clients-subtab on" id="cst-slots"    onclick="showClientsTab('slots')">Appointment Slots</button>
+        <button class="btn clients-subtab"    id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
+        <button class="btn clients-subtab"    id="cst-profiles" onclick="showClientsTab('profiles')">Client Profiles</button>
       </div>
       <div id="clients-slots-panel">
       <div class="csumrow">
@@ -353,7 +354,107 @@
       </div>
       </div><!-- /clients-slots-panel -->
       <div id="clients-inperson-panel" style="display:none"></div>
+      <div id="clients-profiles-panel" style="display:none"></div>
   </div>
+
+    <!-- CRM PROFILE OVERLAY + SLIDE-IN PANEL -->
+    <div id="crm-overlay" onclick="closeCRMProfile()" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.45);z-index:800"></div>
+    <div id="crm-profile-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:460px;max-width:100vw;background:white;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:801;overflow:hidden;flex-direction:column"></div>
+
+    <!-- CRM NEW/EDIT CLIENT MODAL -->
+    <div id="crm-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.5);z-index:900;align-items:center;justify-content:center">
+      <div style="background:white;border-radius:16px;padding:28px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
+        <button onclick="closeCRMModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">&#215;</button>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep);margin-bottom:20px" id="crm-m-heading">New Client</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div class="fg"><label class="fl">First Name *</label><input class="fi" id="crm-m-fname" placeholder="Annette"></div>
+          <div class="fg"><label class="fl">Last Name</label><input class="fi" id="crm-m-lname" placeholder="Sykes"></div>
+          <div class="fg"><label class="fl">Email</label><input class="fi" id="crm-m-email" type="email" placeholder="annette@email.com"></div>
+          <div class="fg"><label class="fl">Phone</label><input class="fi" id="crm-m-phone" placeholder="0400 000 000"></div>
+        </div>
+        <div class="fg" style="margin-bottom:12px">
+          <label class="fl">Season Result</label>
+          <select class="fsel" id="crm-m-season">
+            <option value="">— Not yet determined —</option>
+            <option>Light Spring</option><option>True Spring</option><option>Bright Spring</option>
+            <option>Light Summer</option><option>True Summer</option><option>Soft Summer</option>
+            <option>Soft Autumn</option><option>True Autumn</option><option>Dark Autumn</option>
+            <option>Dark Winter</option><option>True Winter</option><option>Bright Winter</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:12px">
+          <label class="fl">Sister Seasons <span style="font-weight:400;color:var(--muted)">(comma separated)</span></label>
+          <input class="fi" id="crm-m-sisters" placeholder="True Summer, Soft Autumn">
+        </div>
+        <div class="fg" style="margin-bottom:12px">
+          <label class="fl">Season Notes</label>
+          <textarea class="fi" id="crm-m-season-notes" rows="2" placeholder="Strong warm-cool neutrality, medium contrast…"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div class="fg">
+            <label class="fl">Tags <span style="font-weight:400;color:var(--muted)">(comma separated)</span></label>
+            <input class="fi" id="crm-m-tags" placeholder="online ca, vietnam tour">
+          </div>
+          <div class="fg">
+            <label class="fl">Source</label>
+            <select class="fsel" id="crm-m-source">
+              <option value="online">Online CA</option>
+              <option value="in-person">In-Person</option>
+              <option value="walk-in">Walk-in</option>
+              <option value="referral">Referral</option>
+              <option value="tour">Tour</option>
+            </select>
+          </div>
+        </div>
+        <div style="color:#EF4444;font-size:12px;margin-bottom:10px" id="crm-m-err"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button id="crm-m-del" onclick="deleteCRMClient()" style="display:none;margin-right:auto;background:none;border:1px solid #EF4444;color:#EF4444;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px">Delete</button>
+          <button onclick="closeCRMModal()" class="btn btns">Cancel</button>
+          <button onclick="saveCRMClient()" class="btn btnp">Save Client</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRM ADD SESSION MODAL -->
+    <div id="crm-sess-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.5);z-index:900;align-items:center;justify-content:center">
+      <div style="background:white;border-radius:16px;padding:28px;width:480px;max-width:95vw;position:relative">
+        <button onclick="closeCRMSessionModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">&#215;</button>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--deep);margin-bottom:20px">Add Session</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div class="fg"><label class="fl">Date</label><input class="fi" id="crm-s-date" type="date"></div>
+          <div class="fg">
+            <label class="fl">Session Type</label>
+            <select class="fsel" id="crm-s-type">
+              <option>Online CA</option><option>In-Person CA</option><option>Wardrobe Edit</option>
+              <option>Shopping Trip</option><option>Follow-up</option><option>Tour</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:12px">
+          <label class="fl">Season Result</label>
+          <select class="fsel" id="crm-s-season">
+            <option value="">— Not determined —</option>
+            <option>Light Spring</option><option>True Spring</option><option>Bright Spring</option>
+            <option>Light Summer</option><option>True Summer</option><option>Soft Summer</option>
+            <option>Soft Autumn</option><option>True Autumn</option><option>Dark Autumn</option>
+            <option>Dark Winter</option><option>True Winter</option><option>Bright Winter</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:12px">
+          <label class="fl">Session Notes</label>
+          <textarea class="fi" id="crm-s-notes" rows="3" placeholder="Key observations, contrast level, skin tone notes…"></textarea>
+        </div>
+        <div class="fg" style="margin-bottom:18px">
+          <label class="fl">Report Link <span style="font-weight:400;color:var(--muted)">(Canva / Google Drive URL)</span></label>
+          <input class="fi" id="crm-s-report" placeholder="https://…">
+        </div>
+        <div style="color:#EF4444;font-size:12px;margin-bottom:10px" id="crm-s-err"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="closeCRMSessionModal()" class="btn btns">Cancel</button>
+          <button onclick="saveCRMSession()" class="btn btnp">Save Session</button>
+        </div>
+      </div>
+    </div>
 
     <!-- TASKS PAGE -->
     <div class="page" id="pg-tasks">
@@ -1216,6 +1317,7 @@
 <script src="app.js"></script>
 <script src="app-social.js"></script>
 <script src="app-season-snapshot.js"></script>
+<script src="app-crm.js"></script>
 <script src="app-oca-boards.js"></script>
 <script src="app-oca-report.js"></script>
 <script>

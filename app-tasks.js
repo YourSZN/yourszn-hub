@@ -342,7 +342,7 @@ function renderGoals() {
       + (curUser==='latisha' ? '<div class="goal-slider-wrap" onclick="event.stopPropagation()">'
       +   '<input type="range" class="goal-slider" min="0" max="'+g.target+'" value="'+g.current+'" '
       +     'oninput="liveGoalProgress('+g.id+',this.value)" '
-      +     'onchange="saveGoalProgress('+g.id+',this.value)">' : '<div class="goal-slider-wrap"><div style="height:6px">');
+      +     'onchange="saveGoalProgress('+g.id+',this.value)">' : '<div class="goal-slider-wrap"><div style="height:6px">')
       +   '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:3px"><span>0</span><span style="font-weight:600;color:var(--accent)" id="gp-lbl-'+g.id+'">'+pct+'% · '+(unitLabel.indexOf('$')>-1?'$':'')+fmtNum(g.current)+'</span><span>'+(unitLabel.indexOf('$')>-1?'$':'')+fmtNum(g.target)+'</span></div>'
       + '</div>'
       + '<div class="goal-meta">'

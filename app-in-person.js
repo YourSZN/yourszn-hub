@@ -154,28 +154,35 @@ function ipGetInPersonBanner() {
    ========================================================== */
 
 function showClientsTab(tab) {
-  var btnSlots = document.getElementById('cst-slots');
+  var btnSlots    = document.getElementById('cst-slots');
   var btnInperson = document.getElementById('cst-inperson');
-  var panelSlots = document.getElementById('clients-slots-panel');
+  var btnProfiles = document.getElementById('cst-profiles');
+  var panelSlots    = document.getElementById('clients-slots-panel');
   var panelInperson = document.getElementById('clients-inperson-panel');
-  var psub = document.getElementById('clients-psub');
+  var panelProfiles = document.getElementById('clients-profiles-panel');
+  var psub          = document.getElementById('clients-psub');
   var headerActions = document.getElementById('clients-header-actions');
 
+  // Clear all active states
+  [btnSlots, btnInperson, btnProfiles].forEach(function(b){ if (b) b.classList.remove('on'); });
+  [panelSlots, panelInperson, panelProfiles].forEach(function(p){ if (p) p.style.display = 'none'; });
+
   if (tab === 'inperson') {
-    if (btnSlots) btnSlots.classList.remove('on');
-    if (btnInperson) btnInperson.classList.add('on');
-    if (panelSlots) panelSlots.style.display = 'none';
+    if (btnInperson)   btnInperson.classList.add('on');
     if (panelInperson) panelInperson.style.display = 'block';
     if (psub) psub.textContent = 'Manage in-person client bookings and contrast analysis';
     if (headerActions) headerActions.innerHTML =
-      '<button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">' +
-      '+ New Booking</button>';
+      '<button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button>';
     renderInPersonList();
+  } else if (tab === 'profiles') {
+    if (btnProfiles)   btnProfiles.classList.add('on');
+    if (panelProfiles) panelProfiles.style.display = 'block';
+    if (psub) psub.textContent = 'Client colour profiles — season results, session history, notes';
+    if (headerActions) headerActions.innerHTML = '';
+    renderCRMPage();
   } else {
-    if (btnSlots) btnSlots.classList.add('on');
-    if (btnInperson) btnInperson.classList.remove('on');
+    if (btnSlots)   btnSlots.classList.add('on');
     if (panelSlots) panelSlots.style.display = 'block';
-    if (panelInperson) panelInperson.style.display = 'none';
     if (psub) psub.textContent = 'Manage your appointment slots and client bookings';
     if (headerActions) headerActions.innerHTML = '';
   }

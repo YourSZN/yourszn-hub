@@ -172,6 +172,13 @@ function showClientsTab(tab) {
     } else {
       renderIvoreySubmissions();
     }
+  } else if (tab === 'profiles') {
+    var btnProfiles   = document.getElementById('cst-profiles');
+    var panelProfiles = document.getElementById('clients-profiles-panel');
+    if (btnProfiles)   btnProfiles.classList.add('on');
+    if (panelProfiles) panelProfiles.style.display = 'block';
+    if (psub) psub.textContent = 'Client colour profiles — season results, session history, notes';
+    renderCRMPage();
   } else {
     if (btnSlots) btnSlots.classList.add('on');
     if (panelSlots) panelSlots.style.display = 'block';

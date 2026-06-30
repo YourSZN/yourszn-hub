@@ -13,7 +13,8 @@ function saveData() {
       celebData: celebData.map(function(c){ var cc=strip(c); if(cc.videos) cc.videos=cc.videos.map(strip); return cc; }),
       groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread,
       vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff, hiddenTasks:hiddenTasks,
-      socialPosts:socialPosts, smMentions:smMentions, smStrategyNotes:smStrategyNotes, smAnalyticsLog:smAnalyticsLog
+      socialPosts:socialPosts, smMentions:smMentions, smStrategyNotes:smStrategyNotes, smAnalyticsLog:smAnalyticsLog,
+      crmClients:crmClients, crmIdSeq:crmIdSeq
     };
     // Always keep a local backup too
     try { localStorage.setItem('yszn_v1', JSON.stringify(payload)); } catch(e2){}
@@ -72,6 +73,8 @@ function _applyLoadedData(d) {
   if (d.smMentions)        smMentions        = d.smMentions;
   if (d.smStrategyNotes)   smStrategyNotes   = d.smStrategyNotes;
   if (d.smAnalyticsLog)    smAnalyticsLog    = d.smAnalyticsLog;
+  if (d.crmClients)        crmClients        = d.crmClients;
+  if (d.crmIdSeq)          crmIdSeq          = d.crmIdSeq;
   try { smUpdateNavBadge(); } catch(e){}
   try { smSeedIdeas(); } catch(e){}
   if (typeof d.metaWeekOff !== 'undefined') metaWeekOff = d.metaWeekOff;

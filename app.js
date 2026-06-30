@@ -1576,24 +1576,54 @@ function toggleCard(uid) {
   if(arrow) arrow.classList.toggle('open',openCards[uid]);
 }
 
+var staffViewWeekOff = {};  // uid -> week offset for inline task view
+
 function viewStaffTasks(uid) {
   // Toggle inline task tables on the Staff page
   var containerId = 'staff-tasks-' + uid;
   var existing = document.getElementById(containerId);
   if (existing) {
-    // Toggle off
     existing.remove();
     return;
   }
-  // Insert task tables after the staff card header
+  if (!staffViewWeekOff[uid]) staffViewWeekOff[uid] = 0;
+  renderStaffTaskView(uid);
+}
+
+function renderStaffTaskView(uid) {
+  var containerId = 'staff-tasks-' + uid;
   var card = document.getElementById('scard-' + uid);
   if (!card) return;
-  var div = document.createElement('div');
-  div.id = containerId;
-  div.style.cssText = 'padding:16px 20px;background:var(--cream);border-top:1px solid var(--sand);border-radius:0 0 12px 12px';
-  div.innerHTML = '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--deep);margin-bottom:12px">' + USERS[uid].name + '\'s Tasks — ' + weekLabel(0) + '</div>' + buildTaskTablesHTML(uid, 0, false);
-  card.appendChild(div);
+  var off = staffViewWeekOff[uid] || 0;
+
+  var existing = document.getElementById(containerId);
+  if (!existing) {
+    existing = document.createElement('div');
+    existing.id = containerId;
+    existing.style.cssText = 'padding:16px 20px;background:var(--cream);border-top:1px solid var(--sand);border-radius:0 0 12px 12px';
+    card.appendChild(existing);
+  }
+
+  existing.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
+    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;color:var(--deep);flex:1">' + USERS[uid].name + '\'s Tasks</div>'
+    + '<button onclick="changeStaffViewWeek(\''+uid+'\',-1)" style="padding:5px 12px;border:1px solid var(--sand);border-radius:8px;background:white;cursor:pointer;font-size:12px;color:var(--deep)">‹ Prev</button>'
+    + '<span style="font-size:12px;color:var(--muted);white-space:nowrap">' + weekLabel(off) + '</span>'
+    + '<button onclick="changeStaffViewWeek(\''+uid+'\',1)" style="padding:5px 12px;border:1px solid var(--sand);border-radius:8px;background:white;cursor:pointer;font-size:12px;color:var(--deep)">Next ›</button>'
+    + (off !== 0 ? '<button onclick="changeStaffViewWeek(\''+uid+'\',0,true)" style="padding:5px 12px;border:1px solid var(--sand);border-radius:8px;background:var(--warm);cursor:pointer;font-size:12px;color:var(--muted)">Today</button>' : '')
+    + '</div>'
+    + buildTaskTablesHTML(uid, off, false);
+
   setTimeout(function(){ bindTableChips(uid); }, 0);
+}
+
+function changeStaffViewWeek(uid, d, reset) {
+  if (reset) {
+    staffViewWeekOff[uid] = 0;
+  } else {
+    staffViewWeekOff[uid] = (staffViewWeekOff[uid] || 0) + d;
+  }
+  renderStaffTaskView(uid);
 }
 
 // ──────────────────────────────────────────────
