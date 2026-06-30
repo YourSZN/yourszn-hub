@@ -52,6 +52,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .sout{margin:0 20px 8px;padding:10px;border-radius:8px;border:1px solid var(--sand);background:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
 .sout:hover{background:var(--sand);color:var(--deep);}
 .main{margin-left:220px;min-height:100vh;padding:40px 48px;flex:1;transition:margin-left .25s ease,padding .25s ease;}
+#pg-online .ph{margin-bottom:16px;}
 body.oca-fs .sidebar{display:none;}
 body.oca-fs .main{margin-left:0;padding:10px 16px;}
 body.oca-fs .ph{margin-bottom:10px;}
