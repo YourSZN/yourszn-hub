@@ -6,7 +6,7 @@
 <title>Your SZN — Business Hub</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600&family=Almarai:wght@300;400;700;800&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -146,6 +146,17 @@
       <div class="sulab">Logged in as</div>
       <div class="suname" id="uname-display"></div>
     </div>
+    <div id="gsearch-wrap" style="padding:0 14px 10px;position:relative">
+      <div style="position:relative">
+        <input id="gsearch-input" class="fi" placeholder="Search clients…"
+          oninput="globalSearch(this.value)"
+          onfocus="globalSearch(this.value)"
+          onblur="setTimeout(function(){globalSearchClose()},200)"
+          style="font-size:12px;padding:7px 30px 7px 10px;width:100%;box-sizing:border-box">
+        <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none">⌕</span>
+      </div>
+      <div id="gsearch-results" style="display:none;position:absolute;left:14px;right:14px;top:calc(100% - 4px);background:white;border:1px solid var(--sand);border-radius:10px;box-shadow:0 4px 16px rgba(28,23,18,.12);z-index:200;max-height:300px;overflow-y:auto"></div>
+    </div>
     <nav class="snav" id="snav"></nav>
     <div style="padding:0 16px 12px;display:flex;flex-direction:column;gap:6px;">
       <button onclick="exportData()" style="width:100%;background:var(--rose);color:#fff;border:none;border-radius:8px;padding:8px;font-size:11px;font-weight:700;letter-spacing:.8px;cursor:pointer;text-transform:uppercase;">&#128190; Export Data</button>
@@ -162,6 +173,7 @@
         <div><div class="ptitle" id="dash-greet">Welcome</div><div class="psub">Here's your business at a glance</div></div>
         <div class="dbadge" id="dash-date"></div>
       </div>
+      <div id="dash-today" style="margin-bottom:20px"></div>
       <div class="srow">
         <div class="sc"><div class="slb">Weekly Target</div><div class="sv">$7,000</div><div class="ss">10 in-person · 13 online</div></div>
         <div class="sc g"><div class="slb">In-Person Rate</div><div class="sv">$349</div><div class="ss">Premium: $445</div></div>

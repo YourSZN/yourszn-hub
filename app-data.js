@@ -80,6 +80,7 @@ function _applyLoadedData(d) {
   if (typeof d.metaWeekOff !== 'undefined') metaWeekOff = d.metaWeekOff;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
+  try { renderDashToday(); } catch(e){}
   try { renderSops(); } catch(e){}
   try { renderToursPage(); } catch(e){}
   try { renderTasks(); } catch(e){}

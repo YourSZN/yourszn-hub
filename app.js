@@ -570,6 +570,7 @@ function showPage(id) {
   if (id === 'social') { renderSocialPage(); window.scrollTo(0, 0); }
   if (id === 'adcreative') { renderAdCreativePage(); }
   if (id === 'clients') renderInPersonTab();
+  if (id === 'dashboard') { try { renderDashToday(); } catch(e){} }
   if (id === 'dashboard' || id === 'clients') { if (typeof ipCheckPhotoNotifications === 'function') ipCheckPhotoNotifications(); }
   if (id === 'tasks') {
     // Render banners so user SEES them — don't mark seen yet

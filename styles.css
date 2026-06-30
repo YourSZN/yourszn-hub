@@ -811,6 +811,7 @@ body.sb-collapsed .sidebar{width:56px;}
 body.sb-collapsed .main{margin-left:56px;}
 body.sb-collapsed .slogo,
 body.sb-collapsed .suser,
+body.sb-collapsed #gsearch-wrap,
 body.sb-collapsed .nsec,
 body.sb-collapsed .sout,
 body.sb-collapsed .nav-lbl{opacity:0;pointer-events:none;}

@@ -1472,3 +1472,169 @@ async function crmSaveNewAppt(clientId) {
   if (m) m.remove();
   crmLoadAppointments(clientId);
 }
+
+// ════════════════════════════════════════════════════════
+// GLOBAL CLIENT SEARCH (sidebar)
+// ════════════════════════════════════════════════════════
+
+function globalSearch(q) {
+  var el = document.getElementById('gsearch-results');
+  if (!el) return;
+  q = (q || '').trim();
+  if (!q || q.length < 2) { el.style.display = 'none'; return; }
+
+  var q2 = q.toLowerCase();
+  var matches = crmClients.filter(function(c) {
+    return (c.firstName+' '+c.lastName).toLowerCase().indexOf(q2) > -1
+      || (c.email||'').toLowerCase().indexOf(q2) > -1
+      || (c.season||'').toLowerCase().indexOf(q2) > -1
+      || (c.tags||[]).some(function(t){ return t.toLowerCase().indexOf(q2) > -1; });
+  }).slice(0, 6);
+
+  if (!matches.length) {
+    el.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:var(--muted)">No clients found.</div>';
+    el.style.display = 'block';
+    return;
+  }
+
+  el.innerHTML = matches.map(function(c) {
+    var col  = crmSeasonColor(c.season);
+    var init = ((c.firstName||'').charAt(0)+(c.lastName||'').charAt(0)).toUpperCase() || '?';
+    var st   = CRM_STATUS[c.status||'lead'];
+    var avatarHtml = c.photoBase64
+      ? '<img src="'+c.photoBase64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : '<span style="font-size:11px;font-weight:600;color:white;font-family:\'Fraunces\',serif">'+init+'</span>';
+    return '<div onclick="globalSearchSelect(\''+c.id+'\')" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--warm)" onmouseover="this.style.background=\'var(--warm)\'" onmouseout="this.style.background=\'\'">'
+      + '<div style="width:30px;height:30px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">'+avatarHtml+'</div>'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div style="font-size:12px;font-weight:600;color:var(--deep);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.firstName+' '+c.lastName)+'</div>'
+      +   '<div style="font-size:10px;color:var(--muted)">'+(c.season ? esc(c.season)+' · ' : '')+(st?st.label:'Enquiry')+'</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  el.style.display = 'block';
+}
+
+function globalSearchClose() {
+  var el = document.getElementById('gsearch-results');
+  if (el) el.style.display = 'none';
+}
+
+function globalSearchSelect(id) {
+  globalSearchClose();
+  var inp = document.getElementById('gsearch-input');
+  if (inp) inp.value = '';
+  showPage('clients');
+  openCRMProfile(id);
+}
+
+// ════════════════════════════════════════════════════════
+// DASHBOARD — TODAY AT A GLANCE
+// ════════════════════════════════════════════════════════
+
+async function renderDashToday() {
+  var el = document.getElementById('dash-today');
+  if (!el) return;
+
+  var today = todayISO();
+  var d0    = new Date(today + 'T00:00:00');
+  var DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MON_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dayLabel  = DAY_NAMES[d0.getDay()] + ', ' + d0.getDate() + ' ' + MON_NAMES[d0.getMonth()];
+
+  // Tasks due today (from global tasks array)
+  var tasksDue = (typeof tasks !== 'undefined' ? tasks : []).filter(function(t) {
+    return t.due === today && (t.status||'') !== 'done' && t.freq === 'one-off';
+  });
+
+  // Clients awaiting action
+  var needsAction = crmClients.filter(function(c) {
+    var s = c.status || 'lead';
+    return s === 'booked' || s === 'analysis-done';
+  }).slice(0, 5);
+
+  var PCOLOR = { red:'#EF4444', orange:'#F59E0B', green:'#10B981' };
+
+  var tasksHtml = tasksDue.length
+    ? tasksDue.map(function(t) {
+        var dot = PCOLOR[t.priority||''] || 'var(--muted)';
+        return '<div style="display:flex;align-items:flex-start;gap:7px;padding:4px 0">'
+          + '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+dot+';flex-shrink:0;margin-top:4px"></span>'
+          + '<span style="font-size:12px;color:var(--deep);line-height:1.4">'+esc(t.title)+'</span>'
+          + '</div>';
+      }).join('')
+    : '<div style="font-size:12px;color:var(--muted);font-style:italic">No tasks due today.</div>';
+
+  var actionHtml = needsAction.length
+    ? needsAction.map(function(c) {
+        var col  = crmSeasonColor(c.season);
+        var init = ((c.firstName||'').charAt(0)+(c.lastName||'').charAt(0)).toUpperCase() || '?';
+        var st   = CRM_STATUS[c.status||'lead'];
+        var avatarHtml = c.photoBase64
+          ? '<img src="'+c.photoBase64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+          : '<span style="font-size:10px;font-weight:600;color:white;font-family:\'Fraunces\',serif">'+init+'</span>';
+        return '<div onclick="showPage(\'clients\');openCRMProfile(\''+c.id+'\')" style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer" onmouseover="this.style.opacity=\'.75\'" onmouseout="this.style.opacity=\'1\'">'
+          + '<div style="width:24px;height:24px;border-radius:50%;background:'+col+';display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">'+avatarHtml+'</div>'
+          + '<span style="font-size:12px;color:var(--deep);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.firstName+' '+c.lastName)+'</span>'
+          + '<span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;white-space:nowrap;background:'+(st?st.bg:'var(--warm)')+';color:'+(st?st.col:'var(--muted)')+';border:1px solid '+(st?st.border:'var(--sand)')+'">'+( st?st.label:'')+'</span>'
+          + '</div>';
+      }).join('')
+    : '<div style="font-size:12px;color:var(--muted);font-style:italic">All clients up to date.</div>';
+
+  el.innerHTML = '<div class="card" style="margin-bottom:0">'
+    + '<div class="ch"><div class="ct">Today — '+dayLabel+'</div></div>'
+    + '<div class="cb"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">'
+
+    // Appointments (async)
+    + '<div>'
+    + '<div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px">Appointments</div>'
+    + '<div id="dash-today-appts"><div style="font-size:12px;color:var(--muted)">Loading…</div></div>'
+    + '</div>'
+
+    // Tasks
+    + '<div>'
+    + '<div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px">Tasks Due</div>'
+    + tasksHtml
+    + '</div>'
+
+    // Clients awaiting action
+    + '<div>'
+    + '<div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px">Awaiting Action</div>'
+    + actionHtml
+    + '</div>'
+
+    + '</div></div></div>';
+
+  // Async: load today's appointments from Supabase
+  try {
+    var db = getSupa();
+    if (db) {
+      var res = await db.from('in_person_bookings').select('*')
+        .gte('appointment_date', today + 'T00:00:00')
+        .lte('appointment_date', today + 'T23:59:59')
+        .order('appointment_date', { ascending: true });
+
+      var apptEl = document.getElementById('dash-today-appts');
+      if (apptEl) {
+        if (res.error || !res.data || !res.data.length) {
+          apptEl.innerHTML = '<div style="font-size:12px;color:var(--muted);font-style:italic">No appointments today.</div>';
+        } else {
+          apptEl.innerHTML = res.data.map(function(b) {
+            var dt   = b.appointment_date ? new Date(b.appointment_date) : null;
+            var time = dt ? dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}) : '';
+            var ss   = APPT_STATUS_STYLE[b.status] || APPT_STATUS_STYLE.pending;
+            return '<div style="padding:5px 0;border-bottom:1px solid var(--warm)">'
+              + '<div style="font-size:12px;font-weight:600;color:var(--deep)">'+esc(b.client_name||'Unknown')+(time?' · '+time:'')+'</div>'
+              + (b.notes ? '<div style="font-size:11px;color:var(--muted);margin-top:1px">'+esc(b.notes.slice(0,60))+'</div>' : '')
+              + '<span style="display:inline-block;margin-top:3px;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;'+ss+'">'+b.status.toUpperCase()+'</span>'
+              + '</div>';
+          }).join('');
+        }
+      }
+    }
+  } catch(e) {
+    var apptEl = document.getElementById('dash-today-appts');
+    if (apptEl) apptEl.innerHTML = '<div style="font-size:12px;color:var(--muted)">—</div>';
+  }
+}
