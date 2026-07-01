@@ -78,7 +78,7 @@ const getFirstDayOfMonth = (y, m) => {
   const d = new Date(y, m, 1).getDay();
   return d === 0 ? 6 : d - 1;
 };
-const TODAY = new Date(2026, 3, 2);
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const THIS_MONDAY = getMonday(TODAY);
 const eventToDate = (ev, weekMonday) => addDays(weekMonday, ev.day);
 const DEFAULT_TAGS = [{
