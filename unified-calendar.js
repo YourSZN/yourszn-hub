@@ -1,7 +1,8 @@
 (function() {
 const {
   useState,
-  useRef
+  useRef,
+  useEffect
 } = React;
 
 /* ─── DESIGN TOKENS ─── */
@@ -80,7 +81,7 @@ const getFirstDayOfMonth = (y, m) => {
 };
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const THIS_MONDAY = getMonday(TODAY);
-const eventToDate = (ev, weekMonday) => addDays(weekMonday, ev.day);
+const eventToDate = (ev, weekMonday) => ev.isoDate ? new Date(ev.isoDate + 'T00:00:00') : addDays(weekMonday, ev.day);
 const DEFAULT_TAGS = [{
   id: "client",
   label: "Client",
@@ -222,115 +223,7 @@ const defaultTemplates = [{
   color: "green",
   conflicts: "show warning"
 }];
-const initEvents = [{
-  id: 1,
-  title: "Client Call – Jane",
-  hour: 9,
-  duration: 60,
-  day: 0,
-  tag: "client",
-  color: "blue",
-  source: "google"
-}, {
-  id: 2,
-  title: "Shopify Sync",
-  hour: 10.5,
-  duration: 45,
-  day: 0,
-  tag: "integration",
-  color: "green",
-  source: "shopify"
-}, {
-  id: 3,
-  title: "Design Review",
-  hour: 14,
-  duration: 60,
-  day: 1,
-  tag: "meeting",
-  color: "purple",
-  source: "google"
-}, {
-  id: 4,
-  title: "Deploy v2.4",
-  hour: 11,
-  duration: 30,
-  day: 1,
-  tag: "deploy",
-  color: "orange",
-  source: "netlify"
-}, {
-  id: 5,
-  title: "Client Call – Mark",
-  hour: 15.5,
-  duration: 45,
-  day: 2,
-  tag: "client",
-  color: "blue",
-  source: "google"
-}, {
-  id: 6,
-  title: "Sprint Planning",
-  hour: 9,
-  duration: 90,
-  day: 2,
-  tag: "meeting",
-  color: "accent",
-  source: "google"
-}, {
-  id: 7,
-  title: "DB Migration",
-  hour: 13,
-  duration: 60,
-  day: 3,
-  tag: "deploy",
-  color: "orange",
-  source: "netlify"
-}, {
-  id: 8,
-  title: "Google Cal Sync",
-  hour: 10,
-  duration: 30,
-  day: 3,
-  tag: "integration",
-  color: "green",
-  source: "google"
-}, {
-  id: 9,
-  title: "1:1 with Sarah",
-  hour: 11.5,
-  duration: 30,
-  day: 4,
-  tag: "meeting",
-  color: "pink",
-  source: "google"
-}, {
-  id: 10,
-  title: "Webhook Test",
-  hour: 16,
-  duration: 45,
-  day: 4,
-  tag: "integration",
-  color: "green",
-  source: "shopify"
-}, {
-  id: 11,
-  title: "Retro",
-  hour: 14,
-  duration: 60,
-  day: 4,
-  tag: "meeting",
-  color: "purple",
-  source: "google"
-}, {
-  id: 12,
-  title: "Yoga Class",
-  hour: 7,
-  duration: 60,
-  day: 5,
-  tag: "personal",
-  color: "pink",
-  source: "apple"
-}];
+const initEvents = [];
 
 /* ─── SMALL COMPONENTS ─── */
 const Badge = ({
@@ -1564,7 +1457,15 @@ const WeekView = ({
       borderTop: `1px solid ${C.border}`
     }
   }, fh(h)), DAYS.map((_, di) => {
-    const ev = isCurrentWeek ? events.find(e => e.day === di && Math.floor(e.hour) === h) : null;
+    const _wd = weekDates[di];
+    const ev = events.find(e => {
+      if (Math.floor(e.hour) !== h) return false;
+      if (e.isoDate) {
+        const ed = new Date(e.isoDate + 'T00:00:00');
+        return ed.getFullYear() === _wd.getFullYear() && ed.getMonth() === _wd.getMonth() && ed.getDate() === _wd.getDate();
+      }
+      return isCurrentWeek && e.day === di;
+    });
     const isOff = daysOff.includes(di);
     const isHov = hoveredSlot?.day === di && hoveredSlot?.hour === h;
     const conflict = selT ? getConflict(di, h, selT.duration) : null;
@@ -3206,7 +3107,33 @@ const VIEWS = [{
 }];
 function UnifiedCalendar() {
   const [view, setView] = useState("year");
-  const [events, setEvents] = useState(initEvents);
+  // Seed from cloud-saved manual events + any live bookings already loaded
+  const [events, setEventsRaw] = useState(function() {
+    var manual = (window._calendarEvents || []).filter(function(e) { return !e.isoDate || !e._booking; });
+    var bookings = window._calendarBookings || [];
+    return manual.concat(bookings);
+  });
+  // Wrap setEvents so every mutation auto-saves the manual subset
+  const setEvents = function(updater) {
+    setEventsRaw(function(prev) {
+      var next = typeof updater === 'function' ? updater(prev) : updater;
+      // Only persist non-booking events to cloud
+      var toSave = next.filter(function(e) { return !e._booking; });
+      if (window._saveCalendarEvents) window._saveCalendarEvents(toSave);
+      return next;
+    });
+  };
+  // Refresh booking events whenever the calendar is re-mounted or bookings update
+  useEffect(function() {
+    function onBookingsUpdate() {
+      setEventsRaw(function(prev) {
+        var manual = prev.filter(function(e) { return !e._booking; });
+        return manual.concat(window._calendarBookings || []);
+      });
+    }
+    window._refreshCalendarBookings = onBookingsUpdate;
+    return function() { window._refreshCalendarBookings = null; };
+  }, []);
   const [daysOff, setDaysOff] = useState([5]);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);

@@ -560,6 +560,7 @@ function showPage(id) {
   if (id==='sops') { renderSops(); renderPasswords(); }
   if (id==='vouchers') renderVoucherTab();
   if (id==='online') renderOca();
+  if (id==='calendar') { loadCalendarBookings(); }
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
   document.querySelectorAll('.nitem').forEach(function(n){ n.classList.remove('on'); });
   var pg = document.getElementById('pg-'+id);
@@ -586,6 +587,44 @@ function doLogout() {
   document.getElementById('step-pin').style.display = 'none';
   document.getElementById('step-user').style.display = 'block';
   updDots();
+}
+
+// ── CALENDAR PERSISTENCE + LIVE BOOKINGS ─────────────────────
+window._saveCalendarEvents = function(evts) {
+  calendarEvents = evts || [];
+  window._calendarEvents = calendarEvents;
+  saveData();
+};
+
+async function loadCalendarBookings() {
+  var db = getSupa(); if (!db) return;
+  try {
+    var res = await db.from('in_person_bookings')
+      .select('id, client_name, client_email, appointment_date, status')
+      .not('appointment_date', 'is', null)
+      .order('appointment_date', { ascending: true });
+    if (res.error || !res.data) return;
+    var statusColors = { pending:'blue', uploaded:'orange', analysed:'green', complete:'green', cancelled:'red' };
+    window._calendarBookings = res.data.map(function(b) {
+      var dt = new Date(b.appointment_date);
+      var hour = isNaN(dt.getTime()) ? 10 : (dt.getHours() || 10);
+      var isoDate = b.appointment_date.slice(0, 10);
+      return {
+        id: 'bk_' + b.id,
+        title: b.client_name || 'Client',
+        isoDate: isoDate,
+        hour: hour,
+        duration: 90,
+        day: 0,
+        tag: 'client',
+        color: statusColors[b.status] || 'blue',
+        source: 'booking',
+        _booking: true,
+        _status: b.status
+      };
+    });
+    if (window._refreshCalendarBookings) window._refreshCalendarBookings();
+  } catch(e) { console.warn('loadCalendarBookings error:', e); }
 }
 document.addEventListener('keydown', function(e) {
   if (!selUid) return;
@@ -2255,6 +2294,7 @@ var pwList = [
 ];
 var sopExpanded = {};
 var sopRunState = {};
+var calendarEvents = [];
 var pwRev = {};
 var sopEditId = null, _sopEditId = null;
 var pwEditId  = null, _pwEditId  = null;
@@ -4402,7 +4442,8 @@ function saveData() {
       mktData:mktData, creatorsList:creatorsList,
       pwList:pwList, lastHrsReset: window._hrsResetNeeded || '',
       crmClients:crmClients, crmIdSeq:crmIdSeq,
-      voucherRegistry:voucherRegistry
+      voucherRegistry:voucherRegistry,
+      calendarEvents:calendarEvents
     };
 
     // Per-user: private to the logged-in user
@@ -4512,6 +4553,7 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.crmClients)        crmClients        = d.crmClients;
   if (d.crmIdSeq)          crmIdSeq          = d.crmIdSeq;
   if (d.voucherRegistry)   voucherRegistry   = d.voucherRegistry;
+  if (d.calendarEvents)  { calendarEvents = d.calendarEvents; window._calendarEvents = calendarEvents; }
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
   try { renderSops(); } catch(e){}
