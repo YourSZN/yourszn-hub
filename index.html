@@ -813,8 +813,11 @@
         <div class="sm-field"><label class="sm-lbl">Short description <span style="font-weight:400;color:var(--muted)">(shown on card)</span></label>
           <input id="sopm-notes" class="sm-inp" placeholder="One-line summary">
         </div>
-        <div class="sm-field"><label class="sm-lbl">Full SOP / Procedure</label>
-          <textarea id="sopm-body" class="sm-inp" rows="8" placeholder="Write the full step-by-step procedure here..." style="resize:vertical;font-family:inherit;line-height:1.7"></textarea>
+        <div class="sm-field"><label class="sm-lbl">Full SOP / Procedure <span style="font-weight:400;color:var(--muted)">(free-form notes)</span></label>
+          <textarea id="sopm-body" class="sm-inp" rows="5" placeholder="Background info, context, tips..." style="resize:vertical;font-family:inherit;line-height:1.7"></textarea>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Runnable steps <span style="font-weight:400;color:var(--muted)">(one per line — creates a live checklist)</span></label>
+          <textarea id="sopm-steps" class="sm-inp" rows="6" placeholder="Send welcome email&#10;Schedule consultation call&#10;Send prep document&#10;Complete analysis&#10;Send report" style="resize:vertical;font-family:inherit;line-height:1.7"></textarea>
         </div>
         <div class="sm-field"><label class="sm-lbl">Document link <span style="font-weight:400;color:var(--muted)">(Google Doc, Notion, Canva…)</span></label>
           <input id="sopm-docurl" class="sm-inp" type="url" placeholder="https://docs.google.com/...">

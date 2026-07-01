@@ -2254,6 +2254,7 @@ var pwList = [
   {id:5,title:'ManyChat',category:'Marketing',url:'https://manychat.com',user:'hello@yourszn.com.au',pw:'',notes:'IG DM automation'}
 ];
 var sopExpanded = {};
+var sopRunState = {};
 var pwRev = {};
 var sopEditId = null, _sopEditId = null;
 var pwEditId  = null, _pwEditId  = null;
@@ -2294,6 +2295,7 @@ function openSopModal(id) {
   document.getElementById('sopm-cat').value    = s ? (s.category || 'Admin') : 'Admin';
   document.getElementById('sopm-notes').value  = s ? (s.notes  || '') : '';
   document.getElementById('sopm-body').value   = s ? (s.body   || '') : '';
+  document.getElementById('sopm-steps').value  = s && s.steps && s.steps.length ? s.steps.join('\n') : '';
   document.getElementById('sopm-docurl').value = s ? (s.docurl || '') : '';
   document.getElementById('sopm-loom').value   = s ? (s.loom   || '') : '';
   document.getElementById('sopm-del').style.display = s ? 'inline-block' : 'none';
@@ -2307,14 +2309,20 @@ function closeSopModal() {
 function saveSopModal() {
   var title = document.getElementById('sopm-title').value.trim();
   if (!title) { document.getElementById('sopm-err').textContent = 'Title is required.'; return; }
+  var stepsRaw = document.getElementById('sopm-steps').value.trim();
+  var steps = stepsRaw ? stepsRaw.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; }) : [];
+  var existing = _sopEditId ? sopList.find(function(x){ return x.id === _sopEditId; }) : null;
   var obj = {
-    id:       _sopEditId || Date.now(),
-    title:    title,
-    category: document.getElementById('sopm-cat').value,
-    notes:    document.getElementById('sopm-notes').value.trim(),
-    body:     document.getElementById('sopm-body').value.trim(),
-    docurl:   document.getElementById('sopm-docurl').value.trim(),
-    loom:     document.getElementById('sopm-loom').value.trim()
+    id:        _sopEditId || Date.now(),
+    title:     title,
+    category:  document.getElementById('sopm-cat').value,
+    notes:     document.getElementById('sopm-notes').value.trim(),
+    body:      document.getElementById('sopm-body').value.trim(),
+    steps:     steps,
+    docurl:    document.getElementById('sopm-docurl').value.trim(),
+    loom:      document.getElementById('sopm-loom').value.trim(),
+    updatedAt: new Date().toISOString(),
+    version:   existing ? ((existing.version || 1) + 1) : 1
   };
   if (_sopEditId) {
     var i = sopList.findIndex(function(x){ return x.id === _sopEditId; });
@@ -2433,24 +2441,70 @@ function renderSops() {
   grid.innerHTML = '';
   list.forEach(function(s) {
     var expanded = !!(sopExpanded && sopExpanded[s.id]);
+    var runState = sopRunState[s.id] || { active: false, done: {} };
     var div = document.createElement('div');
     div.className = 'sopcard';
+
+    // version + date badge
+    var vBadge = '';
+    if (s.version) {
+      var vDate = s.updatedAt ? new Date(s.updatedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '';
+      vBadge = '<span style="font-size:10px;color:var(--muted);background:var(--warm);border-radius:20px;padding:2px 8px;margin-left:6px;white-space:nowrap">v' + s.version + (vDate ? ' &middot; ' + vDate : '') + '</span>';
+    }
+
     var links = '';
     if (s.docurl) links += '<a href="' + s.docurl + '" target="_blank" class="sop-lnk-btn">&#128196; Document</a>';
     if (s.loom)   links += '<a href="' + s.loom   + '" target="_blank" class="sop-lnk-btn sop-lnk-loom">&#127916; Loom</a>';
+
+    // body section (free-form notes)
     var bodySection = '';
     if (s.body) {
       bodySection = '<button class="sop-expand-btn" onclick="toggleSopExpand(' + s.id + ')">'
-        + (expanded ? '&#9652; Hide procedure' : '&#9662; View full procedure') + '</button>';
+        + (expanded ? '&#9652; Hide notes' : '&#9662; View notes') + '</button>';
       if (expanded) {
         bodySection += '<div class="sop-body-txt">' + esc(s.body).replace(/\n/g, '<br>') + '</div>';
       }
     }
+
+    // steps / run mode
+    var stepsSection = '';
+    if (s.steps && s.steps.length) {
+      if (!runState.active) {
+        stepsSection = '<button class="sop-expand-btn" style="color:var(--rose);margin-top:4px" onclick="sopStartRun(' + s.id + ')">&#9654; Run SOP (' + s.steps.length + ' steps)</button>';
+      } else {
+        var doneCount = Object.keys(runState.done).length;
+        var totalCount = s.steps.length;
+        var allDone = doneCount === totalCount;
+        stepsSection = '<div style="margin-top:12px;background:var(--cream);border-radius:10px;padding:12px">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+          + '<span style="font-size:12px;font-weight:600;color:var(--charcoal)">'
+          + (allDone ? '&#10003; Complete!' : doneCount + '/' + totalCount + ' steps done')
+          + '</span>'
+          + '<button class="sop-expand-btn" onclick="sopClearRun(' + s.id + ')">&#10005; Close</button>'
+          + '</div>';
+        // progress bar
+        stepsSection += '<div style="height:4px;background:var(--sand);border-radius:2px;margin-bottom:12px">'
+          + '<div style="height:4px;background:var(--rose);border-radius:2px;width:' + Math.round(doneCount/totalCount*100) + '%"></div>'
+          + '</div>';
+        s.steps.forEach(function(step, idx) {
+          var done = !!(runState.done && runState.done[idx]);
+          stepsSection += '<div onclick="sopToggleStep(' + s.id + ',' + idx + ')" style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--sand);cursor:pointer;user-select:none">'
+            + '<div style="width:18px;height:18px;border-radius:50%;border:2px solid ' + (done ? 'var(--rose)' : '#C8BFB8') + ';background:' + (done ? 'var(--rose)' : 'white') + ';flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center">'
+            + (done ? '<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.2 5.5L8 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
+            + '</div>'
+            + '<span style="font-size:13px;color:' + (done ? 'var(--muted)' : 'var(--charcoal)') + ';text-decoration:' + (done ? 'line-through' : 'none') + ';line-height:1.5">' + esc(step) + '</span>'
+            + '</div>';
+        });
+        stepsSection += '</div>';
+      }
+    }
+
     div.innerHTML =
       '<div style="display:flex;align-items:flex-start;gap:10px">'
-      + '<div style="flex:1;min-width:0">'
+      + '<div style="flex:1;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px">'
       +   '<div class="sopcat">' + esc(s.category) + '</div>'
-      +   '<div class="soptit">' + esc(s.title) + '</div>'
+      +   vBadge
+      +   '<div class="soptit" style="width:100%">' + esc(s.title) + '</div>'
       +   (s.notes ? '<div class="sopdesc">' + esc(s.notes) + '</div>' : '')
       + '</div>'
       + '<div style="display:flex;gap:6px;flex-shrink:0">'
@@ -2459,9 +2513,28 @@ function renderSops() {
       + '</div>'
       + '</div>'
       + (links ? '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' + links + '</div>' : '')
-      + bodySection;
+      + bodySection
+      + stepsSection;
     grid.appendChild(div);
   });
+}
+
+function sopStartRun(id) {
+  sopRunState[id] = { active: true, done: {} };
+  renderSops();
+}
+function sopClearRun(id) {
+  sopRunState[id] = { active: false, done: {} };
+  renderSops();
+}
+function sopToggleStep(sopId, stepIdx) {
+  if (!sopRunState[sopId]) sopRunState[sopId] = { active: true, done: {} };
+  if (sopRunState[sopId].done[stepIdx]) {
+    delete sopRunState[sopId].done[stepIdx];
+  } else {
+    sopRunState[sopId].done[stepIdx] = true;
+  }
+  renderSops();
 }
 
 // ── Hue & Stripe Audit ──
