@@ -244,6 +244,92 @@ async function ocaSubDelete(id) {
   }
 }
 
+// ── Save submission to CRM ─────────────────────────────────────
+function ocaSubSaveToCrm(id) {
+  var s = ocaSubDetail;
+  if (!s || s.id !== id) { alert('Submission not loaded.'); return; }
+  if (typeof crmClients === 'undefined') { alert('CRM not available.'); return; }
+
+  var email = (s.email || '').toLowerCase().trim();
+  var fullName = (s.full_name || '').trim();
+
+  // Match existing client by email, then by name
+  var existing = null;
+  if (email) existing = crmClients.find(function(c){ return (c.email||'').toLowerCase() === email; });
+  if (!existing && fullName) existing = crmClients.find(function(c){ return ((c.firstName||'')+' '+(c.lastName||'')).trim().toLowerCase() === fullName.toLowerCase(); });
+
+  var isNew = !existing;
+  var parts = fullName.split(' ');
+  var firstName = parts[0] || fullName;
+  var lastName = parts.slice(1).join(' ');
+
+  if (isNew) {
+    var newId = 'c' + (crmIdSeq++);
+    existing = {
+      id: newId,
+      firstName: firstName, lastName: lastName,
+      email: email, phone: (s.phone || ''),
+      source: 'Online CA', createdAt: (s.created_at || new Date().toISOString()),
+      season: '', sisterSeasons: [], contrastLevel: '', seasonNotes: '',
+      tags: ['online ca'], notes: '', photoBase64: '', photos: [],
+      documents: [], payments: [], sessions: [], correspondence: [],
+      status: 'booked', ocaChecklist: {}, activityLog: []
+    };
+    crmClients.push(existing);
+  } else {
+    // Update contact fields if blank
+    if (!existing.email && email) existing.email = email;
+    if (!existing.phone && s.phone) existing.phone = s.phone;
+  }
+
+  // Populate questionnaire data into seasonNotes
+  var qLines = [];
+  if (s.skin_tone)   qLines.push('Skin: ' + s.skin_tone + (s.skin_depth ? ' / ' + s.skin_depth : ''));
+  if (s.eye_colour)  qLines.push('Eyes: ' + s.eye_colour + (s.eye_depth ? ' / ' + s.eye_depth : ''));
+  if (s.hair_depth)  qLines.push('Hair: ' + s.hair_depth + (s.hair_natural ? ' / ' + s.hair_natural : ''));
+  if (s.predicted_season && !s.predict_dont_know) qLines.push('Client predicts: ' + s.predicted_season);
+  if (s.preferred_metal) qLines.push('Metal: ' + s.preferred_metal);
+  if (s.ancestry)   qLines.push('Ancestry: ' + s.ancestry);
+  if (s.extra_notes) qLines.push('Client notes: ' + s.extra_notes);
+  if (qLines.length) {
+    var newNote = 'From OCA submission (' + new Date(s.created_at).toLocaleDateString('en-AU') + '):\n' + qLines.join('\n');
+    existing.seasonNotes = existing.seasonNotes ? existing.seasonNotes + '\n\n' + newNote : newNote;
+  }
+
+  // Mark photo received in OCA checklist if photos exist
+  if (s.revised_photos_at || (ocaSubDetailPhotos && ocaSubDetailPhotos.length)) {
+    if (!existing.ocaChecklist) existing.ocaChecklist = {};
+    existing.ocaChecklist.photoReceived = true;
+  }
+
+  // Add activity log entry
+  if (!existing.activityLog) existing.activityLog = [];
+  existing.activityLog.push({
+    date: new Date().toISOString(),
+    user: 'System',
+    note: (isNew ? 'Client created from' : 'Profile updated from') + ' OCA submission — ' + fullName
+  });
+
+  // Add a session entry for this submission
+  if (!existing.sessions) existing.sessions = [];
+  var alreadyHasSession = existing.sessions.some(function(ss){ return ss.submissionId === id; });
+  if (!alreadyHasSession) {
+    existing.sessions.push({
+      id: 'ss' + Date.now(),
+      submissionId: id,
+      date: s.created_at ? s.created_at.slice(0,10) : new Date().toISOString().slice(0,10),
+      type: 'Online CA',
+      season: '',
+      notes: 'Submitted via clients.yourszn.com.au',
+      reportUrl: ''
+    });
+  }
+
+  saveData();
+  if (typeof renderCRMPage === 'function') renderCRMPage();
+  alert((isNew ? firstName + ' added to CRM' : firstName + '\'s CRM profile updated') + '. Questionnaire data saved to Season Notes.');
+}
+
 // ═══════════════════════════════════════════════════════════════
 // RENDER — Master
 // ═══════════════════════════════════════════════════════════════
@@ -343,6 +429,7 @@ function renderOcaSubDetail() {
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">'
     + '<button class="btn btns" style="font-size:12px;padding:6px 16px" onclick="ocaSubBackToList()">← Back to List</button>'
     + '<div style="display:flex;gap:8px">'
+    + '<button class="btn btnp" style="font-size:11px;padding:5px 14px" onclick="ocaSubSaveToCrm(\'' + s.id + '\')">+ Save to CRM</button>'
     + '<button class="btn btns" style="font-size:11px;padding:5px 12px;color:#c00" onclick="ocaSubDelete(\'' + s.id + '\')">🗑 Delete</button>'
     + '</div>'
     + '</div>';

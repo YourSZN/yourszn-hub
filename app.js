@@ -4400,7 +4400,9 @@ function saveData() {
       auditD:auditD, vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff,
       hiddenTasks:hiddenTasks, taskWeekState:taskWeekState,
       mktData:mktData, creatorsList:creatorsList,
-      pwList:pwList, lastHrsReset: window._hrsResetNeeded || ''
+      pwList:pwList, lastHrsReset: window._hrsResetNeeded || '',
+      crmClients:crmClients, crmIdSeq:crmIdSeq,
+      voucherRegistry:voucherRegistry
     };
 
     // Per-user: private to the logged-in user
@@ -4507,6 +4509,9 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.hiddenTasks && !_didWeeklyReset)       hiddenTasks       = d.hiddenTasks;
   if (d.taskWeekState && !_didWeeklyReset)     taskWeekState     = d.taskWeekState;
   if (d.pwList)            pwList            = d.pwList;
+  if (d.crmClients)        crmClients        = d.crmClients;
+  if (d.crmIdSeq)          crmIdSeq          = d.crmIdSeq;
+  if (d.voucherRegistry)   voucherRegistry   = d.voucherRegistry;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
   try { renderSops(); } catch(e){}
@@ -4528,6 +4533,9 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   try { renderSocialPage(); } catch(e){}
   try { renderTaskBoard(); } catch(e){}
   try { renderPasswords(); } catch(e){}
+  try { renderCRMPage(); } catch(e){}
+  try { renderDashToday(); } catch(e){}
+  try { renderVoucherRegistry(); } catch(e){}
   if (curUser === 'latisha') {
     try { renderStaffPage(); } catch(e){}
     try { renderDashTaskProgress(); } catch(e){}

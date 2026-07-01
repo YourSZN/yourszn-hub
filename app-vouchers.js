@@ -341,9 +341,9 @@ function voucherAddToCrm(v) {
   var nameParts = (v.to || '').trim().split(' ');
   var firstName = nameParts[0] || v.to || '';
   var lastName = nameParts.slice(1).join(' ') || '';
-  crmIdSeq = (crmIdSeq || 0) + 1;
+  var newId = 'c' + (crmIdSeq++);
   var newClient = {
-    id: crmIdSeq,
+    id: newId,
     firstName: firstName,
     lastName: lastName,
     email: '', phone: '', source: 'Gift Voucher',
