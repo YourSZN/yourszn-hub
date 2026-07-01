@@ -100,10 +100,98 @@ function calcIncomeTotal() {
 }
 
 function renderBizFinances() {
+  renderCrmRevenue();
   renderFinSection('fin-income-list', bizIncome, 'income', false);
   renderFinSection('fin-expense-list', bizExpenses, 'expense', true);
   renderBizSummary();
   renderNetBar();
+}
+
+function renderCrmRevenue() {
+  var el = document.getElementById('fin-crm-revenue'); if (!el) return;
+  var clients = (typeof crmClients !== 'undefined') ? crmClients : [];
+  var allPayments = [];
+  clients.forEach(function(c) {
+    (c.payments || []).forEach(function(p) {
+      if (p.status === 'paid') {
+        allPayments.push({ client: (c.firstName||'') + ' ' + (c.lastName||''), amount: parseFloat(p.amount)||0, date: p.date || p.paidAt || '', id: c.id });
+      }
+    });
+  });
+  // Sort by date descending
+  allPayments.sort(function(a,b){ return (b.date||'') > (a.date||'') ? 1 : -1; });
+
+  var totalPaid = allPayments.reduce(function(s,p){ return s+p.amount; }, 0);
+
+  // This month
+  var now = new Date();
+  var monthStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  var thisMonth = allPayments.filter(function(p){ return p.date && p.date.indexOf(monthStr) === 0; });
+  var monthTotal = thisMonth.reduce(function(s,p){ return s+p.amount; }, 0);
+
+  // Revenue by client
+  var byClient = {};
+  allPayments.forEach(function(p) {
+    byClient[p.client] = (byClient[p.client]||0) + p.amount;
+  });
+  var clientList = Object.keys(byClient).sort(function(a,b){ return byClient[b]-byClient[a]; }).slice(0,5);
+
+  if (!allPayments.length) {
+    el.innerHTML = '<div style="background:var(--cream);border-radius:14px;padding:20px;border:1px solid var(--sand)">'
+      + '<div style="font-family:\'Fraunces\',serif;font-size:18px;color:var(--deep);margin-bottom:4px">Payments Received</div>'
+      + '<div style="font-size:12px;color:var(--muted)">No paid payments recorded in CRM yet. Add payments to client profiles to track real revenue here.</div>'
+      + '</div>';
+    return;
+  }
+
+  var recentHtml = allPayments.slice(0,6).map(function(p) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--sand)">'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      + '<div style="width:28px;height:28px;border-radius:50%;background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--rose)">'
+      + esc((p.client.trim().split(' ').map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,2)))
+      + '</div>'
+      + '<div><div style="font-size:13px;font-weight:600;color:var(--deep)">' + esc(p.client.trim()) + '</div>'
+      + (p.date ? '<div style="font-size:11px;color:var(--muted)">' + esc(p.date) + '</div>' : '')
+      + '</div>'
+      + '</div>'
+      + '<div style="font-size:14px;font-weight:700;color:#10B981">+' + fmtAmt(p.amount) + '</div>'
+      + '</div>';
+  }).join('');
+
+  var topClients = clientList.map(function(name) {
+    var pct = totalPaid > 0 ? Math.round(byClient[name]/totalPaid*100) : 0;
+    return '<div style="margin-bottom:10px">'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+      + '<span style="font-size:12px;color:var(--deep)">' + esc(name) + '</span>'
+      + '<span style="font-size:12px;font-weight:600;color:var(--deep)">' + fmtAmtRound(byClient[name]) + '</span>'
+      + '</div>'
+      + '<div style="height:4px;background:var(--sand);border-radius:2px">'
+      + '<div style="height:4px;background:var(--rose);border-radius:2px;width:'+pct+'%"></div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  el.innerHTML = '<div style="background:var(--cream);border-radius:14px;padding:20px;border:1px solid var(--sand)">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:20px;color:var(--deep)">Payments Received</div>'
+    + '<div style="display:flex;gap:24px">'
+    + '<div style="text-align:right"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:2px">This month</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:22px;color:var(--deep)">' + fmtAmtRound(monthTotal) + '</div></div>'
+    + '<div style="text-align:right"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:2px">All time</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:22px;color:#10B981">' + fmtAmtRound(totalPaid) + '</div></div>'
+    + '</div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">'
+    + '<div>'
+    + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px">Recent</div>'
+    + recentHtml
+    + '</div>'
+    + '<div>'
+    + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px">By Client</div>'
+    + topClients
+    + '</div>'
+    + '</div>'
+    + '</div>';
 }
 
 function renderFinSection(elId, data, type, groupByCat) {
