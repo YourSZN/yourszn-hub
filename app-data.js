@@ -14,7 +14,8 @@ function saveData() {
       groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread,
       vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff, hiddenTasks:hiddenTasks,
       socialPosts:socialPosts, smMentions:smMentions, smStrategyNotes:smStrategyNotes, smAnalyticsLog:smAnalyticsLog,
-      crmClients:crmClients, crmIdSeq:crmIdSeq
+      crmClients:crmClients, crmIdSeq:crmIdSeq,
+      voucherRegistry:voucherRegistry
     };
     // Always keep a local backup too
     try { localStorage.setItem('yszn_v1', JSON.stringify(payload)); } catch(e2){}
@@ -75,6 +76,7 @@ function _applyLoadedData(d) {
   if (d.smAnalyticsLog)    smAnalyticsLog    = d.smAnalyticsLog;
   if (d.crmClients)        crmClients        = d.crmClients;
   if (d.crmIdSeq)          crmIdSeq          = d.crmIdSeq;
+  if (d.voucherRegistry)   voucherRegistry   = d.voucherRegistry;
   try { smUpdateNavBadge(); } catch(e){}
   try { smSeedIdeas(); } catch(e){}
   if (typeof d.metaWeekOff !== 'undefined') metaWeekOff = d.metaWeekOff;

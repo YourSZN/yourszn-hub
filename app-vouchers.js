@@ -5,6 +5,7 @@ var VOUCHER_BG_B64 = "https://charming-starlight-37db1e.netlify.app/voucher_bg.j
 var VOUCHER_LOGO_B64 = null;
 var voucherBgImage = "https://charming-starlight-37db1e.netlify.app/voucher_bg.jpg";
 var voucherCounter = parseInt(localStorage.getItem('yszn_voucher_counter') || '59', 10);
+var voucherRegistry = [];
 
 function renderVoucherTab() {
   var el = document.getElementById('voucher-page-content'); if (!el) return;
@@ -56,7 +57,7 @@ function renderVoucherTab() {
     + '</div>'
 
     // Download button
-    + '<button onclick="voucherDownload()" style="width:100%;background:var(--deep);color:#fff;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.3px">&#11015; Download Voucher (PNG)</button>'
+    + '<button onclick="voucherDownload()" style="width:100%;background:var(--deep);color:#fff;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.3px">&#11015; Download &amp; Register Voucher</button>'
     + '</div>'
 
     // ── RIGHT: LIVE PREVIEW ──
@@ -66,9 +67,16 @@ function renderVoucherTab() {
     + '<canvas id="voucher-canvas" style="width:100%;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.12)"></canvas>'
     + '</div>'
     + '</div>'
+    + '</div>'
+
+    // ── REGISTRY ──
+    + '<div style="margin-top:40px">'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:22px;color:var(--deep);margin-bottom:16px">Issued Vouchers</div>'
+    + '<div id="voucher-registry"></div>'
     + '</div>';
 
   voucherPreview();
+  renderVoucherRegistry();
 }
 var voucherBgImage = "https://raw.githubusercontent.com/YourSZN/yourszn-hub/main/voucher_bg.jpg";
 function voucherLoadBg(e) {
@@ -287,6 +295,23 @@ function voucherDownload() {
   link.download = 'YourSZN_Voucher_' + num + '_' + toName + '.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
+
+  // Save to registry
+  voucherRegistry.push({
+    id:       Date.now(),
+    num:      vg('v-num'),
+    to:       vg('v-to'),
+    from:     vg('v-from'),
+    message:  vg('v-msg'),
+    title:    vg('v-title'),
+    code:     vg('v-code'),
+    date:     vg('v-date'),
+    issuedAt: new Date().toISOString(),
+    status:   'active'
+  });
+  saveData();
+  renderVoucherRegistry();
+
   // Increment counter and pre-populate next voucher number
   voucherCounter = parseInt(vg('v-num'), 10) || voucherCounter;
   voucherCounter++;
@@ -296,5 +321,114 @@ function voucherDownload() {
     numInput.value = voucherCounter;
     voucherPreview();
   }
+}
+
+function voucherRedeem(id) {
+  var v = voucherRegistry.find(function(x){ return x.id === id; });
+  if (!v) return;
+  v.status = 'redeemed';
+  v.redeemedAt = new Date().toISOString();
+  saveData();
+  renderVoucherRegistry();
+  // Offer to create CRM client
+  if (confirm('Mark as redeemed. Add ' + (v.to || 'recipient') + ' as a CRM client?')) {
+    voucherAddToCrm(v);
+  }
+}
+
+function voucherAddToCrm(v) {
+  if (typeof crmClients === 'undefined') return;
+  var nameParts = (v.to || '').trim().split(' ');
+  var firstName = nameParts[0] || v.to || '';
+  var lastName = nameParts.slice(1).join(' ') || '';
+  crmIdSeq = (crmIdSeq || 0) + 1;
+  var newClient = {
+    id: crmIdSeq,
+    firstName: firstName,
+    lastName: lastName,
+    email: '', phone: '', source: 'Gift Voucher',
+    createdAt: new Date().toISOString(),
+    season: '', sisterSeasons: '', contrastLevel: '', seasonNotes: '',
+    tags: ['Gift Voucher'],
+    notes: 'Voucher #' + v.num + ' — ' + (v.title || '') + (v.code ? ' · Code: ' + v.code : ''),
+    photoBase64: null, photos: [], documents: [], payments: [], sessions: [],
+    correspondence: [], status: 'booked', ocaChecklist: {}, activityLog: [
+      { date: new Date().toISOString(), user: 'System', note: 'Client added from gift voucher #' + v.num }
+    ]
+  };
+  crmClients.push(newClient);
+  saveData();
+  if (typeof renderClients === 'function') renderClients();
+  alert(firstName + ' added to CRM. Find them in the Clients section.');
+}
+
+function voucherMarkActive(id) {
+  var v = voucherRegistry.find(function(x){ return x.id === id; });
+  if (!v) return;
+  v.status = 'active';
+  delete v.redeemedAt;
+  saveData();
+  renderVoucherRegistry();
+}
+
+function voucherDeleteFromRegistry(id) {
+  if (!confirm('Remove from registry?')) return;
+  voucherRegistry = voucherRegistry.filter(function(x){ return x.id !== id; });
+  saveData();
+  renderVoucherRegistry();
+}
+
+function renderVoucherRegistry() {
+  var el = document.getElementById('voucher-registry'); if (!el) return;
+  if (!voucherRegistry.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">No vouchers issued yet. Download a voucher above to start tracking.</div>';
+    return;
+  }
+  // Sort: active first, then by issuedAt desc
+  var sorted = voucherRegistry.slice().sort(function(a,b){
+    if (a.status === b.status) return (b.issuedAt||'') > (a.issuedAt||'') ? 1 : -1;
+    return a.status === 'active' ? -1 : 1;
+  });
+  var active = sorted.filter(function(v){ return v.status === 'active'; }).length;
+  var redeemed = sorted.filter(function(v){ return v.status === 'redeemed'; }).length;
+
+  var html = '<div style="display:flex;gap:16px;margin-bottom:16px">'
+    + '<div style="padding:10px 16px;background:var(--warm);border-radius:10px;flex:1;text-align:center">'
+    + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:2px">Active</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:28px;color:var(--deep)">' + active + '</div>'
+    + '</div>'
+    + '<div style="padding:10px 16px;background:var(--warm);border-radius:10px;flex:1;text-align:center">'
+    + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:2px">Redeemed</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:28px;color:#10B981">' + redeemed + '</div>'
+    + '</div>'
+    + '<div style="padding:10px 16px;background:var(--warm);border-radius:10px;flex:1;text-align:center">'
+    + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:2px">Total</div>'
+    + '<div style="font-family:\'Fraunces\',serif;font-size:28px;color:var(--deep)">' + sorted.length + '</div>'
+    + '</div>'
+    + '</div>';
+
+  sorted.forEach(function(v) {
+    var isActive = v.status === 'active';
+    var issuedDate = v.issuedAt ? new Date(v.issuedAt).toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' }) : v.date || '';
+    html += '<div style="padding:14px 16px;border:1px solid ' + (isActive ? 'var(--sand)' : '#D1FAE5') + ';border-radius:12px;margin-bottom:8px;background:' + (isActive ? 'white' : '#F0FDF4') + '">'
+      + '<div style="display:flex;align-items:flex-start;gap:12px">'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+      + '<span style="font-size:10px;font-weight:700;letter-spacing:.5px;background:' + (isActive ? 'var(--rose)' : '#D1FAE5') + ';color:' + (isActive ? 'white' : '#065F46') + ';padding:2px 8px;border-radius:20px;text-transform:uppercase">' + (isActive ? 'Active' : 'Redeemed') + '</span>'
+      + '<span style="font-size:11px;color:var(--muted)">#' + esc(v.num||'') + '</span>'
+      + (v.code ? '<span style="font-size:11px;font-family:monospace;background:var(--warm);padding:1px 6px;border-radius:4px">' + esc(v.code) + '</span>' : '')
+      + '</div>'
+      + '<div style="font-size:14px;font-weight:600;color:var(--deep)">' + esc(v.to || '—') + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + esc(v.title||'') + (v.from ? ' · from ' + esc(v.from) : '') + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:4px">Issued ' + esc(issuedDate) + (v.redeemedAt ? ' · Redeemed ' + new Date(v.redeemedAt).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}) : '') + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex-shrink:0">'
+      + (isActive ? '<button class="fin-row-edit" style="color:var(--rose);font-weight:600" onclick="voucherRedeem(' + v.id + ')">Redeem</button>' : '<button class="fin-row-edit" onclick="voucherMarkActive(' + v.id + ')">Reactivate</button>')
+      + '<button class="fin-row-edit" style="color:#EF4444" onclick="voucherDeleteFromRegistry(' + v.id + ')">Del</button>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+  });
+  el.innerHTML = html;
 }
 
