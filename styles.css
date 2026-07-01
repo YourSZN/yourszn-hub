@@ -51,7 +51,7 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .nsec{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:14px 28px 6px;}
 .sout{margin:0 20px 8px;padding:10px;border-radius:8px;border:1px solid var(--sand);background:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
 .sout:hover{background:var(--sand);color:var(--deep);}
-.main{margin-left:220px;min-height:100vh;padding:40px 48px;flex:1;transition:margin-left .25s ease,padding .25s ease;}
+.main{margin-left:220px;min-height:100vh;padding:24px 48px 40px;flex:1;transition:margin-left .25s ease,padding .25s ease;}
 #pg-online .ph{margin-bottom:16px;}
 body.oca-fs .sidebar{display:none;}
 body.oca-fs .main{margin-left:0;padding:10px 16px;}
@@ -65,9 +65,11 @@ body.oca-fs #oca-photo-bar{padding:8px 16px;margin-bottom:10px;}
 @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── SHARED ── */
-.ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;}
-.ptitle{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:300;color:var(--deep);line-height:1.1;}
-.psub{font-size:13px;color:var(--muted);margin-top:4px;}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--sand);}
+.ph>div:first-child{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.ptitle{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--deep);line-height:1.2;white-space:nowrap;}
+.psub{font-size:11px;color:var(--muted);margin-top:0;}
+.psub::before{content:'—';margin-right:6px;color:var(--sand);}
 .dbadge{font-size:12px;color:var(--muted);background:var(--warm);padding:8px 16px;border-radius:20px;border:1px solid var(--sand);}
 .srow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
 .sc{background:white;border-radius:12px;padding:24px;border:1px solid var(--sand);position:relative;overflow:hidden;}
@@ -697,8 +699,8 @@ body.oca-fs #oca-photo-bar{padding:8px 16px;margin-bottom:10px;}
 /* Login screen */
 .llogo { font-family:'Cormorant Garamond',serif; letter-spacing:8px; }
 /* Page titles */
-.ptitle { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:400; letter-spacing:.5px; }
-.psub { font-family:'Inter',sans-serif; font-size:12px; letter-spacing:.5px; color:var(--muted); }
+.ptitle { font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:400; letter-spacing:.5px; }
+.psub { font-family:'Inter',sans-serif; font-size:11px; letter-spacing:.3px; color:var(--muted); }
 /* Nav */
 aside { background:#F9F5F0; border-right:1px solid var(--sand); }
 .nav-sec { font-family:'Inter',sans-serif; font-size:9px; letter-spacing:2px; }
@@ -736,8 +738,6 @@ th { font-family:'Inter',sans-serif; font-size:10px; font-weight:600; letter-spa
 .slot-status-dot.published { background:#1C1712; }
 /* Finance */
 .fin-row-edit { font-family:'Inter',sans-serif; font-size:11px; border-radius:6px; }
-/* Headers inside pages */
-.ph { border-bottom:1px solid var(--sand); padding-bottom:20px; margin-bottom:24px; }
 
 /* ══ SIDEBAR FORCE LIGHT THEME ══ */
 .sidebar { background:#F9F5F0 !important; border-right:1px solid #E5DDD4 !important; }
