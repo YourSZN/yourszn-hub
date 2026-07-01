@@ -650,6 +650,7 @@ function openCRMProfile(id) {
           + '</div>'
           + '<div style="font-size:11px;color:var(--muted)">'+esc(s.type||'OCA')+'</div>'
           + (s.reportUrl ? '<a href="'+esc(s.reportUrl)+'" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">↗ Report</a>' : '')
+          + (s.submissionId ? '<button onclick="crmViewOcaSubmission(\''+esc(s.submissionId)+'\')" class="btn btns" style="font-size:10px;padding:2px 9px;margin-top:4px">View OCA Submission →</button>' : '')
           + '</div>';
       }).join('');
 
@@ -943,6 +944,11 @@ function crmDeleteDocument(clientId, docId) {
   if (!c||!c.documents) return;
   c.documents = c.documents.filter(function(d){ return d.id!==docId; });
   saveData(); openCRMProfile(clientId);
+}
+
+function crmViewOcaSubmission(submissionId) {
+  showPage('online');
+  ocaSubLoadDetail(submissionId);
 }
 
 // ── Inline compose helpers ────────────────────────────
