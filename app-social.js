@@ -153,14 +153,22 @@ function smRenderPlan() {
 
   // Table
   html += '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--sand)">'
-    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:700px">'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:860px;table-layout:fixed">'
+    + '<colgroup>'
+    + '<col style="width:52px">'
+    + '<col style="width:190px">'
+    + '<col style="width:130px">'
+    + '<col style="width:110px">'
+    + '<col style="width:160px">'
+    + '<col>'
+    + '</colgroup>'
     + '<thead><tr style="background:var(--warm)">'
-    + '<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">day</th>'
-    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
-    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
-    + '<th style="padding:12px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">difficulty<br><span style="font-weight:400;color:var(--muted)">for me</span></th>'
-    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">the action i hope<br><span style="font-weight:400;color:var(--muted)">the viewer takes</span></th>'
-    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">notes <span style="font-weight:400;color:var(--muted)">(hook / post ideas)</span></th>'
+    + '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">day</th>'
+    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
+    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
+    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">difficulty<br><span style="font-weight:400;color:var(--muted)">for me</span></th>'
+    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">action i hope<br><span style="font-weight:400;color:var(--muted)">viewer takes</span></th>'
+    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">notes <span style="font-weight:400;color:var(--muted)">(hook / post ideas)</span></th>'
     + '</tr></thead><tbody>';
 
   SM_PLAN_DAYS.forEach(function(d, idx) {
@@ -195,15 +203,13 @@ function smRenderPlan() {
     var dOpts = difficulties.map(function(di) { return '<option value="' + esc(di) + '"' + (data.difficulty === di ? ' selected' : '') + '>' + (di || '— Select —') + '</option>'; }).join('');
 
     html += '<tr style="background:white;' + accentBorder + border + '">'
-      + '<td style="padding:12px 16px;font-weight:700;color:var(--charcoal);font-size:13px;white-space:nowrap;vertical-align:top;padding-top:14px">' + d + '</td>'
-      + '<td style="padding:8px;min-width:180px;vertical-align:top">'
-        + pillarDD(wk, d, data.pillar)
-      + '</td>'
-      + '<td style="padding:8px;min-width:140px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
-      + '<td style="padding:8px;min-width:110px;vertical-align:top">' + sel(wk, d, 'difficulty', dOpts, diffColor) + '</td>'
-      + '<td style="padding:8px;min-width:200px;vertical-align:top">' + actionCell + '</td>'
-      + '<td style="padding:8px;min-width:220px;vertical-align:top"><textarea placeholder="Hook idea, caption notes…" '
-        + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:80px;resize:vertical;outline:none;font-family:inherit;line-height:1.5" '
+      + '<td style="padding:10px 12px;font-weight:700;color:var(--charcoal);font-size:13px;white-space:nowrap;vertical-align:top">' + d + '</td>'
+      + '<td style="padding:6px 8px;vertical-align:top">' + pillarDD(wk, d, data.pillar) + '</td>'
+      + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
+      + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'difficulty', dOpts, diffColor) + '</td>'
+      + '<td style="padding:6px 8px;vertical-align:top">' + actionCell + '</td>'
+      + '<td style="padding:6px 8px;vertical-align:top"><textarea placeholder="Hook idea, caption notes…" '
+        + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:80px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
         + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea></td>'
       + '</tr>';
   });
