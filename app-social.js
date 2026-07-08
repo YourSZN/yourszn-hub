@@ -152,12 +152,11 @@ function smRenderPlan() {
 
   // Table
   html += '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--sand)">'
-    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:860px;table-layout:fixed">'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:780px;table-layout:fixed">'
     + '<colgroup>'
     + '<col style="width:52px">'
     + '<col style="width:190px">'
     + '<col style="width:130px">'
-    + '<col style="width:80px">'
     + '<col style="width:160px">'
     + '<col>'
     + '</colgroup>'
@@ -165,7 +164,6 @@ function smRenderPlan() {
     + '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">day</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
-    + '<th style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">diff.</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">action i hope<br><span style="font-weight:400;color:var(--muted)">viewer takes</span></th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">notes <span style="font-weight:400;color:var(--muted)">(hook / post ideas)</span></th>'
     + '</tr></thead><tbody>';
@@ -176,17 +174,6 @@ function smRenderPlan() {
     var border    = isLast ? '' : 'border-bottom:1px solid var(--sand)';
     var pillarCol = SM_PILLAR_COLORS[data.pillar] || '';
     var accentBorder = pillarCol ? 'border-left:4px solid ' + pillarCol + ';' : 'border-left:4px solid transparent;';
-
-    // Difficulty dots: green=Easy, orange=Medium, red=Hard
-    var diffDots = [
-      { label:'Easy',   color:'#16A34A' },
-      { label:'Medium', color:'#D97706' },
-      { label:'Hard',   color:'#DC2626' }
-    ].map(function(opt) {
-      var isActive = data.difficulty === opt.label;
-      return '<button title="' + opt.label + '" onclick="smSavePlan(\'' + wk + '\',\'' + d + '\',\'difficulty\',\'' + (isActive ? '' : opt.label) + '\');renderSocialPage()" '
-        + 'style="width:' + (isActive ? '18px' : '13px') + ';height:' + (isActive ? '18px' : '13px') + ';border-radius:50%;background:' + opt.color + ';border:' + (isActive ? '2px solid ' + opt.color : 'none') + ';cursor:pointer;opacity:' + (isActive ? '1' : '0.25') + ';padding:0;transition:all .15s;outline:' + (isActive ? '2px solid ' + opt.color + ';outline-offset:2px' : 'none') + '"></button>';
-    }).join('');
 
     // Viewer actions: dropdown to add + pills to remove
     var selectedActions = data.viewerAction ? data.viewerAction.split(',').filter(Boolean) : [];
@@ -210,7 +197,6 @@ function smRenderPlan() {
       + '<td style="padding:10px 12px;font-weight:700;color:var(--charcoal);font-size:13px;white-space:nowrap;vertical-align:top">' + d + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + pillarDD(wk, d, data.pillar) + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
-      + '<td style="padding:6px 8px;vertical-align:middle;text-align:center"><div style="display:flex;justify-content:center;align-items:center;gap:6px">' + diffDots + '</div></td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + actionCell + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top"><textarea placeholder="Hook idea, caption notes…" '
         + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:80px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
