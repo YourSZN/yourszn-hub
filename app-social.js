@@ -118,8 +118,7 @@ function smRenderPlan() {
   var fmtDate = function(d) { return d.toLocaleDateString('en-AU', { day:'numeric', month:'short' }); };
   var weekLabel = fmtDate(monday) + ' – ' + fmtDate(sunday);
 
-  var formats      = [''].concat(SM_CONTENT_TYPES);
-  var difficulties = ['', 'Easy', 'Medium', 'Hard'];
+  var formats = [''].concat(SM_CONTENT_TYPES);
 
   var sel = function(wk, d, field, opts, extraStyle) {
     return '<select style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:6px 8px;font-size:12px;background:white;color:var(--charcoal);cursor:pointer;' + (extraStyle||'') + '" onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'' + field + '\',this.value)">' + opts + '</select>';
@@ -158,7 +157,7 @@ function smRenderPlan() {
     + '<col style="width:52px">'
     + '<col style="width:190px">'
     + '<col style="width:130px">'
-    + '<col style="width:110px">'
+    + '<col style="width:80px">'
     + '<col style="width:160px">'
     + '<col>'
     + '</colgroup>'
@@ -166,7 +165,7 @@ function smRenderPlan() {
     + '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">day</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
-    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">difficulty<br><span style="font-weight:400;color:var(--muted)">for me</span></th>'
+    + '<th style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">diff.</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">action i hope<br><span style="font-weight:400;color:var(--muted)">viewer takes</span></th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">notes <span style="font-weight:400;color:var(--muted)">(hook / post ideas)</span></th>'
     + '</tr></thead><tbody>';
@@ -178,10 +177,16 @@ function smRenderPlan() {
     var pillarCol = SM_PILLAR_COLORS[data.pillar] || '';
     var accentBorder = pillarCol ? 'border-left:4px solid ' + pillarCol + ';' : 'border-left:4px solid transparent;';
 
-    var diffColor = data.difficulty === 'Easy'   ? ';color:#15803D'
-                  : data.difficulty === 'Hard'   ? ';color:#B91C1C'
-                  : data.difficulty === 'Medium' ? ';color:#D97706' : '';
-
+    // Difficulty dots: green=Easy, orange=Medium, red=Hard
+    var diffDots = [
+      { label:'Easy',   color:'#16A34A' },
+      { label:'Medium', color:'#D97706' },
+      { label:'Hard',   color:'#DC2626' }
+    ].map(function(opt) {
+      var isActive = data.difficulty === opt.label;
+      return '<button title="' + opt.label + '" onclick="smSavePlan(\'' + wk + '\',\'' + d + '\',\'difficulty\',\'' + (isActive ? '' : opt.label) + '\');renderSocialPage()" '
+        + 'style="width:' + (isActive ? '18px' : '13px') + ';height:' + (isActive ? '18px' : '13px') + ';border-radius:50%;background:' + opt.color + ';border:' + (isActive ? '2px solid ' + opt.color : 'none') + ';cursor:pointer;opacity:' + (isActive ? '1' : '0.25') + ';padding:0;transition:all .15s;outline:' + (isActive ? '2px solid ' + opt.color + ';outline-offset:2px' : 'none') + '"></button>';
+    }).join('');
 
     // Viewer actions: dropdown to add + pills to remove
     var selectedActions = data.viewerAction ? data.viewerAction.split(',').filter(Boolean) : [];
@@ -199,14 +204,13 @@ function smRenderPlan() {
     var actionCell = (actionPills ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:' + (unselectedActions.length ? '6px' : '0') + '">' + actionPills + '</div>' : '')
       + (unselectedActions.length ? '<select style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:5px 8px;font-size:12px;background:white;color:var(--muted);cursor:pointer" onchange="var ai=SM_PLAN_ACTIONS.indexOf(this.value);if(ai>-1)smToggleAction(\'' + wk + '\',\'' + d + '\',ai);this.selectedIndex=0">' + addActionOpts + '</select>' : '');
 
-    var fOpts = formats.map(function(f)  { return '<option value="' + esc(f)  + '"' + (data.format      === f  ? ' selected' : '') + '>' + (f  || '— Select —') + '</option>'; }).join('');
-    var dOpts = difficulties.map(function(di) { return '<option value="' + esc(di) + '"' + (data.difficulty === di ? ' selected' : '') + '>' + (di || '— Select —') + '</option>'; }).join('');
+    var fOpts = formats.map(function(f) { return '<option value="' + esc(f) + '"' + (data.format === f ? ' selected' : '') + '>' + (f || '— Select —') + '</option>'; }).join('');
 
     html += '<tr style="background:white;' + accentBorder + border + '">'
       + '<td style="padding:10px 12px;font-weight:700;color:var(--charcoal);font-size:13px;white-space:nowrap;vertical-align:top">' + d + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + pillarDD(wk, d, data.pillar) + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
-      + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'difficulty', dOpts, diffColor) + '</td>'
+      + '<td style="padding:6px 8px;vertical-align:middle;text-align:center"><div style="display:flex;justify-content:center;align-items:center;gap:6px">' + diffDots + '</div></td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + actionCell + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top"><textarea placeholder="Hook idea, caption notes…" '
         + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:80px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
