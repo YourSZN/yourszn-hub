@@ -4443,7 +4443,8 @@ function saveData() {
       pwList:pwList, lastHrsReset: window._hrsResetNeeded || '',
       crmClients:crmClients, crmIdSeq:crmIdSeq,
       voucherRegistry:voucherRegistry,
-      calendarEvents:calendarEvents
+      calendarEvents:calendarEvents,
+      smWeekPlan:smWeekPlan
     };
 
     // Per-user: private to the logged-in user
@@ -4554,6 +4555,7 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.crmIdSeq)          crmIdSeq          = d.crmIdSeq;
   if (d.voucherRegistry)   voucherRegistry   = d.voucherRegistry;
   if (d.calendarEvents)  { calendarEvents = d.calendarEvents; window._calendarEvents = calendarEvents; }
+  if (d.smWeekPlan)        smWeekPlan        = d.smWeekPlan;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
   try { renderSops(); } catch(e){}

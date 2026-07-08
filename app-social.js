@@ -31,6 +31,7 @@ var SM_PILLAR_COLORS = {
 };
 
 var SM_CONTENT_TYPES = ['Quick Chat', 'Reel', 'Carousel', 'Quick Comparisons', 'Review/Overlays', 'Celebrity Analysis', 'Consultation'];
+var SM_PLAN_ACTIONS  = ['Save', 'Follow', 'Comment', 'Share', 'Shop / Buy', 'DM Me', 'Book a Session', 'Visit Link in Bio', 'Sign Up', 'Try It'];
 
 var smActiveTab      = 'pipeline';
 var smCalMonth       = new Date().getMonth();
@@ -41,6 +42,175 @@ var _smDraftComments = [];
 var smMentions       = {latisha:[], lemari:[]};
 var smStrategyNotes  = '';
 var smAnalyticsLog   = []; // [{id, weekEnding, tt:{views,followers,likes,bestPost}, ig:{reach,followers,likes,bestPost}, notes}]
+
+// ── Weekly Content Plan ──────────────────────────────────────
+var smWeekPlan    = {};  // { weekKey: { mon: {...}, tue: {...}, ... } }
+var smPlanWeekOff = 0;   // 0 = this week, -1 = last week, +1 = next week
+
+var SM_PLAN_DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+
+// Default pillar per day — user can override per week
+var SM_PLAN_DEFAULTS = {
+  mon: { pillar:'Personal Expertise & Opinions', format:'' },
+  tue: { pillar:'Colour Education',               format:'' },
+  wed: { pillar:'Client Sessions',                format:'' },
+  thu: { pillar:'Shopping By Season',             format:'' },
+  fri: { pillar:'Static Posts',                   format:'Carousel' },
+  sat: { pillar:'Personal Expertise & Opinions',  format:'' },
+  sun: { pillar:'Static Posts',                   format:'Carousel' }
+};
+
+function smPlanWeekKey(off) {
+  var now = new Date();
+  var day = now.getDay();
+  var monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + ((off||0) * 7));
+  return monday.toISOString().slice(0, 10);
+}
+
+function smPlanGetDay(wk, dayKey) {
+  var def   = SM_PLAN_DEFAULTS[dayKey] || {};
+  var saved = (smWeekPlan[wk] && smWeekPlan[wk][dayKey]) || {};
+  return {
+    posting:      saved.posting      !== undefined ? saved.posting      : 'no',
+    pillar:       saved.pillar       !== undefined ? saved.pillar       : (def.pillar  || ''),
+    format:       saved.format       !== undefined ? saved.format       : (def.format  || ''),
+    difficulty:   saved.difficulty   || '',
+    viewerAction: saved.viewerAction || '',
+    notes:        saved.notes        || ''
+  };
+}
+
+function smSavePlan(wk, dayKey, field, val) {
+  if (!smWeekPlan[wk])         smWeekPlan[wk] = {};
+  if (!smWeekPlan[wk][dayKey]) smWeekPlan[wk][dayKey] = {};
+  smWeekPlan[wk][dayKey][field] = val;
+  saveData();
+}
+
+function smSelectPillar(wk, dayKey, pillarIdx) {
+  smSavePlan(wk, dayKey, 'pillar', pillarIdx >= 0 ? SM_PILLARS[pillarIdx] : '');
+  renderSocialPage();
+}
+
+function smTogglePillarDD(id) {
+  document.querySelectorAll('.sm-pillar-dd').forEach(function(el) {
+    if (el.id !== id) el.style.display = 'none';
+  });
+  var el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+function smToggleAction(wk, dayKey, actionIdx) {
+  var action  = SM_PLAN_ACTIONS[actionIdx];
+  var current = (smWeekPlan[wk] && smWeekPlan[wk][dayKey] && smWeekPlan[wk][dayKey].viewerAction) || '';
+  var list    = current ? current.split(',') : [];
+  var idx     = list.indexOf(action);
+  if (idx > -1) list.splice(idx, 1); else list.push(action);
+  smSavePlan(wk, dayKey, 'viewerAction', list.join(','));
+  renderSocialPage();
+}
+
+function smRenderPlan() {
+  var wk      = smPlanWeekKey(smPlanWeekOff);
+  var monday  = new Date(wk + 'T00:00:00');
+  var sunday  = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  var fmtDate = function(d) { return d.toLocaleDateString('en-AU', { day:'numeric', month:'short' }); };
+  var weekLabel = fmtDate(monday) + ' – ' + fmtDate(sunday);
+
+  var formats      = [''].concat(SM_CONTENT_TYPES);
+  var difficulties = ['', 'Easy', 'Medium', 'Hard'];
+
+  var sel = function(wk, d, field, opts, extraStyle) {
+    return '<select style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:6px 8px;font-size:12px;background:white;color:var(--charcoal);cursor:pointer;' + (extraStyle||'') + '" onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'' + field + '\',this.value)">' + opts + '</select>';
+  };
+  var pillarDD = function(wk, d, currentPillar) {
+    var col     = SM_PILLAR_COLORS[currentPillar] || '';
+    var ddId    = 'sm-pd-' + d;
+    var trigger = col
+      ? '<div onclick="smTogglePillarDD(\'' + ddId + '\')" style="padding:6px 10px;border-radius:6px;background:' + col + ';color:white;font-size:12px;font-weight:700;cursor:pointer;user-select:none">' + esc(currentPillar) + ' &#9662;</div>'
+      : '<div onclick="smTogglePillarDD(\'' + ddId + '\')" style="padding:6px 10px;border-radius:6px;background:white;border:1px solid var(--sand);color:var(--muted);font-size:12px;cursor:pointer;user-select:none">— Select — &#9662;</div>';
+    var items = SM_PILLARS.map(function(p, pi) {
+      var c = SM_PILLAR_COLORS[p] || '#9CA3AF';
+      return '<div onclick="smSelectPillar(\'' + wk + '\',\'' + d + '\',' + pi + ')" style="padding:6px 10px;cursor:pointer;border-radius:4px;margin:2px 0;background:' + c + ';color:white;font-size:12px;font-weight:600">' + esc(p) + '</div>';
+    }).join('');
+    var clearItem = '<div onclick="smSelectPillar(\'' + wk + '\',\'' + d + '\',-1)" style="padding:5px 10px;cursor:pointer;color:var(--muted);font-size:11px;border-top:1px solid var(--sand);margin-top:4px">Clear</div>';
+    return '<div style="position:relative">'
+      + trigger
+      + '<div id="' + ddId + '" class="sm-pillar-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:white;border:1px solid var(--sand);border-radius:8px;padding:6px;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.12)">'
+      + items + clearItem
+      + '</div>'
+      + '</div>';
+  };
+
+  // Week navigation
+  var html = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">'
+    + '<button onclick="smPlanWeekOff--;renderSocialPage()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:13px;color:var(--charcoal)">&#8592; Prev</button>'
+    + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:20px;font-weight:500;color:var(--charcoal);flex:1;text-align:center">' + weekLabel + '</div>'
+    + '<button onclick="smPlanWeekOff++;renderSocialPage()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:13px;color:var(--charcoal)">Next &#8594;</button>'
+    + (smPlanWeekOff !== 0 ? '<button onclick="smPlanWeekOff=0;renderSocialPage()" style="background:var(--charcoal);color:white;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:600">This Week</button>' : '')
+    + '</div>';
+
+  // Table
+  html += '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--sand)">'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:700px">'
+    + '<thead><tr style="background:var(--warm)">'
+    + '<th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">day</th>'
+    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
+    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
+    + '<th style="padding:12px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">difficulty<br><span style="font-weight:400;color:var(--muted)">for me</span></th>'
+    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">the action i hope<br><span style="font-weight:400;color:var(--muted)">the viewer takes</span></th>'
+    + '<th style="padding:12px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">notes <span style="font-weight:400;color:var(--muted)">(hook / post ideas)</span></th>'
+    + '</tr></thead><tbody>';
+
+  SM_PLAN_DAYS.forEach(function(d, idx) {
+    var data      = smPlanGetDay(wk, d);
+    var isLast    = idx === SM_PLAN_DAYS.length - 1;
+    var border    = isLast ? '' : 'border-bottom:1px solid var(--sand)';
+    var pillarCol = SM_PILLAR_COLORS[data.pillar] || '';
+    var accentBorder = pillarCol ? 'border-left:4px solid ' + pillarCol + ';' : 'border-left:4px solid transparent;';
+
+    var diffColor = data.difficulty === 'Easy'   ? ';color:#15803D'
+                  : data.difficulty === 'Hard'   ? ';color:#B91C1C'
+                  : data.difficulty === 'Medium' ? ';color:#D97706' : '';
+
+
+    // Viewer actions: dropdown to add + pills to remove
+    var selectedActions = data.viewerAction ? data.viewerAction.split(',').filter(Boolean) : [];
+    var unselectedActions = SM_PLAN_ACTIONS.filter(function(a) { return selectedActions.indexOf(a) === -1; });
+    var actionPills = selectedActions.map(function(a) {
+      var ai = SM_PLAN_ACTIONS.indexOf(a);
+      return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:var(--charcoal);color:white;font-size:11px;font-weight:500">'
+        + esc(a)
+        + '<button onclick="smToggleAction(\'' + wk + '\',\'' + d + '\',' + ai + ')" style="background:none;border:none;color:white;cursor:pointer;font-size:12px;line-height:1;padding:0;margin:0;opacity:0.7" title="Remove">&times;</button>'
+        + '</span>';
+    }).join('');
+    var addActionOpts = [''].concat(unselectedActions).map(function(a) {
+      return '<option value="' + esc(a) + '">' + (a || '+ Add action…') + '</option>';
+    }).join('');
+    var actionCell = (actionPills ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:' + (unselectedActions.length ? '6px' : '0') + '">' + actionPills + '</div>' : '')
+      + (unselectedActions.length ? '<select style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:5px 8px;font-size:12px;background:white;color:var(--muted);cursor:pointer" onchange="var ai=SM_PLAN_ACTIONS.indexOf(this.value);if(ai>-1)smToggleAction(\'' + wk + '\',\'' + d + '\',ai);this.selectedIndex=0">' + addActionOpts + '</select>' : '');
+
+    var fOpts = formats.map(function(f)  { return '<option value="' + esc(f)  + '"' + (data.format      === f  ? ' selected' : '') + '>' + (f  || '— Select —') + '</option>'; }).join('');
+    var dOpts = difficulties.map(function(di) { return '<option value="' + esc(di) + '"' + (data.difficulty === di ? ' selected' : '') + '>' + (di || '— Select —') + '</option>'; }).join('');
+
+    html += '<tr style="background:white;' + accentBorder + border + '">'
+      + '<td style="padding:12px 16px;font-weight:700;color:var(--charcoal);font-size:13px;white-space:nowrap;vertical-align:top;padding-top:14px">' + d + '</td>'
+      + '<td style="padding:8px;min-width:180px;vertical-align:top">'
+        + pillarDD(wk, d, data.pillar)
+      + '</td>'
+      + '<td style="padding:8px;min-width:140px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
+      + '<td style="padding:8px;min-width:110px;vertical-align:top">' + sel(wk, d, 'difficulty', dOpts, diffColor) + '</td>'
+      + '<td style="padding:8px;min-width:200px;vertical-align:top">' + actionCell + '</td>'
+      + '<td style="padding:8px;min-width:220px;vertical-align:top"><textarea placeholder="Hook idea, caption notes…" '
+        + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:80px;resize:vertical;outline:none;font-family:inherit;line-height:1.5" '
+        + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea></td>'
+      + '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  return html;
+}
 
 // ── Was post modified in last 48h? ──
 function smRecentlyEdited(post) {
@@ -62,6 +232,7 @@ function renderSocialPage() {
   var el = document.getElementById('social-page-content'); if (!el) return;
 
   var tabs = [
+    {key:'plan',      label:'Plan'},
     {key:'pipeline',  label:'Pipeline'},
     {key:'calendar',  label:'Calendar'},
     {key:'ideas',     label:'Idea Bank'},
@@ -76,7 +247,8 @@ function renderSocialPage() {
     + '</div>';
 
   var contentHtml = '';
-  if      (smActiveTab === 'pipeline')  contentHtml = smRenderPipeline();
+  if      (smActiveTab === 'plan')      contentHtml = smRenderPlan();
+  else if (smActiveTab === 'pipeline')  contentHtml = smRenderPipeline();
   else if (smActiveTab === 'calendar')  contentHtml = smRenderCalendar();
   else if (smActiveTab === 'ideas')     contentHtml = smRenderIdeaBank();
   else if (smActiveTab === 'strategy')  contentHtml = smRenderStrategy();
