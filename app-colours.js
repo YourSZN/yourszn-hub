@@ -381,8 +381,8 @@ function renderOcaSeasons() {
 
   var numSwatches = OCA_SEASONS[seasons[0]].swatches.length;
   var face = ocaPhoto
-    ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;pointer-events:none">'
-      + '<img src="'+ocaPhoto+'" style="height:100%;object-fit:cover;object-position:center top">'
+    ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;pointer-events:none;z-index:5">'
+      + '<img src="'+ocaPhoto+'" style="height:100%;width:auto">'
       + '</div>'
     : '';
 
@@ -401,7 +401,6 @@ function renderOcaSeasons() {
       var safeGroup = ocaSeasonTab.replace(/'/g,"\\'");
       var safeLabel = label.replace(/'/g,"\\'");
       return '<div style="flex:1;position:relative;background:'+sw.hex+';overflow:hidden">'
-        + face
         + '<div onclick="ocaSubVote(\''+safeGroup+'\','+i+',\''+safeLabel+'\')" '
         + 'style="position:absolute;top:14px;left:14px;width:38px;height:38px;border-radius:8px;border:2px solid rgba(255,255,255,0.8);'+sel+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:'+col+';z-index:10">'
         + tick + '</div>'
@@ -415,7 +414,8 @@ function renderOcaSeasons() {
     );
 
     cards += '<div style="margin-bottom:28px;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15)">'
-      + '<div style="display:flex;width:100%;height:620px">'
+      + '<div style="display:flex;width:100%;height:620px;position:relative">'
+      + face
       + panels
       + '</div>'
       + '<div style="background:#1a1a1a;padding:6px 20px;text-align:center">'
@@ -512,17 +512,17 @@ function renderOcaComparison() {
     var bothTick  = vote==='both'  ? '&#10003;' : '';
 
     var face = ocaPhoto
-      ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;pointer-events:none">'
-        + '<img src="'+ocaPhoto+'" style="height:100%;object-fit:cover;object-position:center top">'
+      ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;pointer-events:none;z-index:5">'
+        + '<img src="'+ocaPhoto+'" style="height:100%;width:auto">'
         + '</div>'
       : '';
 
     cards += '<div style="margin-bottom:24px;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.12)">'
-      + '<div style="display:flex;width:100%;height:500px">'
+      + '<div style="display:flex;width:100%;height:500px;position:relative">'
+      + face
 
       // Left — Season A
       + '<div style="flex:1;position:relative;background:'+swA.hex+';overflow:hidden">'
-      + face
       + '<div onclick="ocaSeasonVote(\''+pairId+'\','+j+',\'left\')" style="position:absolute;top:14px;left:14px;width:38px;height:38px;border-radius:8px;border:2px solid rgba(255,255,255,0.8);'+leftSel+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#5588DD;z-index:10">'+leftTick+'</div>'
       + '<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
       + '<div style="font-size:12px;font-weight:800;color:white;text-shadow:0 1px 4px rgba(0,0,0,0.7)">'+swA.name+'</div>'
@@ -537,7 +537,6 @@ function renderOcaComparison() {
 
       // Right — Season B
       + '<div style="flex:1;position:relative;background:'+swB.hex+';overflow:hidden">'
-      + face
       + '<div onclick="ocaSeasonVote(\''+pairId+'\','+j+',\'right\')" style="position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:8px;border:2px solid rgba(255,255,255,0.8);'+rightSel+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#E07020;z-index:10">'+rightTick+'</div>'
       + '<div style="position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none">'
       + '<div style="font-size:12px;font-weight:800;color:white;text-shadow:0 1px 4px rgba(0,0,0,0.7)">'+swB.name+'</div>'
