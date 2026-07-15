@@ -1,13 +1,20 @@
 // ══ SEASON SNAPSHOT ══
-// Side-by-side 4×4 grid of client face on each season colour
+// One season at a time, 4×3 grid of client face on each season colour
 
-var ocaSnapshotA = 'Light Summer';
-var ocaSnapshotB = 'Soft Autumn';
-var ocaSnapshotPhoto = null; // overrides ocaPhoto if set
+var ocaSnapshotA      = 'Light Summer';
+var ocaSnapshotB      = 'Soft Autumn';
+var ocaSnapshotActive = 'A';          // which season is on display
+var ocaSnapshotPhoto  = null;         // overrides ocaPhoto if set
 
 function ocaSnapshotSetSeason(slot, val) {
   if (slot === 'A') ocaSnapshotA = val;
   else              ocaSnapshotB = val;
+  ocaSnapshotActive = slot;
+  renderOca();
+}
+
+function ocaSnapshotSetActive(slot) {
+  ocaSnapshotActive = slot;
   renderOca();
 }
 
@@ -27,18 +34,22 @@ function renderOcaSnapshot() {
   var photo = ocaSnapshotPhoto || (typeof ocaPhoto !== 'undefined' ? ocaPhoto : null);
   var seasonKeys = Object.keys(OCA_SEASONS);
 
-  // ── Season selectors ──
   function mkSelect(slot, current) {
     var opts = seasonKeys.map(function(k) {
       return '<option value="' + k + '"' + (k === current ? ' selected' : '') + '>' + k + '</option>';
     }).join('');
+    var isActive = ocaSnapshotActive === slot;
     return '<div>'
       + '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Season ' + slot + '</div>'
-      + '<select onchange="ocaSnapshotSetSeason(\'' + slot + '\',this.value)" style="width:100%;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--deep)">'
-      + opts + '</select></div>';
+      + '<div style="display:flex;gap:8px;align-items:center">'
+      + '<select onchange="ocaSnapshotSetSeason(\'' + slot + '\',this.value)" style="flex:1;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--deep)">'
+      + opts + '</select>'
+      + '<button onclick="ocaSnapshotSetActive(\'' + slot + '\')" style="padding:9px 14px;border-radius:10px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;white-space:nowrap;background:' + (isActive ? 'var(--deep)' : 'var(--warm)') + ';color:' + (isActive ? 'white' : 'var(--deep)') + '">View</button>'
+      + '</div>'
+      + '</div>';
   }
 
-  var controls = '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:24px">'
+  var controls = '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:20px">'
     + mkSelect('A', ocaSnapshotA)
     + mkSelect('B', ocaSnapshotB)
     + '<div>'
@@ -51,65 +62,52 @@ function renderOcaSnapshot() {
     + '</div>'
     + '</div>';
 
-  // ── Tip banner ──
-  var tip = !photo
-    ? '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:12px 16px;font-size:12px;color:#92400E;margin-bottom:20px">'
-      + '&#128247; Upload a client headshot to see their face on each season colour. For the cleanest result, use a photo with a plain or removed background.'
-      + '</div>'
-    : '';
+  var activeSeason = ocaSnapshotActive === 'A' ? ocaSnapshotA : ocaSnapshotB;
 
   if (!photo) {
-    return controls + tip + snapshotEmptyGrids(ocaSnapshotA, ocaSnapshotB);
+    return controls + snapshotEmptyGrid(activeSeason);
   }
 
-  return controls
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">'
-    + snapshotSeasonGrid(ocaSnapshotA, photo)
-    + snapshotSeasonGrid(ocaSnapshotB, photo)
-    + '</div>';
+  return controls + snapshotSeasonGrid(activeSeason, photo);
 }
 
 function snapshotSeasonGrid(seasonName, photo) {
   var season = OCA_SEASONS[seasonName];
   if (!season) return '<div style="color:red;padding:20px">Season not found: ' + seasonName + '</div>';
 
-  var swatches = (season.swatches || []).concat(season.neutrals || []).slice(0, 16);
+  var swatches = (season.swatches || []).concat(season.neutrals || []).slice(0, 12);
 
   var cells = swatches.map(function(sw) {
-    return '<div style="position:relative;border-radius:8px;overflow:hidden;background:' + sw.hex + ';aspect-ratio:1">'
-      + '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;display:block">'
-      + '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.45));padding:4px 5px 3px;text-align:center">'
-      +   '<span style="font-size:8px;font-weight:600;color:rgba(255,255,255,.92);letter-spacing:.3px;line-height:1">' + sw.name + '</span>'
+    return '<div style="position:relative;border-radius:10px;overflow:hidden;background:' + sw.hex + ';aspect-ratio:3/4">'
+      + '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;object-position:center top;display:block">'
+      + '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.5));padding:6px 6px 5px;text-align:center">'
+      +   '<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,.95);letter-spacing:.3px;line-height:1">' + sw.name + '</span>'
       + '</div>'
       + '</div>';
   }).join('');
 
   return '<div>'
-    + '<div style="font-size:15px;font-weight:700;color:var(--deep);margin-bottom:12px;letter-spacing:.3px">' + seasonName + '</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">' + cells + '</div>'
+    + '<div style="font-size:15px;font-weight:700;color:var(--deep);margin-bottom:14px;letter-spacing:.3px">' + seasonName + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' + cells + '</div>'
     + '</div>';
 }
 
-function snapshotEmptyGrids(nameA, nameB) {
-  function emptyGrid(seasonName) {
-    var season = OCA_SEASONS[seasonName];
-    if (!season) return '';
-    var swatches = (season.swatches || []).concat(season.neutrals || []).slice(0, 16);
-    var cells = swatches.map(function(sw) {
-      return '<div style="border-radius:8px;background:' + sw.hex + ';aspect-ratio:1;position:relative">'
-        + '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.4));padding:4px 5px 3px;text-align:center">'
-        +   '<span style="font-size:8px;font-weight:600;color:rgba(255,255,255,.9);letter-spacing:.3px">' + sw.name + '</span>'
-        + '</div>'
-        + '</div>';
-    }).join('');
-    return '<div>'
-      + '<div style="font-size:15px;font-weight:700;color:var(--deep);margin-bottom:12px;letter-spacing:.3px">' + seasonName + '</div>'
-      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">' + cells + '</div>'
+function snapshotEmptyGrid(seasonName) {
+  var season = OCA_SEASONS[seasonName];
+  if (!season) return '';
+  var swatches = (season.swatches || []).concat(season.neutrals || []).slice(0, 12);
+  var cells = swatches.map(function(sw) {
+    return '<div style="border-radius:10px;background:' + sw.hex + ';aspect-ratio:3/4;position:relative">'
+      + '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'
+      +   '<span style="font-size:20px;opacity:.5">&#128247;</span>'
+      + '</div>'
+      + '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.45));padding:6px 6px 5px;text-align:center">'
+      +   '<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,.9);letter-spacing:.3px">' + sw.name + '</span>'
+      + '</div>'
       + '</div>';
-  }
-
-  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">'
-    + emptyGrid(nameA)
-    + emptyGrid(nameB)
+  }).join('');
+  return '<div>'
+    + '<div style="font-size:15px;font-weight:700;color:var(--deep);margin-bottom:14px;letter-spacing:.3px">' + seasonName + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' + cells + '</div>'
     + '</div>';
 }
