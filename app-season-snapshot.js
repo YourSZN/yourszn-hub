@@ -79,7 +79,7 @@ function snapshotSeasonGrid(seasonName, photo) {
 
   var cells = swatches.map(function(sw) {
     return '<div style="position:relative;border-radius:10px;overflow:hidden;background:' + sw.hex + ';aspect-ratio:3/4">'
-      + '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;object-position:center top;display:block">'
+      + '<img src="' + photo + '" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:80%;width:auto;object-position:center top">'
       + '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.5));padding:6px 6px 5px;text-align:center">'
       +   '<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,.95);letter-spacing:.3px;line-height:1">' + sw.name + '</span>'
       + '</div>'
