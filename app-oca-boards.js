@@ -77,7 +77,7 @@ function renderOcaBoardExpanded() {
     var colours = OCA_SEASON_BOARDS[seasonName] || [];
     var stripes = colours.map(function(h){ return '<div style="flex:1;background:'+h+'"></div>'; }).join('');
     var boardH = ocaBoardsCompare ? 'calc(100vh - 230px)' : 'calc(100vh - 200px)';
-    var photoW = ocaBoardsCompare ? '38%' : '32%';
+    var photoH = ocaBoardsCompare ? '80%' : '90%';
 
     return '<div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15)'+(isWinner?';outline:3px solid var(--deep)':'')+'">'
       // Stripe bar with photo overlay
@@ -85,7 +85,7 @@ function renderOcaBoardExpanded() {
       +   '<div style="display:flex;height:100%;position:absolute;inset:0">' + stripes + '</div>'
       +   (photo
             ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:0">'
-              + '<img src="'+photo+'" style="width:'+photoW+';height:96%;object-fit:cover;object-position:center top;filter:drop-shadow(0 8px 32px rgba(0,0,0,.5))">'
+              + '<img src="'+photo+'" style="height:'+photoH+';width:auto;object-position:center top;filter:drop-shadow(0 8px 32px rgba(0,0,0,.5))">'
               + '</div>'
             : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'
               + '<div style="font-size:11px;color:rgba(255,255,255,.7);background:rgba(0,0,0,.25);padding:8px 14px;border-radius:8px">Upload a client photo</div>'
