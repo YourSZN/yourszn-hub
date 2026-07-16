@@ -1,74 +1,38 @@
 // ══ SEASON SNAPSHOT ══
-// One season at a time, 4×3 grid of client face on each season colour
+// Single season view, 4×3 grid, navigate with arrows
 
-var ocaSnapshotA      = 'Light Summer';
-var ocaSnapshotB      = 'Soft Autumn';
-var ocaSnapshotActive = 'A';          // which season is on display
-var ocaSnapshotPhoto  = null;         // overrides ocaPhoto if set
+var ocaSnapshotCurrent = 'Light Summer';
+var ocaSnapshotPhoto   = null; // overrides ocaPhoto if set
 
-function ocaSnapshotSetSeason(slot, val) {
-  if (slot === 'A') ocaSnapshotA = val;
-  else              ocaSnapshotB = val;
-  ocaSnapshotActive = slot;
-  renderOca();
-}
-
-function ocaSnapshotSetActive(slot) {
-  ocaSnapshotActive = slot;
-  renderOca();
-}
-
-function ocaSnapshotLoadPhoto(input) {
-  var file = input.files[0]; if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) { ocaSnapshotPhoto = e.target.result; renderOca(); };
-  reader.readAsDataURL(file);
-}
-
-function ocaSnapshotClearPhoto() {
-  ocaSnapshotPhoto = null;
+function ocaSnapshotNav(dir) {
+  var keys = Object.keys(OCA_SEASONS);
+  var idx  = keys.indexOf(ocaSnapshotCurrent);
+  idx = (idx + dir + keys.length) % keys.length;
+  ocaSnapshotCurrent = keys[idx];
   renderOca();
 }
 
 function renderOcaSnapshot() {
-  var photo = ocaSnapshotPhoto || (typeof ocaPhoto !== 'undefined' ? ocaPhoto : null);
-  var seasonKeys = Object.keys(OCA_SEASONS);
+  var photo    = ocaSnapshotPhoto || (typeof ocaPhoto !== 'undefined' ? ocaPhoto : null);
+  var keys     = Object.keys(OCA_SEASONS);
+  var idx      = keys.indexOf(ocaSnapshotCurrent);
+  var total    = keys.length;
 
-  function mkSelect(slot, current) {
-    var opts = seasonKeys.map(function(k) {
-      return '<option value="' + k + '"' + (k === current ? ' selected' : '') + '>' + k + '</option>';
-    }).join('');
-    var isActive = ocaSnapshotActive === slot;
-    return '<div>'
-      + '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Season ' + slot + '</div>'
-      + '<div style="display:flex;gap:8px;align-items:center">'
-      + '<select onchange="ocaSnapshotSetSeason(\'' + slot + '\',this.value)" style="flex:1;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;font-size:13px;font-weight:600;background:white;color:var(--deep)">'
-      + opts + '</select>'
-      + '<button onclick="ocaSnapshotSetActive(\'' + slot + '\')" style="padding:9px 14px;border-radius:10px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;white-space:nowrap;background:' + (isActive ? 'var(--deep)' : 'var(--warm)') + ';color:' + (isActive ? 'white' : 'var(--deep)') + '">View</button>'
-      + '</div>'
-      + '</div>';
-  }
-
-  var controls = '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:20px">'
-    + mkSelect('A', ocaSnapshotA)
-    + mkSelect('B', ocaSnapshotB)
-    + '<div>'
-    +   '<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Client photo</div>'
-    +   '<label style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:white;border:1px solid var(--sand);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;color:var(--deep);white-space:nowrap">'
-    +     '&#128247; ' + (photo ? 'Change photo' : 'Upload photo')
-    +     '<input type="file" accept="image/*" onchange="ocaSnapshotLoadPhoto(this)" style="display:none">'
-    +   '</label>'
-    +   (photo ? ' <button onclick="ocaSnapshotClearPhoto()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;vertical-align:middle;padding:0 4px" title="Remove photo">✕</button>' : '')
+  // Arrow navigation header
+  var nav = '<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:24px">'
+    + '<button onclick="ocaSnapshotNav(-1)" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--sand);background:white;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--deep);flex-shrink:0">&#8592;</button>'
+    + '<div style="text-align:center">'
+    +   '<div style="font-size:18px;font-weight:700;color:var(--deep)">' + ocaSnapshotCurrent + '</div>'
+    +   '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + (idx + 1) + ' of ' + total + '</div>'
     + '</div>'
+    + '<button onclick="ocaSnapshotNav(1)" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--sand);background:white;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--deep);flex-shrink:0">&#8594;</button>'
     + '</div>';
 
-  var activeSeason = ocaSnapshotActive === 'A' ? ocaSnapshotA : ocaSnapshotB;
-
   if (!photo) {
-    return controls + snapshotEmptyGrid(activeSeason);
+    return nav + snapshotEmptyGrid(ocaSnapshotCurrent);
   }
 
-  return controls + snapshotSeasonGrid(activeSeason, photo);
+  return nav + snapshotSeasonGrid(ocaSnapshotCurrent, photo);
 }
 
 function snapshotSeasonGrid(seasonName, photo) {
@@ -86,10 +50,7 @@ function snapshotSeasonGrid(seasonName, photo) {
       + '</div>';
   }).join('');
 
-  return '<div>'
-    + '<div style="font-size:15px;font-weight:700;color:var(--deep);margin-bottom:14px;letter-spacing:.3px">' + seasonName + '</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' + cells + '</div>'
-    + '</div>';
+  return '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' + cells + '</div>';
 }
 
 function snapshotEmptyGrid(seasonName) {
@@ -99,7 +60,7 @@ function snapshotEmptyGrid(seasonName) {
   var cells = swatches.map(function(sw) {
     return '<div style="border-radius:10px;background:' + sw.hex + ';aspect-ratio:3/4;position:relative">'
       + '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'
-      +   '<span style="font-size:20px;opacity:.5">&#128247;</span>'
+      +   '<span style="font-size:20px;opacity:.4">&#128247;</span>'
       + '</div>'
       + '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.45));padding:6px 6px 5px;text-align:center">'
       +   '<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,.9);letter-spacing:.3px">' + sw.name + '</span>'
@@ -107,7 +68,7 @@ function snapshotEmptyGrid(seasonName) {
       + '</div>';
   }).join('');
   return '<div>'
-    + '<div style="font-size:15px;font-weight:700;color:var(--deep);margin-bottom:14px;letter-spacing:.3px">' + seasonName + '</div>'
+    + '<div style="text-align:center;padding:16px 0 20px;font-size:12px;color:var(--muted)">Upload a client photo above to see their face on each colour</div>'
     + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">' + cells + '</div>'
     + '</div>';
 }
