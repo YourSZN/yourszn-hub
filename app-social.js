@@ -40,6 +40,7 @@ var smIdeaBankFilter   = 'All';
 var smPipelineStage    = {}; // pillar → active stage key
 var _smEditId        = null;
 var _smDraftComments = [];
+var _smPlanLinkCtx   = null; // {wk, dayKey} set when opening modal from plan
 var smMentions       = {latisha:[], lemari:[]};
 var smStrategyNotes  = '';
 var smAnalyticsLog   = []; // [{id, weekEnding, tt:{views,followers,likes,bestPost}, ig:{reach,followers,likes,bestPost}, notes}]
@@ -79,7 +80,8 @@ function smPlanGetDay(wk, dayKey) {
     difficulty:   saved.difficulty   || '',
     viewerAction: saved.viewerAction || '',
     notes:        saved.notes        || '',
-    link:         saved.link         || ''
+    link:         saved.link         || '',
+    postId:       saved.postId       || null
   };
 }
 
@@ -110,6 +112,22 @@ function smToggleAction(wk, dayKey, actionIdx) {
   var idx     = list.indexOf(action);
   if (idx > -1) list.splice(idx, 1); else list.push(action);
   smSavePlan(wk, dayKey, 'viewerAction', list.join(','));
+  renderSocialPage();
+}
+
+function smPlanOpenPost(wk, dayKey) {
+  var data = smPlanGetDay(wk, dayKey);
+  var linked = data.postId ? socialPosts.find(function(p) { return p.id === data.postId; }) : null;
+  if (linked) {
+    smOpenModal(linked.id);
+  } else {
+    _smPlanLinkCtx = { wk: wk, dayKey: dayKey };
+    smOpenModal(null, 'idea', null, data.pillar || '');
+  }
+}
+
+function smPlanUnlinkPost(wk, dayKey) {
+  smSavePlan(wk, dayKey, 'postId', null);
   renderSocialPage();
 }
 
@@ -200,18 +218,36 @@ function smRenderPlan() {
       + '<td style="padding:6px 8px;vertical-align:top">' + pillarDD(wk, d, data.pillar) + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + actionCell + '</td>'
-      + '<td style="padding:6px 8px;vertical-align:top">'
-        + '<textarea placeholder="Hook idea, caption notes…" '
-        + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:80px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
-        + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea>'
-        + '<div style="display:flex;align-items:center;gap:6px;margin-top:5px">'
-        +   '<span style="font-size:13px;flex-shrink:0">🔗</span>'
-        +   '<input type="url" placeholder="Paste video or post link…" value="' + esc(data.link) + '" '
-        +     'style="flex:1;border:1px solid var(--sand);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--charcoal);background:white;outline:none;min-width:0" '
-        +     'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'link\',this.value.trim())">'
-        +   (data.link ? '<a href="' + esc(data.link) + '" target="_blank" rel="noopener" style="flex-shrink:0;font-size:11px;color:var(--rose);font-weight:600;text-decoration:none;white-space:nowrap">Open ↗</a>' : '')
-        + '</div>'
-        + '</td>'
+      + (function() {
+          var linkedPost = data.postId ? socialPosts.find(function(p) { return p.id === data.postId; }) : null;
+          var stageObj   = linkedPost ? SM_STAGES.find(function(s) { return s.key === linkedPost.stage; }) : null;
+          var stageCol   = stageObj ? stageObj.color : '#9CA3AF';
+
+          var postBtn = linkedPost
+            ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'
+              + '<div onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" style="flex:1;display:flex;align-items:center;gap:7px;background:var(--warm);border:1px solid var(--sand);border-radius:7px;padding:6px 10px;cursor:pointer;transition:filter .15s;min-width:0" onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
+              +   '<span style="font-size:10px;font-weight:700;color:white;background:' + stageCol + ';padding:2px 7px;border-radius:5px;flex-shrink:0">' + esc(stageObj ? stageObj.label : '') + '</span>'
+              +   '<span style="font-size:11px;font-weight:600;color:var(--deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">' + esc(linkedPost.title) + '</span>'
+              +   '<span style="font-size:10px;color:var(--muted);flex-shrink:0;margin-left:auto">Edit ↗</span>'
+              + '</div>'
+              + '<button onclick="smPlanUnlinkPost(\'' + wk + '\',\'' + d + '\')" title="Unlink post" style="flex-shrink:0;background:none;border:1px solid var(--sand);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--muted);cursor:pointer;line-height:1">&times;</button>'
+              + '</div>'
+            : '<button onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" style="width:100%;background:none;border:1px dashed var(--sand);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--muted);cursor:pointer;text-align:left;margin-bottom:7px;font-family:inherit;transition:border-color .15s,color .15s" onmouseover="this.style.borderColor=\'var(--charcoal)\';this.style.color=\'var(--charcoal)\'" onmouseout="this.style.borderColor=\'var(--sand)\';this.style.color=\'var(--muted)\'">📝 Add post details (opens Pipeline)</button>';
+
+          return '<td style="padding:6px 8px;vertical-align:top">'
+            + postBtn
+            + '<textarea placeholder="Quick notes, hook idea…" '
+            + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:60px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
+            + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea>'
+            + '<div style="display:flex;align-items:center;gap:6px;margin-top:5px">'
+            +   '<span style="font-size:13px;flex-shrink:0">🔗</span>'
+            +   '<input type="url" placeholder="Paste video or post link…" value="' + esc(data.link) + '" '
+            +     'style="flex:1;border:1px solid var(--sand);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--charcoal);background:white;outline:none;min-width:0" '
+            +     'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'link\',this.value.trim())">'
+            +   (data.link ? '<a href="' + esc(data.link) + '" target="_blank" rel="noopener" style="flex-shrink:0;font-size:11px;color:var(--rose);font-weight:600;text-decoration:none;white-space:nowrap">Open ↗</a>' : '')
+            + '</div>'
+            + '</td>';
+        })()
       + '</tr>';
   });
 
@@ -971,6 +1007,7 @@ function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
 function smCloseModal() {
   var modal = document.getElementById('sm-post-modal');
   if (modal) modal.style.display = 'none';
+  _smPlanLinkCtx = null;
 }
 
 function smSavePost() {
@@ -1014,6 +1051,11 @@ function smSavePost() {
     if (idx > -1) socialPosts[idx] = obj;
   } else {
     socialPosts.push(obj);
+    // If opened from plan, link the new post back to that day
+    if (_smPlanLinkCtx) {
+      smSavePlan(_smPlanLinkCtx.wk, _smPlanLinkCtx.dayKey, 'postId', obj.id);
+      _smPlanLinkCtx = null;
+    }
   }
 
   // Jump calendar to the scheduled month if a date was set
