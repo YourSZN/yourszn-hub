@@ -499,7 +499,7 @@ function smRenderCalendar() {
     var cellBg     = pc || (isToday ? '#EDE9FE' : 'white');
     var cellBorder = isToday && !pc ? 'border:2px solid #A78BFA;' : 'border:1px solid ' + (pc ? pc : 'var(--sand)') + ';';
 
-    var cellClick = primaryPlan && primaryPlan.data.postId
+    var cellClick = primaryPlan
       ? 'smPlanOpenPost(\'' + primaryPlan.wk + '\',\'' + primaryPlan.dayKey + '\')'
       : 'smOpenModal(null,\'idea\',\'' + dateStr + '\')';
 
