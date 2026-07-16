@@ -185,7 +185,7 @@ function smRenderPlan() {
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">action i hope<br><span style="font-weight:400;color:var(--muted)">viewer takes</span></th>'
-    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">notes <span style="font-weight:400;color:var(--muted)">(hook / post ideas)</span></th>'
+    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">post title</th>'
     + '</tr></thead><tbody>';
 
   SM_PLAN_DAYS.forEach(function(d, idx) {
@@ -223,30 +223,25 @@ function smRenderPlan() {
           var stageObj   = linkedPost ? SM_STAGES.find(function(s) { return s.key === linkedPost.stage; }) : null;
           var stageCol   = stageObj ? stageObj.color : '#9CA3AF';
 
-          var postBtn = linkedPost
-            ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'
-              + '<div onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" style="flex:1;display:flex;align-items:center;gap:7px;background:var(--warm);border:1px solid var(--sand);border-radius:7px;padding:6px 10px;cursor:pointer;transition:filter .15s;min-width:0" onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
-              +   '<span style="font-size:10px;font-weight:700;color:white;background:' + stageCol + ';padding:2px 7px;border-radius:5px;flex-shrink:0">' + esc(stageObj ? stageObj.label : '') + '</span>'
-              +   '<span style="font-size:11px;font-weight:600;color:var(--deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">' + esc(linkedPost.title) + '</span>'
-              +   '<span style="font-size:10px;color:var(--muted);flex-shrink:0;margin-left:auto">Edit ↗</span>'
-              + '</div>'
-              + '<button onclick="smPlanUnlinkPost(\'' + wk + '\',\'' + d + '\')" title="Unlink post" style="flex-shrink:0;background:none;border:1px solid var(--sand);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--muted);cursor:pointer;line-height:1">&times;</button>'
-              + '</div>'
-            : '<button onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" style="width:100%;background:none;border:1px dashed var(--sand);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--muted);cursor:pointer;text-align:left;margin-bottom:7px;font-family:inherit;transition:border-color .15s,color .15s" onmouseover="this.style.borderColor=\'var(--charcoal)\';this.style.color=\'var(--charcoal)\'" onmouseout="this.style.borderColor=\'var(--sand)\';this.style.color=\'var(--muted)\'">📝 Add post details (opens Pipeline)</button>';
+          var cell = '<td style="padding:6px 8px;vertical-align:middle">';
 
-          return '<td style="padding:6px 8px;vertical-align:top">'
-            + postBtn
-            + '<textarea placeholder="Quick notes, hook idea…" '
-            + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:60px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
-            + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea>'
-            + '<div style="display:flex;align-items:center;gap:6px;margin-top:5px">'
-            +   '<span style="font-size:13px;flex-shrink:0">🔗</span>'
-            +   '<input type="url" placeholder="Paste video or post link…" value="' + esc(data.link) + '" '
-            +     'style="flex:1;border:1px solid var(--sand);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--charcoal);background:white;outline:none;min-width:0" '
-            +     'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'link\',this.value.trim())">'
-            +   (data.link ? '<a href="' + esc(data.link) + '" target="_blank" rel="noopener" style="flex-shrink:0;font-size:11px;color:var(--rose);font-weight:600;text-decoration:none;white-space:nowrap">Open ↗</a>' : '')
-            + '</div>'
-            + '</td>';
+          if (linkedPost) {
+            cell += '<div style="display:flex;align-items:center;gap:6px">'
+              + '<div onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" style="flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0" onmouseover="this.querySelector(\'span.ttl\').style.textDecoration=\'underline\'" onmouseout="this.querySelector(\'span.ttl\').style.textDecoration=\'none\'">'
+              +   '<span style="font-size:10px;font-weight:700;color:white;background:' + stageCol + ';padding:2px 8px;border-radius:5px;flex-shrink:0">' + esc(stageObj ? stageObj.label : '') + '</span>'
+              +   '<span class="ttl" style="font-size:13px;font-weight:600;color:var(--deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">' + esc(linkedPost.title) + '</span>'
+              + '</div>'
+              + '<button onclick="smPlanUnlinkPost(\'' + wk + '\',\'' + d + '\')" title="Unlink post" style="flex-shrink:0;background:none;border:none;font-size:14px;color:var(--muted);cursor:pointer;line-height:1;padding:2px 4px">&times;</button>'
+              + '</div>';
+          } else {
+            cell += '<button onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" '
+              + 'style="width:100%;background:none;border:1px dashed var(--sand);border-radius:7px;padding:9px 12px;font-size:12px;color:var(--muted);cursor:pointer;text-align:left;font-family:inherit;transition:border-color .15s,color .15s" '
+              + 'onmouseover="this.style.borderColor=\'var(--charcoal)\';this.style.color=\'var(--charcoal)\'" '
+              + 'onmouseout="this.style.borderColor=\'var(--sand)\';this.style.color=\'var(--muted)\'">+ Add post details</button>';
+          }
+
+          cell += '</td>';
+          return cell;
         })()
       + '</tr>';
   });
