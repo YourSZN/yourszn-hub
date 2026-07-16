@@ -463,64 +463,86 @@ function smRenderCalendar() {
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
-  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'
-    + '<button onclick="smCalPrev()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px;color:var(--charcoal)">&#8592;</button>'
-    + '<div style="font-size:17px;font-weight:700;color:var(--deep)">' + monthNames[smCalMonth] + ' ' + smCalYear + '</div>'
-    + '<button onclick="smCalNext()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px;color:var(--charcoal)">&#8594;</button>'
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    + '<button onclick="smCalPrev()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:14px;color:var(--charcoal)">&#8592;</button>'
+    + '<div style="font-size:20px;font-weight:700;color:var(--deep)">' + monthNames[smCalMonth] + ' ' + smCalYear + '</div>'
+    + '<button onclick="smCalNext()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:14px;color:var(--charcoal)">&#8594;</button>'
     + '</div>';
 
-  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">'
-    + dayNames.map(function(d) {
-        return '<div style="text-align:center;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;padding:6px 0">' + d + '</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px">'
+    + dayNames.map(function(dn) {
+        return '<div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.8px;padding:6px 0">' + dn + '</div>';
       }).join('')
     + '</div>';
 
-  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+  // Calculate row count so grid can fill the viewport height
+  var totalCells = startDow + totalDays;
+  var numRows    = Math.ceil(totalCells / 7);
+  var cellH      = 'calc((100vh - 280px) / ' + numRows + ')';
 
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:' + cellH + ';gap:4px">';
+
+  // Empty leading cells
   for (var i = 0; i < startDow; i++) {
-    html += '<div style="min-height:80px;background:var(--warm);border-radius:8px;opacity:.3"></div>';
+    html += '<div style="background:var(--warm);border-radius:10px;opacity:.25"></div>';
   }
 
   for (var d = 1; d <= totalDays; d++) {
-    var dateStr = smCalYear + '-' + String(smCalMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    var isToday = dateStr === todayStr;
+    var dateStr  = smCalYear + '-' + String(smCalMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    var isToday  = dateStr === todayStr;
     var dayPosts = byDate[d] || [];
+    var planEntries = planByDate[d] || [];
+    var primaryPlan = planEntries[0] || null;
 
-    html += '<div style="min-height:80px;background:' + (isToday ? '#EDE9FE' : 'white') + ';border:1px solid ' + (isToday ? '#A78BFA' : 'var(--sand)') + ';border-radius:8px;padding:6px;cursor:pointer" onclick="smOpenModal(null,\'idea\',\'' + dateStr + '\')">'
-      + '<div style="font-size:11px;font-weight:' + (isToday ? '700' : '500') + ';color:' + (isToday ? '#7C3AED' : 'var(--charcoal)') + ';margin-bottom:4px">' + d + '</div>';
+    // Determine cell colour: plan pillar takes priority, else white/today tint
+    var pc = primaryPlan ? (SM_PILLAR_COLORS[primaryPlan.data.pillar] || '#9CA3AF') : null;
+    var cellBg     = pc || (isToday ? '#EDE9FE' : 'white');
+    var cellBorder = isToday && !pc ? 'border:2px solid #A78BFA;' : 'border:1px solid ' + (pc ? pc : 'var(--sand)') + ';';
 
-    // Plan tiles (from weekly plan)
-    (planByDate[d] || []).forEach(function(entry) {
-      var pd = entry.data;
-      var pc = SM_PILLAR_COLORS[pd.pillar] || '#9CA3AF';
+    html += '<div style="' + cellBorder + 'background:' + cellBg + ';border-radius:10px;padding:10px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;position:relative" onclick="smOpenModal(null,\'idea\',\'' + dateStr + '\')">';
+
+    // Date number
+    var dateColor = pc ? 'rgba(255,255,255,.75)' : (isToday ? '#7C3AED' : 'var(--muted)');
+    html += '<div style="font-size:11px;font-weight:700;color:' + dateColor + ';margin-bottom:6px;flex-shrink:0">' + d + '</div>';
+
+    // Primary plan content fills the cell
+    if (primaryPlan) {
+      var pd = primaryPlan.data;
       var titleText = pd.notes || pd.pillar || '';
-      var linkIcon  = pd.link ? ' <span style="opacity:.8">🔗</span>' : '';
-      html += '<div onclick="event.stopPropagation();' + (pd.link ? 'window.open(\'' + pd.link.replace(/'/g, "\\'") + '\',\'_blank\')' : '') + '" '
-        + 'title="' + esc(pd.pillar) + (pd.format ? ' · ' + pd.format : '') + (pd.notes ? '\n' + pd.notes : '') + '" '
-        + 'style="border-radius:4px;padding:3px 5px;margin-bottom:2px;background:' + pc + ';' + (pd.link ? 'cursor:pointer' : 'cursor:default') + '">'
-        + (pd.format ? '<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.4px">' + esc(pd.format) + '</div>' : '')
-        + '<div style="font-size:9px;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(titleText) + linkIcon + '</div>'
-        + '</div>';
-    });
+      html += '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0">';
+      if (pd.format) {
+        html += '<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">' + esc(pd.format) + '</div>';
+      }
+      html += '<div style="font-size:14px;font-weight:700;color:white;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical">' + esc(titleText) + '</div>';
+      if (pd.link) {
+        html += '<div style="margin-top:6px;font-size:10px;color:rgba(255,255,255,.65)">🔗</div>';
+      }
+      html += '</div>';
+    }
 
-    dayPosts.forEach(function(post) {
-      var stageObj = SM_STAGES.find(function(s) { return s.key === post.stage; });
-      var col = stageObj ? stageObj.color : '#6B7280';
-      var platIcon = post.platform && post.platform.indexOf('TikTok') !== -1 ? '&#9654; ' : '';
-      html += '<div onclick="event.stopPropagation();smOpenModal(\'' + post.id + '\')" title="' + esc(post.title) + ' — ' + (stageObj ? stageObj.label : '') + '" style="font-size:9px;font-weight:600;background:' + col + ';color:white;border-radius:4px;padding:2px 5px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-        + platIcon + esc(post.title)
-        + '</div>';
-    });
+    // Pipeline posts (stage-coloured badges at the bottom)
+    if (dayPosts.length) {
+      html += '<div style="margin-top:auto;padding-top:4px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">';
+      dayPosts.forEach(function(post) {
+        var stageObj = SM_STAGES.find(function(s) { return s.key === post.stage; });
+        var col = stageObj ? stageObj.color : '#6B7280';
+        html += '<div onclick="event.stopPropagation();smOpenModal(\'' + post.id + '\')" title="' + esc(post.title) + '" style="font-size:9px;font-weight:700;background:' + col + ';color:white;border-radius:4px;padding:2px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+          + esc(post.title) + '</div>';
+      });
+      html += '</div>';
+    }
 
     html += '</div>';
   }
 
   html += '</div>';
 
-  html += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--sand)">';
-  SM_STAGES.forEach(function(s) {
+  // Legend
+  html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--sand)">';
+  SM_PILLARS.forEach(function(p) {
+    var col = SM_PILLAR_COLORS[p] || '#9CA3AF';
     html += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)">'
-      + '<div style="width:9px;height:9px;border-radius:50%;background:' + s.color + '"></div>' + s.label + '</div>';
+      + '<div style="width:10px;height:10px;border-radius:3px;background:' + col + '"></div>' + esc(p.split(' ')[0]) + '</div>';
   });
   html += '</div>';
 
