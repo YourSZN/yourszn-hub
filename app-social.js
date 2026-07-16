@@ -36,7 +36,8 @@ var SM_PLAN_ACTIONS  = ['Save', 'Follow', 'Comment', 'Share', 'Shop / Buy', 'DM 
 var smActiveTab      = 'pipeline';
 var smCalMonth       = new Date().getMonth();
 var smCalYear        = new Date().getFullYear();
-var smIdeaBankFilter = 'All';
+var smIdeaBankFilter   = 'All';
+var smPipelineStage    = {}; // pillar → active stage key
 var _smEditId        = null;
 var _smDraftComments = [];
 var smMentions       = {latisha:[], lemari:[]};
@@ -277,16 +278,20 @@ function smSetTab(tab) {
 
 // ══ PIPELINE ══
 
+function smPipelineSetStage(pillar, stageKey) {
+  smPipelineStage[pillar] = stageKey;
+  renderSocialPage();
+}
+
 function smRenderPipeline() {
   var totalUpdated = socialPosts.filter(smRecentlyEdited).length;
 
-  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">';
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:8px">';
   html += (totalUpdated > 0
     ? '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;color:#92400E">&#9888; ' + totalUpdated + ' post' + (totalUpdated > 1 ? 's' : '') + ' updated in the last 48h</div>'
     : '<div></div>');
   html += '<button class="btn btnp" onclick="smOpenModal(null)">+ New Post</button></div>';
 
-  // Group all posts by pillar
   var groups = SM_PILLARS.map(function(pillar) {
     return { pillar: pillar, posts: socialPosts.filter(function(p) { return p.pillar === pillar; }) };
   });
@@ -294,50 +299,75 @@ function smRenderPipeline() {
   if (noPillar.length) groups.push({ pillar: '', posts: noPillar });
 
   groups.forEach(function(g) {
-    if (!g.posts.length && g.pillar) return; // skip empty pillars
-    var col = SM_PILLAR_COLORS[g.pillar] || '#9CA3AF';
+    if (!g.posts.length && g.pillar) return;
+    var col   = SM_PILLAR_COLORS[g.pillar] || '#9CA3AF';
     var label = g.pillar || 'Uncategorised';
+    var pillarKey = g.pillar || '__none__';
 
-    html += '<div style="margin-bottom:28px">';
+    // Default to first stage that has posts, or first stage overall
+    if (!smPipelineStage[pillarKey]) {
+      var firstWithPosts = SM_STAGES.find(function(s) {
+        return g.posts.some(function(p) { return p.stage === s.key; });
+      });
+      smPipelineStage[pillarKey] = firstWithPosts ? firstWithPosts.key : SM_STAGES[0].key;
+    }
+    var activeStage = smPipelineStage[pillarKey];
+    var stagePosts  = g.posts.filter(function(p) { return p.stage === activeStage; });
 
-    // Pillar header
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    html += '<div style="margin-bottom:32px">';
+
+    // ── Pillar header ──
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
       + '<div style="display:flex;align-items:center;gap:10px">'
-      +   '<div style="width:12px;height:12px;border-radius:50%;background:' + col + ';flex-shrink:0"></div>'
-      +   '<div style="font-size:14px;font-weight:700;color:var(--deep)">' + esc(label) + '</div>'
-      +   '<div style="font-size:11px;color:var(--muted);font-weight:500">' + g.posts.length + ' item' + (g.posts.length !== 1 ? 's' : '') + '</div>'
+      +   '<div style="width:13px;height:13px;border-radius:50%;background:' + col + ';flex-shrink:0"></div>'
+      +   '<div style="font-size:15px;font-weight:700;color:var(--deep)">' + esc(label) + '</div>'
+      +   '<div style="font-size:11px;color:var(--muted);font-weight:500">' + g.posts.length + ' total</div>'
       + '</div>'
       + '<button onclick="smOpenModal(null,\'idea\',null,\'' + esc(g.pillar) + '\')" style="background:none;border:1px dashed var(--sand);border-radius:7px;padding:4px 12px;font-size:11px;color:var(--muted);cursor:pointer">+ Add</button>'
       + '</div>';
 
-    if (!g.posts.length) {
-      html += '<div style="padding:16px;background:var(--warm);border-radius:10px;text-align:center;font-size:12px;color:var(--muted)">No content yet — click + Add to create the first piece.</div>';
+    // ── Stage tabs ──
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">';
+    SM_STAGES.forEach(function(s) {
+      var count   = g.posts.filter(function(p) { return p.stage === s.key; }).length;
+      var isActive = s.key === activeStage;
+      var safeKey = JSON.stringify(pillarKey);
+      html += '<button onclick="smPipelineSetStage(' + safeKey + ',\'' + s.key + '\')" '
+        + 'style="padding:6px 14px;border-radius:20px;border:1.5px solid ' + (isActive ? s.color : 'var(--sand)') + ';'
+        + 'background:' + (isActive ? s.color : 'white') + ';'
+        + 'color:' + (isActive ? 'white' : 'var(--muted)') + ';'
+        + 'font-size:11px;font-weight:' + (isActive ? '700' : '500') + ';cursor:pointer;font-family:inherit;'
+        + 'transition:all .15s">'
+        + s.label
+        + (count ? ' <span style="opacity:.75">(' + count + ')</span>' : '')
+        + '</button>';
+    });
+    html += '</div>';
+
+    // ── Cards for active stage ──
+    if (!stagePosts.length) {
+      html += '<div style="padding:20px;background:var(--warm);border-radius:10px;text-align:center;font-size:12px;color:var(--muted)">'
+        + 'No posts in this stage yet.'
+        + '</div>';
     } else {
-      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
-
-      g.posts.forEach(function(post) {
-        var isNew     = smRecentlyEdited(post);
-        var stageObj  = SM_STAGES.find(function(s) { return s.key === post.stage; });
-        var stageCol  = stageObj ? stageObj.color : '#9CA3AF';
-        var stageLabel= stageObj ? stageObj.label : '';
-
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">';
+      stagePosts.forEach(function(post) {
+        var isNew = smRecentlyEdited(post);
         var platTags = (post.platform || []).map(function(p) {
           return '<span style="font-size:9px;font-weight:700;color:white;background:' + (p === 'TikTok' ? '#010101' : '#E1306C') + ';padding:2px 6px;border-radius:6px">' + p + '</span>';
         }).join('');
-
-        var dateLine = post.scheduledDate
-          ? '<div style="font-size:10px;color:var(--muted);margin-top:6px">&#128197; ' + smFmtDate(post.scheduledDate) + '</div>'
-          : '';
-
+        var dateLine    = post.scheduledDate ? '<div style="font-size:10px;color:var(--muted);margin-top:6px">&#128197; ' + smFmtDate(post.scheduledDate) + '</div>' : '';
         var commentCount = (post.comments || []).length;
 
-        html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + (isNew ? '#FFFBEB' : 'white') + ';border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';border-radius:10px;padding:10px;padding-left:12px;cursor:pointer;box-shadow:inset 3px 0 0 ' + col + ';transition:filter .15s" onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-          +   '<span style="font-size:9px;font-weight:700;color:white;background:' + stageCol + ';padding:2px 7px;border-radius:6px">' + stageLabel + '</span>'
-          +   (isNew ? '<span style="font-size:9px;font-weight:700;color:#92400E">Updated</span>' : '')
-          + '</div>'
-          + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);line-height:1.35;margin-bottom:6px">' + esc(post.title) + '</div>'
-          + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' + platTags + '</div>' : '')
+        html += '<div onclick="smOpenModal(\'' + post.id + '\')" '
+          + 'style="background:' + (isNew ? '#FFFBEB' : 'white') + ';'
+          + 'border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';'
+          + 'border-radius:10px;padding:12px;padding-left:14px;cursor:pointer;'
+          + 'box-shadow:inset 3px 0 0 ' + col + ';transition:filter .15s" '
+          + 'onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
+          + (isNew ? '<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated</span></div>' : '')
+          + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);line-height:1.35;margin-bottom:8px">' + esc(post.title) + '</div>'
+          + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">' + platTags + '</div>' : '')
           + '<div style="display:flex;align-items:center;gap:4px">'
           +   smContentTypeIcon(post.contentType)
           +   (post.script ? smScriptIcon() : '')
@@ -346,11 +376,10 @@ function smRenderPipeline() {
           + dateLine
           + '</div>';
       });
-
       html += '</div>';
     }
 
-    html += '</div>';
+    html += '</div>'; // end pillar section
   });
 
   return html;
