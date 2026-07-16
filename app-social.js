@@ -223,22 +223,28 @@ function smRenderPlan() {
           var stageObj   = linkedPost ? SM_STAGES.find(function(s) { return s.key === linkedPost.stage; }) : null;
           var stageCol   = stageObj ? stageObj.color : '#9CA3AF';
 
-          var cell = '<td style="padding:6px 8px;vertical-align:middle">';
+          var cell = '<td style="padding:6px 8px;vertical-align:top">';
 
+          // Post title row (linked or add button)
           if (linkedPost) {
-            cell += '<div style="display:flex;align-items:center;gap:6px">'
-              + '<div onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" style="flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0" onmouseover="this.querySelector(\'span.ttl\').style.textDecoration=\'underline\'" onmouseout="this.querySelector(\'span.ttl\').style.textDecoration=\'none\'">'
+            cell += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+              + '<div onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" style="flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0">'
               +   '<span style="font-size:10px;font-weight:700;color:white;background:' + stageCol + ';padding:2px 8px;border-radius:5px;flex-shrink:0">' + esc(stageObj ? stageObj.label : '') + '</span>'
-              +   '<span class="ttl" style="font-size:13px;font-weight:600;color:var(--deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">' + esc(linkedPost.title) + '</span>'
+              +   '<span style="font-size:13px;font-weight:600;color:var(--deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;text-decoration:underline">' + esc(linkedPost.title) + '</span>'
               + '</div>'
               + '<button onclick="smPlanUnlinkPost(\'' + wk + '\',\'' + d + '\')" title="Unlink post" style="flex-shrink:0;background:none;border:none;font-size:14px;color:var(--muted);cursor:pointer;line-height:1;padding:2px 4px">&times;</button>'
               + '</div>';
           } else {
             cell += '<button onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" '
-              + 'style="width:100%;background:none;border:1px dashed var(--sand);border-radius:7px;padding:9px 12px;font-size:12px;color:var(--muted);cursor:pointer;text-align:left;font-family:inherit;transition:border-color .15s,color .15s" '
+              + 'style="width:100%;background:none;border:1px dashed var(--sand);border-radius:7px;padding:6px 10px;font-size:11px;color:var(--muted);cursor:pointer;text-align:left;font-family:inherit;margin-bottom:6px;transition:border-color .15s,color .15s" '
               + 'onmouseover="this.style.borderColor=\'var(--charcoal)\';this.style.color=\'var(--charcoal)\'" '
               + 'onmouseout="this.style.borderColor=\'var(--sand)\';this.style.color=\'var(--muted)\'">+ Add post details</button>';
           }
+
+          // Notes textarea always visible so existing plan content is preserved
+          cell += '<textarea placeholder="Hook idea, caption notes…" '
+            + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:70px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
+            + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea>';
 
           cell += '</td>';
           return cell;
