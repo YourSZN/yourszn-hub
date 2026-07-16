@@ -537,7 +537,8 @@ function smRenderCalendar() {
     // Primary plan content fills the cell
     if (primaryPlan) {
       var pd = primaryPlan.data;
-      var titleText = pd.notes || pd.pillar || '';
+      var calLinkedPost = pd.postId ? socialPosts.find(function(p) { return p.id === pd.postId; }) : null;
+      var titleText = (calLinkedPost && calLinkedPost.title) ? calLinkedPost.title : (pd.notes || pd.pillar || '');
       html += '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0">';
       if (pd.format) {
         html += '<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">' + esc(pd.format) + '</div>';
