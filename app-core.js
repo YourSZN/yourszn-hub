@@ -3,8 +3,8 @@
 // ══════════════════════════════════════
 var USERS = {
   latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','clients','vouchers','tours','social','adcreative','tasks','staff','finances','vietnam','goals','sops','huestripe','marketing','online','comms'] },
-  salma:   { name:'Salma',   role:'Admin Support', pin:'2222', pages:['myhub','tasks','clients','vouchers','tours','social','adcreative','vietnam','goals','sops','huestripe','marketing','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', pin:'3333', pages:['myhub','tasks','clients','vouchers','tours','social','adcreative','vietnam','goals','sops','huestripe','marketing','online','comms'] }
+  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','tasks','clients','vouchers','tours','social','adcreative','vietnam','goals','sops','huestripe','marketing','online','comms'] },
+  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','tasks','clients','vouchers','tours','social','adcreative','vietnam','goals','sops','huestripe','marketing','online','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
