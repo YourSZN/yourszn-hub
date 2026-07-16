@@ -501,9 +501,34 @@ function smRenderCalendar() {
 
     html += '<div style="' + cellBorder + 'background:' + cellBg + ';border-radius:10px;padding:10px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;position:relative" onclick="smOpenModal(null,\'idea\',\'' + dateStr + '\')">';
 
-    // Date number
+    // Stage status badges (top-right) — derived from linked Pipeline post
+    var stageOrder = ['idea','scripted','filmed','edited','g2g','scheduled','posted'];
+    var linkedStage = null;
+    if (primaryPlan && primaryPlan.data.postId) {
+      var lp = socialPosts.find(function(p) { return p.id === primaryPlan.data.postId; });
+      if (lp) linkedStage = lp.stage;
+    }
+    var stageIdx   = linkedStage ? stageOrder.indexOf(linkedStage) : -1;
+    var isFilmed   = stageIdx >= stageOrder.indexOf('filmed');
+    var isEdited   = stageIdx >= stageOrder.indexOf('edited');
+
+    // Date number row with status badges
     var dateColor = pc ? 'rgba(255,255,255,.75)' : (isToday ? '#7C3AED' : 'var(--muted)');
-    html += '<div style="font-size:11px;font-weight:700;color:' + dateColor + ';margin-bottom:6px;flex-shrink:0">' + d + '</div>';
+    html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-shrink:0;gap:4px">'
+      + '<div style="font-size:11px;font-weight:700;color:' + dateColor + '">' + d + '</div>';
+
+    if (isFilmed || isEdited) {
+      html += '<div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end">';
+      if (isFilmed) {
+        html += '<span style="font-size:8px;font-weight:800;color:' + (pc ? 'rgba(255,255,255,.9)' : 'var(--charcoal)') + ';background:' + (pc ? 'rgba(255,255,255,.22)' : 'var(--warm)') + ';border-radius:4px;padding:2px 5px;letter-spacing:.3px;white-space:nowrap">🎬 Filmed</span>';
+      }
+      if (isEdited) {
+        html += '<span style="font-size:8px;font-weight:800;color:' + (pc ? 'rgba(255,255,255,.9)' : 'var(--charcoal)') + ';background:' + (pc ? 'rgba(255,255,255,.22)' : 'var(--warm)') + ';border-radius:4px;padding:2px 5px;letter-spacing:.3px;white-space:nowrap">✂️ Edited</span>';
+      }
+      html += '</div>';
+    }
+
+    html += '</div>';
 
     // Primary plan content fills the cell
     if (primaryPlan) {
