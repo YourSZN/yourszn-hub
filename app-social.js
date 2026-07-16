@@ -241,7 +241,6 @@ function renderSocialPage() {
     {key:'plan',      label:'Plan'},
     {key:'pipeline',  label:'Pipeline'},
     {key:'calendar',  label:'Calendar'},
-    {key:'ideas',     label:'Idea Bank'},
     {key:'strategy',  label:'Posting Strategy'},
     {key:'analytics', label:'Analytics'},
   ];
@@ -256,7 +255,6 @@ function renderSocialPage() {
   if      (smActiveTab === 'plan')      contentHtml = smRenderPlan();
   else if (smActiveTab === 'pipeline')  contentHtml = smRenderPipeline();
   else if (smActiveTab === 'calendar')  contentHtml = smRenderCalendar();
-  else if (smActiveTab === 'ideas')     contentHtml = smRenderIdeaBank();
   else if (smActiveTab === 'strategy')  contentHtml = smRenderStrategy();
   else if (smActiveTab === 'analytics') contentHtml = smRenderAnalytics();
 
@@ -281,84 +279,80 @@ function smSetTab(tab) {
 
 function smRenderPipeline() {
   var totalUpdated = socialPosts.filter(smRecentlyEdited).length;
-  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">';
 
-  if (totalUpdated > 0) {
-    html += '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;color:#92400E">'
-      + '&#9888; ' + totalUpdated + ' post' + (totalUpdated > 1 ? 's' : '') + ' updated in the last 48h</div>';
-  } else {
-    html += '<div></div>';
-  }
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">';
+  html += (totalUpdated > 0
+    ? '<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;color:#92400E">&#9888; ' + totalUpdated + ' post' + (totalUpdated > 1 ? 's' : '') + ' updated in the last 48h</div>'
+    : '<div></div>');
+  html += '<button class="btn btnp" onclick="smOpenModal(null)">+ New Post</button></div>';
 
-  html += '<button class="btn btnp" onclick="smOpenModal(null)">+ New Post</button>'
-    + '</div>';
+  // Group all posts by pillar
+  var groups = SM_PILLARS.map(function(pillar) {
+    return { pillar: pillar, posts: socialPosts.filter(function(p) { return p.pillar === pillar; }) };
+  });
+  var noPillar = socialPosts.filter(function(p) { return !p.pillar; });
+  if (noPillar.length) groups.push({ pillar: '', posts: noPillar });
 
-  html += '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:16px;align-items:flex-start">';
+  groups.forEach(function(g) {
+    if (!g.posts.length && g.pillar) return; // skip empty pillars
+    var col = SM_PILLAR_COLORS[g.pillar] || '#9CA3AF';
+    var label = g.pillar || 'Uncategorised';
 
-  SM_STAGES.forEach(function(stage) {
-    var posts = socialPosts.filter(function(p) { return p.stage === stage.key; });
+    html += '<div style="margin-bottom:28px">';
 
-    html += '<div style="flex:0 0 210px;min-width:210px;background:var(--warm);border-radius:12px;padding:12px">';
-
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-      + '<div style="display:flex;align-items:center;gap:7px">'
-      +   '<div style="width:9px;height:9px;border-radius:50%;background:' + stage.color + '"></div>'
-      +   '<div style="font-size:12px;font-weight:700;color:var(--charcoal);letter-spacing:.3px">' + stage.label + '</div>'
+    // Pillar header
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      +   '<div style="width:12px;height:12px;border-radius:50%;background:' + col + ';flex-shrink:0"></div>'
+      +   '<div style="font-size:14px;font-weight:700;color:var(--deep)">' + esc(label) + '</div>'
+      +   '<div style="font-size:11px;color:var(--muted);font-weight:500">' + g.posts.length + ' item' + (g.posts.length !== 1 ? 's' : '') + '</div>'
       + '</div>'
-      + '<div style="font-size:11px;color:var(--muted);font-weight:600">' + posts.length + '</div>'
+      + '<button onclick="smOpenModal(null,\'idea\',null,\'' + esc(g.pillar) + '\')" style="background:none;border:1px dashed var(--sand);border-radius:7px;padding:4px 12px;font-size:11px;color:var(--muted);cursor:pointer">+ Add</button>'
       + '</div>';
 
-    html += '<button onclick="smOpenModal(null,\'' + stage.key + '\')" style="width:100%;background:rgba(255,255,255,.55);border:1.5px dashed var(--sand);border-radius:8px;padding:6px;font-size:11px;color:var(--muted);cursor:pointer;margin-bottom:8px;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,.9)\'" onmouseout="this.style.background=\'rgba(255,255,255,.55)\'">+ Add</button>';
+    if (!g.posts.length) {
+      html += '<div style="padding:16px;background:var(--warm);border-radius:10px;text-align:center;font-size:12px;color:var(--muted)">No content yet — click + Add to create the first piece.</div>';
+    } else {
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
 
-    posts.forEach(function(post) {
-      var isNew = smRecentlyEdited(post);
+      g.posts.forEach(function(post) {
+        var isNew     = smRecentlyEdited(post);
+        var stageObj  = SM_STAGES.find(function(s) { return s.key === post.stage; });
+        var stageCol  = stageObj ? stageObj.color : '#9CA3AF';
+        var stageLabel= stageObj ? stageObj.label : '';
 
-      var platTags = (post.platform || []).map(function(p) {
-        var col = p === 'TikTok' ? '#010101' : '#E1306C';
-        return '<span style="font-size:9px;font-weight:700;color:white;background:' + col + ';padding:2px 6px;border-radius:6px">' + p + '</span>';
-      }).join('');
+        var platTags = (post.platform || []).map(function(p) {
+          return '<span style="font-size:9px;font-weight:700;color:white;background:' + (p === 'TikTok' ? '#010101' : '#E1306C') + ';padding:2px 6px;border-radius:6px">' + p + '</span>';
+        }).join('');
 
-      var pillarCol = post.pillar ? (SM_PILLAR_COLORS[post.pillar] || '#ccc') : null;
-      var pillarDot = pillarCol ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + pillarCol + ';margin-right:4px;flex-shrink:0"></span>' : '';
+        var dateLine = post.scheduledDate
+          ? '<div style="font-size:10px;color:var(--muted);margin-top:6px">&#128197; ' + smFmtDate(post.scheduledDate) + '</div>'
+          : '';
 
-      var assignBadge = post.assignedTo
-        ? '<span style="font-size:9px;font-weight:700;background:var(--sand);color:var(--charcoal);padding:2px 7px;border-radius:6px">' + post.assignedTo + '</span>'
-        : '';
+        var commentCount = (post.comments || []).length;
 
-      var dateLine = (stage.key === 'scheduled' || stage.key === 'posted') && post.scheduledDate
-        ? '<div style="font-size:10px;color:var(--muted);margin-top:5px">&#128197; ' + smFmtDate(post.scheduledDate) + '</div>'
-        : '';
+        html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + (isNew ? '#FFFBEB' : 'white') + ';border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';border-radius:10px;padding:10px;padding-left:12px;cursor:pointer;box-shadow:inset 3px 0 0 ' + col + ';transition:filter .15s" onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+          +   '<span style="font-size:9px;font-weight:700;color:white;background:' + stageCol + ';padding:2px 7px;border-radius:6px">' + stageLabel + '</span>'
+          +   (isNew ? '<span style="font-size:9px;font-weight:700;color:#92400E">Updated</span>' : '')
+          + '</div>'
+          + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);line-height:1.35;margin-bottom:6px">' + esc(post.title) + '</div>'
+          + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' + platTags + '</div>' : '')
+          + '<div style="display:flex;align-items:center;gap:4px">'
+          +   smContentTypeIcon(post.contentType)
+          +   (post.script ? smScriptIcon() : '')
+          +   (commentCount ? '<span style="font-size:9px;color:var(--muted)">&#128172; ' + commentCount + '</span>' : '')
+          + '</div>'
+          + dateLine
+          + '</div>';
+      });
 
-      var updBadge = isNew
-        ? '<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated ' + smRelTime(post.lastModified) + '</span></div>'
-        : '';
+      html += '</div>';
+    }
 
-      var commentCount = (post.comments || []).length;
-      var commentBadge = commentCount
-        ? '<span style="font-size:9px;color:var(--muted);display:flex;align-items:center;gap:3px">&#128172; ' + commentCount + '</span>'
-        : '';
-
-      var pipelineAccent = pillarCol ? 'inset 4px 0 0 ' + pillarCol : 'none';
-      html += '<div onclick="smOpenModal(\'' + post.id + '\')" style="background:' + (isNew ? '#FFFBEB' : 'white') + ';border:' + (isNew ? '2px solid #F59E0B' : '1px solid var(--sand)') + ';border-radius:10px;padding:10px;padding-left:12px;margin-bottom:8px;cursor:pointer;box-shadow:' + pipelineAccent + ';transition:filter .15s" onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
-        + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);margin-bottom:6px;line-height:1.35">' + esc(post.title) + '</div>'
-        + updBadge
-        + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' + platTags + '</div>' : '')
-        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
-        +   (pillarDot ? '<div style="display:flex;align-items:center;min-width:0"><span>' + pillarDot + '</span><span style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (post.pillar ? post.pillar.split(' ')[0] : '') + '</span></div>' : '<div></div>')
-        +   '<div style="display:flex;align-items:center;gap:4px">'
-        +     smContentTypeIcon(post.contentType)
-        +     (post.script ? smScriptIcon() : '')
-        +     commentBadge + assignBadge
-        +   '</div>'
-        + '</div>'
-        + dateLine
-        + '</div>';
-    });
-
-    html += '</div>'; // end column
+    html += '</div>';
   });
 
-  html += '</div>'; // end kanban
   return html;
 }
 
@@ -437,9 +431,9 @@ function smRenderCalendar() {
       var linkIcon  = pd.link ? ' <span style="opacity:.8">🔗</span>' : '';
       html += '<div onclick="event.stopPropagation();' + (pd.link ? 'window.open(\'' + pd.link.replace(/'/g, "\\'") + '\',\'_blank\')' : '') + '" '
         + 'title="' + esc(pd.pillar) + (pd.format ? ' · ' + pd.format : '') + (pd.notes ? '\n' + pd.notes : '') + '" '
-        + 'style="border:2px solid ' + pc + ';border-radius:4px;padding:2px 5px;margin-bottom:2px;background:white;' + (pd.link ? 'cursor:pointer' : 'cursor:default') + '">'
-        + (pd.format ? '<div style="font-size:8px;font-weight:700;color:' + pc + ';text-transform:uppercase;letter-spacing:.4px">' + esc(pd.format) + '</div>' : '')
-        + '<div style="font-size:9px;font-weight:600;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(titleText) + linkIcon + '</div>'
+        + 'style="border-radius:4px;padding:3px 5px;margin-bottom:2px;background:' + pc + ';' + (pd.link ? 'cursor:pointer' : 'cursor:default') + '">'
+        + (pd.format ? '<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.4px">' + esc(pd.format) + '</div>' : '')
+        + '<div style="font-size:9px;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(titleText) + linkIcon + '</div>'
         + '</div>';
     });
 
@@ -904,7 +898,7 @@ function smStageChange() {
   wrap.style.display = (stage.value === 'scheduled' || stage.value === 'posted') ? 'block' : 'none';
 }
 
-function smOpenModal(id, defaultStage, defaultDate) {
+function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
   _smEditId = id;
   var post  = id ? socialPosts.find(function(p) { return p.id === id; }) : null;
 
@@ -915,7 +909,7 @@ function smOpenModal(id, defaultStage, defaultDate) {
   document.getElementById('sm-f-title').value   = post ? (post.title || '')        : '';
   document.getElementById('sm-f-stage').value   = post ? (post.stage || 'idea')    : (defaultStage || 'idea');
   document.getElementById('sm-f-date').value    = post ? (post.scheduledDate || '') : (defaultDate || '');
-  document.getElementById('sm-f-pillar').value  = post ? (post.pillar || '')        : '';
+  document.getElementById('sm-f-pillar').value  = post ? (post.pillar || '')        : (defaultPillar || '');
   document.getElementById('sm-f-ctype').value   = post ? (post.contentType || '')   : '';
   document.getElementById('sm-f-assign').value  = post ? (post.assignedTo || '')    : '';
   document.getElementById('sm-f-concept').value = post ? (post.concept || '')       : '';
