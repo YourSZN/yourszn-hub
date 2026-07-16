@@ -383,6 +383,23 @@ function smRenderCalendar() {
     byDate[d].push(p);
   });
 
+  // Build plan tiles from smWeekPlan for the current month
+  var planByDate = {};
+  var dayOffsets = { mon:0, tue:1, wed:2, thu:3, fri:4, sat:5, sun:6 };
+  Object.keys(smWeekPlan).forEach(function(wk) {
+    var monday = new Date(wk + 'T00:00:00');
+    SM_PLAN_DAYS.forEach(function(dayKey) {
+      var planDate = new Date(monday);
+      planDate.setDate(monday.getDate() + dayOffsets[dayKey]);
+      if (planDate.getFullYear() !== smCalYear || planDate.getMonth() !== smCalMonth) return;
+      var data = smPlanGetDay(wk, dayKey);
+      if (!data.pillar && !data.notes && !data.format) return;
+      var dn = planDate.getDate();
+      if (!planByDate[dn]) planByDate[dn] = [];
+      planByDate[dn].push({ wk: wk, dayKey: dayKey, data: data });
+    });
+  });
+
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
@@ -411,6 +428,20 @@ function smRenderCalendar() {
 
     html += '<div style="min-height:80px;background:' + (isToday ? '#EDE9FE' : 'white') + ';border:1px solid ' + (isToday ? '#A78BFA' : 'var(--sand)') + ';border-radius:8px;padding:6px;cursor:pointer" onclick="smOpenModal(null,\'idea\',\'' + dateStr + '\')">'
       + '<div style="font-size:11px;font-weight:' + (isToday ? '700' : '500') + ';color:' + (isToday ? '#7C3AED' : 'var(--charcoal)') + ';margin-bottom:4px">' + d + '</div>';
+
+    // Plan tiles (from weekly plan)
+    (planByDate[d] || []).forEach(function(entry) {
+      var pd = entry.data;
+      var pc = SM_PILLAR_COLORS[pd.pillar] || '#9CA3AF';
+      var titleText = pd.notes || pd.pillar || '';
+      var linkIcon  = pd.link ? ' <span style="opacity:.8">🔗</span>' : '';
+      html += '<div onclick="event.stopPropagation();' + (pd.link ? 'window.open(\'' + pd.link.replace(/'/g, "\\'") + '\',\'_blank\')' : '') + '" '
+        + 'title="' + esc(pd.pillar) + (pd.format ? ' · ' + pd.format : '') + (pd.notes ? '\n' + pd.notes : '') + '" '
+        + 'style="border:2px solid ' + pc + ';border-radius:4px;padding:2px 5px;margin-bottom:2px;background:white;' + (pd.link ? 'cursor:pointer' : 'cursor:default') + '">'
+        + (pd.format ? '<div style="font-size:8px;font-weight:700;color:' + pc + ';text-transform:uppercase;letter-spacing:.4px">' + esc(pd.format) + '</div>' : '')
+        + '<div style="font-size:9px;font-weight:600;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(titleText) + linkIcon + '</div>'
+        + '</div>';
+    });
 
     dayPosts.forEach(function(post) {
       var stageObj = SM_STAGES.find(function(s) { return s.key === post.stage; });
