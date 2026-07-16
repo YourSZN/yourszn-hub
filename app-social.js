@@ -77,7 +77,8 @@ function smPlanGetDay(wk, dayKey) {
     format:       saved.format       !== undefined ? saved.format       : (def.format  || ''),
     difficulty:   saved.difficulty   || '',
     viewerAction: saved.viewerAction || '',
-    notes:        saved.notes        || ''
+    notes:        saved.notes        || '',
+    link:         saved.link         || ''
   };
 }
 
@@ -198,9 +199,18 @@ function smRenderPlan() {
       + '<td style="padding:6px 8px;vertical-align:top">' + pillarDD(wk, d, data.pillar) + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + actionCell + '</td>'
-      + '<td style="padding:6px 8px;vertical-align:top"><textarea placeholder="Hook idea, caption notes…" '
+      + '<td style="padding:6px 8px;vertical-align:top">'
+        + '<textarea placeholder="Hook idea, caption notes…" '
         + 'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:80px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
-        + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea></td>'
+        + 'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'notes\',this.value)">' + esc(data.notes) + '</textarea>'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-top:5px">'
+        +   '<span style="font-size:13px;flex-shrink:0">🔗</span>'
+        +   '<input type="url" placeholder="Paste video or post link…" value="' + esc(data.link) + '" '
+        +     'style="flex:1;border:1px solid var(--sand);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--charcoal);background:white;outline:none;min-width:0" '
+        +     'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'link\',this.value.trim())">'
+        +   (data.link ? '<a href="' + esc(data.link) + '" target="_blank" rel="noopener" style="flex-shrink:0;font-size:11px;color:var(--rose);font-weight:600;text-decoration:none;white-space:nowrap">Open ↗</a>' : '')
+        + '</div>'
+        + '</td>'
       + '</tr>';
   });
 
