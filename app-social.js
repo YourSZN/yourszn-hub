@@ -499,7 +499,11 @@ function smRenderCalendar() {
     var cellBg     = pc || (isToday ? '#EDE9FE' : 'white');
     var cellBorder = isToday && !pc ? 'border:2px solid #A78BFA;' : 'border:1px solid ' + (pc ? pc : 'var(--sand)') + ';';
 
-    html += '<div style="' + cellBorder + 'background:' + cellBg + ';border-radius:10px;padding:10px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;position:relative" onclick="smOpenModal(null,\'idea\',\'' + dateStr + '\')">';
+    var cellClick = primaryPlan && primaryPlan.data.postId
+      ? 'smPlanOpenPost(\'' + primaryPlan.wk + '\',\'' + primaryPlan.dayKey + '\')'
+      : 'smOpenModal(null,\'idea\',\'' + dateStr + '\')';
+
+    html += '<div style="' + cellBorder + 'background:' + cellBg + ';border-radius:10px;padding:10px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;position:relative" onclick="' + cellClick + '">';
 
     // Stage status badges (top-right) — derived from linked Pipeline post
     var stageOrder = ['idea','scripted','filmed','edited','g2g','scheduled','posted'];
