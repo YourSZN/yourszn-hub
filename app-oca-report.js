@@ -475,32 +475,35 @@ function ocaBuildReportHTML(scrollMode) {
   );
 
   // ══ PERSONAL FEATURES ══
-  var featLeft  = [{label:'Hair', hex:r.colourHair}, {label:'Skin 1', hex:r.colourSkin1}];
-  var featRight = [{label:'Eyes', hex:r.colourEyes}, {label:'Skin 2', hex:r.colourSkin2}, {label:'Lips', hex:r.colourLips}];
-  function swatchSq(f) {
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px">'
-      + '<div style="width:54px;height:54px;border-radius:10px;background:'+f.hex+';border:1px solid rgba(0,0,0,.08);box-shadow:0 2px 8px rgba(0,0,0,.12)"></div>'
-      + '<div style="font-size:7.5px;letter-spacing:1.2px;text-transform:uppercase;color:#8C7C6C;font-weight:500;text-align:center">'+f.label+'</div>'
+  var pfFeatures = [
+    {label:'Hair',   hex:r.colourHair},
+    {label:'Eyes',   hex:r.colourEyes},
+    {label:'Skin 1', hex:r.colourSkin1},
+    {label:'Skin 2', hex:r.colourSkin2},
+    {label:'Lips',   hex:r.colourLips},
+  ];
+  function pfSwatch(f) {
+    var bright = parseInt(f.hex.slice(1,3),16)*0.299 + parseInt(f.hex.slice(3,5),16)*0.587 + parseInt(f.hex.slice(5,7),16)*0.114;
+    var txtCol = bright > 155 ? 'rgba(0,0,0,.7)' : 'rgba(255,255,255,.92)';
+    return '<div style="background:'+f.hex+';border-radius:10px;padding:12px 18px;display:flex;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,.14)">'
+      + '<span style="color:'+txtCol+';font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase">'+f.label+'</span>'
       + '</div>';
   }
-  var pfCopy = 'In colour analysis, we consider all your features to create a complete picture. Each feature is assessed carefully, and through a systematic process, we determine your season.'
+  var pfCopy = '<strong>In colour analysis, we consider all your features to create a complete picture.</strong> Each feature is assessed carefully, and through a systematic process, we determine your season.'
     + '<br><br>Over the next few pages, you\'ll find a brief overview of how your season was identified, along with the colours that enhance your natural beauty and those that may detract from it.'
-    + '<br><br>As you go through these slides, remember that &ldquo;brighter&rdquo; isn\'t always better. In colour analysis, the goal is harmony. We want the colours to complement you, not overpower you! The perfect colours allow you and the shade to shine together, without one dominating the other.'
-    + '<br><br><em>Enjoy discovering your best colours!</em>';
+    + '<br><br>As you go through these slides, remember that &ldquo;brighter&rdquo; isn\'t always better. <strong>In colour analysis, the goal is harmony.</strong> We want the colours to complement you, not overpower you! The perfect colours allow you and the shade to shine together, without one dominating the other.'
+    + '<br><br><div style="text-align:center"><em>Enjoy discovering your best colours!</em></div>';
   pages.push(rp(
     pageTitle('Overview', 'Your Personal Features')
-    + '<div style="font-size:10px;line-height:1.85;color:#3C3028;margin-bottom:20px">'+pfCopy+'</div>'
-    + '<div style="display:flex;align-items:flex-end;gap:16px;flex:1">'
-    +   '<div style="display:flex;flex-direction:column;justify-content:flex-end;gap:16px;flex-shrink:0;padding-bottom:4px">'
-    +   featLeft.map(swatchSq).join('')
-    +   '</div>'
-    +   '<div style="flex:1;min-width:0;border-radius:14px;overflow:hidden;align-self:flex-end;box-shadow:0 8px 32px rgba(0,0,0,.16)">'
+    + '<div style="font-size:10.5px;line-height:1.85;color:#3C3028;margin-bottom:22px">'+pfCopy+'</div>'
+    + '<div style="display:flex;gap:20px;flex:1;min-height:0">'
+    +   '<div style="flex:1;min-width:0;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.16)">'
     +   (photo
-        ? '<img src="'+photo+'" style="width:100%;height:300px;object-fit:cover;object-position:center top;display:block">'
-        : '<div style="width:100%;height:280px;background:#E8E0D6;display:flex;align-items:center;justify-content:center;color:#8C7C6C;font-size:12px">Upload a client photo</div>')
+        ? '<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center center;display:block">'
+        : '<div style="width:100%;height:100%;min-height:280px;background:#E8E0D6;display:flex;align-items:center;justify-content:center;color:#8C7C6C;font-size:12px">Upload a client photo</div>')
     +   '</div>'
-    +   '<div style="display:flex;flex-direction:column;justify-content:flex-end;gap:16px;flex-shrink:0;padding-bottom:4px">'
-    +   featRight.map(swatchSq).join('')
+    +   '<div style="display:flex;flex-direction:column;justify-content:space-evenly;gap:8px;flex-shrink:0;width:130px">'
+    +   pfFeatures.map(pfSwatch).join('')
     +   '</div>'
     + '</div>'
   ));
