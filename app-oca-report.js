@@ -384,6 +384,7 @@ function ocaPrintReport() {
   if (!win) { alert('Pop-up blocked — please allow pop-ups for this site and try again.'); return; }
   win.document.write(html);
   win.document.close();
+  win.focus();
 }
 
 function ocaBuildReportHTML() {
@@ -440,21 +441,38 @@ function ocaBuildReportHTML() {
   var pages = [];
 
   // ══ COVER ══
-  pages.push(rp(
-    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(297mm - 108px);text-align:center">'
-    + '<div style="font-size:7px;letter-spacing:4px;text-transform:uppercase;color:#C4B4A4;margin-bottom:48px">YOUR SZN — COLOUR ANALYSIS</div>'
+  var seasonIcons = [
+    { emoji:'🌸', bg:'rgba(255,220,210,.88)' },
+    { emoji:'🌤️', bg:'rgba(210,230,255,.88)' },
+    { emoji:'🍂', bg:'rgba(255,210,160,.88)' },
+    { emoji:'❄️', bg:'rgba(210,235,255,.88)' },
+  ];
+  var seasonIconsHtml = seasonIcons.map(function(s){
+    return '<div style="width:24px;height:24px;border-radius:50%;background:'+s.bg+';display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.18)">'+s.emoji+'</div>';
+  }).join('');
+
+  pages.push(
+    '<div class="rp" style="padding:0;overflow:hidden;position:relative">'
+    // ── Photo section (top ~52%) ──
+    + '<div style="position:relative;flex:0 0 52%;overflow:hidden">'
     + (photo
-        ? '<div style="width:176px;height:176px;border-radius:50%;overflow:hidden;border:4px solid '+accent+';margin-bottom:6px"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center top"></div>'
-        : '<div style="width:176px;height:176px;border-radius:50%;background:#E8E0D6;margin-bottom:6px"></div>')
-    + '<div style="width:40px;height:1px;background:#DDD5C8;margin:16px auto"></div>'
-    + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:#8C7C6C;margin-bottom:5px">Online Colour Analysis</div>'
-    + '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:46px;font-weight:300;font-style:italic;color:#1C1712;line-height:1.1;margin-bottom:5px">'+(r.clientName||'Your Client')+'</div>'
-    + '<div style="font-size:11px;color:#8C7C6C;margin-bottom:40px">'+dateStr+'</div>'
-    + (r.primarySeason ? '<div style="width:48px;height:2px;background:'+accent+';margin-bottom:12px"></div><div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:'+accent+';font-weight:600">'+r.primarySeason+'</div>' : '')
-    + '<div style="position:absolute;bottom:32px;left:0;right:0;text-align:center"><div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:#C4B4A4">portal.yourszn.com.au</div></div>'
-    + '</div>',
-    'padding:54px 62px;position:relative'
-  ));
+        ? '<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center top;display:block">'
+        : '<div style="width:100%;height:100%;background:linear-gradient(160deg,#9B7EC8 0%,#6B4A9A 40%,#3D2060 100%)"></div>')
+    + '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.08) 0%,rgba(0,0,0,.0) 50%,rgba(0,0,0,.22) 100%)"></div>'
+    // Logo + season icons overlay top-left
+    + '<div style="position:absolute;top:26px;left:30px">'
+    +   '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:23px;font-style:italic;font-weight:600;color:white;letter-spacing:1px;text-shadow:0 2px 10px rgba(0,0,0,.35)">YourSZN</div>'
+    +   '<div style="display:flex;gap:7px;margin-top:9px">'+seasonIconsHtml+'</div>'
+    + '</div>'
+    + '</div>'
+    // ── Lower text section ──
+    + '<div style="flex:1;background:#3A2347;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 40px;text-align:center">'
+    +   '<div style="font-family:\'Jost\',\'Helvetica Neue\',sans-serif;font-size:26px;font-weight:700;letter-spacing:5px;color:#F0E4C2;text-transform:uppercase;line-height:1.25;margin-bottom:14px">ONLINE COLOUR ANALYSIS</div>'
+    +   '<div style="width:44px;height:1px;background:rgba(240,228,194,.35);margin-bottom:14px"></div>'
+    +   '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:21px;font-style:italic;color:#F0E4C2;opacity:.92">&ldquo;'+(r.clientName||'Your Name')+'&rdquo;</div>'
+    + '</div>'
+    + '</div>'
+  );
 
   // ══ PERSONAL FEATURES ══
   var features = [
@@ -653,14 +671,48 @@ function ocaBuildReportHTML() {
     '@page { size: A4 portrait; margin: 0; }',
     '* { box-sizing: border-box; margin: 0; padding: 0; }',
     "body { font-family: 'Jost','Helvetica Neue',sans-serif; background: #EDE7DF; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
-    '.rp { width: 210mm; min-height: 297mm; position: relative; background: #FAF6F1; page-break-after: always; overflow: hidden; margin: 0 auto; }',
-    '.rp:last-child { page-break-after: auto; }',
-    '@media screen { body { padding: 32px 0; } .rp { box-shadow: 0 2px 20px rgba(0,0,0,.10); margin-bottom: 20px; } }',
-    '@media print { body { background: white; padding: 0; } .rp { margin: 0; box-shadow: none; } }',
+    '.rp { width: 210mm; height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto; display: none; }',
+    '.rp.active { display: flex; flex-direction: column; }',
+    '@media screen { body { padding: 70px 0 40px; } .rp.active { box-shadow: 0 4px 28px rgba(0,0,0,.14); } }',
+    '#_nav { position:fixed;top:0;left:0;right:0;background:#1C1712;color:white;padding:10px 20px;display:flex;align-items:center;gap:10px;z-index:9999;font-family:Jost,sans-serif;font-size:13px }',
+    '#_nav button { background:rgba(255,255,255,.14);color:white;border:none;padding:7px 18px;border-radius:7px;cursor:pointer;font-size:12px;font-family:Jost,sans-serif;font-weight:500;letter-spacing:.3px;transition:background .15s }',
+    '#_nav button:hover:not(:disabled) { background:rgba(255,255,255,.26) }',
+    '#_nav button:disabled { opacity:.3;cursor:default }',
+    '#_nav .print-btn { background:#7B5EA7;font-weight:600;padding:7px 20px }',
+    '#_nav .print-btn:hover { background:#9370C4 }',
+    '#_pi { flex:1;text-align:center;font-size:12px;opacity:.6;letter-spacing:.5px }',
+    '@media print { #_nav { display:none!important } body { background:white;padding:0 } .rp { display:flex!important;flex-direction:column;page-break-after:always;box-shadow:none;margin:0 } .rp:last-child { page-break-after:auto } }',
   ].join('\n');
+
+  var navScript = '<script>'
+    + 'var _cur=0;'
+    + 'function _sp(n){'
+    +   'var pgs=document.querySelectorAll(".rp");'
+    +   'if(n<0||n>=pgs.length)return;'
+    +   'pgs.forEach(function(p,i){p.classList.toggle("active",i===n);});'
+    +   '_cur=n;'
+    +   'document.getElementById("_pi").textContent="Page "+(n+1)+" of "+pgs.length;'
+    +   'document.getElementById("_pb").disabled=n===0;'
+    +   'document.getElementById("_nb").disabled=n===pgs.length-1;'
+    +   'window.scrollTo(0,0);'
+    + '}'
+    + 'document.addEventListener("DOMContentLoaded",function(){_sp(0);});'
+    + 'document.addEventListener("keydown",function(e){if(e.key==="ArrowLeft")_sp(_cur-1);if(e.key==="ArrowRight")_sp(_cur+1);});'
+    + '<\/script>';
+
+  var navBar = '<div id="_nav">'
+    + '<button id="_pb" onclick="_sp(_cur-1)">&#8592; Prev</button>'
+    + '<span id="_pi">Page 1</span>'
+    + '<button id="_nb" onclick="_sp(_cur+1)">Next &#8594;</button>'
+    + '<button class="print-btn" onclick="window.print()">&#128438; Print PDF</button>'
+    + '</div>';
 
   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
     + '<title>Colour Analysis — '+(r.clientName||'Report')+'</title>'
     + '<style>'+css+'</style>'
-    + '</head><body>'+pages.join('\n')+'</body></html>';
+    + navScript
+    + '</head><body>'
+    + navBar
+    + pages.join('\n')
+    + '</body></html>';
 }
