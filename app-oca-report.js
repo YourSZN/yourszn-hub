@@ -675,32 +675,35 @@ function ocaBuildReportHTML(scrollMode) {
     + '</div>'
   ));
 
-  var googleFonts = "@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Marcellus&family=Jost:wght@300;400;500;600&display=swap');";
+  var fontLink = '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    + '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Marcellus&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">';
   var baseCSS = [
     '@page { size: A4 portrait; margin: 0; }',
     '* { box-sizing: border-box; margin: 0; padding: 0; }',
-    "-webkit-print-color-adjust: exact; print-color-adjust: exact;",
+    '-webkit-print-color-adjust: exact; print-color-adjust: exact;',
   ].join('\n');
 
   if (scrollMode) {
-    var scrollCSS = googleFonts + '\n' + baseCSS + '\n' + [
+    var scrollCSS = baseCSS + '\n' + [
       "body { font-family: 'Marcellus',Georgia,serif; background: #3C3C3C; padding: 40px 0; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.78; }",
       '.rp { width: 210mm; min-height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto 32px; display: flex; flex-direction: column; box-shadow: 0 6px 32px rgba(0,0,0,.35); }',
       '.rp:last-child { margin-bottom: 0; }',
-      '@media print { body { background: white; padding: 0; zoom: 1; } .rp { margin: 0; box-shadow: none; page-break-after: always; } .rp:last-child { page-break-after: auto; } }',
+      '@media print { body { background: white; padding: 0; zoom: 1; } .rp { width: 210mm; height: 297mm; margin: 0; box-shadow: none; page-break-after: always; overflow: hidden; } .rp:last-child { page-break-after: auto; } }',
     ].join('\n');
 
     var editScript = '<script>document.addEventListener("DOMContentLoaded",function(){document.designMode="on";});<\/script>';
 
     return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
       + '<title>Colour Analysis — '+(r.clientName||'Report')+'</title>'
+      + fontLink
       + '<style>'+scrollCSS+'</style>'
       + editScript
       + '</head><body>'+pages.join('\n')+'</body></html>';
   }
 
   // ── Page-by-page popup mode ──
-  var popupCSS = googleFonts + '\n' + baseCSS + '\n' + [
+  var popupCSS = baseCSS + '\n' + [
     "body { font-family: 'Marcellus',Georgia,serif; background: #EDE7DF; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
     '.rp { width: 210mm; height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto; display: none; }',
     '.rp.active { display: flex; flex-direction: column; }',
@@ -740,6 +743,7 @@ function ocaBuildReportHTML(scrollMode) {
 
   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
     + '<title>Colour Analysis — '+(r.clientName||'Report')+'</title>'
+    + fontLink
     + '<style>'+popupCSS+'</style>'
     + navScript
     + '</head><body>'
