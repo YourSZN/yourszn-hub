@@ -387,7 +387,7 @@ function ocaPrintReport() {
   win.focus();
 }
 
-function ocaBuildReportHTML() {
+function ocaBuildReportHTML(scrollMode) {
   var r = ocaReport;
   var photo = (typeof ocaPhoto !== 'undefined' && ocaPhoto) ? ocaPhoto : null;
   var season = r.primarySeason ? OCA_SEASONS[r.primarySeason] : null;
@@ -666,10 +666,29 @@ function ocaBuildReportHTML() {
     + '</div>'
   ));
 
-  var css = [
-    "@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap');",
+  var googleFonts = "@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap');";
+  var baseCSS = [
     '@page { size: A4 portrait; margin: 0; }',
     '* { box-sizing: border-box; margin: 0; padding: 0; }',
+    "-webkit-print-color-adjust: exact; print-color-adjust: exact;",
+  ].join('\n');
+
+  if (scrollMode) {
+    var scrollCSS = googleFonts + '\n' + baseCSS + '\n' + [
+      "body { font-family: 'Jost','Helvetica Neue',sans-serif; background: #3C3C3C; padding: 40px 0; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
+      '.rp { width: 210mm; min-height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto 32px; display: flex; flex-direction: column; box-shadow: 0 6px 32px rgba(0,0,0,.35); }',
+      '.rp:last-child { margin-bottom: 0; }',
+      '@media print { body { background: white; padding: 0; } .rp { margin: 0; box-shadow: none; page-break-after: always; } .rp:last-child { page-break-after: auto; } }',
+    ].join('\n');
+
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+      + '<title>Colour Analysis — '+(r.clientName||'Report')+'</title>'
+      + '<style>'+scrollCSS+'</style>'
+      + '</head><body>'+pages.join('\n')+'</body></html>';
+  }
+
+  // ── Page-by-page popup mode ──
+  var popupCSS = googleFonts + '\n' + baseCSS + '\n' + [
     "body { font-family: 'Jost','Helvetica Neue',sans-serif; background: #EDE7DF; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
     '.rp { width: 210mm; height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto; display: none; }',
     '.rp.active { display: flex; flex-direction: column; }',
@@ -709,7 +728,7 @@ function ocaBuildReportHTML() {
 
   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
     + '<title>Colour Analysis — '+(r.clientName||'Report')+'</title>'
-    + '<style>'+css+'</style>'
+    + '<style>'+popupCSS+'</style>'
     + navScript
     + '</head><body>'
     + navBar

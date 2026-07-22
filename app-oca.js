@@ -802,7 +802,22 @@ function renderOca() {
   } else if (ocaTab==='snapshot') {
     content.innerHTML = renderOcaSnapshot();
   } else if (ocaTab==='report') {
-    content.innerHTML = renderOcaReport();
+    content.innerHTML = '<div style="background:#3C3C3C;margin:-20px;padding:0;min-height:calc(100vh - 160px);display:flex;align-items:flex-start;justify-content:center">'
+      + '<iframe id="oca-report-iframe" style="width:100%;border:none;display:block;height:500px" scrolling="no"></iframe>'
+      + '</div>';
+    setTimeout(function() {
+      var iframe = document.getElementById('oca-report-iframe');
+      if (!iframe) return;
+      var html = ocaBuildReportHTML(true);
+      var blob = new Blob([html], {type: 'text/html'});
+      iframe.src = URL.createObjectURL(blob);
+      iframe.onload = function() {
+        try {
+          var h = iframe.contentDocument.documentElement.scrollHeight;
+          iframe.style.height = Math.max(h + 80, 600) + 'px';
+        } catch(e) { iframe.style.height = '14000px'; }
+      };
+    }, 0);
   } else if (ocaTab==='boards') {
     content.innerHTML = renderOcaBoards();
   } else if (ocaTab==='submissions') {
