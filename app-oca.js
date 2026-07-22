@@ -783,6 +783,10 @@ function renderOca() {
     }
   } else if (ocaTab==='fundamentals') {
     content.innerHTML = renderOcaFundamentals();
+  } else if (ocaTab==='skintones') {
+    content.innerHTML = renderOcaSkinTonesTab();
+  } else if (ocaTab==='contrast') {
+    content.innerHTML = renderOcaContrastTab();
     setTimeout(function(){ ocaUpdateContrast(); }, 80);
   } else if (ocaTab==='metals') {
     content.innerHTML = renderOcaMetals();
@@ -1107,7 +1111,49 @@ function renderOcaFundamentals() {
     + ocaSampleSwatchPanel()
     + '</div></div>'
 
-    // 2. CONTRAST
+    + '</div>';
+}
+
+function renderOcaContrastTab() {
+  var photoHtml = ocaPhoto
+    ? '<img src="'+ocaPhoto+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(100%);display:block;">'
+    : '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px;border:2px dashed var(--sand);border-radius:8px"><div style=\'font-size:32px\'>&#128247;</div><div style=\'font-size:13px\'>Upload a photo above</div></div>';
+
+  var tags = Object.keys(ocaFundTags).map(function(key) {
+    var t = ocaFundTags[key];
+    var greyBg = GREY_VALS[t.val - 1].bg;
+    var numCol = t.val > 6 ? '#333333' : '#ffffff';
+    var clip = 'polygon(0% 0%, 100% 0%, 100% 20%, 75% 20%, 75% 80%, 100% 80%, 100% 100%, 0% 100%)';
+    return '<div id="oca-tag-' + key + '" '
+      + 'style="position:absolute;left:' + t.x + 'px;top:' + t.y + 'px;'
+      + 'z-index:10;cursor:move;user-select:none;touch-action:none;'
+      + 'display:flex;align-items:center;gap:5px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35))" '
+      + 'onmousedown="tagDragStart(event,\'' + key + '\')" '
+      + 'ontouchstart="tagTouchStart(event,\'' + key + '\')">'
+      + '<span style="font-size:8px;font-weight:800;color:' + t.col + ';letter-spacing:1.5px;text-transform:uppercase;text-shadow:0 1px 3px rgba(0,0,0,0.6);white-space:nowrap;flex-shrink:0">' + t.label + '</span>'
+      + '<div id="oca-tag-swatch-' + key + '" style="position:relative;width:80px;height:36px;border-radius:6px 0 0 6px;background:' + greyBg + ';clip-path:' + clip + ';">'
+      + '<div id="oca-tag-num-' + key + '" style="position:absolute;top:50%;left:35%;transform:translate(-50%,-50%);font-size:10px;font-weight:800;color:' + numCol + ';pointer-events:none">' + t.val + '</div>'
+      + '</div></div>';
+  }).join('');
+
+  var tagControls = Object.keys(ocaFundTags).map(function(key) {
+    var t = ocaFundTags[key];
+    var greyBg = GREY_VALS[t.val - 1].bg;
+    return '<div style="background:white;border:1px solid var(--sand);border-radius:10px;padding:14px 16px;margin-bottom:10px">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+      + '<div style="width:14px;height:14px;border-radius:50%;background:' + t.col + ';flex-shrink:0"></div>'
+      + '<div style="font-size:12px;font-weight:600;color:var(--deep)">' + t.label + '</div>'
+      + '<div id="oca-ctrl-swatch-' + key + '" style="margin-left:auto;width:32px;height:20px;border-radius:4px;background:' + greyBg + ';border:1px solid var(--sand)"></div>'
+      + '<div id="oca-ctrl-num-' + key + '" style="font-size:12px;font-weight:700;color:var(--deep);min-width:16px;text-align:right">' + t.val + '</div>'
+      + '</div>'
+      + '<input id="oca-slider-' + key + '" type="range" min="1" max="10" value="' + t.val + '" style="width:100%;accent-color:' + t.col + ';cursor:pointer" oninput="ocaTagVal(\'' + key + '\',this.value)">'
+      + '<div style="display:flex;justify-content:space-between;margin-top:3px">'
+      + '<span style="font-size:9px;color:var(--muted)">Dark 1</span>'
+      + '<span style="font-size:9px;color:var(--muted)">Light 10</span>'
+      + '</div></div>';
+  }).join('');
+
+  return '<div>'
     + '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Contrast</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px">'
     + '<div class="card"><div class="ch"><div class="ct">Contrast</div>'
@@ -1124,8 +1170,11 @@ function renderOcaFundamentals() {
     + '<div id="oca-contrast-result" style="font-size:12px;color:var(--brown);line-height:1.5"></div>'
     + '</div></div>'
     + '</div>'
+    + '</div>';
+}
 
-    // 3. SKIN TONE
+function renderOcaSkinTonesTab() {
+  return '<div>'
     + '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Skin Tone</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">'
     + '<div class="card"><div class="ch"><div class="ct">Undertone Draping</div>'
@@ -1137,7 +1186,6 @@ function renderOcaFundamentals() {
     + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:12px">Click to add to photo, drag to reposition.</div>'
     + ocaTonePalette()
     + '</div></div>'
-
     + '</div>';
 }
 
