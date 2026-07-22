@@ -485,7 +485,7 @@ function ocaBuildReportHTML(scrollMode) {
   function pfSwatch(f) {
     var bright = parseInt(f.hex.slice(1,3),16)*0.299 + parseInt(f.hex.slice(3,5),16)*0.587 + parseInt(f.hex.slice(5,7),16)*0.114;
     var txtCol = bright > 155 ? 'rgba(0,0,0,.7)' : 'rgba(255,255,255,.92)';
-    return '<div style="background:'+f.hex+';border-radius:10px;padding:12px 18px;display:flex;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,.14)">'
+    return '<div style="background:'+f.hex+';border-radius:8px;padding:10px 16px;display:flex;align-items:center">'
       + '<span style="color:'+txtCol+';font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase">'+f.label+'</span>'
       + '</div>';
   }
@@ -497,12 +497,12 @@ function ocaBuildReportHTML(scrollMode) {
     pageTitle('Overview', 'Your Personal Features')
     + '<div style="font-size:10.5px;line-height:1.85;color:#3C3028;margin-bottom:22px">'+pfCopy+'</div>'
     + '<div style="display:flex;gap:20px;flex:1;min-height:0">'
-    +   '<div style="flex:1;min-width:0;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.16)">'
+    +   '<div style="flex:1;min-width:0;overflow:hidden">'
     +   (photo
         ? '<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center center;display:block">'
         : '<div style="width:100%;height:100%;min-height:280px;background:#E8E0D6;display:flex;align-items:center;justify-content:center;color:#8C7C6C;font-size:12px">Upload a client photo</div>')
     +   '</div>'
-    +   '<div style="display:flex;flex-direction:column;justify-content:space-evenly;gap:8px;flex-shrink:0;width:130px">'
+    +   '<div style="display:flex;flex-direction:column;justify-content:flex-start;gap:4px;flex-shrink:0;width:130px">'
     +   pfFeatures.map(pfSwatch).join('')
     +   '</div>'
     + '</div>'
