@@ -475,28 +475,34 @@ function ocaBuildReportHTML(scrollMode) {
   );
 
   // ══ PERSONAL FEATURES ══
-  var features = [
-    {label:'Hair',   hex:r.colourHair},
-    {label:'Eyes',   hex:r.colourEyes},
-    {label:'Skin 1', hex:r.colourSkin1},
-    {label:'Skin 2', hex:r.colourSkin2},
-    {label:'Lips',   hex:r.colourLips},
-  ];
+  var featLeft  = [{label:'Hair', hex:r.colourHair}, {label:'Skin 1', hex:r.colourSkin1}];
+  var featRight = [{label:'Eyes', hex:r.colourEyes}, {label:'Skin 2', hex:r.colourSkin2}, {label:'Lips', hex:r.colourLips}];
+  function swatchSq(f) {
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:5px">'
+      + '<div style="width:54px;height:54px;border-radius:10px;background:'+f.hex+';border:1px solid rgba(0,0,0,.08);box-shadow:0 2px 8px rgba(0,0,0,.12)"></div>'
+      + '<div style="font-size:7.5px;letter-spacing:1.2px;text-transform:uppercase;color:#8C7C6C;font-weight:500;text-align:center">'+f.label+'</div>'
+      + '</div>';
+  }
+  var pfCopy = 'In colour analysis, we consider all your features to create a complete picture. Each feature is assessed carefully, and through a systematic process, we determine your season.'
+    + '<br><br>Over the next few pages, you\'ll find a brief overview of how your season was identified, along with the colours that enhance your natural beauty and those that may detract from it.'
+    + '<br><br>As you go through these slides, remember that &ldquo;brighter&rdquo; isn\'t always better. In colour analysis, the goal is harmony. We want the colours to complement you, not overpower you! The perfect colours allow you and the shade to shine together, without one dominating the other.'
+    + '<br><br><em>Enjoy discovering your best colours!</em>';
   pages.push(rp(
-    (photo ? '<div style="position:absolute;right:54px;top:64px;width:172px;height:218px;border-radius:12px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.11)"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center top"></div>'
-           + '<div style="position:absolute;right:46px;top:56px;width:172px;height:218px;border:2px solid '+accent+';border-radius:12px;transform:translate(-6px,-6px)"></div>' : '')
-    + pageTitle('Overview','Your Personal<br>Features')
-    + bodyText('In colour analysis, we consider all your features to create a complete picture. Each feature is assessed carefully, and through a systematic process, we determine your season. The goal is harmony — colours that complement, not overpower.')
-    + '<div style="display:flex;gap:10px;margin-bottom:16px;max-width:280px">'
-    + features.map(function(f){
-        return '<div style="flex:1;text-align:center">'
-          + '<div style="width:100%;aspect-ratio:1;border-radius:8px;background:'+f.hex+';border:1px solid rgba(0,0,0,.06);margin-bottom:5px"></div>'
-          + '<div style="font-size:8px;color:#8C7C6C">'+f.label+'</div>'
-          + '</div>';
-      }).join('')
+    pageTitle('Overview', 'Your Personal Features')
+    + '<div style="font-size:10px;line-height:1.85;color:#3C3028;margin-bottom:20px">'+pfCopy+'</div>'
+    + '<div style="display:flex;align-items:flex-end;gap:16px;flex:1">'
+    +   '<div style="display:flex;flex-direction:column;justify-content:flex-end;gap:16px;flex-shrink:0;padding-bottom:4px">'
+    +   featLeft.map(swatchSq).join('')
+    +   '</div>'
+    +   '<div style="flex:1;min-width:0;border-radius:14px;overflow:hidden;align-self:flex-end;box-shadow:0 8px 32px rgba(0,0,0,.16)">'
+    +   (photo
+        ? '<img src="'+photo+'" style="width:100%;height:300px;object-fit:cover;object-position:center top;display:block">'
+        : '<div style="width:100%;height:280px;background:#E8E0D6;display:flex;align-items:center;justify-content:center;color:#8C7C6C;font-size:12px">Upload a client photo</div>')
+    +   '</div>'
+    +   '<div style="display:flex;flex-direction:column;justify-content:flex-end;gap:16px;flex-shrink:0;padding-bottom:4px">'
+    +   featRight.map(swatchSq).join('')
+    +   '</div>'
     + '</div>'
-    + analystNote(r.notesFeatures),
-    'padding:54px 62px;position:relative'
   ));
 
   // ══ SKIN TONES ══
@@ -675,15 +681,18 @@ function ocaBuildReportHTML(scrollMode) {
 
   if (scrollMode) {
     var scrollCSS = googleFonts + '\n' + baseCSS + '\n' + [
-      "body { font-family: 'Jost','Helvetica Neue',sans-serif; background: #3C3C3C; padding: 40px 0; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
+      "body { font-family: 'Jost','Helvetica Neue',sans-serif; background: #3C3C3C; padding: 40px 0; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.78; }",
       '.rp { width: 210mm; min-height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto 32px; display: flex; flex-direction: column; box-shadow: 0 6px 32px rgba(0,0,0,.35); }',
       '.rp:last-child { margin-bottom: 0; }',
-      '@media print { body { background: white; padding: 0; } .rp { margin: 0; box-shadow: none; page-break-after: always; } .rp:last-child { page-break-after: auto; } }',
+      '@media print { body { background: white; padding: 0; zoom: 1; } .rp { margin: 0; box-shadow: none; page-break-after: always; } .rp:last-child { page-break-after: auto; } }',
     ].join('\n');
+
+    var editScript = '<script>document.addEventListener("DOMContentLoaded",function(){document.designMode="on";});<\/script>';
 
     return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
       + '<title>Colour Analysis — '+(r.clientName||'Report')+'</title>'
       + '<style>'+scrollCSS+'</style>'
+      + editScript
       + '</head><body>'+pages.join('\n')+'</body></html>';
   }
 
