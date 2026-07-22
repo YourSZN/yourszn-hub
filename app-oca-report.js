@@ -675,7 +675,7 @@ function ocaBuildReportHTML(scrollMode) {
     + '</div>'
   ));
 
-  var googleFonts = "@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap');";
+  var googleFonts = "@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Marcellus&family=Jost:wght@300;400;500;600&display=swap');";
   var baseCSS = [
     '@page { size: A4 portrait; margin: 0; }',
     '* { box-sizing: border-box; margin: 0; padding: 0; }',
@@ -684,7 +684,7 @@ function ocaBuildReportHTML(scrollMode) {
 
   if (scrollMode) {
     var scrollCSS = googleFonts + '\n' + baseCSS + '\n' + [
-      "body { font-family: 'Jost','Helvetica Neue',sans-serif; background: #3C3C3C; padding: 40px 0; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.78; }",
+      "body { font-family: 'Marcellus',Georgia,serif; background: #3C3C3C; padding: 40px 0; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; zoom: 0.78; }",
       '.rp { width: 210mm; min-height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto 32px; display: flex; flex-direction: column; box-shadow: 0 6px 32px rgba(0,0,0,.35); }',
       '.rp:last-child { margin-bottom: 0; }',
       '@media print { body { background: white; padding: 0; zoom: 1; } .rp { margin: 0; box-shadow: none; page-break-after: always; } .rp:last-child { page-break-after: auto; } }',
@@ -701,7 +701,7 @@ function ocaBuildReportHTML(scrollMode) {
 
   // ── Page-by-page popup mode ──
   var popupCSS = googleFonts + '\n' + baseCSS + '\n' + [
-    "body { font-family: 'Jost','Helvetica Neue',sans-serif; background: #EDE7DF; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
+    "body { font-family: 'Marcellus',Georgia,serif; background: #EDE7DF; color: #1C1712; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
     '.rp { width: 210mm; height: 297mm; position: relative; background: #FAF6F1; overflow: hidden; margin: 0 auto; display: none; }',
     '.rp.active { display: flex; flex-direction: column; }',
     '@media screen { body { padding: 70px 0 40px; } .rp.active { box-shadow: 0 4px 28px rgba(0,0,0,.14); } }',
