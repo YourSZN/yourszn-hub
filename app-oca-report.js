@@ -528,23 +528,89 @@ function ocaBuildReportHTML(scrollMode) {
   ));
 
   // ══ CONTRAST ══
-  var contrastOpts = [
-    {key:'low',    hex:'#B0A090', label:'Low'},
-    {key:'medium', hex:'#706050', label:'Medium'},
-    {key:'high',   hex:'#1C1410', label:'High'},
-  ];
   var contrastKeyMap = {'low':'low','low-medium':'low','medium':'medium','medium-high':'high','high':'high'};
-  var contrastFull = {'low':'Low','low-medium':'Low to Medium','medium':'medium','medium-high':'Medium to High','high':'High'};
+  var contrastFull = {'low':'Low','low-medium':'Low–Medium','medium':'Medium','medium-high':'Medium–High','high':'High'};
+
+  function hexLightVal(hex) {
+    if (!hex || hex.length < 7) return 5;
+    var rv=parseInt(hex.slice(1,3),16), gv=parseInt(hex.slice(3,5),16), bv=parseInt(hex.slice(5,7),16);
+    return Math.max(1, Math.min(10, Math.round((0.299*rv+0.587*gv+0.114*bv)/255*9)+1));
+  }
+  function lightValToGrey(val) {
+    var v = Math.round(20 + (val-1)/9 * 210);
+    return 'rgb('+v+','+v+','+v+')';
+  }
+  var hairL = hexLightVal(r.colourHair);
+  var eyesL = hexLightVal(r.colourEyes);
+  var skinL = hexLightVal(r.colourSkin1);
+
+  function ctTag(label, val, col, grey) {
+    return '<div style="display:flex;align-items:center;background:rgba(255,255,255,0.90);border-radius:3px;overflow:hidden;height:26px;box-shadow:0 1px 5px rgba(0,0,0,0.20)">'
+      + '<div style="padding:0 8px;font-size:7px;font-weight:800;letter-spacing:1.5px;color:'+col+';white-space:nowrap">'+label+'</div>'
+      + '<div style="padding:0 7px;font-size:11px;font-weight:700;color:#1C1712;border-left:1px solid rgba(0,0,0,0.10)">'+val+'</div>'
+      + '<div style="width:30px;height:100%;background:'+grey+'"></div>'
+      + '</div>';
+  }
+
+  var contrastPhotoHtml = photo
+    ? '<div style="position:relative;width:100%;height:100%;overflow:hidden">'
+      + '<img src="'+photo+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(100%);display:block">'
+      + '<div style="position:absolute;left:10px;top:50%;transform:translateY(-70%);display:flex;flex-direction:column;gap:7px">'
+      + ctTag('HAIR', hairL, '#2B5BA8', lightValToGrey(hairL))
+      + ctTag('SKIN', skinL, '#B43030', lightValToGrey(skinL))
+      + ctTag('EYES', eyesL, '#2B7A30', lightValToGrey(eyesL))
+      + '</div>'
+      + '</div>'
+    : '<div style="width:100%;height:100%;background:#E8E0D6;display:flex;align-items:center;justify-content:center">'
+      + '<div style="font-size:10px;color:#8C7C6C">No photo uploaded</div>'
+      + '</div>';
+
   pages.push(rp(
     pageTitle('Step 2','Contrast')
-    + bodyText('The second step is to assess your contrast level. Your image is converted to greyscale and we measure the difference between your lightest and darkest tones.<br><br>Low contrast: shade difference of 1–3 &nbsp;·&nbsp; Medium: 4–6 &nbsp;·&nbsp; High: 7–9')
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;max-width:420px;margin-bottom:6px">'
-    + contrastOpts.map(function(o){
-        var sel=contrastKeyMap[r.contrast]===o.key;
-        return '<div>'+photoCell(o.hex,sel,true)+'<div style="text-align:center;margin-top:5px;font-size:10.5px;font-weight:'+(sel?'700':'400')+';color:'+(sel?'#1C1712':'#8C7C6C')+'">'+o.label+'</div></div>';
+    + '<div style="display:flex;gap:22px;flex:1;min-height:0">'
+    // Left: description + greyscale photo with overlay tags
+    + '<div style="flex:1;min-width:0;display:flex;flex-direction:column">'
+    + '<div style="font-size:10.5px;line-height:1.85;color:#3C3028;margin-bottom:10px">Your image is converted to greyscale to measure the difference between your lightest and darkest tones. Each feature is assigned a value from 1 (darkest) to 10 (lightest).</div>'
+    + '<div style="flex:1;min-height:0;border-radius:4px;overflow:hidden">'
+    + contrastPhotoHtml
+    + '</div>'
+    + '</div>'
+    // Right sidebar
+    + '<div style="width:148px;flex-shrink:0;display:flex;flex-direction:column;gap:14px">'
+    // Contrast scale
+    + '<div>'
+    + '<div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:#8C7C6C;margin-bottom:7px">Contrast Scale</div>'
+    + [['low','#D4C8BC','Low'],['medium','#7A6A5A','Medium'],['high','#1C1410','High']].map(function(opt){
+        var sel = contrastKeyMap[r.contrast] === opt[0];
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+          + '<div style="width:28px;height:16px;background:'+opt[1]+';border-radius:3px'+(sel?';outline:2px solid '+accent+';outline-offset:1px':'')+'"></div>'
+          + '<div style="font-size:10px;font-weight:'+(sel?'700':'400')+';color:'+(sel?'#1C1712':'#8C7C6C')+'">'+opt[2]+'</div>'
+          + (sel ? '<div style="font-size:9px;color:'+accent+';margin-left:auto">✓</div>' : '')
+          + '</div>';
       }).join('')
     + '</div>'
-    + '<div style="font-size:10px;color:#8C7C6C;margin-bottom:4px">Result: <strong style="color:#1C1712">'+(contrastFull[r.contrast]||cap(r.contrast))+(r.contrastScore?' (shade diff: '+r.contrastScore+')':'')+'</strong></div>'
+    // Feature value bars
+    + '<div>'
+    + '<div style="font-size:7px;letter-spacing:2px;text-transform:uppercase;color:#8C7C6C;margin-bottom:7px">Feature Values</div>'
+    + [['Hair',hairL,'#2B5BA8'],['Skin',skinL,'#B43030'],['Eyes',eyesL,'#2B7A30']].map(function(f){
+        return '<div style="margin-bottom:6px">'
+          + '<div style="display:flex;justify-content:space-between;margin-bottom:2px">'
+          + '<div style="font-size:8.5px;font-weight:700;color:'+f[2]+'">'+f[0]+'</div>'
+          + '<div style="font-size:8.5px;font-weight:600;color:#1C1712">'+f[1]+'/10</div>'
+          + '</div>'
+          + '<div style="height:8px;background:#E8E0D6;border-radius:2px;overflow:hidden">'
+          + '<div style="height:100%;background:'+lightValToGrey(f[1])+';width:'+(f[1]/10*100)+'%;border-radius:2px;border:1px solid rgba(0,0,0,0.08)"></div>'
+          + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    // Result
+    + '<div style="margin-top:auto">'
+    + (r.contrastScore ? '<div style="font-size:9px;color:#8C7C6C;margin-bottom:4px">Shade difference: <strong style="color:#1C1712">'+r.contrastScore+'</strong></div>' : '')
+    + '<div style="font-size:9px;color:#8C7C6C">Result: <strong style="color:#1C1712">'+(contrastFull[r.contrast]||cap(r.contrast))+'</strong></div>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
     + analystNote(r.notesContrast)
   ));
 
