@@ -16,6 +16,7 @@ var crmComposeClientId = null;
 var crmSending         = false;
 var crmDocFormOpen     = false;
 var crmComposeOpen     = false;
+var crmSeasonBreakdownOpen = false;
 
 var CRM_SEASON_COLOR = {
   Summer: '#5B8DB8', Winter: '#7052A3', Autumn: '#B86E35', Spring: '#5E8F45'
@@ -289,6 +290,30 @@ function renderCRMPage() {
     +   '<div style="font-size:10px;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-top:1px">Total</div>'
     + '</div>'
     + '</div>';
+
+  html += '<button onclick="crmSeasonBreakdownOpen=!crmSeasonBreakdownOpen;renderCRMPage()" style="background:none;border:none;color:var(--rose);font-size:11px;font-weight:600;cursor:pointer;margin:-14px 0 16px;padding:0;display:block">'
+    + (crmSeasonBreakdownOpen ? '&#9650; Hide full season breakdown' : '&#9660; Show full season breakdown (12 seasons)')
+    + '</button>';
+
+  if (crmSeasonBreakdownOpen) {
+    var seasonCounts = CRM_SEASONS.filter(function(s){ return s; }).map(function(s){
+      return { season: s, n: crmClients.filter(function(c){ return (c.season||'')===s; }).length };
+    }).sort(function(a,b){ return b.n - a.n; });
+    var maxN = Math.max.apply(null, seasonCounts.map(function(x){ return x.n; }).concat([1]));
+    html += '<div style="background:white;border:1px solid var(--sand);border-radius:10px;padding:16px;margin-bottom:22px">';
+    seasonCounts.forEach(function(x){
+      var pct = crmClients.length ? Math.round(x.n/crmClients.length*100) : 0;
+      var col = CRM_SEASON_COLOR[crmSeasonFamily(x.season)] || '#9E8B7A';
+      html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+        + '<div style="width:110px;font-size:11px;color:var(--charcoal);flex-shrink:0">'+x.season+'</div>'
+        + '<div style="flex:1;height:10px;border-radius:6px;background:var(--warm);border:1px solid var(--sand);overflow:hidden">'
+        +   (x.n>0 ? '<div style="height:100%;width:'+(x.n/maxN*100)+'%;background:'+col+'"></div>' : '')
+        + '</div>'
+        + '<div style="width:70px;text-align:right;font-size:11px;color:var(--muted);flex-shrink:0">'+x.n+' ('+pct+'%)</div>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
 
   if (!list.length) {
     el.innerHTML = html + '<div style="padding:60px 0;text-align:center;color:var(--muted);font-size:13px">'
