@@ -1930,20 +1930,28 @@ function denyAccess(id){
 // ──────────────────────────────────────────────
 function renderDashTaskProgress(){
   var el=document.getElementById('dash-task-progress'); if(!el) return;
-  var wt=tasksForWeek(0); var html='';
+  var wt=tasksForWeek(0); var html=''; var staffOpen={};
   ['salma','lemari'].forEach(function(uid){
     var u=USERS[uid]; var mt=wt.filter(function(t){return t.assignedTo===uid;});
     var tot=mt.length;
-    if(!tot){html+='<div class="tp-row"><div class="tp-label"><span class="tp-name">'+u.name+'</span><span class="tp-counts">No tasks this week</span></div><div class="tp-track"></div></div>';return;}
+    if(!tot){html+='<div class="tp-row"><div class="tp-label"><span class="tp-name">'+u.name+'</span><span class="tp-counts">No tasks this week</span></div><div class="tp-track"></div></div>';staffOpen[uid]={open:0,tot:0};return;}
     var dn=mt.filter(function(t){return taskStat(t)==='done';}).length;
     var ip=mt.filter(function(t){var s=taskStat(t);return s==='in-progress'||s==='waiting';}).length;
     var ns=tot-dn-ip;
+    staffOpen[uid]={open:tot-dn,tot:tot};
     var pw=function(n){return (n/tot*100).toFixed(1)+'%';};
     html+='<div class="tp-row"><div class="tp-label"><span class="tp-name">'+u.name+'</span><span class="tp-counts">'+dn+'/'+tot+' done</span></div>'+
       '<div class="tp-track">'+(dn>0?'<div class="tp-seg-green" style="width:'+pw(dn)+'"></div>':'')+
       (ip>0?'<div class="tp-seg-orange" style="width:'+pw(ip)+'"></div>':'')+
       (ns>0?'<div class="tp-seg-red" style="width:'+pw(ns)+'"></div>':'')+'</div></div>';
   });
+  var hiUid = staffOpen.salma.open >= staffOpen.lemari.open ? 'salma' : 'lemari';
+  var loUid = hiUid === 'salma' ? 'lemari' : 'salma';
+  var hiOpen = staffOpen[hiUid].open, loOpen = staffOpen[loUid].open;
+  var imbalanced = (hiOpen - loOpen >= 3) && (loOpen === 0 || hiOpen >= loOpen * 2);
+  if (imbalanced) {
+    html += '<div class="tp-imbalance">&#9878; ' + USERS[hiUid].name + ' has ' + hiOpen + ' open task' + (hiOpen===1?'':'s') + ' this week vs ' + USERS[loUid].name + '&rsquo;s ' + loOpen + ' &mdash; consider rebalancing.</div>';
+  }
   var all=wt.filter(function(t){return t.assignedTo!=='latisha';}); var tot2=all.length;
   if(tot2>0){
     var dn2=all.filter(function(t){return taskStat(t)==='done';}).length;
