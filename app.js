@@ -2,9 +2,9 @@
 // CONFIG — change PINs here
 // ══════════════════════════════════════
 var USERS = {
-latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','staff','finances','vietnam','sops','social','marketing','online','comms'] },
-  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','marketing','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','social','marketing','online','comms'] }
+latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','workflows','staff','finances','vietnam','sops','social','marketing','online','comms'] },
+  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','notifications','tasks','workflows', 'calendar','clients','vouchers','tours','vietnam','sops','marketing','online','comms'] },
+  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','notifications','tasks','workflows', 'calendar','clients','vouchers','tours','vietnam','sops','social','marketing','online','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
@@ -15,6 +15,7 @@ var NAV = [
   { id:'clients',   lbl:'Clients',      sec:'Operations',  icon:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
   { id:'vouchers',  lbl:'Gift Vouchers', sec:'Operations', icon:'<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>' },
   { id:'tasks',     lbl:'Tasks',        sec:null,          icon:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
+  { id:'workflows', lbl:'Workflows',    sec:null,          icon:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
   { id:'staff',     lbl:'Staff',        sec:null,          icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
   { id:'tours',     lbl:'Tours',        sec:null,          icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
 
@@ -513,6 +514,7 @@ function launchApp() {
   renderAdCreativePage();
   renderGoals();
   renderFinances();
+  renderWorkflowsPage();
   if (curUser === 'latisha') {
     renderStaffPage();
     renderDashTaskProgress();
@@ -561,6 +563,7 @@ function showPage(id) {
   if (id==='vouchers') renderVoucherTab();
   if (id==='online') renderOca();
   if (id==='calendar') { loadCalendarBookings(); }
+  if (id==='workflows') { renderWorkflowsPage(); }
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
   document.querySelectorAll('.nitem').forEach(function(n){ n.classList.remove('on'); });
   var pg = document.getElementById('pg-'+id);
@@ -2307,6 +2310,20 @@ var sopList = [
   {id:5,title:'ManyChat',category:'Marketing',url:'https://manychat.com',user:'hello@yourszn.com.au',pw:'',notes:'IG DM automation'}
 ];
 var sopFilt='All', sopRev={};
+
+// ── Workflows (Checklist Templates + Kanban Board) ──
+var checklistTemplates = [];
+var checklistInstances = [];
+var boardCards = [];
+var _templateEditId = null, _cardEditId = null, _cardPresetCol = 'todo';
+var workflowsTab = 'templates';
+var dragCardId = null;
+var BOARD_COLS = [
+  { id:'todo',       lbl:'To Do' },
+  { id:'inprogress', lbl:'In Progress' },
+  { id:'review',     lbl:'Review' },
+  { id:'done',       lbl:'Done' }
+];
 function togSopForm(){ openSopModal(null); }
 
 function addSop(){ openSopModal(null); }
@@ -2575,6 +2592,271 @@ function sopToggleStep(sopId, stepIdx) {
     sopRunState[sopId].done[stepIdx] = true;
   }
   renderSops();
+}
+
+// ══════════════════════════════════════
+// WORKFLOWS — Checklist Templates + Kanban Board
+// ══════════════════════════════════════
+var STAFF_LIST = Object.keys(USERS).map(function(id){ return { id:id, name:USERS[id].name }; });
+
+function setWorkflowsTab(tab) {
+  workflowsTab = tab;
+  document.getElementById('wf-sec-templates').style.display = (tab === 'templates') ? 'block' : 'none';
+  document.getElementById('wf-sec-board').style.display     = (tab === 'board')     ? 'block' : 'none';
+  document.querySelectorAll('[id^="wf-tab-"]').forEach(function(b){ b.classList.remove('on'); });
+  var tb = document.getElementById('wf-tab-' + tab);
+  if (tb) tb.classList.add('on');
+}
+
+function renderWorkflowsPage() {
+  var pg = document.getElementById('pg-workflows');
+  if (!pg) return;
+  renderTemplates();
+  renderInstances();
+  renderBoard();
+}
+
+// ── Checklist Templates ──
+function openTemplateModal(id) {
+  _templateEditId = id;
+  var t = id ? checklistTemplates.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('tplm-heading').textContent = t ? 'Edit Template' : 'New Template';
+  document.getElementById('tplm-title').value = t ? (t.title || '') : '';
+  document.getElementById('tplm-cat').value   = t ? (t.category || 'Admin') : 'Admin';
+  document.getElementById('tplm-steps').value = t && t.steps && t.steps.length ? t.steps.join('\n') : '';
+  document.getElementById('tplm-del').style.display = t ? 'inline-block' : 'none';
+  document.getElementById('tplm-err').textContent = '';
+  document.getElementById('template-modal').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('tplm-title').focus(); }, 80);
+}
+function closeTemplateModal() {
+  document.getElementById('template-modal').style.display = 'none';
+}
+function saveTemplateModal() {
+  var title = document.getElementById('tplm-title').value.trim();
+  if (!title) { document.getElementById('tplm-err').textContent = 'Title is required.'; return; }
+  var stepsRaw = document.getElementById('tplm-steps').value.trim();
+  var steps = stepsRaw ? stepsRaw.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; }) : [];
+  if (!steps.length) { document.getElementById('tplm-err').textContent = 'Add at least one step.'; return; }
+  var obj = {
+    id: _templateEditId || Date.now(),
+    title: title,
+    category: document.getElementById('tplm-cat').value,
+    steps: steps,
+    updatedAt: new Date().toISOString()
+  };
+  if (_templateEditId) {
+    var i = checklistTemplates.findIndex(function(x){ return x.id === _templateEditId; });
+    if (i > -1) checklistTemplates[i] = obj;
+  } else {
+    checklistTemplates.push(obj);
+  }
+  closeTemplateModal(); saveData(); renderTemplates();
+}
+function deleteTemplate(id) {
+  if (!confirm('Delete this template? Checklists already running are unaffected.')) return;
+  checklistTemplates = checklistTemplates.filter(function(x){ return x.id !== id; });
+  saveData(); renderTemplates();
+}
+function renderTemplates() {
+  var grid = document.getElementById('template-grid');
+  var empty = document.getElementById('template-empty');
+  if (!grid) return;
+  if (!checklistTemplates.length) { grid.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+  if (empty) empty.style.display = 'none';
+  grid.innerHTML = '';
+  checklistTemplates.forEach(function(t) {
+    var div = document.createElement('div');
+    div.className = 'sopcard';
+    div.innerHTML =
+      '<div style="display:flex;align-items:flex-start;gap:10px">'
+      + '<div style="flex:1;min-width:0">'
+      +   '<div class="sopcat">' + esc(t.category||'') + '</div>'
+      +   '<div class="soptit">' + esc(t.title) + '</div>'
+      +   '<div class="sopdesc">' + t.steps.length + ' step' + (t.steps.length===1?'':'s') + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex-shrink:0">'
+      +   '<button class="fin-row-edit" onclick="openTemplateModal(' + t.id + ')">Edit</button>'
+      +   '<button class="fin-row-edit" onclick="deleteTemplate(' + t.id + ')" style="color:#EF4444">Del</button>'
+      + '</div>'
+      + '</div>'
+      + '<button class="sop-expand-btn" style="color:var(--rose);margin-top:4px" onclick="openRunInstanceModal(' + t.id + ')">&#9654; Run Checklist</button>';
+    grid.appendChild(div);
+  });
+}
+
+// ── Checklist Instances ──
+function openRunInstanceModal(templateId) {
+  var t = checklistTemplates.find(function(x){ return x.id === templateId; });
+  if (!t) return;
+  document.getElementById('runm-template-id').value = templateId;
+  document.getElementById('runm-title').textContent = 'Run: ' + t.title;
+  var sel = document.getElementById('runm-assignee');
+  sel.innerHTML = STAFF_LIST.map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
+  sel.value = curUser || STAFF_LIST[0].id;
+  document.getElementById('runm-due').value = '';
+  document.getElementById('runm-err').textContent = '';
+  document.getElementById('run-instance-modal').style.display = 'flex';
+}
+function closeRunInstanceModal() {
+  document.getElementById('run-instance-modal').style.display = 'none';
+}
+function saveRunInstance() {
+  var templateId = Number(document.getElementById('runm-template-id').value);
+  var t = checklistTemplates.find(function(x){ return x.id === templateId; });
+  if (!t) return;
+  var obj = {
+    id: Date.now(),
+    templateId: templateId,
+    title: t.title,
+    steps: t.steps.slice(),
+    assignee: document.getElementById('runm-assignee').value,
+    dueDate: document.getElementById('runm-due').value,
+    createdAt: new Date().toISOString(),
+    done: {},
+    status: 'active'
+  };
+  checklistInstances.push(obj);
+  closeRunInstanceModal(); saveData(); renderInstances();
+}
+function toggleInstanceStep(instanceId, stepIdx) {
+  var inst = checklistInstances.find(function(x){ return x.id === instanceId; });
+  if (!inst) return;
+  if (inst.done[stepIdx]) { delete inst.done[stepIdx]; } else { inst.done[stepIdx] = true; }
+  var doneCount = Object.keys(inst.done).length;
+  inst.status = (doneCount === inst.steps.length) ? 'complete' : 'active';
+  saveData(); renderInstances();
+}
+function deleteInstance(id) {
+  if (!confirm('Delete this checklist?')) return;
+  checklistInstances = checklistInstances.filter(function(x){ return x.id !== id; });
+  saveData(); renderInstances();
+}
+function renderInstances() {
+  var list = document.getElementById('instance-list');
+  var empty = document.getElementById('instance-empty');
+  if (!list) return;
+  if (!checklistInstances.length) { list.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+  if (empty) empty.style.display = 'none';
+  list.innerHTML = '';
+  checklistInstances.slice().sort(function(a,b){
+    return (a.status==='complete'?1:0) - (b.status==='complete'?1:0) || b.createdAt.localeCompare(a.createdAt);
+  }).forEach(function(inst) {
+    var doneCount = Object.keys(inst.done).length;
+    var totalCount = inst.steps.length;
+    var allDone = doneCount === totalCount;
+    var who = (STAFF_LIST.find(function(s){ return s.id === inst.assignee; }) || {}).name || inst.assignee;
+    var div = document.createElement('div');
+    div.className = 'sopcard';
+    div.style.marginBottom = '14px';
+    var html = '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">'
+      + '<div><div class="soptit">' + esc(inst.title) + '</div>'
+      + '<div class="sopdesc">Assigned to ' + esc(who) + (inst.dueDate ? ' &middot; due ' + esc(inst.dueDate) : '') + '</div></div>'
+      + '<button class="fin-row-edit" onclick="deleteInstance(' + inst.id + ')" style="color:#EF4444">Del</button>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      + '<span style="font-size:12px;font-weight:600;color:var(--charcoal)">' + (allDone ? '&#10003; Complete!' : doneCount + '/' + totalCount + ' steps done') + '</span>'
+      + '</div>'
+      + '<div style="height:4px;background:var(--sand);border-radius:2px;margin-bottom:12px">'
+      + '<div style="height:4px;background:var(--rose);border-radius:2px;width:' + Math.round(doneCount/totalCount*100) + '%"></div>'
+      + '</div>';
+    inst.steps.forEach(function(step, idx) {
+      var done = !!inst.done[idx];
+      html += '<div onclick="toggleInstanceStep(' + inst.id + ',' + idx + ')" style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--sand);cursor:pointer;user-select:none">'
+        + '<div style="width:18px;height:18px;border-radius:50%;border:2px solid ' + (done ? 'var(--rose)' : '#C8BFB8') + ';background:' + (done ? 'var(--rose)' : 'white') + ';flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center">'
+        + (done ? '<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.2 5.5L8 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
+        + '</div>'
+        + '<span style="font-size:13px;color:' + (done ? 'var(--muted)' : 'var(--charcoal)') + ';text-decoration:' + (done ? 'line-through' : 'none') + ';line-height:1.5">' + esc(step) + '</span>'
+        + '</div>';
+    });
+    div.innerHTML = html;
+    list.appendChild(div);
+  });
+}
+
+// ── Kanban Board ──
+function openCardModal(id, presetCol) {
+  _cardEditId = id || null;
+  _cardPresetCol = presetCol || 'todo';
+  var c = id ? boardCards.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('cardm-heading').textContent = c ? 'Edit Card' : 'New Card';
+  document.getElementById('cardm-title').value = c ? (c.title || '') : '';
+  document.getElementById('cardm-desc').value  = c ? (c.desc || '') : '';
+  var sel = document.getElementById('cardm-assignee');
+  sel.innerHTML = STAFF_LIST.map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
+  sel.value = c ? c.assignee : (curUser || STAFF_LIST[0].id);
+  document.getElementById('cardm-due').value = c ? (c.dueDate || '') : '';
+  document.getElementById('cardm-del').style.display = c ? 'inline-block' : 'none';
+  document.getElementById('cardm-err').textContent = '';
+  document.getElementById('card-modal').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('cardm-title').focus(); }, 80);
+}
+function closeCardModal() {
+  document.getElementById('card-modal').style.display = 'none';
+}
+function saveCardModal() {
+  var title = document.getElementById('cardm-title').value.trim();
+  if (!title) { document.getElementById('cardm-err').textContent = 'Title is required.'; return; }
+  var existing = _cardEditId ? boardCards.find(function(x){ return x.id === _cardEditId; }) : null;
+  var obj = {
+    id: _cardEditId || Date.now(),
+    title: title,
+    desc: document.getElementById('cardm-desc').value.trim(),
+    assignee: document.getElementById('cardm-assignee').value,
+    dueDate: document.getElementById('cardm-due').value,
+    column: existing ? existing.column : _cardPresetCol,
+    createdAt: existing ? existing.createdAt : new Date().toISOString()
+  };
+  if (_cardEditId) {
+    var i = boardCards.findIndex(function(x){ return x.id === _cardEditId; });
+    if (i > -1) boardCards[i] = obj;
+  } else {
+    boardCards.push(obj);
+  }
+  closeCardModal(); saveData(); renderBoard();
+}
+function deleteCard(id) {
+  if (!confirm('Delete this card?')) return;
+  boardCards = boardCards.filter(function(x){ return x.id !== id; });
+  closeCardModal(); saveData(); renderBoard();
+}
+function renderBoard() {
+  var wrap = document.getElementById('board-columns');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  BOARD_COLS.forEach(function(col) {
+    var cards = boardCards.filter(function(c){ return c.column === col.id; });
+    var colDiv = document.createElement('div');
+    colDiv.className = 'kanban-col';
+    colDiv.setAttribute('data-col', col.id);
+    colDiv.innerHTML = '<div class="kanban-col-head">' + esc(col.lbl) + ' <span class="kanban-col-count">' + cards.length + '</span></div>'
+      + '<div class="kanban-col-body" id="kanban-body-' + col.id + '"></div>'
+      + '<button class="sop-expand-btn" style="color:var(--rose)" onclick="openCardModal(null,\'' + col.id + '\')">+ Add card</button>';
+    wrap.appendChild(colDiv);
+    var body = colDiv.querySelector('.kanban-col-body');
+    cards.forEach(function(c) {
+      var who = (STAFF_LIST.find(function(s){ return s.id === c.assignee; }) || {}).name || c.assignee;
+      var card = document.createElement('div');
+      card.className = 'kanban-card';
+      card.setAttribute('draggable', 'true');
+      card.innerHTML = '<div class="kanban-card-title">' + esc(c.title) + '</div>'
+        + (c.desc ? '<div class="kanban-card-desc">' + esc(c.desc) + '</div>' : '')
+        + '<div class="kanban-card-meta">' + esc(who) + (c.dueDate ? ' &middot; ' + esc(c.dueDate) : '') + '</div>';
+      card.onclick = function(){ openCardModal(c.id); };
+      card.addEventListener('dragstart', function(){ dragCardId = c.id; card.classList.add('dragging'); });
+      card.addEventListener('dragend',   function(){ card.classList.remove('dragging'); });
+      body.appendChild(card);
+    });
+    colDiv.addEventListener('dragover', function(e){ e.preventDefault(); colDiv.classList.add('dragover'); });
+    colDiv.addEventListener('dragleave', function(){ colDiv.classList.remove('dragover'); });
+    colDiv.addEventListener('drop', function(e){
+      e.preventDefault(); colDiv.classList.remove('dragover');
+      if (dragCardId === null) return;
+      var card = boardCards.find(function(x){ return x.id === dragCardId; });
+      if (card) { card.column = col.id; saveData(); renderBoard(); }
+      dragCardId = null;
+    });
+  });
 }
 
 // ── Hue & Stripe Audit ──
@@ -4444,7 +4726,10 @@ function saveData() {
       crmClients:crmClients, crmIdSeq:crmIdSeq,
       voucherRegistry:voucherRegistry,
       calendarEvents:calendarEvents,
-      smWeekPlan:smWeekPlan
+      smWeekPlan:smWeekPlan,
+      checklistTemplates:checklistTemplates,
+      checklistInstances:checklistInstances,
+      boardCards:boardCards
     };
 
     // Per-user: private to the logged-in user
@@ -4556,6 +4841,9 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.voucherRegistry)   voucherRegistry   = d.voucherRegistry;
   if (d.calendarEvents)  { calendarEvents = d.calendarEvents; window._calendarEvents = calendarEvents; }
   if (d.smWeekPlan)        smWeekPlan        = d.smWeekPlan;
+  if (d.checklistTemplates) checklistTemplates = d.checklistTemplates;
+  if (d.checklistInstances) checklistInstances = d.checklistInstances;
+  if (d.boardCards)         boardCards         = d.boardCards;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
   try { renderSops(); } catch(e){}
@@ -4580,6 +4868,7 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   try { renderCRMPage(); } catch(e){}
   try { renderDashToday(); } catch(e){}
   try { renderVoucherRegistry(); } catch(e){}
+  try { renderWorkflowsPage(); } catch(e){}
   if (curUser === 'latisha') {
     try { renderStaffPage(); } catch(e){}
     try { renderDashTaskProgress(); } catch(e){}

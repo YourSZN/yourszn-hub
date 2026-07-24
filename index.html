@@ -862,6 +862,106 @@
         </div>
       </div>
     </div>
+
+    <!-- ═══════════════════════════ WORKFLOWS ═══════════════════════════ -->
+    <div class="page" id="pg-workflows">
+      <div class="ph">
+        <div><div class="ptitle">Workflows</div><div class="psub">Checklist templates and project boards</div></div>
+      </div>
+      <!-- tab bar -->
+      <div style="display:flex;gap:8px;margin-bottom:24px">
+        <button id="wf-tab-templates" class="vt-tab on" onclick="setWorkflowsTab('templates')">&#10003; Checklists</button>
+        <button id="wf-tab-board"     class="vt-tab"    onclick="setWorkflowsTab('board')">&#128203; Board</button>
+      </div>
+
+      <!-- ── Checklist Templates section ── -->
+      <div id="wf-sec-templates">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="psub" style="margin:0">Templates</div>
+          <button class="btn btnp" onclick="openTemplateModal(null)">+ New Template</button>
+        </div>
+        <div class="sopgrid" id="template-grid"></div>
+        <div id="template-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No templates yet — click + New Template to add one.</div>
+
+        <div class="psub" style="margin:28px 0 16px">Running Checklists</div>
+        <div id="instance-list"></div>
+        <div id="instance-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No checklists running — run a template above to start one.</div>
+      </div>
+
+      <!-- ── Kanban Board section ── -->
+      <div id="wf-sec-board" style="display:none">
+        <div id="board-columns" class="kanban-wrap"></div>
+      </div>
+    </div>
+
+    <!-- ══ Checklist Template Modal ══ -->
+    <div id="template-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:560px;width:100%;max-height:88vh;overflow-y:auto">
+        <button onclick="closeTemplateModal()" class="sm-modal-x">&#215;</button>
+        <div id="tplm-heading" class="sm-modal-title">New Template</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Title *</label><input id="tplm-title" class="sm-inp" placeholder="e.g. New Client Onboarding"></div>
+          <div class="sm-field"><label class="sm-lbl">Category</label>
+            <select id="tplm-cat" class="sm-inp">
+              <option>Admin</option><option>Marketing</option><option>Content</option>
+              <option>Customer Support</option><option>Operations</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Steps <span style="font-weight:400;color:var(--muted)">(one per line)</span></label>
+          <textarea id="tplm-steps" class="sm-inp" rows="7" placeholder="Send welcome email&#10;Schedule consultation call&#10;Send prep document&#10;Complete analysis&#10;Send report" style="resize:vertical;font-family:inherit;line-height:1.7"></textarea>
+        </div>
+        <div id="tplm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveTemplateModal()">Save Template</button>
+          <button class="btn btns" onclick="closeTemplateModal()">Cancel</button>
+          <button id="tplm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteTemplate(_templateEditId);closeTemplateModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Run Checklist Modal ══ -->
+    <div id="run-instance-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:440px;width:100%">
+        <button onclick="closeRunInstanceModal()" class="sm-modal-x">&#215;</button>
+        <div id="runm-title" class="sm-modal-title">Run Checklist</div>
+        <input type="hidden" id="runm-template-id">
+        <div class="sm-field"><label class="sm-lbl">Assign to</label>
+          <select id="runm-assignee" class="sm-inp"></select>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Due date</label>
+          <input id="runm-due" class="sm-inp" type="date">
+        </div>
+        <div id="runm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveRunInstance()">Start Checklist</button>
+          <button class="btn btns" onclick="closeRunInstanceModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Board Card Modal ══ -->
+    <div id="card-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closeCardModal()" class="sm-modal-x">&#215;</button>
+        <div id="cardm-heading" class="sm-modal-title">New Card</div>
+        <div class="sm-field"><label class="sm-lbl">Title *</label><input id="cardm-title" class="sm-inp" placeholder="e.g. Book Vietnam venue"></div>
+        <div class="sm-field"><label class="sm-lbl">Description</label>
+          <textarea id="cardm-desc" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit;line-height:1.6"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Assignee</label><select id="cardm-assignee" class="sm-inp"></select></div>
+          <div class="sm-field"><label class="sm-lbl">Due date</label><input id="cardm-due" class="sm-inp" type="date"></div>
+        </div>
+        <div id="cardm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveCardModal()">Save Card</button>
+          <button class="btn btns" onclick="closeCardModal()">Cancel</button>
+          <button id="cardm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteCard(_cardEditId);">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══════════════════════════ TOURS ═══════════════════════════ -->
     <div class="page" id="pg-tours">
       <div class="ph">

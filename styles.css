@@ -189,6 +189,22 @@ body.oca-fs #oca-photo-bar{padding:8px 16px;margin-bottom:10px;}
 .soppwrev{font-size:11px;background:none;border:none;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;}
 .sopdel{position:absolute;top:12px;right:12px;background:none;border:none;cursor:pointer;color:var(--tan);font-size:14px;}
 .sopdel:hover{color:#B91C1C;}
+/* ── Kanban Board (Workflows) ── */
+.kanban-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start;}
+.kanban-col{background:var(--warm);border:1px solid var(--sand);border-radius:12px;padding:14px;min-height:120px;transition:border-color .15s;}
+.kanban-col.dragover{border-color:var(--accent);border-style:dashed;}
+.kanban-col-head{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.kanban-col-count{background:var(--sand);color:var(--charcoal);border-radius:10px;padding:1px 8px;font-size:10px;font-weight:700;}
+.kanban-col-body{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;min-height:24px;}
+.kanban-card{background:white;border:1px solid var(--sand);border-radius:10px;padding:12px;cursor:pointer;transition:opacity .15s,box-shadow .15s;}
+.kanban-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.kanban-card.dragging{opacity:.4;}
+.kanban-card-title{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--deep);margin-bottom:3px;}
+.kanban-card-desc{font-size:12px;color:var(--muted);margin-bottom:6px;line-height:1.4;}
+.kanban-card-meta{font-size:11px;color:var(--accent);}
+@media (max-width: 900px){ .kanban-wrap{grid-template-columns:1fr 1fr;} }
+@media (max-width: 560px){ .kanban-wrap{grid-template-columns:1fr;} }
+
 .sopfrow{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
 .fpill{font-size:11px;padding:5px 14px;border-radius:20px;border:1px solid var(--sand);background:var(--warm);cursor:pointer;transition:all .15s;color:var(--charcoal);}
 .fpill.on,.fpill:hover{background:var(--charcoal);color:white;border-color:var(--charcoal);}
