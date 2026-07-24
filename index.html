@@ -1508,7 +1508,6 @@
 <script src="app-oca.js"></script>
 <script src="app-mediapipe.js"></script>
 <script src="app-oca-submissions.js"></script>
-<script src="app-ivorey.js"></script>
 <script src="app-notifications.js"></script>
 <script src="app-vouchers.js"></script>
 <script src="app-vietnam.js"></script>
@@ -1561,65 +1560,6 @@
       <div style="display:flex;gap:10px">
         <button class="btn btnp" onclick="confirmHideTask()" style="flex:1">Hide Task ✓</button>
         <button class="btn btns" onclick="closeHideModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ GOAL MODAL ══ -->
-  <div id="goal-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:600;align-items:center;justify-content:center">
-    <div class="sm-modal" style="max-height:90vh;overflow-y:auto">
-      <button onclick="closeGoalModal()" class="sm-modal-x">&#215;</button>
-      <div class="sm-modal-title" id="gm-heading">New Goal</div>
-      <input type="hidden" id="gm-id">
-
-      <div class="sm-field">
-        <label class="sm-lbl">Goal Title <span style="color:#EF4444">*</span></label>
-        <input id="gm-title" class="sm-inp" placeholder="e.g. $200,000 revenue for Your SZN">
-      </div>
-      <div class="sm-field">
-        <label class="sm-lbl">Category</label>
-        <select id="gm-cat" class="sm-inp">
-          <option value="Revenue">Revenue</option>
-          <option value="Social Media / Growth">Social Media / Growth</option>
-          <option value="Business / Operations">Business / Operations</option>
-          <option value="Personal">Personal</option>
-        </select>
-      </div>
-      <div class="sm-field">
-        <label class="sm-lbl">Description / Notes</label>
-        <textarea id="gm-desc" class="sm-inp" rows="2" style="resize:vertical" placeholder="Any context or notes about this goal..."></textarea>
-      </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <div class="sm-field" style="flex:1;min-width:140px">
-          <label class="sm-lbl">Target Amount / Value <span style="color:#EF4444">*</span></label>
-          <input id="gm-target" class="sm-inp" type="number" min="0" placeholder="e.g. 200000">
-        </div>
-        <div class="sm-field" style="flex:1;min-width:140px">
-          <label class="sm-lbl">Unit (optional)</label>
-          <input id="gm-unit" class="sm-inp" placeholder="e.g. $ AUD, followers, clients">
-        </div>
-      </div>
-      <div class="sm-field">
-        <label class="sm-lbl">Current Amount / Progress</label>
-        <input id="gm-current" class="sm-inp" type="number" min="0" placeholder="e.g. 45000">
-      </div>
-      <div class="sm-field">
-        <label class="sm-lbl">Deadline (optional)</label>
-        <input id="gm-deadline" class="sm-inp" type="date">
-      </div>
-      <div class="sm-field">
-        <label class="sm-lbl">Status</label>
-        <select id="gm-status" class="sm-inp">
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="archived">Archived</option>
-        </select>
-      </div>
-      <div id="gm-err" style="color:#EF4444;font-size:12px;margin-bottom:8px;min-height:16px"></div>
-      <div style="display:flex;gap:10px;margin-top:4px">
-        <button class="btn btnp" onclick="saveGoal()" style="flex:1">Save Goal</button>
-        <button class="btn btns" onclick="closeGoalModal()">Cancel</button>
-        <button id="gm-del-btn" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none" onclick="deleteGoal()">Delete</button>
       </div>
     </div>
   </div>
