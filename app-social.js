@@ -81,7 +81,8 @@ function smPlanGetDay(wk, dayKey) {
     viewerAction: saved.viewerAction || '',
     notes:        saved.notes        || '',
     link:         saved.link         || '',
-    postId:       saved.postId       || null
+    postId:       saved.postId       || null,
+    ready:        !!saved.ready
   };
 }
 
@@ -128,6 +129,12 @@ function smPlanOpenPost(wk, dayKey) {
 
 function smPlanUnlinkPost(wk, dayKey) {
   smSavePlan(wk, dayKey, 'postId', null);
+  renderSocialPage();
+}
+
+function smToggleReady(wk, dayKey) {
+  var current = smPlanGetDay(wk, dayKey).ready;
+  smSavePlan(wk, dayKey, 'ready', !current);
   renderSocialPage();
 }
 
@@ -179,6 +186,7 @@ function smRenderPlan() {
     + '<col style="width:130px">'
     + '<col style="width:160px">'
     + '<col>'
+    + '<col style="width:96px">'
     + '</colgroup>'
     + '<thead><tr style="background:var(--warm)">'
     + '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">day</th>'
@@ -186,6 +194,7 @@ function smRenderPlan() {
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">action i hope<br><span style="font-weight:400;color:var(--muted)">viewer takes</span></th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">post title</th>'
+    + '<th style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">status</th>'
     + '</tr></thead><tbody>';
 
   SM_PLAN_DAYS.forEach(function(d, idx) {
@@ -249,6 +258,13 @@ function smRenderPlan() {
           cell += '</td>';
           return cell;
         })()
+      + '<td style="padding:6px 8px;vertical-align:top;text-align:center">'
+      +   '<button onclick="smToggleReady(\'' + wk + '\',\'' + d + '\')" '
+      +     'title="' + (data.ready ? 'Ready — click to mark not ready' : 'Not filmed/made — click to mark ready') + '" '
+      +     'style="width:100%;border:none;border-radius:20px;padding:8px 4px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;color:white;background:' + (data.ready ? '#22C55E' : '#EF4444') + ';font-family:inherit;transition:background .15s">'
+      +     (data.ready ? 'Ready' : 'Not Ready')
+      +   '</button>'
+      + '</td>'
       + '</tr>';
   });
 
