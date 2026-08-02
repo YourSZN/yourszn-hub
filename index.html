@@ -863,34 +863,140 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════ WORKFLOWS ═══════════════════════════ -->
-    <div class="page" id="pg-workflows">
+    <!-- ═══════════════════════════ PLAN (owner only) ═══════════════════════════ -->
+    <div class="page" id="pg-plan">
       <div class="ph">
-        <div><div class="ptitle">Workflows</div><div class="psub">Checklist templates and project boards</div></div>
+        <div><div class="ptitle">Plan</div><div class="psub">Goals, client avatars, customer journey &amp; workflows</div></div>
       </div>
-      <!-- tab bar -->
-      <div style="display:flex;gap:8px;margin-bottom:24px">
-        <button id="wf-tab-templates" class="vt-tab on" onclick="setWorkflowsTab('templates')">&#10003; Checklists</button>
-        <button id="wf-tab-board"     class="vt-tab"    onclick="setWorkflowsTab('board')">&#128203; Board</button>
+      <!-- subtab bar -->
+      <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+        <button id="plan-tab-goals"    class="vt-tab on" onclick="setPlanTab('goals')">Goals</button>
+        <button id="plan-tab-avatar"   class="vt-tab"    onclick="setPlanTab('avatar')">Avatar</button>
+        <button id="plan-tab-flow"     class="vt-tab"    onclick="setPlanTab('flow')">Flow</button>
+        <button id="plan-tab-workflow" class="vt-tab"    onclick="setPlanTab('workflow')">Plan</button>
       </div>
 
-      <!-- ── Checklist Templates section ── -->
-      <div id="wf-sec-templates">
+      <!-- ── GOALS ── -->
+      <div id="plan-sec-goals">
+        <div class="psub" style="margin:0 0 12px">3-Month Goals</div>
+        <div id="goals-list-3month" style="display:grid;gap:12px;margin-bottom:28px"></div>
+        <button class="btn btnp" style="margin-bottom:28px" onclick="openGoalModal(null,'3month')">+ Add 3-Month Goal</button>
+
+        <div class="psub" style="margin:0 0 12px">6-Month Goals</div>
+        <div id="goals-list-6month" style="display:grid;gap:12px;margin-bottom:28px"></div>
+        <button class="btn btnp" style="margin-bottom:28px" onclick="openGoalModal(null,'6month')">+ Add 6-Month Goal</button>
+
+        <div class="psub" style="margin:0 0 12px">Long-Term Goals</div>
+        <div id="goals-list-longterm" style="display:grid;gap:12px;margin-bottom:12px"></div>
+        <button class="btn btnp" onclick="openGoalModal(null,'longterm')">+ Add Long-Term Goal</button>
+      </div>
+
+      <!-- ── AVATAR ── -->
+      <div id="plan-sec-avatar" style="display:none">
+        <div class="psub" style="margin:0 0 16px">Your 3 client avatars — the people you're marketing and selling to</div>
+        <div id="avatar-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px"></div>
+      </div>
+
+      <!-- ── FLOW ── -->
+      <div id="plan-sec-flow" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div class="psub" style="margin:0">Templates</div>
-          <button class="btn btnp" onclick="openTemplateModal(null)">+ New Template</button>
+          <div class="psub" style="margin:0">Customer journey — the path someone takes from discovery to booking</div>
+          <button class="btn btnp" onclick="openFlowModal(null)">+ Add Stage</button>
         </div>
-        <div class="sopgrid" id="template-grid"></div>
-        <div id="template-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No templates yet — click + New Template to add one.</div>
-
-        <div class="psub" style="margin:28px 0 16px">Running Checklists</div>
-        <div id="instance-list"></div>
-        <div id="instance-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No checklists running — run a template above to start one.</div>
+        <div id="flow-stages"></div>
+        <div id="flow-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No stages yet — click + Add Stage to map out the journey.</div>
       </div>
 
-      <!-- ── Kanban Board section ── -->
-      <div id="wf-sec-board" style="display:none">
-        <div id="board-columns" class="kanban-wrap"></div>
+      <!-- ── PLAN (workflows) ── -->
+      <div id="plan-sec-workflow" style="display:none">
+        <!-- tab bar -->
+        <div style="display:flex;gap:8px;margin-bottom:24px">
+          <button id="wf-tab-templates" class="vt-tab on" onclick="setWorkflowsTab('templates')">&#10003; Checklists</button>
+          <button id="wf-tab-board"     class="vt-tab"    onclick="setWorkflowsTab('board')">&#128203; Board</button>
+        </div>
+
+        <!-- ── Checklist Templates section ── -->
+        <div id="wf-sec-templates">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div class="psub" style="margin:0">Templates</div>
+            <button class="btn btnp" onclick="openTemplateModal(null)">+ New Template</button>
+          </div>
+          <div class="sopgrid" id="template-grid"></div>
+          <div id="template-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No templates yet — click + New Template to add one.</div>
+
+          <div class="psub" style="margin:28px 0 16px">Running Checklists</div>
+          <div id="instance-list"></div>
+          <div id="instance-empty" style="display:none;text-align:center;padding:48px;color:var(--muted)">No checklists running — run a template above to start one.</div>
+        </div>
+
+        <!-- ── Kanban Board section ── -->
+        <div id="wf-sec-board" style="display:none">
+          <div id="board-columns" class="kanban-wrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Goal Modal ══ -->
+    <div id="goal-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closeGoalModal()" class="sm-modal-x">&#215;</button>
+        <div id="goalm-heading" class="sm-modal-title">New Goal</div>
+        <input type="hidden" id="goalm-horizon">
+        <div class="sm-field"><label class="sm-lbl">Title *</label><input id="goalm-title" class="sm-inp" placeholder="e.g. $50k monthly revenue"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Target</label><input id="goalm-target" class="sm-inp" type="number" placeholder="50000"></div>
+          <div class="sm-field"><label class="sm-lbl">Current</label><input id="goalm-current" class="sm-inp" type="number" placeholder="32000"></div>
+          <div class="sm-field"><label class="sm-lbl">Unit</label><input id="goalm-unit" class="sm-inp" placeholder="$, clients, %"></div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Deadline</label><input id="goalm-deadline" class="sm-inp" type="date"></div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label><textarea id="goalm-notes" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit"></textarea></div>
+        <div id="goalm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveGoalModal()">Save Goal</button>
+          <button class="btn btns" onclick="closeGoalModal()">Cancel</button>
+          <button id="goalm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteGoal(_goalEditId);closeGoalModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Avatar Modal ══ -->
+    <div id="avatar-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:560px;width:100%;max-height:88vh;overflow-y:auto">
+        <button onclick="closeAvatarModal()" class="sm-modal-x">&#215;</button>
+        <div id="avatarm-heading" class="sm-modal-title">Client Avatar</div>
+        <input type="hidden" id="avatarm-slot">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Name / Nickname</label><input id="avatarm-name" class="sm-inp" placeholder="e.g. Busy Bec"></div>
+          <div class="sm-field"><label class="sm-lbl">Age &amp; Location</label><input id="avatarm-demo" class="sm-inp" placeholder="e.g. 32, Brisbane"></div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Lifestyle / Occupation</label><input id="avatarm-lifestyle" class="sm-inp" placeholder="e.g. Corporate professional, busy schedule"></div>
+        <div class="sm-field"><label class="sm-lbl">Pain Points &amp; Frustrations</label><textarea id="avatarm-pains" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit" placeholder="What's frustrating them right now?"></textarea></div>
+        <div class="sm-field"><label class="sm-lbl">Goals &amp; Desires</label><textarea id="avatarm-goals" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit" placeholder="What do they actually want?"></textarea></div>
+        <div class="sm-field"><label class="sm-lbl">Where They Hang Out Online</label><input id="avatarm-hangouts" class="sm-inp" placeholder="e.g. Instagram, TikTok, Facebook groups"></div>
+        <div class="sm-field"><label class="sm-lbl">What Makes Them Book</label><textarea id="avatarm-triggers" class="sm-inp" rows="2" style="resize:vertical;font-family:inherit" placeholder="The trigger that turns them into a client"></textarea></div>
+        <div class="sm-field"><label class="sm-lbl">Notes</label><textarea id="avatarm-notes" class="sm-inp" rows="2" style="resize:vertical;font-family:inherit"></textarea></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveAvatarModal()">Save Avatar</button>
+          <button class="btn btns" onclick="closeAvatarModal()">Cancel</button>
+          <button id="avatarm-clear" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="clearAvatar(Number(document.getElementById('avatarm-slot').value));closeAvatarModal();">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Flow Stage Modal ══ -->
+    <div id="flow-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closeFlowModal()" class="sm-modal-x">&#215;</button>
+        <div id="flowm-heading" class="sm-modal-title">New Stage</div>
+        <div class="sm-field"><label class="sm-lbl">Stage Title *</label><input id="flowm-title" class="sm-inp" placeholder="e.g. Discover on Instagram"></div>
+        <div class="sm-field"><label class="sm-lbl">Description</label><textarea id="flowm-desc" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit" placeholder="What happens at this stage?"></textarea></div>
+        <div class="sm-field"><label class="sm-lbl">Link <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="flowm-link" class="sm-inp" type="url" placeholder="https://..."></div>
+        <div id="flowm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveFlowModal()">Save Stage</button>
+          <button class="btn btns" onclick="closeFlowModal()">Cancel</button>
+          <button id="flowm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteFlowStage(_flowEditId);closeFlowModal();">Delete</button>
+        </div>
       </div>
     </div>
 
@@ -1514,6 +1620,7 @@
 <script src="app-finances.js"></script>
 <script src="app-comms.js"></script>
 <script src="app.js"></script>
+<script src="app-plan.js"></script>
 <script src="app-social.js"></script>
 <script src="app-season-snapshot.js"></script>
 <script src="app-crm.js"></script>

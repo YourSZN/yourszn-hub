@@ -2,9 +2,9 @@
 // CONFIG — change PINs here
 // ══════════════════════════════════════
 var USERS = {
-latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','workflows','staff','finances','vietnam','sops','social','marketing','online','comms'] },
-  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','notifications','tasks','workflows', 'calendar','clients','vouchers','tours','vietnam','sops','marketing','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','notifications','tasks','workflows', 'calendar','clients','vouchers','tours','vietnam','sops','social','marketing','online','comms'] }
+latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','plan','staff','finances','vietnam','sops','social','marketing','online','comms'] },
+  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','marketing','online','comms'] },
+  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','social','marketing','online','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
@@ -15,7 +15,7 @@ var NAV = [
   { id:'clients',   lbl:'Clients',      sec:'Operations',  icon:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
   { id:'vouchers',  lbl:'Gift Vouchers', sec:'Operations', icon:'<path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>' },
   { id:'tasks',     lbl:'Tasks',        sec:null,          icon:'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
-  { id:'workflows', lbl:'Workflows',    sec:null,          icon:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' },
+  { id:'plan',      lbl:'Plan',         sec:null,          icon:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>' },
   { id:'staff',     lbl:'Staff',        sec:null,          icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
   { id:'tours',     lbl:'Tours',        sec:null,          icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
 
@@ -514,7 +514,7 @@ function launchApp() {
   renderAdCreativePage();
   renderGoals();
   renderFinances();
-  renderWorkflowsPage();
+  renderPlanPage();
   if (curUser === 'latisha') {
     renderStaffPage();
     renderDashTaskProgress();
@@ -563,7 +563,7 @@ function showPage(id) {
   if (id==='vouchers') renderVoucherTab();
   if (id==='online') renderOca();
   if (id==='calendar') { loadCalendarBookings(); }
-  if (id==='workflows') { renderWorkflowsPage(); }
+  if (id==='plan') { renderPlanPage(); }
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
   document.querySelectorAll('.nitem').forEach(function(n){ n.classList.remove('on'); });
   var pg = document.getElementById('pg-'+id);
@@ -2617,7 +2617,7 @@ function setWorkflowsTab(tab) {
 }
 
 function renderWorkflowsPage() {
-  var pg = document.getElementById('pg-workflows');
+  var pg = document.getElementById('plan-sec-workflow');
   if (!pg) return;
   renderTemplates();
   renderInstances();
@@ -4108,7 +4108,8 @@ function exportData() {
     bizIncome:bizIncome, bizExpenses:bizExpenses, personalExpenses:personalExpenses,
     sopList:sopList, brands:brands, watchlist:watchlist,
     socialSlots:socialSlots, metaSlots:metaSlots, metaSchedData:metaSchedData, celebData:celebData,
-    groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread, vtData:vtData, pwList:pwList, mktData:mktData, ideaList:ideaList, creatorsList:creatorsList
+    groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread, vtData:vtData, pwList:pwList, mktData:mktData, ideaList:ideaList, creatorsList:creatorsList,
+    clientAvatars:clientAvatars, customerFlow:customerFlow
   }, null, 2);
   var blob = new Blob([payload], {type:'application/json'});
   var a = document.createElement('a');
@@ -4146,10 +4147,12 @@ function importData(file) {
       if (d.commsUnread)       commsUnread       = d.commsUnread;
       if (d.mktData)           mktData           = d.mktData;
       if (d.creatorsList)      creatorsList      = d.creatorsList;
+      if (d.clientAvatars)     clientAvatars     = d.clientAvatars;
+      if (d.customerFlow)      customerFlow      = d.customerFlow;
       saveData();
       renderClients(); renderSops(); renderAudit(); renderBrands(); renderWatchlist();
       renderTaskBoard(); renderToursPage(); renderSocialPage(); renderAdCreativePage();
-      renderGoals(); renderFinances();
+      renderGoals(); renderFinances(); renderPlanPage();
       if (curUser==='latisha') { renderStaffPage(); renderDashTaskProgress(); } else { renderMyHub(); }
       alert('Data imported successfully!');
     } catch(err) { alert('Import failed: ' + err.message); }
@@ -4737,7 +4740,9 @@ function saveData() {
       smWeekPlan:smWeekPlan,
       checklistTemplates:checklistTemplates,
       checklistInstances:checklistInstances,
-      boardCards:boardCards
+      boardCards:boardCards,
+      clientAvatars:clientAvatars,
+      customerFlow:customerFlow
     };
 
     // Per-user: private to the logged-in user
@@ -4852,6 +4857,8 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.checklistTemplates) checklistTemplates = d.checklistTemplates;
   if (d.checklistInstances) checklistInstances = d.checklistInstances;
   if (d.boardCards)         boardCards         = d.boardCards;
+  if (d.clientAvatars)      clientAvatars      = d.clientAvatars;
+  if (d.customerFlow)       customerFlow       = d.customerFlow;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
   try { renderSops(); } catch(e){}
@@ -4876,7 +4883,7 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   try { renderCRMPage(); } catch(e){}
   try { renderDashToday(); } catch(e){}
   try { renderVoucherRegistry(); } catch(e){}
-  try { renderWorkflowsPage(); } catch(e){}
+  try { renderPlanPage(); } catch(e){}
   if (curUser === 'latisha') {
     try { renderStaffPage(); } catch(e){}
     try { renderDashTaskProgress(); } catch(e){}
