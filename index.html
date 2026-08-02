@@ -701,9 +701,13 @@
     <div class="page" id="pg-finances">
       <div class="ph">
         <div><div class="ptitle">Finances</div><div class="psub">Business &amp; personal</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="fin-tab on" onclick="showFinTab('business',this)">Business</button>
           <button class="fin-tab" onclick="showFinTab('personal',this)">Personal</button>
+          <button class="fin-tab" onclick="showFinTab('charts',this)">Charts</button>
+          <button class="fin-tab" onclick="showFinTab('cashflow',this)">Cashflow</button>
+          <button class="fin-tab" onclick="showFinTab('goals',this)">Money Goals</button>
+          <button class="fin-tab" onclick="showFinTab('tax',this)">Tax / BAS</button>
         </div>
       </div>
 
@@ -748,6 +752,34 @@
           <button class="btn btnp" style="font-size:11px" onclick="openFinEntryModal('personal',null)">+ Add Expense</button>
         </div>
         <div id="fin-personal-list"></div>
+      </div>
+
+      <!-- ── CHARTS TAB ── -->
+      <div id="fin-charts" style="display:none">
+        <div id="fin-charts-content"></div>
+      </div>
+
+      <!-- ── CASHFLOW TAB ── -->
+      <div id="fin-cashflow" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-family:'Fraunces',serif;font-size:22px;color:var(--deep)">Weekly Cashflow Log</div>
+          <button class="btn btnp" style="font-size:11px" onclick="openCashflowModal(null)">+ Log This Week</button>
+        </div>
+        <div id="fin-cashflow-content"></div>
+      </div>
+
+      <!-- ── MONEY GOALS TAB ── -->
+      <div id="fin-goals" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-family:'Fraunces',serif;font-size:22px;color:var(--deep)">Money Goals</div>
+          <button class="btn btnp" style="font-size:11px" onclick="openMoneyGoalModal(null)">+ Add Money Goal</button>
+        </div>
+        <div id="fin-goals-content"></div>
+      </div>
+
+      <!-- ── TAX / BAS TAB ── -->
+      <div id="fin-tax" style="display:none">
+        <div id="fin-tax-content"></div>
       </div>
     </div>
 
@@ -1621,6 +1653,7 @@
 <script src="app-comms.js"></script>
 <script src="app.js"></script>
 <script src="app-plan.js"></script>
+<script src="app-finances-extra.js"></script>
 <script src="app-social.js"></script>
 <script src="app-season-snapshot.js"></script>
 <script src="app-crm.js"></script>
@@ -1727,6 +1760,12 @@
         <label class="sm-lbl" id="fem-amt-label">Amount ($)</label>
         <input id="fem-amount" class="sm-inp" type="number" min="0" step="0.01" placeholder="0.00">
       </div>
+      <div id="fem-gst-wrap" class="sm-field" style="display:none">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--charcoal);cursor:pointer">
+          <input id="fem-gst" type="checkbox" checked style="width:16px;height:16px">
+          Includes GST (counts as a GST credit on the Tax/BAS tab)
+        </label>
+      </div>
       <div class="sm-field">
         <label class="sm-lbl">Notes</label>
         <input id="fem-notes" class="sm-inp" placeholder="Optional notes">
@@ -1736,6 +1775,49 @@
         <button class="btn btnp" onclick="saveFinEntry()" style="flex:1">Save</button>
         <button class="btn btns" onclick="closeFinEntryModal()">Cancel</button>
         <button id="fem-del-btn" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none" onclick="deleteFinEntry()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Cashflow Modal ══ -->
+  <div id="cashflow-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:600;align-items:center;justify-content:center">
+    <div class="sm-modal" style="max-width:440px;width:100%">
+      <button onclick="closeCashflowModal()" class="sm-modal-x">&#215;</button>
+      <div class="sm-modal-title" id="cfm-heading">Log This Week</div>
+      <input type="hidden" id="cfm-id">
+      <div class="sm-field"><label class="sm-lbl">Week Ending</label><input id="cfm-week" class="sm-inp" type="date"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="sm-field"><label class="sm-lbl">Actual Income ($)</label><input id="cfm-income" class="sm-inp" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="sm-field"><label class="sm-lbl">Actual Expenses ($)</label><input id="cfm-expenses" class="sm-inp" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="sm-field"><label class="sm-lbl">Notes</label><input id="cfm-notes" class="sm-inp" placeholder="Optional notes"></div>
+      <div id="cfm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn btnp" onclick="saveCashflowModal()">Save</button>
+        <button class="btn btns" onclick="closeCashflowModal()">Cancel</button>
+        <button id="cfm-del-btn" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none" onclick="deleteCashflowEntry()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Money Goal Modal ══ -->
+  <div id="moneygoal-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:600;align-items:center;justify-content:center">
+    <div class="sm-modal" style="max-width:440px;width:100%">
+      <button onclick="closeMoneyGoalModal()" class="sm-modal-x">&#215;</button>
+      <div class="sm-modal-title" id="mgm-heading">New Money Goal</div>
+      <input type="hidden" id="mgm-id">
+      <div class="sm-field"><label class="sm-lbl">Title *</label><input id="mgm-title" class="sm-inp" placeholder="e.g. $10k emergency buffer"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="sm-field"><label class="sm-lbl">Target ($)</label><input id="mgm-target" class="sm-inp" type="number" min="0" step="0.01" placeholder="10000"></div>
+        <div class="sm-field"><label class="sm-lbl">Current ($)</label><input id="mgm-current" class="sm-inp" type="number" min="0" step="0.01" placeholder="0"></div>
+      </div>
+      <div class="sm-field"><label class="sm-lbl">Deadline</label><input id="mgm-deadline" class="sm-inp" type="date"></div>
+      <div class="sm-field"><label class="sm-lbl">Notes</label><textarea id="mgm-notes" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit"></textarea></div>
+      <div id="mgm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn btnp" onclick="saveMoneyGoalModal()">Save Goal</button>
+        <button class="btn btns" onclick="closeMoneyGoalModal()">Cancel</button>
+        <button id="mgm-del-btn" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#B91C1C;border:none" onclick="deleteMoneyGoal()">Delete</button>
       </div>
     </div>
   </div>

@@ -17,6 +17,12 @@ function toDisplayPeriod(amount, freq) {
   return amount * (m[freq] || 0);
 }
 
+// Always converts to a WEEKLY amount regardless of the finPeriod toggle — used by Tax/BAS.
+function toWeeklyAmount(amount, freq) {
+  var wk = { weekly:1, monthly:12/52, yearly:1/52, 'one-off':0 };
+  return amount * (wk[freq] || 0);
+}
+
 var bizIncome = [
   { id:1, name:'In-Person (Standard)', cat:'Income', amount:0, freq:'weekly', notes:'', clients:0, rate:349 },
   { id:5, name:'In-Person (Premium)', cat:'Income', amount:0, freq:'weekly', notes:'', clients:0, rate:445 },
@@ -26,24 +32,24 @@ var bizIncome = [
 ];
 
 var bizExpenses = [
-  { id:10, name:'Salma ($5.5/hr)', cat:'Staff', amount:137.50, freq:'weekly', notes:'25hrs' },
-  { id:11, name:'Lemari ($16/hr)', cat:'Staff', amount:240, freq:'weekly', notes:'15hrs' },
-  { id:20, name:'Xero', cat:'Subscriptions', amount:22.50, freq:'weekly', notes:'Monthly' },
-  { id:21, name:'Hue & Stripe', cat:'Subscriptions', amount:29, freq:'weekly', notes:'3 months · $377' },
-  { id:22, name:'Image Innovators', cat:'Subscriptions', amount:12.50, freq:'weekly', notes:'Monthly' },
-  { id:23, name:'Ivorey Top Up', cat:'Subscriptions', amount:7.50, freq:'weekly', notes:'Top up $15' },
-  { id:26, name:'Ivorey', cat:'Subscriptions', amount:0, freq:'weekly', notes:'' },
-  { id:27, name:'ChatGPT', cat:'Subscriptions', amount:8.45, freq:'weekly', notes:'Monthly' },
-  { id:24, name:'Squarespace', cat:'Subscriptions', amount:7, freq:'weekly', notes:'' },
-  { id:25, name:'Google Workspace', cat:'Subscriptions', amount:6.49, freq:'weekly', notes:'' },
-  { id:50, name:'Rent', cat:'Rent / Living', amount:750, freq:'weekly', notes:'Weekly' },
-  { id:51, name:'Electricity', cat:'Rent / Living', amount:0, freq:'weekly', notes:'' },
-  { id:60, name:'Phone (Aldi)', cat:'Electronics', amount:9.75, freq:'weekly', notes:'Monthly' },
-  { id:61, name:'Internet (Dodo)', cat:'Electronics', amount:23.25, freq:'weekly', notes:'Monthly' },
-  { id:30, name:'Google Ads', cat:'Marketing', amount:287, freq:'weekly', notes:'Daily $41' },
-  { id:31, name:'Meta Ads', cat:'Marketing', amount:385, freq:'weekly', notes:'Daily $55' },
-  { id:70, name:'Accounting', cat:'Services', amount:63.835, freq:'weekly', notes:'' },
-  { id:71, name:'Insurance', cat:'Services', amount:25.32, freq:'weekly', notes:'' }
+  { id:10, name:'Salma ($5.5/hr)', cat:'Staff', amount:137.50, freq:'weekly', notes:'25hrs', gstIncluded:false },
+  { id:11, name:'Lemari ($16/hr)', cat:'Staff', amount:240, freq:'weekly', notes:'15hrs', gstIncluded:false },
+  { id:20, name:'Xero', cat:'Subscriptions', amount:22.50, freq:'weekly', notes:'Monthly', gstIncluded:true },
+  { id:21, name:'Hue & Stripe', cat:'Subscriptions', amount:29, freq:'weekly', notes:'3 months · $377', gstIncluded:true },
+  { id:22, name:'Image Innovators', cat:'Subscriptions', amount:12.50, freq:'weekly', notes:'Monthly', gstIncluded:true },
+  { id:23, name:'Ivorey Top Up', cat:'Subscriptions', amount:7.50, freq:'weekly', notes:'Top up $15', gstIncluded:true },
+  { id:26, name:'Ivorey', cat:'Subscriptions', amount:0, freq:'weekly', notes:'', gstIncluded:true },
+  { id:27, name:'ChatGPT', cat:'Subscriptions', amount:8.45, freq:'weekly', notes:'Monthly', gstIncluded:true },
+  { id:24, name:'Squarespace', cat:'Subscriptions', amount:7, freq:'weekly', notes:'', gstIncluded:true },
+  { id:25, name:'Google Workspace', cat:'Subscriptions', amount:6.49, freq:'weekly', notes:'', gstIncluded:true },
+  { id:50, name:'Rent', cat:'Rent / Living', amount:750, freq:'weekly', notes:'Weekly', gstIncluded:false },
+  { id:51, name:'Electricity', cat:'Rent / Living', amount:0, freq:'weekly', notes:'', gstIncluded:true },
+  { id:60, name:'Phone (Aldi)', cat:'Electronics', amount:9.75, freq:'weekly', notes:'Monthly', gstIncluded:true },
+  { id:61, name:'Internet (Dodo)', cat:'Electronics', amount:23.25, freq:'weekly', notes:'Monthly', gstIncluded:true },
+  { id:30, name:'Google Ads', cat:'Marketing', amount:287, freq:'weekly', notes:'Daily $41', gstIncluded:true },
+  { id:31, name:'Meta Ads', cat:'Marketing', amount:385, freq:'weekly', notes:'Daily $55', gstIncluded:true },
+  { id:70, name:'Accounting', cat:'Services', amount:63.835, freq:'weekly', notes:'', gstIncluded:true },
+  { id:71, name:'Insurance', cat:'Services', amount:25.32, freq:'weekly', notes:'', gstIncluded:false }
 ];
 
 var personalExpenses = [
@@ -68,8 +74,10 @@ function setFinPeriod(p, btn) {
 
 function showFinTab(tab, btn) {
   finTab = tab;
-  document.getElementById('fin-business').style.display = tab==='business' ? 'block' : 'none';
-  document.getElementById('fin-personal').style.display = tab==='personal' ? 'block' : 'none';
+  ['business','personal','charts','cashflow','goals','tax'].forEach(function(t) {
+    var sec = document.getElementById('fin-' + t);
+    if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
+  });
   document.querySelectorAll('.fin-tab').forEach(function(b){ b.classList.remove('on'); });
   if (btn) btn.classList.add('on');
   renderFinances();
@@ -78,6 +86,10 @@ function showFinTab(tab, btn) {
 function renderFinances() {
   renderBizFinances();
   renderPersonalFinances();
+  if (finTab === 'charts')   { if (typeof renderFinCharts   === 'function') renderFinCharts(); }
+  if (finTab === 'cashflow') { if (typeof renderCashflow    === 'function') renderCashflow(); }
+  if (finTab === 'goals')    { if (typeof renderMoneyGoals  === 'function') renderMoneyGoals(); }
+  if (finTab === 'tax')      { if (typeof renderTaxBas      === 'function') renderTaxBas(); }
 }
 
 // Shared helper — calculates total income respecting clients×rate
@@ -96,6 +108,17 @@ function calcIncomeTotal() {
       return s + toDisplayPeriod((e.soldThisWeek||0) * (e.guidePrice||0), 'weekly');
     }
     return s + toDisplayPeriod(e.amount, e.freq);
+  }, 0);
+}
+
+// Always-weekly version of calcIncomeTotal — used by Tax/BAS regardless of the finPeriod toggle.
+function calcWeeklyIncomeTotal() {
+  return bizIncome.reduce(function(s, e) {
+    var isClientBased = (e.id===1 || e.id===5 || e.id===2);
+    if (isClientBased && e.clients > 0 && e.rate > 0) return s + e.clients * e.rate;
+    if (e.id===3) return s + toWeeklyAmount((e.totalSubs||0) * (e.subPrice||0), 'monthly');
+    if (e.id===4) return s + (e.soldThisWeek||0) * (e.guidePrice||0);
+    return s + toWeeklyAmount(e.amount, e.freq);
   }, 0);
 }
 
@@ -521,6 +544,13 @@ function openFinEntryModal(type, id) {
   var amtLabel = document.getElementById('fem-amt-label');
   if (amtLabel) amtLabel.textContent = isClientBased ? 'Manual Amount (overrides clients × rate)' : 'Amount ($)';
 
+  // GST checkbox — expenses only
+  var gstWrap = document.getElementById('fem-gst-wrap');
+  if (gstWrap) {
+    gstWrap.style.display = type === 'expense' ? 'block' : 'none';
+    document.getElementById('fem-gst').checked = e ? (e.gstIncluded !== false) : true;
+  }
+
   // Show correct category selector
   var isBiz = type==='income' || type==='expense';
   document.getElementById('fem-cat-wrap').style.display = (isBiz && type!=='income') ? 'block' : 'none';
@@ -561,6 +591,7 @@ function saveFinEntry() {
     clients: clients,
     rate: rate
   };
+  if (type === 'expense') obj.gstIncluded = document.getElementById('fem-gst').checked;
 
   if (editingFinId) {
     var idx = data.findIndex(function(x){ return x.id===editingFinId; });

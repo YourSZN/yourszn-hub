@@ -4109,7 +4109,8 @@ function exportData() {
     sopList:sopList, brands:brands, watchlist:watchlist,
     socialSlots:socialSlots, metaSlots:metaSlots, metaSchedData:metaSchedData, celebData:celebData,
     groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread, vtData:vtData, pwList:pwList, mktData:mktData, ideaList:ideaList, creatorsList:creatorsList,
-    clientAvatars:clientAvatars, customerFlow:customerFlow
+    clientAvatars:clientAvatars, customerFlow:customerFlow,
+    cashflowLog:cashflowLog, moneyGoals:moneyGoals, incomeTaxSetAsideRate:incomeTaxSetAsideRate
   }, null, 2);
   var blob = new Blob([payload], {type:'application/json'});
   var a = document.createElement('a');
@@ -4149,6 +4150,9 @@ function importData(file) {
       if (d.creatorsList)      creatorsList      = d.creatorsList;
       if (d.clientAvatars)     clientAvatars     = d.clientAvatars;
       if (d.customerFlow)      customerFlow      = d.customerFlow;
+      if (d.cashflowLog)       cashflowLog       = d.cashflowLog;
+      if (d.moneyGoals)        moneyGoals        = d.moneyGoals;
+      if (typeof d.incomeTaxSetAsideRate === 'number') incomeTaxSetAsideRate = d.incomeTaxSetAsideRate;
       saveData();
       renderClients(); renderSops(); renderAudit(); renderBrands(); renderWatchlist();
       renderTaskBoard(); renderToursPage(); renderSocialPage(); renderAdCreativePage();
@@ -4742,7 +4746,10 @@ function saveData() {
       checklistInstances:checklistInstances,
       boardCards:boardCards,
       clientAvatars:clientAvatars,
-      customerFlow:customerFlow
+      customerFlow:customerFlow,
+      cashflowLog:cashflowLog,
+      moneyGoals:moneyGoals,
+      incomeTaxSetAsideRate:incomeTaxSetAsideRate
     };
 
     // Per-user: private to the logged-in user
@@ -4859,6 +4866,9 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.boardCards)         boardCards         = d.boardCards;
   if (d.clientAvatars)      clientAvatars      = d.clientAvatars;
   if (d.customerFlow)       customerFlow       = d.customerFlow;
+  if (d.cashflowLog)        cashflowLog        = d.cashflowLog;
+  if (d.moneyGoals)         moneyGoals         = d.moneyGoals;
+  if (typeof d.incomeTaxSetAsideRate === 'number') incomeTaxSetAsideRate = d.incomeTaxSetAsideRate;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
   try { renderSops(); } catch(e){}
