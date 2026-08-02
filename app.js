@@ -4202,13 +4202,20 @@ var vtData = {
   bookedClients: [],
   intClients: [],
   finances: { my:{}, guest:{}, feeRate:0 },
+  // Template steps for each new BOOKED client's onboarding checklist (per-client copies live on client.onboarding)
   onboardingSop: [
-    {id:'ob1', text:'Send contract', done:false, notes:''},
-    {id:'ob2', text:'Receive signed contract & deposit', done:false, notes:''},
-    {id:'ob3', text:'First meeting / colour analysis', done:false, notes:''},
-    {id:'ob4', text:'Send welcome pack', done:false, notes:''},
-    {id:'ob5', text:'Second meeting / tailoring brief', done:false, notes:''},
-    {id:'ob6', text:'Confirm final details & payments', done:false, notes:''}
+    {id:'ob1', text:'Send contract', notes:''},
+    {id:'ob2', text:'Receive signed contract & deposit', notes:''},
+    {id:'ob3', text:'First meeting / colour analysis', notes:''},
+    {id:'ob4', text:'Send welcome pack', notes:''},
+    {id:'ob5', text:'Second meeting / tailoring brief', notes:''},
+    {id:'ob6', text:'Confirm final details & payments', notes:''}
+  ],
+  // Template steps for each new INTERESTED client's pre-booking checklist
+  intOnboardingTemplate: [
+    {id:'oi1', text:'Send info pack', notes:''},
+    {id:'oi2', text:'Answer questions / consult call', notes:''},
+    {id:'oi3', text:'Confirm deposit & convert to booked', notes:''}
   ]
 };
 
@@ -4231,7 +4238,6 @@ function renderVietnamTour() {
   var tabs = [
     {id:'planning',    label:'Planning'},
     {id:'clients',     label:'Clients'},
-    {id:'onboarding',  label:'Onboarding SOP'},
    {id:'documents',     label:'Documents'},
     {id:'lookbook',      label:'Client Look Book'}
 ];
@@ -4277,65 +4283,15 @@ function renderVietnamTour() {
   }
 
   // ════════════════════════════════
-  // CLIENTS TAB
+  // CLIENTS TAB (Interested / Booked + per-client onboarding)
   // ════════════════════════════════
   if (vtTab === 'clients') {
-    var bookedRows = (d.bookedClients||[]).map(function(c,i){
-      var statCols = {'Booked':'#6366F1','Colour Analysis':'#F59E0B','First Meeting':'#3B82F6','Second Meeting':'#8B5CF6','Final Payment':'#EF4444','Complete':'#10B981'};
-      var stCol = statCols[c.status] || 'var(--muted)';
-      return '<div class="tour-doc-row" style="flex-wrap:wrap">'
-        + '<div style="flex:1;min-width:0">'
-        +   '<div style="font-size:13px;font-weight:600;color:var(--charcoal)">'+esc(c.name)+(c.partner?' <span style="font-weight:400;color:var(--muted)">&amp; '+esc(c.partner)+'</span>':'')+'</div>'
-        +   (c.package?'<span style="font-size:10px;background:var(--rose);color:#fff;padding:2px 8px;border-radius:10px;display:inline-block;margin-top:3px">'+esc(c.package)+'</span>':'')
-        +   (c.contract?'&nbsp;<a href="'+esc(c.contract)+'" target="_blank" style="font-size:11px;color:var(--rose);font-weight:600;text-decoration:none">&#128196; Contract</a>':'')
-        +   (c.notes?'<div style="font-size:11px;color:var(--muted);margin-top:3px">'+esc(c.notes)+'</div>':'')
-        + '</div>'
-        + '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;width:100%">'
-        +   '<select style="font-size:11px;font-weight:700;color:#fff;background:'+stCol+';border:none;border-radius:12px;padding:3px 10px;cursor:pointer" onchange="vtUpdateClientStatus(\'booked\','+i+',this.value)">'
-        +     '<option value="Booked" '+(c.status==='Booked'||!c.status?'selected':'')+'>Booked</option>'
-        +     '<option value="Colour Analysis" '+(c.status==='Colour Analysis'?'selected':'')+'>Colour Analysis</option>'
-        +     '<option value="First Meeting" '+(c.status==='First Meeting'?'selected':'')+'>First Meeting</option>'
-        +     '<option value="Second Meeting" '+(c.status==='Second Meeting'?'selected':'')+'>Second Meeting</option>'
-        +     '<option value="Final Payment" '+(c.status==='Final Payment'?'selected':'')+'>Final Payment</option>'
-        +     '<option value="Complete" '+(c.status==='Complete'?'selected':'')+'>Complete</option>'
-        +   '</select>'
-        +   '<button class="fin-row-edit" onclick="vtEditClient(\'booked\','+i+')">Edit</button>'
-        +   '<button class="fin-row-edit" onclick="vtDeleteClient(\'booked\','+i+')" style="color:#EF4444">Del</button>'
-        + '</div>'
-        + '</div>';
-    }).join('') || '<div style="color:var(--muted);font-size:13px;padding:10px 0">No booked clients yet.</div>';
-
-    var intRows = (d.intClients||[]).map(function(c,i){
-      return '<div class="tour-doc-row">'
-        + '<div style="flex:1;min-width:0">'
-        +   '<div style="font-size:13px;font-weight:600;color:var(--charcoal)">'+esc(c.name)+'</div>'
-        +   (c.contract?'<a href="'+esc(c.contract)+'" target="_blank" style="font-size:11px;color:var(--rose);font-weight:600;text-decoration:none">&#128196; Contract</a>':'')
-        +   (c.notes?'<div style="font-size:11px;color:var(--muted);margin-top:3px">'+esc(c.notes)+'</div>':'')
-        + '</div>'
-        + '<button class="fin-row-edit" onclick="vtEditClient(\'int\','+i+')">Edit</button>'
-        + '<button class="fin-row-edit" onclick="vtDeleteClient(\'int\','+i+')" style="color:#EF4444">Del</button>'
-        + '</div>';
-    }).join('') || '<div style="color:var(--muted);font-size:13px;padding:10px 0">No interested clients yet.</div>';
-
-    panelHtml = '<div class="g2">'
-      + '<div class="card"><div class="ch" style="display:flex;align-items:center;justify-content:space-between">'
-      +   '<div class="ct">Booked Clients <span style="font-size:13px;font-weight:400;color:var(--muted)">('+( d.bookedClients||[]).length+')</span></div>'
-      +   '<button class="btn btnp" style="font-size:12px;padding:6px 14px" onclick="vtEditClient(\'booked\',null)">+ Add</button>'
-      + '</div><div class="cb scrl">'+bookedRows+'</div></div>'
-      + '<div class="card"><div class="ch" style="display:flex;align-items:center;justify-content:space-between">'
-      +   '<div class="ct">Interested Clients <span style="font-size:13px;font-weight:400;color:var(--muted)">('+( d.intClients||[]).length+')</span></div>'
-      +   '<button class="btn btnp" style="font-size:12px;padding:6px 14px" onclick="vtEditClient(\'int\',null)">+ Add</button>'
-      + '</div><div class="cb scrl">'+intRows+'</div></div>'
-      + '</div>';
+    panelHtml = renderVtClientsTab();
   }
 
   // ════════════════════════════════
   // DOCUMENTS TAB
   // ════════════════════════════════
-  if (vtTab === 'onboarding') {
-    panelHtml = renderVtOnboarding();
-  }
-
   if (vtTab === 'documents') {
     var statusLabel = {done:'Done', inprogress:'In Progress', todo:'To Do', notstarted:'Not Started'};
     var statusCls   = {done:'sd', inprogress:'sp', todo:'sw', notstarted:'sw'};
