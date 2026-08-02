@@ -375,7 +375,7 @@ function setTaxRate(val) {
 }
 
 function renderTaxBas() {
-  var el = document.getElementById('fin-tax-content'); if (!el) return;
+  var el = document.getElementById('fin-income-taxbas'); if (!el) return;
 
   var weeklyIncome = calcWeeklyIncomeTotal();
   var weeklyBizExp = bizExpenses.reduce(function(s,e){ return s + toWeeklyAmount(e.amount, e.freq); }, 0);
@@ -393,7 +393,9 @@ function renderTaxBas() {
 
   var weeklyTotalSetAside = Math.max(0, weeklyNetGst) + weeklyTaxSetAside;
 
-  var html = '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:16px 20px;margin-bottom:24px;font-size:12px;color:#92400E;line-height:1.6">'
+  var html = '<div style="font-family:\'Fraunces\',serif;font-size:22px;color:var(--deep);margin:8px 0 14px">Tax / BAS Estimate</div>';
+
+  html += '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:16px 20px;margin-bottom:24px;font-size:12px;color:#92400E;line-height:1.6">'
     + '<strong>Estimate only, not tax advice.</strong> These figures are simplified calculations from your current income &amp; expense data — GST is assumed to be 10% of gross income, and GST credits are 10% of expenses marked &ldquo;Includes GST&rdquo;. Confirm actual BAS and tax obligations with your accountant, Xero, or the ATO before lodging or paying anything.'
     + '</div>';
 

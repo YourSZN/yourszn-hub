@@ -74,7 +74,7 @@ function setFinPeriod(p, btn) {
 
 function showFinTab(tab, btn) {
   finTab = tab;
-  ['business','personal','charts','cashflow','goals','tax'].forEach(function(t) {
+  ['business','personal','charts','cashflow','goals'].forEach(function(t) {
     var sec = document.getElementById('fin-' + t);
     if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
   });
@@ -89,7 +89,6 @@ function renderFinances() {
   if (finTab === 'charts')   { if (typeof renderFinCharts   === 'function') renderFinCharts(); }
   if (finTab === 'cashflow') { if (typeof renderCashflow    === 'function') renderCashflow(); }
   if (finTab === 'goals')    { if (typeof renderMoneyGoals  === 'function') renderMoneyGoals(); }
-  if (finTab === 'tax')      { if (typeof renderTaxBas      === 'function') renderTaxBas(); }
 }
 
 // Shared helper — calculates total income respecting clients×rate
@@ -360,24 +359,11 @@ function renderFinSection(elId, data, type, groupByCat) {
       gridHtml += '<div class="g2" style="margin-bottom:20px">' + cardList[i] + (cardList[i+1]||'<div></div>') + '</div>';
     }
 
-    // Total bar below
-    var grandTotal = calcIncomeTotal();
-    var gstAmt = grandTotal * 0.1;
-    var afterGst = grandTotal - gstAmt;
-    gridHtml += '<div class="fin-net-card positive" style="margin-bottom:8px;flex-wrap:wrap;gap:20px">'
-      + '<div><div class="fin-net-lbl">Total Income '+pl+'</div>'
-      + '<div class="fin-net-val">'+fmtAmtRound(grandTotal)+'</div></div>'
-      + '<div style="text-align:center">'
-      + '<div class="fin-net-lbl" style="color:#B45309">GST (10%)</div>'
-      + '<div style="font-family:\'Fraunces\',serif;font-size:24px;color:#92400E">− '+fmtAmtRound(gstAmt)+'</div>'
-      + '</div>'
-      + '<div style="text-align:right">'
-      + '<div class="fin-net-lbl">After GST '+pl+'</div>'
-      + '<div class="fin-net-val">'+fmtAmtRound(afterGst)+'</div>'
-      + '</div>'
-      + '</div>';
+    // Tax / BAS section — rendered by renderTaxBas() in app-finances-extra.js
+    gridHtml += '<div id="fin-income-taxbas" style="margin-top:8px"></div>';
 
     el.innerHTML = gridHtml;
+    if (typeof renderTaxBas === 'function') renderTaxBas();
     return;
   }
 
