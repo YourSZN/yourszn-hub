@@ -784,6 +784,127 @@
       </div>
       <div id="vt-content"></div>
     </div>
+
+    <!-- ═══════════════════════════ APP ═══════════════════════════ -->
+    <div class="page" id="pg-app">
+      <div class="ph">
+        <div><div class="ptitle">App</div><div class="psub">Ideas, feedback, brands &amp; recurring checklist</div></div>
+      </div>
+      <!-- tab bar -->
+      <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+        <button id="app-tab-ideas"     class="vt-tab on" onclick="appSetTab('ideas')">V2 / V3 Ideas</button>
+        <button id="app-tab-feedback"  class="vt-tab"    onclick="appSetTab('feedback')">Feedback</button>
+        <button id="app-tab-brands"    class="vt-tab"    onclick="appSetTab('brands')">Brands Chart</button>
+        <button id="app-tab-checklist" class="vt-tab"    onclick="appSetTab('checklist')">Checklist</button>
+      </div>
+
+      <!-- ── V2/V3 IDEAS ── -->
+      <div id="app-sec-ideas">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+          <button class="btn btnp" onclick="openAppIdeaModal(null)">+ Add Idea</button>
+        </div>
+        <div id="app-ideas-content"></div>
+      </div>
+
+      <!-- ── FEEDBACK ── -->
+      <div id="app-sec-feedback" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;gap:8px">
+            <button id="app-fb-tab-positive" class="vt-tab on" onclick="appSetFeedbackTab('positive')">Positive</button>
+            <button id="app-fb-tab-negative" class="vt-tab"    onclick="appSetFeedbackTab('negative')">Negative</button>
+          </div>
+          <button id="app-fb-add-btn" class="btn btnp" onclick="openFeedbackModal(null)">+ Add Positive Feedback</button>
+        </div>
+        <div id="app-feedback-content"></div>
+      </div>
+
+      <!-- ── BRANDS CHART ── -->
+      <div id="app-sec-brands" style="display:none">
+        <div id="app-brands-content"></div>
+      </div>
+
+      <!-- ── CHECKLIST ── -->
+      <div id="app-sec-checklist" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;gap:8px">
+            <button id="app-cl-tab-weekly"  class="vt-tab on" onclick="appSetChecklistTab('weekly')">Weekly</button>
+            <button id="app-cl-tab-monthly" class="vt-tab"    onclick="appSetChecklistTab('monthly')">Monthly</button>
+          </div>
+          <button id="app-cl-add-btn" class="btn btnp" onclick="openAppStepModal('weekly',null)">+ Add Step</button>
+        </div>
+        <div class="card"><div class="cb" id="app-checklist-content"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ App Idea Modal ══ -->
+    <div id="app-idea-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:480px;width:100%">
+        <button onclick="closeAppIdeaModal()" class="sm-modal-x">&#215;</button>
+        <div id="appideam-heading" class="sm-modal-title">New Idea</div>
+        <div class="sm-field"><label class="sm-lbl">Title *</label><input id="appideam-title" class="sm-inp" placeholder="e.g. Add outfit saving to favourites"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Version</label>
+            <select id="appideam-version" class="sm-inp">
+              <option value="v2">V2</option>
+              <option value="v3">V3</option>
+              <option value="someday">Someday</option>
+            </select>
+          </div>
+          <div class="sm-field"><label class="sm-lbl">Status</label>
+            <select id="appideam-status" class="sm-inp">
+              <option value="backlog">Backlog</option>
+              <option value="planned">Planned</option>
+              <option value="in-progress">In Progress</option>
+              <option value="shipped">Shipped</option>
+            </select>
+          </div>
+        </div>
+        <div class="sm-field"><label class="sm-lbl">Description</label><textarea id="appideam-desc" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit"></textarea></div>
+        <div id="appideam-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveAppIdeaModal()">Save Idea</button>
+          <button class="btn btns" onclick="closeAppIdeaModal()">Cancel</button>
+          <button id="appideam-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteAppIdea(editingAppIdeaId);closeAppIdeaModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Feedback Modal ══ -->
+    <div id="feedback-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:460px;width:100%">
+        <button onclick="closeFeedbackModal()" class="sm-modal-x">&#215;</button>
+        <div id="fbm-heading" class="sm-modal-title">New Feedback</div>
+        <input type="hidden" id="fbm-sentiment">
+        <div class="sm-field"><label class="sm-lbl">Feedback *</label><textarea id="fbm-text" class="sm-inp" rows="3" style="resize:vertical;font-family:inherit" placeholder="What did they say?"></textarea></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="sm-field"><label class="sm-lbl">Source</label><input id="fbm-source" class="sm-inp" placeholder="e.g. App Store review, client DM"></div>
+          <div class="sm-field"><label class="sm-lbl">Date</label><input id="fbm-date" class="sm-inp" type="date"></div>
+        </div>
+        <div id="fbm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveFeedbackModal()">Save</button>
+          <button class="btn btns" onclick="closeFeedbackModal()">Cancel</button>
+          <button id="fbm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteFeedback(editingFeedbackId);closeFeedbackModal();">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ App Checklist Step Modal ══ -->
+    <div id="appstep-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+      <div class="sm-modal" style="max-width:420px;width:100%">
+        <button onclick="closeAppStepModal()" class="sm-modal-x">&#215;</button>
+        <div id="appstepm-heading" class="sm-modal-title">New Step</div>
+        <input type="hidden" id="appstepm-period">
+        <div class="sm-field"><label class="sm-lbl">Step *</label><input id="appstepm-text" class="sm-inp" placeholder="e.g. Run the link audit"></div>
+        <div id="appstepm-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button class="btn btnp" onclick="saveAppStepModal()">Save</button>
+          <button class="btn btns" onclick="closeAppStepModal()">Cancel</button>
+          <button id="appstepm-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteAppStep()">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <!-- SOPs -->
     <div class="page" id="pg-sops">
       <div class="ph">
@@ -1643,6 +1764,7 @@
 <script src="app-notifications.js"></script>
 <script src="app-vouchers.js"></script>
 <script src="app-vietnam.js"></script>
+<script src="app-mobileapp.js"></script>
 <script src="app-finances.js"></script>
 <script src="app-comms.js"></script>
 <script src="app.js"></script>

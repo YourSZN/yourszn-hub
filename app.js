@@ -2,9 +2,9 @@
 // CONFIG — change PINs here
 // ══════════════════════════════════════
 var USERS = {
-latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','plan','staff','finances','vietnam','sops','social','marketing','online','comms'] },
-  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','marketing','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','sops','social','marketing','online','comms'] }
+latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','plan','staff','finances','vietnam','app','sops','social','marketing','online','comms'] },
+  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','marketing','online','comms'] },
+  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','social','marketing','online','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
@@ -21,6 +21,7 @@ var NAV = [
 
   { id:'finances',  lbl:'Finances',     sec:null,          icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id:'vietnam',   lbl:'Vietnam Tour', sec:'Projects',    icon:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>' },
+  { id:'app',       lbl:'App',          sec:'Projects',    icon:'<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>' },
   { id:'sops',      lbl:'SOPs',         sec:'Resources',   icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
   { id:'social',    lbl:'Social Media',  sec:'Operations',  icon:'<path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>' },
   { id:'marketing', lbl:'Marketing',    sec:'Operations',  icon:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' },
@@ -558,6 +559,7 @@ function buildNav(allowed) {
 }
 function showPage(id) {
   if (id==='vietnam') renderVietnamTour();
+  if (id==='app') renderAppPage();
   if (id==='notifications') { renderNotifCentre(); }
   if (id==='sops') { renderSops(); renderPasswords(); }
   if (id==='vouchers') renderVoucherTab();
@@ -4110,7 +4112,8 @@ function exportData() {
     socialSlots:socialSlots, metaSlots:metaSlots, metaSchedData:metaSchedData, celebData:celebData,
     groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread, vtData:vtData, pwList:pwList, mktData:mktData, ideaList:ideaList, creatorsList:creatorsList,
     clientAvatars:clientAvatars, customerFlow:customerFlow,
-    cashflowLog:cashflowLog, moneyGoals:moneyGoals, incomeTaxSetAsideRate:incomeTaxSetAsideRate
+    cashflowLog:cashflowLog, moneyGoals:moneyGoals, incomeTaxSetAsideRate:incomeTaxSetAsideRate,
+    appData:appData
   }, null, 2);
   var blob = new Blob([payload], {type:'application/json'});
   var a = document.createElement('a');
@@ -4153,10 +4156,11 @@ function importData(file) {
       if (d.cashflowLog)       cashflowLog       = d.cashflowLog;
       if (d.moneyGoals)        moneyGoals        = d.moneyGoals;
       if (typeof d.incomeTaxSetAsideRate === 'number') incomeTaxSetAsideRate = d.incomeTaxSetAsideRate;
+      if (d.appData)           appData           = d.appData;
       saveData();
       renderClients(); renderSops(); renderAudit(); renderBrands(); renderWatchlist();
       renderTaskBoard(); renderToursPage(); renderSocialPage(); renderAdCreativePage();
-      renderGoals(); renderFinances(); renderPlanPage();
+      renderGoals(); renderFinances(); renderPlanPage(); renderAppPage();
       if (curUser==='latisha') { renderStaffPage(); renderDashTaskProgress(); } else { renderMyHub(); }
       alert('Data imported successfully!');
     } catch(err) { alert('Import failed: ' + err.message); }
@@ -4705,7 +4709,8 @@ function saveData() {
       customerFlow:customerFlow,
       cashflowLog:cashflowLog,
       moneyGoals:moneyGoals,
-      incomeTaxSetAsideRate:incomeTaxSetAsideRate
+      incomeTaxSetAsideRate:incomeTaxSetAsideRate,
+      appData:appData
     };
 
     // Per-user: private to the logged-in user
@@ -4825,6 +4830,7 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.cashflowLog)        cashflowLog        = d.cashflowLog;
   if (d.moneyGoals)         moneyGoals         = d.moneyGoals;
   if (typeof d.incomeTaxSetAsideRate === 'number') incomeTaxSetAsideRate = d.incomeTaxSetAsideRate;
+  if (d.appData)            appData            = d.appData;
   // Re-render everything after data loads
   try { renderClients(); } catch(e){}
   try { renderSops(); } catch(e){}
@@ -4850,6 +4856,7 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   try { renderDashToday(); } catch(e){}
   try { renderVoucherRegistry(); } catch(e){}
   try { renderPlanPage(); } catch(e){}
+  try { renderAppPage(); } catch(e){}
   if (curUser === 'latisha') {
     try { renderStaffPage(); } catch(e){}
     try { renderDashTaskProgress(); } catch(e){}
