@@ -164,10 +164,21 @@
   .pack-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
   .pack-cat { font-family:'DM Sans',sans-serif; font-size: 11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color: var(--rose); margin: 16px 0 8px; }
   .pack-cat:first-of-type { margin-top: 0; }
-  .pack-row { display:flex; align-items:center; gap:10px; padding: 7px 0; cursor:pointer; user-select:none; }
-  .pack-row input { width:16px; height:16px; accent-color: var(--charcoal); cursor:pointer; }
-  .pack-row span { font-size: 14px; color: var(--charcoal); }
-  .pack-row.checked span { color: var(--muted); text-decoration: line-through; }
+  .pack-row { display:flex; align-items:center; gap:10px; padding: 7px 0; user-select:none; }
+  .pack-row input { width:18px; height:18px; accent-color: var(--green); cursor:pointer; flex-shrink:0; }
+  .pack-row .pack-item-text { font-size: 14px; color: var(--charcoal); flex:1; min-width:0; word-break:break-word; }
+  .pack-row.checked .pack-item-text { color: var(--muted); text-decoration: line-through; }
+  .pack-row-actions { display:flex; gap:4px; flex-shrink:0; opacity:.55; }
+  .pack-icon-btn { border:none; background:none; cursor:pointer; font-size:12px; color:var(--muted); padding:4px; line-height:1; }
+  .pack-icon-btn:hover { color: var(--charcoal); }
+  .pack-edit-input { flex:1; font-size:14px; color:var(--charcoal); font-family:'Inter',sans-serif; border:1px solid var(--sand); border-radius:6px; padding:4px 8px; outline:none; }
+  .pack-edit-input:focus { border-color: var(--charcoal); }
+  .pack-add-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .pack-add-bar input { border:1px solid var(--sand); border-radius:8px; padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px; background:white; color:var(--charcoal); outline:none; }
+  .pack-add-bar input:focus { border-color: var(--charcoal); }
+  .pack-add-bar #pack-new-cat { width:160px; flex-shrink:0; }
+  .pack-add-bar #pack-new-text { flex:1; min-width:140px; }
+  @media (max-width: 480px) { .pack-add-bar #pack-new-cat { width:100%; } }
 
   .empty { text-align:center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
   .empty .em-icon { font-size: 30px; margin-bottom: 10px; }
@@ -318,51 +329,6 @@ var dashClient = null; /* the vietnam_clients row: {id, name, email} */
 
 /* ═══════════ Itinerary ═══════════ */
 
-var PACK_CATEGORIES = {
-  'Documents': ['Passport (valid 6+ months)', 'Visa / entry approval', 'Travel insurance', 'Flight confirmations', 'Local currency (VND)'],
-  'Essentials': ['Phone charger', 'Power adapter', 'Portable battery pack', 'Sunscreen', 'Reusable water bottle'],
-  'Clothing': ['Comfortable walking shoes', 'Light layers for humidity', 'Swimwear', 'Something smart for dinners', 'Rain jacket (wet season)'],
-  'Tailoring Appointments': ['Photos/inspiration saved on phone', 'Any garments you want copied', 'Comfortable clothes for fittings']
-};
-
-function renderPacking() {
-  var cid = qs('cid') || 'guest';
-  var storeKey = 'vt_packing_' + cid;
-  var checked = {};
-  try { checked = JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch(e) {}
-
-  var html = '<div class="card"><div class="pack-title">Packing Checklist</div><div class="pack-sub">Tap to check off as you pack</div>';
-  Object.keys(PACK_CATEGORIES).forEach(function(cat) {
-    html += '<div class="pack-cat">' + cat + '</div>';
-    PACK_CATEGORIES[cat].forEach(function(item, i) {
-      var itemKey = cat + '__' + i;
-      var isChecked = !!checked[itemKey];
-      html += '<label class="pack-row' + (isChecked ? ' checked' : '') + '" data-key="' + itemKey + '">'
-        + '<input type="checkbox" ' + (isChecked ? 'checked' : '') + '>'
-        + '<span>' + item + '</span></label>';
-    });
-  });
-  html += '</div>';
-  return html;
-}
-
-function wirePacking() {
-  var cid = qs('cid') || 'guest';
-  var storeKey = 'vt_packing_' + cid;
-  document.querySelectorAll('.pack-row').forEach(function(row) {
-    row.addEventListener('click', function(e) {
-      e.preventDefault();
-      var checked = {};
-      try { checked = JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch(err) {}
-      var key = row.getAttribute('data-key');
-      checked[key] = !checked[key];
-      localStorage.setItem(storeKey, JSON.stringify(checked));
-      row.classList.toggle('checked', checked[key]);
-      row.querySelector('input').checked = checked[key];
-    });
-  });
-}
-
 function fmtDate(d) {
   if (!d) return '';
   var dt = new Date(d + 'T00:00:00');
@@ -372,7 +338,7 @@ function fmtDate(d) {
 
 function renderItinerary(items) {
   if (!items || items.length === 0) {
-    return '<div class="empty"><div class="em-icon">🗓️</div>Your itinerary hasn\'t been added yet.<br>Check back soon.</div>' + renderPacking();
+    return '<div class="empty"><div class="em-icon">🗓️</div>Your itinerary hasn\'t been added yet.<br>Check back soon.</div>';
   }
   var byDay = {};
   items.forEach(function(it) {
@@ -396,8 +362,136 @@ function renderItinerary(items) {
     });
     html += '</div>';
   });
-  html += renderPacking();
   return html;
+}
+
+/* ═══════════ Packing (synced, editable) ═══════════ */
+
+var packingItems = [];
+var packingLoaded = false;
+
+function packingPanelShell(inner) {
+  return '<div class="pack-add-bar">'
+    + '<input id="pack-new-cat" list="pack-cat-options" placeholder="Category (e.g. Clothing)">'
+    + '<datalist id="pack-cat-options">' + packingCategoryOptions() + '</datalist>'
+    + '<input id="pack-new-text" placeholder="Add an item…" onkeydown="if(event.key===\'Enter\')addPackItem()">'
+    + '<button class="btn btn-primary btn-sm" onclick="addPackItem()">+ Add</button>'
+    + '</div>'
+    + inner;
+}
+
+function packingCategoryOptions() {
+  var cats = [];
+  packingItems.forEach(function(it) { if (cats.indexOf(it.category) === -1) cats.push(it.category); });
+  return cats.map(function(c) { return '<option value="' + c.replace(/"/g, '&quot;') + '">'; }).join('');
+}
+
+function renderPackingPanel() {
+  if (!packingLoaded) {
+    return '<div class="empty">Loading your packing list…</div>';
+  }
+  if (packingItems.length === 0) {
+    return packingPanelShell('<div class="empty" style="padding:30px 0"><div class="em-icon">🧳</div>No items yet — add your first one above.</div>');
+  }
+  var byCat = {};
+  var order = [];
+  packingItems.forEach(function(it) {
+    if (!byCat[it.category]) { byCat[it.category] = []; order.push(it.category); }
+    byCat[it.category].push(it);
+  });
+  var html = '<div class="card">';
+  order.forEach(function(cat) {
+    html += '<div class="pack-cat">' + cat + '</div>';
+    byCat[cat].forEach(function(it) {
+      html += '<div class="pack-row' + (it.is_checked ? ' checked' : '') + '" data-id="' + it.id + '">'
+        + '<input type="checkbox" ' + (it.is_checked ? 'checked' : '') + ' onchange="togglePackItem(\'' + it.id + '\',this.checked)">'
+        + '<span class="pack-item-text" id="pack-text-' + it.id + '">' + it.item_text + '</span>'
+        + '<span class="pack-row-actions">'
+        + '<button class="pack-icon-btn" onclick="startEditPackItem(\'' + it.id + '\')" title="Rename">✎</button>'
+        + '<button class="pack-icon-btn" onclick="deletePackItem(\'' + it.id + '\')" title="Remove">✕</button>'
+        + '</span></div>';
+    });
+  });
+  html += '</div>';
+  return packingPanelShell(html);
+}
+
+function packingBody(action, extra) {
+  return JSON.stringify(Object.assign({ cid: qs('cid'), email: dashClient && dashClient.email, action: action }, extra || {}));
+}
+
+function loadPackingPanel() {
+  var panel = document.getElementById('panel-packing');
+  if (!panel) return;
+  panel.innerHTML = renderPackingPanel();
+  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('list') })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      packingLoaded = true;
+      packingItems = (data && data.items) || [];
+      panel.innerHTML = renderPackingPanel();
+    })
+    .catch(function() {
+      packingLoaded = true;
+      panel.innerHTML = '<div class="empty">Couldn’t load your packing list. Please try again.</div>';
+    });
+}
+
+function addPackItem() {
+  var catEl = document.getElementById('pack-new-cat');
+  var textEl = document.getElementById('pack-new-text');
+  var category = (catEl.value || 'My Items').trim();
+  var text = (textEl.value || '').trim();
+  if (!text) { textEl.focus(); return; }
+  textEl.value = '';
+  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('add', { category: category, item_text: text }) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      packingItems = (data && data.items) || packingItems;
+      document.getElementById('panel-packing').innerHTML = renderPackingPanel();
+      var newCat = document.getElementById('pack-new-cat'); if (newCat) newCat.value = category;
+    })
+    .catch(function() { showToast('Failed to add item', true); });
+}
+
+function togglePackItem(id, checked) {
+  var item = packingItems.filter(function(i){ return i.id === id; })[0];
+  if (item) item.is_checked = checked;
+  var row = document.querySelector('.pack-row[data-id="' + id + '"]');
+  if (row) row.classList.toggle('checked', checked);
+  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('toggle', { id: id, is_checked: checked }) })
+    .catch(function() { showToast('Failed to save — please try again', true); });
+}
+
+function startEditPackItem(id) {
+  var span = document.getElementById('pack-text-' + id);
+  if (!span) return;
+  var current = span.textContent;
+  var input = document.createElement('input');
+  input.className = 'pack-edit-input';
+  input.value = current;
+  input.onblur = function() { savePackItemEdit(id, input.value); };
+  input.onkeydown = function(e) { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = current; input.blur(); } };
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function savePackItemEdit(id, newText) {
+  newText = (newText || '').trim();
+  var item = packingItems.filter(function(i){ return i.id === id; })[0];
+  if (!newText || !item) { document.getElementById('panel-packing').innerHTML = renderPackingPanel(); return; }
+  item.item_text = newText;
+  document.getElementById('panel-packing').innerHTML = renderPackingPanel();
+  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('edit', { id: id, item_text: newText }) })
+    .catch(function() { showToast('Failed to save — please try again', true); });
+}
+
+function deletePackItem(id) {
+  packingItems = packingItems.filter(function(i){ return i.id !== id; });
+  document.getElementById('panel-packing').innerHTML = renderPackingPanel();
+  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('delete', { id: id }) })
+    .catch(function() { showToast('Failed to remove — please try again', true); });
 }
 
 /* ═══════════ Recommendations ═══════════ */
@@ -836,6 +930,7 @@ async function saveColour(itemId, unitNum, colField, value) {
 
 var VT_NAV = [
   { id: 'itinerary', lbl: 'Itinerary', shortLbl: 'Itinerary', icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>' },
+  { id: 'packing', lbl: 'Packing', shortLbl: 'Packing', icon: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
   { id: 'tailoring', lbl: 'Tailoring', shortLbl: 'Tailoring', icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>' }
 ];
@@ -874,6 +969,7 @@ function setTab(tab) {
   document.querySelectorAll('.nitem, .bt-item').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-tab') === tab); });
   document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.toggle('on', p.id === 'panel-' + tab); });
   if (tab === 'tailoring') initTailoringBoard();
+  if (tab === 'packing') loadPackingPanel();
 }
 
 function showLoginRequired() {
@@ -924,12 +1020,12 @@ function init() {
         + '<div class="main">'
         + '<div class="ph"><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Your personal trip dashboard</div></div>'
         + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(res.data.itinerary) + '</div>'
+        + '<div class="tab-panel" id="panel-packing">' + renderPackingPanel() + '</div>'
         + '<div class="tab-panel" id="panel-recs">' + renderRecommendationsPanel() + '</div>'
         + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
         + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
         + '</div>'
         + bottomTabsHTML();
-      wirePacking();
     })
     .catch(function() {
       document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Something went wrong loading your dashboard. Please try again.</div></div>';
