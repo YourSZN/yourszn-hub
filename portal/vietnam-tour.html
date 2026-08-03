@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your SZN — Vietnam Tailoring Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Almarai:wght@300;400;700&family=Inter:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F3EE; --warm: #F2EDE6; --sand: #E5DDD4;
+    --tan: #C9B99A; --charcoal: #1C1712; --deep: #1C1712;
+    --green: #7A8C6E; --rose: #C49A8A; --gold: #B8965A;
+    --muted: #8A7D72;
+    /* mapped from the ported Inspiration Board component styles */
+    --bg-card: #FFFFFF; --border: var(--sand); --border-light: var(--warm);
+    --text-mid: #6B5E53; --text-light: var(--muted);
+    --accent: var(--charcoal); --accent-hover: #000000; --accent-soft: var(--tan);
+    --tag-bg: var(--warm); --danger: #C4685A; --danger-bg: #FDF0EE; --success: var(--green);
+    --radius: 14px; --radius-sm: 8px;
+    --shadow: 0 2px 10px rgba(28,23,18,.04); --shadow-md: 0 10px 26px rgba(28,23,18,.1);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--cream); color: var(--charcoal);
+    min-height: 100vh;
+  }
+  .hero {
+    background: radial-gradient(ellipse at top, var(--warm) 0%, var(--cream) 65%);
+    padding: 40px 20px 24px;
+    text-align: center;
+  }
+  .logo { height: 50px; width: auto; opacity: 0.85; }
+  .eyebrow {
+    font-family: 'Almarai', sans-serif;
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+  .welcome {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 24px; color: var(--charcoal);
+    margin-top: 6px;
+  }
+
+  /* ── Dashboard shell: sidebar + content ── */
+  .dash-shell { display: flex; align-items: flex-start; max-width: 1040px; margin: 0 auto; }
+  .sidebar-nav {
+    position: sticky; top: 24px;
+    width: 200px; flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 24px 12px; margin: 24px 0 24px 20px;
+    background: var(--warm); border: 1px solid var(--sand); border-radius: 14px;
+  }
+  .snav-item {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+    color: var(--charcoal); text-align: left;
+    padding: 11px 14px; border-radius: 9px;
+    border: none; background: transparent; cursor: pointer;
+    transition: background .15s;
+  }
+  .snav-item .ic { font-size: 16px; }
+  .snav-item:hover { background: rgba(28,23,18,.05); }
+  .snav-item.on { background: var(--charcoal); color: #fff; }
+
+  .main-content { flex: 1; min-width: 0; padding: 24px 20px 90px; max-width: 840px; }
+  .tab-panel { display: none; }
+  .tab-panel.on { display: block; }
+
+  /* ── Bottom tab bar (mobile) ── */
+  .bottom-tabs {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 60;
+    background: #fff; border-top: 1px solid var(--sand);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .bt-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    border: none; background: none; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    color: var(--muted); padding: 6px 2px;
+  }
+  .bt-item .ic { font-size: 18px; }
+  .bt-item.on { color: var(--charcoal); }
+
+  @media (max-width: 768px) {
+    .sidebar-nav { display: none; }
+    .bottom-tabs { display: flex; }
+    .main-content { padding: 20px 16px 90px; }
+  }
+
+  /* ── Cards (Itinerary / Recommendations) ── */
+  .card {
+    background: white; border: 1px solid var(--sand); border-radius: 14px;
+    padding: 22px 24px; margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(28,23,18,.04);
+  }
+  .day-heading {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 22px; color: var(--charcoal);
+    margin: 26px 0 10px;
+  }
+  .day-heading:first-child { margin-top: 0; }
+  .itin-item { display:flex; gap:14px; padding: 12px 0; border-bottom: 1px solid var(--warm); }
+  .itin-item:last-child { border-bottom: none; }
+  .itin-time {
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--rose); text-transform: uppercase; letter-spacing: .5px;
+    flex-shrink: 0; width: 84px; padding-top: 2px;
+  }
+  .itin-title { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: var(--charcoal); }
+  .itin-desc { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+  .itin-loc { font-size: 12px; color: var(--tan); margin-top: 4px; }
+  .itin-loc::before { content: '📍 '; }
+
+  .rec-group-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 22px; color: var(--charcoal);
+    margin: 26px 0 12px;
+  }
+  .rec-group-title:first-child { margin-top: 0; }
+  .rec-card {
+    display:flex; align-items:flex-start; gap: 14px;
+    background: white; border: 1px solid var(--sand); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 10px;
+  }
+  .rec-pin {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink:0;
+    background: var(--warm); display:flex; align-items:center; justify-content:center;
+    font-size: 18px;
+  }
+  .rec-name { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: var(--charcoal); }
+  .rec-desc { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+  .rec-link {
+    display:inline-block; margin-top: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--charcoal);
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  .pack-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 22px; color: var(--charcoal);
+    margin-bottom: 4px;
+  }
+  .pack-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .pack-cat { font-family:'DM Sans',sans-serif; font-size: 11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color: var(--rose); margin: 16px 0 8px; }
+  .pack-cat:first-of-type { margin-top: 0; }
+  .pack-row { display:flex; align-items:center; gap:10px; padding: 7px 0; cursor:pointer; user-select:none; }
+  .pack-row input { width:16px; height:16px; accent-color: var(--charcoal); cursor:pointer; }
+  .pack-row span { font-size: 14px; color: var(--charcoal); }
+  .pack-row.checked span { color: var(--muted); text-decoration: line-through; }
+
+  .empty { text-align:center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
+  .empty .em-icon { font-size: 30px; margin-bottom: 10px; }
+
+  .center-box { display:flex; align-items:center; justify-content:center; min-height: 50vh; padding: 20px; }
+  .msg-card {
+    max-width: 420px; width:100%; background:white; border:1px solid var(--sand);
+    border-radius:14px; padding: 36px 30px; text-align:center;
+    box-shadow: 0 2px 10px rgba(28,23,18,.04);
+  }
+  .msg-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:24px; color:var(--charcoal); margin-bottom:8px; }
+  .msg-desc { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom: 20px; }
+  .msg-link {
+    font-family:'DM Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--charcoal); text-decoration:underline; text-underline-offset:3px;
+  }
+  .footer { text-align:center; font-family:'Inter',sans-serif; font-size:11px; color:var(--muted); padding: 0 20px 30px; }
+
+  /* ══════════════ Ported: Tailoring / Inspiration Board ══════════════ */
+  .board-header { margin-bottom: 24px; }
+  .board-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 500; margin-bottom: 4px; color: var(--charcoal); }
+  .board-header p { font-size: 13px; color: var(--text-light); }
+
+  .form-group { text-align: left; margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-mid); margin-bottom: 6px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--charcoal); background: var(--warm);
+    transition: border-color 0.2s; outline: none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border: none; border-radius: 24px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary { background: var(--warm); color: var(--charcoal); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border-light); }
+  .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #EACDC8; }
+  .btn-danger:hover { background: #F5DDD8; }
+  .btn-sm { padding: 9px 18px; font-size: 12px; }
+
+  .add-item-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .add-item-bar select { padding: 10px 16px; border: 1px solid var(--border); border-radius: 24px; font-family: 'Inter', sans-serif; font-size: 13px; color: var(--charcoal); background: var(--bg-card); outline: none; cursor: pointer; min-width: 180px; }
+  .add-item-bar select:focus { border-color: var(--accent); }
+
+  .filter-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-tab { padding: 8px 18px; border: 1px solid var(--border); border-radius: 24px; font-family: 'Inter', sans-serif; font-size: 12px; cursor: pointer; background: var(--bg-card); color: var(--text-mid); transition: all 0.2s; white-space: nowrap; }
+  .filter-tab:hover { border-color: var(--accent-soft); }
+  .filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filter-tab .count { display: inline-block; margin-left: 4px; font-size: 10px; opacity: 0.7; }
+
+  .tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .item-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; box-shadow: var(--shadow); transition: box-shadow 0.2s, border-color 0.2s; position: relative; }
+  .item-tile:hover { box-shadow: var(--shadow-md); border-color: var(--accent-soft); }
+  .item-tile.active { border-color: var(--accent); box-shadow: var(--shadow-md); }
+  .tile-thumb { aspect-ratio: 3/4; background: var(--warm); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+  .tile-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .tile-thumb .placeholder { color: var(--text-light); font-size: 12px; text-align: center; padding: 10px; }
+  .tile-thumb .placeholder .plus { font-size: 28px; line-height: 1; display: block; margin-bottom: 4px; opacity: 0.5; }
+  .tile-info { padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+  .item-category { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-mid); background: var(--tag-bg); padding: 4px 10px; border-radius: 16px; }
+  .tile-arrow { font-size: 13px; color: var(--text-light); transition: transform 0.2s; }
+  .item-tile.active .tile-arrow { transform: rotate(180deg); }
+
+  .item-shelf { grid-column: 1 / -1; background: var(--bg-card); border: 1px solid var(--accent); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-md); animation: shelfOpen 0.25s ease; position: relative; }
+  @keyframes shelfOpen { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .shelf-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .shelf-actions { display: flex; gap: 8px; }
+  .icon-btn { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 50%; background: var(--warm); color: var(--text-light); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+  .icon-btn:hover { border-color: var(--accent); color: var(--charcoal); }
+  .icon-btn.delete:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+
+  .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+  .photo-slot { aspect-ratio: 3/4; border: 2px dashed var(--border); border-radius: var(--radius-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; transition: border-color 0.2s, background 0.2s; background: var(--warm); }
+  .photo-slot:hover { border-color: var(--accent-soft); }
+  .photo-slot .label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-light); margin-top: 6px; }
+  .photo-slot .plus { font-size: 22px; color: var(--text-light); line-height: 1; }
+  .photo-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .photo-slot.has-photo { border-style: solid; border-color: var(--border); }
+  .photo-slot .remove-photo { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(28,23,18,0.7); color: #fff; border: none; cursor: pointer; font-size: 13px; display: none; align-items: center; justify-content: center; z-index: 2; }
+  .photo-slot.has-photo:hover .remove-photo { display: flex; }
+  .photo-slot input[type="file"] { display: none; }
+
+  .prompts-section { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .prompts-section .form-group.full { grid-column: 1 / -1; }
+
+  .save-indicator { position: fixed; bottom: 24px; right: 24px; background: var(--accent); color: #fff; padding: 10px 20px; border-radius: 24px; font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 100; pointer-events: none; }
+  .save-indicator.show { opacity: 1; transform: translateY(0); }
+  .toast { position: fixed; top: 24px; right: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 14px 22px; border-radius: var(--radius); box-shadow: var(--shadow-md); font-size: 13px; z-index: 200; opacity: 0; transform: translateY(-10px); transition: all 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  .qty-colour-section { margin-top: 18px; padding: 18px; background: var(--warm); border-radius: var(--radius); border: 1px solid var(--border-light); }
+  .qc-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-mid); margin-bottom: 14px; }
+  .qc-qty-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .qc-qty-row label { font-size: 13px; color: var(--text-mid); font-weight: 500; }
+  .qc-stepper { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 24px; overflow: hidden; background: var(--bg-card); }
+  .qc-stepper button { width: 34px; height: 34px; border: none; background: none; cursor: pointer; font-size: 17px; color: var(--text-mid); font-family: inherit; transition: background .15s; }
+  .qc-stepper button:hover { background: var(--border-light); }
+  .qc-stepper span { min-width: 30px; text-align: center; font-size: 14px; font-weight: 600; color: var(--charcoal); }
+  .colour-unit { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 8px; border: 1px solid var(--border-light); flex-wrap: wrap; }
+  .colour-unit-num { font-size: 11px; font-weight: 600; color: var(--text-mid); min-width: 44px; }
+  .colour-pick-group { display: flex; align-items: center; gap: 8px; }
+  .colour-pick-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-light); font-weight: 500; }
+  .colour-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); cursor: pointer; position: relative; overflow: hidden; transition: border-color .2s; flex-shrink: 0; }
+  .colour-circle:hover { border-color: var(--accent-soft); }
+  .colour-circle.empty { border-style: dashed; background: var(--warm); }
+  .colour-circle input[type=color] { position: absolute; inset: -6px; width: calc(100% + 12px); height: calc(100% + 12px); border: none; cursor: pointer; padding: 0; }
+  .qc-hint { font-size: 11px; color: var(--text-light); text-align: center; margin-top: 8px; font-style: italic; }
+  .tile-swatches { display: flex; gap: 3px; align-items: center; }
+  .tile-swatch { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+
+  @media (max-width: 768px) {
+    .tile-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .photo-grid { grid-template-columns: repeat(2, 1fr); }
+    .prompts-section { grid-template-columns: 1fr; }
+    .add-item-bar { flex-direction: column; }
+    .add-item-bar select, .add-item-bar .btn { width: 100%; }
+    .item-shelf { padding: 18px; }
+  }
+  @media (max-width: 420px) {
+    .tile-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  }
+  /* ══════════════ End ported styles ══════════════ */
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/YourSZN-Charcoal-Stacked%402x.png" alt="Your SZN" class="logo" />
+  <div class="eyebrow">Vietnam Tailoring Tour</div>
+  <div class="welcome" id="welcome-msg" style="display:none"></div>
+</div>
+
+<div id="app-root"></div>
+
+<div class="footer">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>
+
+<div class="save-indicator" id="saveIndicator">✓ Saved</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+
+function sbHeaders() {
+  return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+}
+
+function qs(name) {
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+var dashClient = null; /* the vietnam_clients row: {id, name, email} */
+
+/* ═══════════ Itinerary ═══════════ */
+
+var PACK_CATEGORIES = {
+  'Documents': ['Passport (valid 6+ months)', 'Visa / entry approval', 'Travel insurance', 'Flight confirmations', 'Local currency (VND)'],
+  'Essentials': ['Phone charger', 'Power adapter', 'Portable battery pack', 'Sunscreen', 'Reusable water bottle'],
+  'Clothing': ['Comfortable walking shoes', 'Light layers for humidity', 'Swimwear', 'Something smart for dinners', 'Rain jacket (wet season)'],
+  'Tailoring Appointments': ['Photos/inspiration saved on phone', 'Any garments you want copied', 'Comfortable clothes for fittings']
+};
+
+function renderPacking() {
+  var cid = qs('cid') || 'guest';
+  var storeKey = 'vt_packing_' + cid;
+  var checked = {};
+  try { checked = JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch(e) {}
+
+  var html = '<div class="card"><div class="pack-title">Packing Checklist</div><div class="pack-sub">Tap to check off as you pack</div>';
+  Object.keys(PACK_CATEGORIES).forEach(function(cat) {
+    html += '<div class="pack-cat">' + cat + '</div>';
+    PACK_CATEGORIES[cat].forEach(function(item, i) {
+      var itemKey = cat + '__' + i;
+      var isChecked = !!checked[itemKey];
+      html += '<label class="pack-row' + (isChecked ? ' checked' : '') + '" data-key="' + itemKey + '">'
+        + '<input type="checkbox" ' + (isChecked ? 'checked' : '') + '>'
+        + '<span>' + item + '</span></label>';
+    });
+  });
+  html += '</div>';
+  return html;
+}
+
+function wirePacking() {
+  var cid = qs('cid') || 'guest';
+  var storeKey = 'vt_packing_' + cid;
+  document.querySelectorAll('.pack-row').forEach(function(row) {
+    row.addEventListener('click', function(e) {
+      e.preventDefault();
+      var checked = {};
+      try { checked = JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch(err) {}
+      var key = row.getAttribute('data-key');
+      checked[key] = !checked[key];
+      localStorage.setItem(storeKey, JSON.stringify(checked));
+      row.classList.toggle('checked', checked[key]);
+      row.querySelector('input').checked = checked[key];
+    });
+  });
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  var dt = new Date(d + 'T00:00:00');
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function renderItinerary(items) {
+  if (!items || items.length === 0) {
+    return '<div class="empty"><div class="em-icon">🗓️</div>Your itinerary hasn\'t been added yet.<br>Check back soon.</div>' + renderPacking();
+  }
+  var byDay = {};
+  items.forEach(function(it) {
+    var d = it.day_number || 0;
+    if (!byDay[d]) byDay[d] = [];
+    byDay[d].push(it);
+  });
+  var days = Object.keys(byDay).sort(function(a,b){ return a-b; });
+  var html = '';
+  days.forEach(function(d) {
+    var dayItems = byDay[d];
+    var dateLabel = fmtDate(dayItems[0].item_date);
+    html += '<div class="day-heading">Day ' + d + (dateLabel ? ' — ' + dateLabel : '') + '</div><div class="card">';
+    dayItems.forEach(function(it) {
+      html += '<div class="itin-item">'
+        + '<div class="itin-time">' + (it.time_label || '') + '</div>'
+        + '<div><div class="itin-title">' + it.title + '</div>'
+        + (it.description ? '<div class="itin-desc">' + it.description + '</div>' : '')
+        + (it.location ? '<div class="itin-loc">' + it.location + '</div>' : '')
+        + '</div></div>';
+    });
+    html += '</div>';
+  });
+  html += renderPacking();
+  return html;
+}
+
+/* ═══════════ Recommendations ═══════════ */
+
+function renderRecommendations(recs) {
+  if (!recs || recs.length === 0) {
+    return '<div class="empty"><div class="em-icon">📍</div>Recommendations are coming soon for your trip.</div>';
+  }
+  var food = recs.filter(function(r){ return r.category === 'food'; });
+  var activity = recs.filter(function(r){ return r.category === 'activity'; });
+  var html = '';
+  function group(title, list, icon) {
+    if (list.length === 0) return '';
+    var h = '<div class="rec-group-title">' + title + '</div>';
+    list.forEach(function(r) {
+      h += '<div class="rec-card"><div class="rec-pin">' + icon + '</div><div>'
+        + '<div class="rec-name">' + r.name + '</div>'
+        + (r.description ? '<div class="rec-desc">' + r.description + '</div>' : '')
+        + (r.maps_url ? '<a class="rec-link" href="' + r.maps_url + '" target="_blank" rel="noopener">View on Map ↗</a>' : '')
+        + '</div></div>';
+    });
+    return h;
+  }
+  html += group('Food', food, '🍜');
+  html += group('Activities', activity, '🎡');
+  return html;
+}
+
+/* ═══════════ Tailoring (Inspiration Board — ported) ═══════════ */
+
+var SB_URL = SUPABASE_URL;
+var SB_KEY = SUPABASE_KEY;
+var STORAGE_BUCKET = 'inspiration-photos';
+
+var currentClient = null;
+var boardItems = [];
+var saveTimers = {};
+var activeFilter = 'All';
+var openedItemId = null;
+var tailoringInited = false;
+
+function tailoringPanelHTML() {
+  return '<div class="board-header"><h1>Your Inspiration Board</h1><p>Add items you love — we\'ll bring them to life in Vietnam</p></div>'
+    + '<div class="add-item-bar">'
+    + '<select id="newCategory"><option value="">Choose a category…</option>'
+    + '<option>Tops</option><option>Pants</option><option>Shorts</option><option>Jackets / Blazers</option>'
+    + '<option>Suits</option><option>Shoes</option><option>Accessories</option><option>Dresses</option>'
+    + '</select>'
+    + '<button class="btn btn-primary btn-sm" onclick="addItem()">+ Add Item</button>'
+    + '</div>'
+    + '<div id="filterTabs" class="filter-tabs" style="display:none"></div>'
+    + '<div id="itemsList"></div>'
+    + '<div id="emptyState" class="empty-state" style="display:none"><div class="icon" style="font-size:40px;margin-bottom:12px;opacity:.4">✦</div><h3 style="font-family:\'Cormorant Garamond\',serif;font-size:19px;color:var(--text-mid);margin-bottom:6px">No items yet</h3><p style="font-size:13px;color:var(--text-light)">Select a category above and add your first inspiration piece</p></div>';
+}
+
+async function sb(path, opts) {
+  opts = opts || {};
+  var res = await fetch(SB_URL + '/rest/v1/' + path, Object.assign({
+    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: opts.prefer || '' }
+  }, opts));
+  if (!res.ok) { var e = await res.text(); throw new Error(e); }
+  var text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function uploadPhoto(file, clientId, itemId, slot) {
+  var ext = file.name.split('.').pop().toLowerCase();
+  var path = clientId + '/' + itemId + '/' + slot + '_' + Date.now() + '.' + ext;
+  var res = await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, {
+    method: 'POST',
+    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': file.type },
+    body: file
+  });
+  if (!res.ok) throw new Error('Upload failed');
+  return path;
+}
+
+async function deletePhoto(path) {
+  await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, {
+    method: 'DELETE',
+    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+  });
+}
+
+function photoUrl(path) { return SB_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + path; }
+
+function showToast(msg, isError) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(function(){ t.className = 'toast'; }, 2500);
+}
+function flashSaved() {
+  var s = document.getElementById('saveIndicator');
+  s.classList.add('show');
+  setTimeout(function(){ s.classList.remove('show'); }, 1800);
+}
+
+/* Silent "login" using the identity already established on the Vietnam dashboard —
+   no second name/email form. Finds or creates the matching inspiration_clients row. */
+async function initTailoringBoard() {
+  if (tailoringInited) return;
+  if (!dashClient || !dashClient.name || !dashClient.email) return;
+  tailoringInited = true;
+  try {
+    var clients = await sb('inspiration_clients?email=eq.' + encodeURIComponent(dashClient.email) + '&select=*');
+    if (clients.length > 0) {
+      currentClient = clients[0];
+      if (currentClient.name !== dashClient.name) {
+        await sb('inspiration_clients?id=eq.' + currentClient.id, { method: 'PATCH', body: JSON.stringify({ name: dashClient.name }) });
+        currentClient.name = dashClient.name;
+      }
+    } else {
+      var created = await sb('inspiration_clients', { method: 'POST', body: JSON.stringify({ name: dashClient.name, email: dashClient.email }), prefer: 'return=representation' });
+      currentClient = created[0];
+    }
+    await loadItems();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('itemsList').innerHTML = '<div class="empty"><div class="em-icon">✦</div>Couldn’t load your moodboard. Please refresh and try again.</div>';
+  }
+}
+
+async function loadItems() {
+  boardItems = await sb('inspiration_items?client_id=eq.' + currentClient.id + '&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_item_colours(*)');
+  renderBoardItems();
+}
+
+function renderFilterTabs() {
+  var cats = {};
+  boardItems.forEach(function(i){ cats[i.category] = (cats[i.category] || 0) + 1; });
+  var tabContainer = document.getElementById('filterTabs');
+  if (boardItems.length <= 1) { tabContainer.style.display = 'none'; return; }
+  tabContainer.style.display = 'flex';
+  var allActive = activeFilter === 'All' ? 'active' : '';
+  var html = '<div class="filter-tab ' + allActive + '" onclick="setFilter(\'All\')">All <span class="count">' + boardItems.length + '</span></div>';
+  Object.keys(cats).sort().forEach(function(cat) {
+    var active = activeFilter === cat ? 'active' : '';
+    html += '<div class="filter-tab ' + active + '" onclick="setFilter(\'' + cat.replace(/'/g, "\\'") + '\')">' + cat + ' <span class="count">' + cats[cat] + '</span></div>';
+  });
+  tabContainer.innerHTML = html;
+}
+
+function setFilter(cat) {
+  activeFilter = cat;
+  openedItemId = null;
+  renderBoardItems();
+}
+
+function renderPhotoSlots(itemId, photoMap) {
+  return ['front','back','side_left','side_right'].map(function(slot) {
+    var p = photoMap[slot];
+    var slotLabel = slot.replace('_',' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    var cls = 'photo-slot' + (p ? ' has-photo' : '');
+    var inner = '';
+    if (p) {
+      inner = '<img src="' + photoUrl(p.storage_path) + '" alt="' + slotLabel + '">'
+        + '<button class="remove-photo" onclick="event.stopPropagation();removePhoto(\'' + itemId + '\',\'' + p.id + '\',\'' + p.storage_path + '\')">✕</button>';
+    } else {
+      inner = '<span class="plus">+</span>';
+    }
+    return '<div class="' + cls + '" onclick="event.stopPropagation();triggerUpload(\'' + itemId + '\',\'' + slot + '\')">'
+      + inner
+      + '<span class="label">' + slotLabel + '</span>'
+      + '<input type="file" id="file-' + itemId + '-' + slot + '" accept="image/*" onchange="handlePhoto(event,\'' + itemId + '\',\'' + slot + '\')">'
+      + '</div>';
+  }).join('');
+}
+
+function toggleShelf(itemId) {
+  openedItemId = (openedItemId === itemId) ? null : itemId;
+  renderBoardItems();
+  if (openedItemId) {
+    setTimeout(function() {
+      var shelf = document.getElementById('shelf-' + itemId);
+      if (shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+}
+
+function renderBoardItems() {
+  renderFilterTabs();
+  var list = document.getElementById('itemsList');
+  var empty = document.getElementById('emptyState');
+  if (boardItems.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  var filtered = activeFilter === 'All' ? boardItems : boardItems.filter(function(i){ return i.category === activeFilter; });
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:36px;color:var(--text-light);font-size:13px">No items in this category</div>';
+    return;
+  }
+
+  var html = '<div class="tile-grid">';
+  filtered.forEach(function(item) {
+    var photos = item.inspiration_photos || [];
+    var frontPhoto = photos.filter(function(p){ return p.slot === 'front'; })[0];
+    var isOpen = openedItemId === item.id;
+
+    html += '<div class="item-tile ' + (isOpen ? 'active' : '') + '" onclick="toggleShelf(\'' + item.id + '\')">'
+      + '<div class="tile-thumb">' + (frontPhoto ? '<img src="' + photoUrl(frontPhoto.storage_path) + '" alt="' + item.category + '">' : '<div class="placeholder"><span class="plus">+</span>No photo yet</div>') + '</div>'
+      + '<div class="tile-info"><span class="item-category">' + item.category + ((item.quantity||1)>1 ? ' <span style="font-weight:700;margin-left:2px">×' + item.quantity + '</span>' : '') + '</span>'
+      + renderTileSwatches(item)
+      + '<span class="tile-arrow">▾</span></div>'
+      + '</div>';
+
+    if (isOpen) {
+      var photoMap = {};
+      photos.forEach(function(p){ photoMap[p.slot] = p; });
+      html += '<div class="item-shelf" id="shelf-' + item.id + '">'
+        + '<div class="shelf-header"><span class="item-category">' + item.category + '</span>'
+        + '<div class="shelf-actions">'
+        + '<button class="icon-btn" onclick="event.stopPropagation();toggleShelf(\'' + item.id + '\')" title="Close">✕</button>'
+        + '<button class="icon-btn delete" onclick="event.stopPropagation();deleteItem(\'' + item.id + '\')" title="Delete">🗑</button>'
+        + '</div></div>'
+        + '<div class="photo-grid">' + renderPhotoSlots(item.id, photoMap) + '</div>'
+        + '<div class="prompts-section">'
+        + '<div class="form-group full"><label>What do you love about this piece?</label><textarea data-field="prompt_love" oninput="autoSave(\'' + item.id + '\',this)">' + (item.prompt_love || '') + '</textarea></div>'
+        + '<div class="form-group full"><label>What fabric/material are you after?</label><textarea data-field="prompt_colour_fabric" oninput="autoSave(\'' + item.id + '\',this)" placeholder="e.g. Silk, linen, cotton…">' + (item.prompt_colour_fabric || '') + '</textarea></div>'
+        + '<div class="form-group"><label>Occasion or use?</label><select data-field="prompt_occasion" onchange="handleOccasion(\'' + item.id + '\',this)"><option value="">Select…</option>'
+        + ['Casual','Work','Event','Travel','Wedding'].map(function(o){ return '<option ' + (item.prompt_occasion===o?'selected':'') + '>' + o + '</option>'; }).join('')
+        + '<option ' + (item.prompt_occasion && ['Casual','Work','Event','Travel','Wedding',''].indexOf(item.prompt_occasion)===-1 ? 'selected' : '') + ' value="__other">Other</option></select>'
+        + (item.prompt_occasion && ['Casual','Work','Event','Travel','Wedding',''].indexOf(item.prompt_occasion)===-1 ? '<input type="text" style="margin-top:8px" value="' + item.prompt_occasion + '" data-field="prompt_occasion" oninput="autoSave(\'' + item.id + '\',this)" placeholder="Describe the occasion…">' : '')
+        + '</div>'
+        + '<div class="form-group"><label>Exact replica or inspired by it?</label><select data-field="prompt_exact_or_inspired" onchange="autoSave(\'' + item.id + '\',this)"><option value="">Select…</option>'
+        + ['Exact replica','Inspired by it','Not sure yet'].map(function(o){ return '<option ' + (item.prompt_exact_or_inspired===o?'selected':'') + '>' + o + '</option>'; }).join('') + '</select></div>'
+        + '<div class="form-group full"><label>What fit do you prefer?</label><textarea data-field="prompt_fit" oninput="autoSave(\'' + item.id + '\',this)" placeholder="e.g. Slim through the chest, relaxed in the body…">' + (item.prompt_fit || '') + '</textarea></div>'
+        + '<div class="form-group full"><label>Anything you\'d change about this piece?</label><textarea data-field="prompt_changes" oninput="autoSave(\'' + item.id + '\',this)">' + (item.prompt_changes || '') + '</textarea></div>'
+        + '<div class="form-group"><label>How important is this piece?</label><select data-field="prompt_priority" onchange="autoSave(\'' + item.id + '\',this)"><option value="">Select…</option>'
+        + ['Must-have','Nice-to-have','Just browsing'].map(function(o){ return '<option ' + (item.prompt_priority===o?'selected':'') + '>' + o + '</option>'; }).join('') + '</select></div>'
+        + '<div class="form-group"><label>Reference link (optional)</label><input type="url" data-field="prompt_source_url" value="' + (item.prompt_source_url || '') + '" oninput="autoSave(\'' + item.id + '\',this)" placeholder="https://…"></div>'
+        + '</div>'
+        + '<div class="qty-colour-section"><div class="qc-title">How many do you want made &amp; in what colours?</div>'
+        + '<div class="qc-qty-row"><label>Quantity</label><div class="qc-stepper"><button onclick="event.stopPropagation();changeQty(\'' + item.id + '\',-1)">−</button><span id="qty-display-' + item.id + '">' + (item.quantity || 1) + '</span><button onclick="event.stopPropagation();changeQty(\'' + item.id + '\',1)">+</button></div></div>'
+        + '<div id="colour-units-' + item.id + '">' + renderColourUnits(item) + '</div>'
+        + '<div class="qc-hint">Tap each circle to pick a colour</div></div>'
+        + '</div>';
+    }
+  });
+  html += '</div>';
+  list.innerHTML = html;
+}
+
+async function addItem() {
+  var cat = document.getElementById('newCategory').value;
+  if (!cat) { showToast('Please select a category first', true); return; }
+  try {
+    var created = await sb('inspiration_items', { method: 'POST', body: JSON.stringify({ client_id: currentClient.id, category: cat, sort_order: boardItems.length }), prefer: 'return=representation' });
+    document.getElementById('newCategory').value = '';
+    openedItemId = created[0].id;
+    await loadItems();
+    setTimeout(function() {
+      var shelf = document.getElementById('shelf-' + created[0].id);
+      if (shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  } catch (e) {
+    showToast('Failed to add item', true);
+  }
+}
+
+async function deleteItem(itemId) {
+  if (!confirm('Delete this item and all its photos?')) return;
+  try {
+    var item = boardItems.filter(function(i){ return i.id === itemId; })[0];
+    if (item && item.inspiration_photos) {
+      for (var i = 0; i < item.inspiration_photos.length; i++) {
+        await deletePhoto(item.inspiration_photos[i].storage_path).catch(function(){});
+      }
+    }
+    await sb('inspiration_photos?item_id=eq.' + itemId, { method: 'DELETE' });
+    await sb('inspiration_admin_notes?item_id=eq.' + itemId, { method: 'DELETE' });
+    await sb('inspiration_item_colours?item_id=eq.' + itemId, { method: 'DELETE' });
+    await sb('inspiration_items?id=eq.' + itemId, { method: 'DELETE' });
+    if (openedItemId === itemId) openedItemId = null;
+    await loadItems();
+    showToast('Item deleted');
+  } catch (e) {
+    showToast('Failed to delete', true);
+  }
+}
+
+function autoSave(itemId, el) {
+  var field = el.dataset.field;
+  var value = el.value;
+  var key = itemId + '-' + field;
+  clearTimeout(saveTimers[key]);
+  saveTimers[key] = setTimeout(async function() {
+    try {
+      var body = {}; body[field] = value; body.updated_at = new Date().toISOString();
+      await sb('inspiration_items?id=eq.' + itemId, { method: 'PATCH', body: JSON.stringify(body) });
+      var item = boardItems.filter(function(i){ return i.id === itemId; })[0];
+      if (item) item[field] = value;
+      flashSaved();
+    } catch (e) {
+      showToast('Save failed — please try again', true);
+    }
+  }, 600);
+}
+
+function handleOccasion(itemId, el) {
+  if (el.value === '__other') {
+    var item = boardItems.filter(function(i){ return i.id === itemId; })[0];
+    if (item) item.prompt_occasion = '';
+    renderBoardItems();
+    setTimeout(function() {
+      var shelf = document.getElementById('shelf-' + itemId);
+      if (shelf) { var inp = shelf.querySelector('input[data-field="prompt_occasion"]'); if (inp) inp.focus(); }
+    }, 50);
+  } else {
+    autoSave(itemId, el);
+  }
+}
+
+function triggerUpload(itemId, slot) { document.getElementById('file-' + itemId + '-' + slot).click(); }
+
+async function handlePhoto(e, itemId, slot) {
+  var file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Photo must be under 5MB', true); return; }
+  var item = boardItems.filter(function(i){ return i.id === itemId; })[0];
+  var existing = ((item && item.inspiration_photos) || []).filter(function(p){ return p.slot === slot; })[0];
+  try {
+    if (existing) {
+      await deletePhoto(existing.storage_path).catch(function(){});
+      await sb('inspiration_photos?id=eq.' + existing.id, { method: 'DELETE' });
+    }
+    var path = await uploadPhoto(file, currentClient.id, itemId, slot);
+    await sb('inspiration_photos', { method: 'POST', body: JSON.stringify({ item_id: itemId, slot: slot, storage_path: path }) });
+    await loadItems();
+    flashSaved();
+  } catch (e) {
+    showToast('Photo upload failed', true);
+  }
+}
+
+async function removePhoto(itemId, photoId, path) {
+  try {
+    await deletePhoto(path).catch(function(){});
+    await sb('inspiration_photos?id=eq.' + photoId, { method: 'DELETE' });
+    await loadItems();
+    flashSaved();
+  } catch (e) {
+    showToast('Failed to remove photo', true);
+  }
+}
+
+function renderColourUnits(item) {
+  var qty = item.quantity || 1;
+  var colours = item.inspiration_item_colours || [];
+  var html = '';
+  for (var u = 1; u <= qty; u++) {
+    var c = colours.filter(function(x){ return x.unit_number === u; })[0] || {};
+    var unitLabel = qty > 1 ? 'Unit ' + u : 'Colours';
+    html += '<div class="colour-unit"><div class="colour-unit-num">' + unitLabel + '</div>'
+      + '<div class="colour-pick-group"><span class="colour-pick-label">Primary</span>' + renderColourCircle(item.id, u, 'primary_colour', c.primary_colour) + '</div>'
+      + '<div class="colour-pick-group"><span class="colour-pick-label">Backup</span>' + renderColourCircle(item.id, u, 'backup_colour', c.backup_colour) + '</div>'
+      + '</div>';
+  }
+  return html;
+}
+
+function renderColourCircle(itemId, unitNum, colField, val) {
+  var bg = val ? 'background:' + val + ';' : '';
+  return '<div class="colour-circle" style="' + bg + '"><input type="color" value="' + (val || '#cccccc') + '" onchange="saveColour(\'' + itemId + '\',' + unitNum + ',\'' + colField + '\',this.value)"></div>';
+}
+
+function renderTileSwatches(item) {
+  var colours = item.inspiration_item_colours || [];
+  if (colours.length === 0) return '';
+  var dots = '';
+  colours.slice().sort(function(a,b){ return a.unit_number - b.unit_number; }).forEach(function(c) {
+    if (c.primary_colour) dots += '<div class="tile-swatch" style="background:' + c.primary_colour + '"></div>';
+    if (c.backup_colour) dots += '<div class="tile-swatch" style="background:' + c.backup_colour + ';opacity:0.6"></div>';
+  });
+  if (!dots) return '';
+  return '<div class="tile-swatches">' + dots + '</div>';
+}
+
+async function changeQty(itemId, delta) {
+  var item = boardItems.filter(function(i){ return i.id === itemId; })[0];
+  if (!item) return;
+  var qty = (item.quantity || 1) + delta;
+  if (qty < 1) qty = 1;
+  if (qty > 10) qty = 10;
+  try {
+    await sb('inspiration_items?id=eq.' + itemId, { method: 'PATCH', body: JSON.stringify({ quantity: qty, updated_at: new Date().toISOString() }) });
+    item.quantity = qty;
+    var colours = item.inspiration_item_colours || [];
+    var toDelete = colours.filter(function(c){ return c.unit_number > qty; });
+    for (var i = 0; i < toDelete.length; i++) { await sb('inspiration_item_colours?id=eq.' + toDelete[i].id, { method: 'DELETE' }); }
+    item.inspiration_item_colours = colours.filter(function(c){ return c.unit_number <= qty; });
+    flashSaved();
+    renderBoardItems();
+  } catch(e) {
+    showToast('Failed to update quantity', true);
+  }
+}
+
+async function saveColour(itemId, unitNum, colField, value) {
+  var item = boardItems.filter(function(i){ return i.id === itemId; })[0];
+  if (!item) return;
+  var colours = item.inspiration_item_colours || [];
+  var existing = colours.filter(function(c){ return c.unit_number === unitNum; })[0];
+  try {
+    if (existing) {
+      var body = {}; body[colField] = value;
+      await sb('inspiration_item_colours?id=eq.' + existing.id, { method: 'PATCH', body: JSON.stringify(body) });
+      existing[colField] = value;
+    } else {
+      var body2 = { item_id: itemId, unit_number: unitNum }; body2[colField] = value;
+      var res = await sb('inspiration_item_colours', { method: 'POST', body: JSON.stringify(body2), prefer: 'return=representation' });
+      if (!item.inspiration_item_colours) item.inspiration_item_colours = [];
+      item.inspiration_item_colours.push(Array.isArray(res) ? res[0] : res);
+    }
+    flashSaved();
+    renderBoardItems();
+  } catch(e) {
+    showToast('Failed to save colour', true);
+  }
+}
+
+/* ═══════════ Shell: tabs, nav, page states ═══════════ */
+
+function navHTML() {
+  return '<nav class="sidebar-nav">'
+    + '<button class="snav-item on" data-tab="itinerary" onclick="setTab(\'itinerary\')"><span class="ic">🗓️</span>Itinerary</button>'
+    + '<button class="snav-item" data-tab="recs" onclick="setTab(\'recs\')"><span class="ic">📍</span>Recommendations</button>'
+    + '<button class="snav-item" data-tab="tailoring" onclick="setTab(\'tailoring\')"><span class="ic">✂️</span>Tailoring</button>'
+    + '</nav>'
+    + '<nav class="bottom-tabs">'
+    + '<button class="bt-item on" data-tab="itinerary" onclick="setTab(\'itinerary\')"><span class="ic">🗓️</span>Itinerary</button>'
+    + '<button class="bt-item" data-tab="recs" onclick="setTab(\'recs\')"><span class="ic">📍</span>Recs</button>'
+    + '<button class="bt-item" data-tab="tailoring" onclick="setTab(\'tailoring\')"><span class="ic">✂️</span>Tailoring</button>'
+    + '</nav>';
+}
+
+function setTab(tab) {
+  document.querySelectorAll('.snav-item, .bt-item').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-tab') === tab); });
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.toggle('on', p.id === 'panel-' + tab); });
+  if (tab === 'tailoring') initTailoringBoard();
+}
+
+function showLoginRequired() {
+  document.getElementById('app-root').innerHTML =
+    '<div class="center-box"><div class="msg-card">'
+    + '<div class="msg-title">Please Log In</div>'
+    + '<div class="msg-desc">Head back to the Client Portal and enter your name &amp; email on the Vietnam Tailoring Tour card to view your dashboard.</div>'
+    + '<a class="msg-link" href="index.html">← Back to Client Portal</a>'
+    + '</div></div>';
+}
+
+function showNotFound() {
+  document.getElementById('app-root').innerHTML =
+    '<div class="center-box"><div class="msg-card">'
+    + '<div class="msg-title">We Couldn’t Find Your Dashboard</div>'
+    + '<div class="msg-desc">Please contact your tour coordinator, or try logging in again.</div>'
+    + '<a class="msg-link" href="index.html">← Back to Client Portal</a>'
+    + '</div></div>';
+}
+
+function init() {
+  var cid = qs('cid');
+  var nameParam = qs('name');
+  if (!cid) { showLoginRequired(); return; }
+
+  if (nameParam) {
+    document.getElementById('welcome-msg').textContent = 'Welcome, ' + nameParam;
+    document.getElementById('welcome-msg').style.display = 'block';
+  }
+
+  document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Loading your dashboard…</div></div>';
+
+  var itinUrl = SUPABASE_URL + '/rest/v1/vietnam_itinerary_items?client_id=eq.' + encodeURIComponent(cid) + '&select=*&order=sort_order.asc';
+  var recUrl = SUPABASE_URL + '/rest/v1/vietnam_recommendations?client_id=eq.' + encodeURIComponent(cid) + '&select=*&order=sort_order.asc';
+  var clientUrl = SUPABASE_URL + '/rest/v1/vietnam_clients?id=eq.' + encodeURIComponent(cid) + '&select=id,name,email&limit=1';
+
+  Promise.all([
+    fetch(clientUrl, { headers: sbHeaders() }).then(function(r){ return r.json(); }),
+    fetch(itinUrl, { headers: sbHeaders() }).then(function(r){ return r.json(); }),
+    fetch(recUrl, { headers: sbHeaders() }).then(function(r){ return r.json(); })
+  ]).then(function(results) {
+    var client = results[0], items = results[1], recs = results[2];
+    if (!client || client.length === 0) { showNotFound(); return; }
+    dashClient = client[0];
+    if (!nameParam) {
+      document.getElementById('welcome-msg').textContent = 'Welcome, ' + dashClient.name;
+      document.getElementById('welcome-msg').style.display = 'block';
+    }
+    document.getElementById('app-root').innerHTML =
+      '<div class="dash-shell">' + navHTML()
+      + '<div class="main-content">'
+      + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(items) + '</div>'
+      + '<div class="tab-panel" id="panel-recs">' + renderRecommendations(recs) + '</div>'
+      + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
+      + '</div></div>';
+    wirePacking();
+  }).catch(function() {
+    document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Something went wrong loading your dashboard. Please try again.</div></div>';
+  });
+}
+
+init();
+</script>
+</body>
+</html>

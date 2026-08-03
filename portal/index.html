@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your SZN — Client Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Almarai:wght@300;400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Almarai:wght@300;400;700&family=Inter:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --cream: #FAF7F2; --warm: #F5F0E8; --sand: #E0D5C5;
-    --tan: #C4B49A; --charcoal: #2C2420; --deep: #3E3229;
-    --green: #5A8A5E; --rose: #C47272; --gold: #C4963A;
-    --muted: #9A8E82;
+    --cream: #F7F3EE; --warm: #F2EDE6; --sand: #E5DDD4;
+    --tan: #C9B99A; --charcoal: #1C1712; --deep: #1C1712;
+    --green: #7A8C6E; --rose: #C49A8A; --gold: #B8965A;
+    --muted: #8A7D72;
     --icon-winter: #9E9E9E;
     --icon-spring: #A8C8E8;
     --icon-summer: #C8A8D8;
@@ -18,7 +18,7 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
-    font-family: 'Almarai', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--cream); color: var(--charcoal);
     min-height: 100vh;
     display: flex; flex-direction: column;
@@ -26,8 +26,8 @@
 
   /* ─── Hero ─── */
   .portal-hero {
-    background: var(--cream);
-    padding: 60px 20px 50px;
+    background: radial-gradient(ellipse at top, var(--warm) 0%, var(--cream) 65%);
+    padding: 64px 20px 54px;
     text-align: center;
     position: relative;
   }
@@ -45,10 +45,11 @@
   .portal-icon {
     width: 42px; height: 42px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(44,36,32,0.06);
   }
-  .portal-icon:hover { transform: scale(1.1); }
+  .portal-icon:hover { transform: scale(1.12); box-shadow: 0 4px 14px rgba(44,36,32,0.14); }
   .portal-icon img { width: 24px; height: 24px; object-fit: contain; }
 
   .portal-subtitle {
@@ -79,14 +80,24 @@
     border-radius: 14px;
     padding: 28px 32px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s cubic-bezier(.2,.8,.2,1), border-color 0.25s ease;
     text-decoration: none; color: inherit; display: block;
     position: relative;
+    box-shadow: 0 2px 10px rgba(44,36,32,0.04);
   }
   .portal-card:hover {
     border-color: var(--charcoal);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(44,36,32,0.08);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(44,36,32,0.1);
+  }
+  .portal-card:focus-visible {
+    outline: 2px solid var(--charcoal);
+    outline-offset: 3px;
+  }
+  .portal-gate-input:focus-visible,
+  .portal-gate-btn:focus-visible {
+    outline: 2px solid var(--charcoal);
+    outline-offset: 2px;
   }
 
   .portal-card-inner {
@@ -101,12 +112,12 @@
     line-height: 1.2;
   }
   .portal-card-desc {
-    font-family: 'Almarai', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 12px; color: var(--muted);
     margin-top: 4px; line-height: 1.4;
   }
   .portal-card-link {
-    font-family: 'Almarai', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 11px; font-weight: 700;
     letter-spacing: 2px; text-transform: uppercase;
     color: var(--charcoal);
@@ -132,19 +143,19 @@
   .portal-gate-field { flex: 1; }
   .portal-gate-label {
     display: block;
-    font-family: 'Almarai', sans-serif;
-    font-size: 10px; font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px; font-weight: 600;
     color: var(--charcoal); text-transform: uppercase;
     letter-spacing: 1.5px; margin-bottom: 6px;
   }
   .portal-gate-input {
     width: 100%; padding: 10px 14px; border-radius: 6px;
     border: 1px solid var(--sand);
-    font-family: 'Almarai', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 14px; background: white; color: var(--charcoal); outline: none;
     transition: border-color 0.15s;
   }
-  .portal-gate-input:focus { border-color: var(--charcoal); }
+  .portal-gate-input:focus { border-color: var(--charcoal); box-shadow: 0 0 0 2px rgba(28,23,18,.08); }
   .portal-gate-btn {
     padding: 10px 20px; border-radius: 6px;
     font-family: 'Almarai', sans-serif;
@@ -157,7 +168,7 @@
   }
   .portal-gate-btn:hover { opacity: 0.85; }
   .portal-gate-error {
-    font-family: 'Almarai', sans-serif;
+    font-family: 'Inter', sans-serif;
     color: var(--rose); font-size: 12px;
     margin-top: 10px; display: none;
   }
@@ -165,7 +176,7 @@
   /* Footer */
   .portal-footer {
     text-align: center;
-    font-family: 'Almarai', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 11px; color: var(--muted);
     padding: 0 20px 30px;
     background: var(--cream);
@@ -247,7 +258,7 @@
         </div>
         <!-- New submission flow -->
         <div id="newsub-flow" style="display:none;margin-top:16px">
-          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Almarai',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
+          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'DM Sans',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">New Submission</div>
           <div style="margin-bottom:10px">
             <label class="portal-gate-label">Your Full Name</label>
@@ -267,7 +278,7 @@
         </div>
         <!-- Revised flow -->
         <div id="revised-flow" style="display:none;margin-top:16px">
-          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Almarai',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
+          <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0;margin-bottom:10px;font-family:'DM Sans',sans-serif" onclick="event.stopPropagation();backToChoice()">← Back</button>
           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">Upload Revised Photos</div>
           <div style="margin-bottom:10px">
             <label class="portal-gate-label">Your Full Name</label>
@@ -318,6 +329,44 @@
       </div>
     </div>
 
+    <!-- Vietnam Tailoring Tour -->
+    <div class="portal-card" onclick="openGate('vietnam')">
+      <div class="portal-card-inner">
+        <div class="portal-card-left">
+          <div class="portal-card-title">Vietnam <em>Tailoring</em> Tour</div>
+          <div class="portal-card-desc">Your itinerary, recommendations &amp; more</div>
+        </div>
+        <div class="portal-card-link">VIEW DASHBOARD</div>
+      </div>
+      <div class="portal-gate" id="gate-vietnam">
+        <div class="portal-gate-row">
+          <div class="portal-gate-field">
+            <label class="portal-gate-label">Access Code</label>
+            <input class="portal-gate-input" id="code-vietnam" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
+          </div>
+          <button class="portal-gate-btn" id="btn-vietnam" onclick="event.stopPropagation();checkCode('vietnam')">ENTER</button>
+        </div>
+        <div class="portal-gate-error" id="err-vietnam"></div>
+        <div id="vietnam-lookup" style="display:none;margin-top:16px">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">Find Your Dashboard</div>
+          <div style="margin-bottom:10px">
+            <label class="portal-gate-label">Your Full Name</label>
+            <input class="portal-gate-input" id="vt-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="portal-gate-label">Your Email</label>
+            <div class="portal-gate-row">
+              <div class="portal-gate-field">
+                <input class="portal-gate-input" id="vt-email" type="email" placeholder="Enter your email" onclick="event.stopPropagation()" />
+              </div>
+              <button class="portal-gate-btn" id="vt-lookup-btn" onclick="event.stopPropagation();vtLookup()">CONTINUE</button>
+            </div>
+          </div>
+          <div class="portal-gate-error" id="vt-lookup-err"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -330,7 +379,8 @@ var STORAGE_BUCKET = 'online-clients-photos';
 
 var CODES = {
   online: { code: '1893', url: 'yourszn-form-7.html' },
-  inperson: { code: '2722', url: 'client-upload.html' }
+  inperson: { code: '2722', url: 'client-upload.html' },
+  vietnam: { code: '2462', url: 'vietnam-tour.html' }
 };
 
 function openGate(key) {
@@ -370,7 +420,51 @@ function checkCode(key) {
     return;
   }
 
+  /* ── Vietnam: show name/email lookup instead of redirect ── */
+  if (key === 'vietnam') {
+    btn.style.display = 'none';
+    var lookupEl = document.getElementById('vietnam-lookup');
+    if (lookupEl) lookupEl.style.display = 'block';
+    return;
+  }
+
   window.location.href = CODES[key].url;
+}
+
+/* ── Vietnam dashboard lookup ── */
+function vtLookup() {
+  var name = (document.getElementById('vt-name').value || '').trim();
+  var email = (document.getElementById('vt-email').value || '').trim().toLowerCase();
+  var errEl = document.getElementById('vt-lookup-err');
+  errEl.style.display = 'none';
+
+  if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
+  if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
+
+  var btn = document.getElementById('vt-lookup-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="portal-spinner"></span>';
+
+  var url = SUPABASE_URL + '/rest/v1/vietnam_clients?email=eq.' + encodeURIComponent(email) + '&select=id,name,email&limit=1';
+  fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.textContent = 'CONTINUE';
+      if (!data || data.length === 0) {
+        errEl.textContent = 'We couldn’t find a dashboard for that email. Please check with your tour coordinator.';
+        errEl.style.display = 'block';
+        return;
+      }
+      var client = data[0];
+      window.location.href = CODES.vietnam.url + '?cid=' + encodeURIComponent(client.id) + '&name=' + encodeURIComponent(client.name || '');
+    })
+    .catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'CONTINUE';
+      errEl.textContent = 'Something went wrong. Please try again.';
+      errEl.style.display = 'block';
+    });
 }
 
 /* ── Revised-photo helpers ── */
@@ -600,6 +694,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (rn) rn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('revised-email').focus(); } });
   var re = document.getElementById('revised-email');
   if (re) re.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); lookupSubmission(); } });
+  /* Enter key for Vietnam lookup fields */
+  var vtn = document.getElementById('vt-name');
+  if (vtn) vtn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('vt-email').focus(); } });
+  var vte = document.getElementById('vt-email');
+  if (vte) vte.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); vtLookup(); } });
 });
 
 /* Enter key support on all code inputs */
