@@ -339,31 +339,24 @@
         <div class="portal-card-link">VIEW DASHBOARD</div>
       </div>
       <div class="portal-gate" id="gate-vietnam">
-        <div class="portal-gate-row">
-          <div class="portal-gate-field">
-            <label class="portal-gate-label">Access Code</label>
-            <input class="portal-gate-input" id="code-vietnam" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
-          </div>
-          <button class="portal-gate-btn" id="btn-vietnam" onclick="event.stopPropagation();checkCode('vietnam')">ENTER</button>
+        <div style="margin-bottom:10px">
+          <label class="portal-gate-label">Access Code</label>
+          <input class="portal-gate-input" id="code-vietnam" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
         </div>
-        <div class="portal-gate-error" id="err-vietnam"></div>
-        <div id="vietnam-lookup" style="display:none;margin-top:16px">
-          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:var(--charcoal);margin-bottom:12px">Find Your Dashboard</div>
-          <div style="margin-bottom:10px">
-            <label class="portal-gate-label">Your Full Name</label>
-            <input class="portal-gate-input" id="vt-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
-          </div>
-          <div style="margin-bottom:12px">
-            <label class="portal-gate-label">Your Email</label>
-            <div class="portal-gate-row">
-              <div class="portal-gate-field">
-                <input class="portal-gate-input" id="vt-email" type="email" placeholder="Enter your email" onclick="event.stopPropagation()" />
-              </div>
-              <button class="portal-gate-btn" id="vt-lookup-btn" onclick="event.stopPropagation();vtLookup()">CONTINUE</button>
+        <div style="margin-bottom:10px">
+          <label class="portal-gate-label">Your Full Name</label>
+          <input class="portal-gate-input" id="vt-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="portal-gate-label">Your Email</label>
+          <div class="portal-gate-row">
+            <div class="portal-gate-field">
+              <input class="portal-gate-input" id="vt-email" type="email" placeholder="Enter your email" onclick="event.stopPropagation()" />
             </div>
+            <button class="portal-gate-btn" id="vt-lookup-btn" onclick="event.stopPropagation();vtLookup()">ENTER</button>
           </div>
-          <div class="portal-gate-error" id="vt-lookup-err"></div>
         </div>
+        <div class="portal-gate-error" id="vt-lookup-err"></div>
       </div>
     </div>
 
@@ -420,24 +413,19 @@ function checkCode(key) {
     return;
   }
 
-  /* ── Vietnam: show name/email lookup instead of redirect ── */
-  if (key === 'vietnam') {
-    btn.style.display = 'none';
-    var lookupEl = document.getElementById('vietnam-lookup');
-    if (lookupEl) lookupEl.style.display = 'block';
-    return;
-  }
-
   window.location.href = CODES[key].url;
 }
 
-/* ── Vietnam dashboard lookup ── */
+/* ── Vietnam dashboard lookup: code + name + email all in one step ── */
 function vtLookup() {
+  var code = (document.getElementById('code-vietnam').value || '').trim();
   var name = (document.getElementById('vt-name').value || '').trim();
   var email = (document.getElementById('vt-email').value || '').trim().toLowerCase();
   var errEl = document.getElementById('vt-lookup-err');
   errEl.style.display = 'none';
 
+  if (!code) { errEl.textContent = 'Please enter your access code.'; errEl.style.display = 'block'; return; }
+  if (code !== CODES.vietnam.code) { errEl.textContent = 'Invalid access code. Please check and try again.'; errEl.style.display = 'block'; return; }
   if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
   if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
 
@@ -450,7 +438,7 @@ function vtLookup() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       btn.disabled = false;
-      btn.textContent = 'CONTINUE';
+      btn.textContent = 'ENTER';
       if (!data || data.length === 0) {
         errEl.textContent = 'We couldn’t find a dashboard for that email. Please check with your tour coordinator.';
         errEl.style.display = 'block';
@@ -461,7 +449,7 @@ function vtLookup() {
     })
     .catch(function() {
       btn.disabled = false;
-      btn.textContent = 'CONTINUE';
+      btn.textContent = 'ENTER';
       errEl.textContent = 'Something went wrong. Please try again.';
       errEl.style.display = 'block';
     });
@@ -695,6 +683,8 @@ document.addEventListener('DOMContentLoaded', function() {
   var re = document.getElementById('revised-email');
   if (re) re.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); lookupSubmission(); } });
   /* Enter key for Vietnam lookup fields */
+  var vtc = document.getElementById('code-vietnam');
+  if (vtc) vtc.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('vt-name').focus(); } });
   var vtn = document.getElementById('vt-name');
   if (vtn) vtn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('vt-email').focus(); } });
   var vte = document.getElementById('vt-email');

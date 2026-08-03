@@ -25,46 +25,60 @@
     background: var(--cream); color: var(--charcoal);
     min-height: 100vh;
   }
-  .hero {
-    background: radial-gradient(ellipse at top, var(--warm) 0%, var(--cream) 65%);
-    padding: 40px 20px 24px;
-    text-align: center;
+  /* ── Sidebar (matches the internal staff dashboard's sidebar exactly) ── */
+  .sidebar {
+    position: fixed; left: 0; top: 0; width: 220px; height: 100vh;
+    background: #F9F5F0; border-right: 1px solid var(--sand);
+    display: flex; flex-direction: column; padding: 32px 0;
+    z-index: 100; transition: width .22s cubic-bezier(.4,0,.2,1); overflow: hidden;
   }
-  .logo { height: 50px; width: auto; opacity: 0.85; }
-  .eyebrow {
-    font-family: 'Almarai', sans-serif;
-    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
-    color: var(--muted);
-    margin-top: 16px;
+  #sb-toggle-btn {
+    position: absolute; top: 16px; right: -12px; width: 24px; height: 24px;
+    border-radius: 50%; background: #F9F5F0; border: 1px solid var(--sand);
+    color: var(--muted); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 101; line-height: 1; box-shadow: 0 1px 4px rgba(28,23,18,.1);
   }
-  .welcome {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 24px; color: var(--charcoal);
-    margin-top: 6px;
+  .slogo {
+    font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300;
+    color: var(--charcoal); letter-spacing: 3px; text-transform: uppercase;
+    padding: 0 28px 24px; border-bottom: 1px solid var(--sand); white-space: nowrap;
   }
+  .slogo span { font-style: italic; opacity: .6; }
+  .suser { padding: 14px 28px; border-bottom: 1px solid var(--sand); margin-bottom: 8px; white-space: nowrap; }
+  .sulab { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .suname { font-size: 13px; color: var(--charcoal); margin-top: 3px; font-weight: 500; }
+  .snav { flex: 1; padding: 8px 0; display: flex; flex-direction: column; gap: 2px; }
+  .nitem {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 16px; margin: 1px 12px; border-radius: 8px;
+    font-family: 'Inter', sans-serif; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); cursor: pointer; transition: all .2s; white-space: nowrap;
+  }
+  .nitem svg { width: 14px; height: 14px; flex-shrink: 0; stroke: currentColor; }
+  .nitem:hover { background: var(--sand); color: var(--charcoal); }
+  .nitem.on { background: var(--charcoal); color: #F9F5F0; }
+  .sout {
+    display: block; margin: 8px 20px 0; padding: 10px; border-radius: 8px;
+    border: 1px solid var(--sand); color: var(--muted); background: none;
+    font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    text-align: center; text-decoration: none; cursor: pointer; transition: all .2s; white-space: nowrap;
+  }
+  .sout:hover { background: var(--sand); color: var(--charcoal); }
 
-  /* ── Dashboard shell: sidebar + content ── */
-  .dash-shell { display: flex; align-items: flex-start; max-width: 1040px; margin: 0 auto; }
-  .sidebar-nav {
-    position: sticky; top: 24px;
-    width: 200px; flex-shrink: 0;
-    display: flex; flex-direction: column; gap: 4px;
-    padding: 24px 12px; margin: 24px 0 24px 20px;
-    background: var(--warm); border: 1px solid var(--sand); border-radius: 14px;
-  }
-  .snav-item {
-    display: flex; align-items: center; gap: 10px;
-    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
-    color: var(--charcoal); text-align: left;
-    padding: 11px 14px; border-radius: 9px;
-    border: none; background: transparent; cursor: pointer;
-    transition: background .15s;
-  }
-  .snav-item .ic { font-size: 16px; }
-  .snav-item:hover { background: rgba(28,23,18,.05); }
-  .snav-item.on { background: var(--charcoal); color: #fff; }
+  body.sb-collapsed .sidebar { width: 56px; }
+  body.sb-collapsed .slogo,
+  body.sb-collapsed .suser,
+  body.sb-collapsed .nitem span,
+  body.sb-collapsed .sout { display: none; }
+  body.sb-collapsed .nitem { justify-content: center; margin: 1px 8px; padding: 11px 0; }
+  body.sb-collapsed .main { margin-left: 56px; }
 
-  .main-content { flex: 1; min-width: 0; padding: 24px 20px 90px; max-width: 840px; }
+  /* ── Main content ── */
+  .main { margin-left: 220px; min-height: 100vh; padding: 32px 44px 40px; transition: margin-left .22s cubic-bezier(.4,0,.2,1); }
+  .ph { margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--sand); }
+  .ptitle { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 400; color: var(--charcoal); }
+  .psub { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .tab-panel { display: none; }
   .tab-panel.on { display: block; }
 
@@ -76,18 +90,18 @@
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   }
   .bt-item {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
     border: none; background: none; cursor: pointer;
-    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .3px;
     color: var(--muted); padding: 6px 2px;
   }
-  .bt-item .ic { font-size: 18px; }
+  .bt-item svg { width: 18px; height: 18px; stroke: currentColor; }
   .bt-item.on { color: var(--charcoal); }
 
   @media (max-width: 768px) {
-    .sidebar-nav { display: none; }
+    .sidebar { display: none; }
+    .main { margin-left: 0 !important; padding: 20px 16px 90px; }
     .bottom-tabs { display: flex; }
-    .main-content { padding: 20px 16px 90px; }
   }
 
   /* ── Cards (Itinerary / Recommendations) ── */
@@ -280,15 +294,7 @@
 </head>
 <body>
 
-<div class="hero">
-  <img src="https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/szn-assets/YourSZN-Charcoal-Stacked%402x.png" alt="Your SZN" class="logo" />
-  <div class="eyebrow">Vietnam Tailoring Tour</div>
-  <div class="welcome" id="welcome-msg" style="display:none"></div>
-</div>
-
 <div id="app-root"></div>
-
-<div class="footer">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>
 
 <div class="save-indicator" id="saveIndicator">✓ Saved</div>
 <div class="toast" id="toast"></div>
@@ -812,21 +818,44 @@ async function saveColour(itemId, unitNum, colField, value) {
 
 /* ═══════════ Shell: tabs, nav, page states ═══════════ */
 
-function navHTML() {
-  return '<nav class="sidebar-nav">'
-    + '<button class="snav-item on" data-tab="itinerary" onclick="setTab(\'itinerary\')"><span class="ic">🗓️</span>Itinerary</button>'
-    + '<button class="snav-item" data-tab="recs" onclick="setTab(\'recs\')"><span class="ic">📍</span>Recommendations</button>'
-    + '<button class="snav-item" data-tab="tailoring" onclick="setTab(\'tailoring\')"><span class="ic">✂️</span>Tailoring</button>'
-    + '</nav>'
-    + '<nav class="bottom-tabs">'
-    + '<button class="bt-item on" data-tab="itinerary" onclick="setTab(\'itinerary\')"><span class="ic">🗓️</span>Itinerary</button>'
-    + '<button class="bt-item" data-tab="recs" onclick="setTab(\'recs\')"><span class="ic">📍</span>Recs</button>'
-    + '<button class="bt-item" data-tab="tailoring" onclick="setTab(\'tailoring\')"><span class="ic">✂️</span>Tailoring</button>'
-    + '</nav>';
+var VT_NAV = [
+  { id: 'itinerary', lbl: 'Itinerary', shortLbl: 'Itinerary', icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>' },
+  { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
+  { id: 'tailoring', lbl: 'Tailoring', shortLbl: 'Tailoring', icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>' }
+];
+
+function navIcon(icon, size) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:' + size + 'px;height:' + size + 'px;flex-shrink:0">' + icon + '</svg>';
+}
+
+function sidebarHTML(clientName) {
+  var items = VT_NAV.map(function(item, i) {
+    return '<div class="nitem' + (i === 0 ? ' on' : '') + '" data-tab="' + item.id + '" onclick="setTab(\'' + item.id + '\')">' + navIcon(item.icon, 14) + '<span class="nav-lbl">' + item.lbl + '</span></div>';
+  }).join('');
+  return '<aside class="sidebar" id="app-sidebar">'
+    + '<button id="sb-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar">&#8249;</button>'
+    + '<div class="slogo">Your <span>SZN</span></div>'
+    + '<div class="suser"><div class="sulab">Logged in as</div><div class="suname">' + clientName + '</div></div>'
+    + '<nav class="snav">' + items + '</nav>'
+    + '<a class="sout" href="index.html">← Back to Portal</a>'
+    + '</aside>';
+}
+
+function bottomTabsHTML() {
+  var items = VT_NAV.map(function(item, i) {
+    return '<button class="bt-item' + (i === 0 ? ' on' : '') + '" data-tab="' + item.id + '" onclick="setTab(\'' + item.id + '\')">' + navIcon(item.icon, 18) + '<span>' + item.shortLbl + '</span></button>';
+  }).join('');
+  return '<nav class="bottom-tabs">' + items + '</nav>';
+}
+
+function toggleSidebar() {
+  document.body.classList.toggle('sb-collapsed');
+  var btn = document.getElementById('sb-toggle-btn');
+  btn.innerHTML = document.body.classList.contains('sb-collapsed') ? '&#8250;' : '&#8249;';
 }
 
 function setTab(tab) {
-  document.querySelectorAll('.snav-item, .bt-item').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-tab') === tab); });
+  document.querySelectorAll('.nitem, .bt-item').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-tab') === tab); });
   document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.toggle('on', p.id === 'panel-' + tab); });
   if (tab === 'tailoring') initTailoringBoard();
 }
@@ -854,11 +883,6 @@ function init() {
   var nameParam = qs('name');
   if (!cid) { showLoginRequired(); return; }
 
-  if (nameParam) {
-    document.getElementById('welcome-msg').textContent = 'Welcome, ' + nameParam;
-    document.getElementById('welcome-msg').style.display = 'block';
-  }
-
   document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Loading your dashboard…</div></div>';
 
   var itinUrl = SUPABASE_URL + '/rest/v1/vietnam_itinerary_items?client_id=eq.' + encodeURIComponent(cid) + '&select=*&order=sort_order.asc';
@@ -873,17 +897,17 @@ function init() {
     var client = results[0], items = results[1], recs = results[2];
     if (!client || client.length === 0) { showNotFound(); return; }
     dashClient = client[0];
-    if (!nameParam) {
-      document.getElementById('welcome-msg').textContent = 'Welcome, ' + dashClient.name;
-      document.getElementById('welcome-msg').style.display = 'block';
-    }
+    var displayName = nameParam || dashClient.name;
     document.getElementById('app-root').innerHTML =
-      '<div class="dash-shell">' + navHTML()
-      + '<div class="main-content">'
+      sidebarHTML(displayName)
+      + '<div class="main">'
+      + '<div class="ph"><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Your personal trip dashboard</div></div>'
       + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(items) + '</div>'
       + '<div class="tab-panel" id="panel-recs">' + renderRecommendations(recs) + '</div>'
       + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
-      + '</div></div>';
+      + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
+      + '</div>'
+      + bottomTabsHTML();
     wirePacking();
   }).catch(function() {
     document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Something went wrong loading your dashboard. Please try again.</div></div>';
