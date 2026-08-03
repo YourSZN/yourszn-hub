@@ -128,12 +128,15 @@
   .itin-loc { font-size: 12px; color: var(--tan); margin-top: 4px; }
   .itin-loc::before { content: '📍 '; }
 
-  .rec-group-title {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 22px; color: var(--charcoal);
-    margin: 26px 0 12px;
+  .rec-subtabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .rec-subtab {
+    padding: 9px 20px; border: 1px solid var(--sand); border-radius: 24px;
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    background: white; color: var(--muted); transition: all .2s;
   }
-  .rec-group-title:first-child { margin-top: 0; }
+  .rec-subtab:hover { border-color: var(--charcoal); color: var(--charcoal); }
+  .rec-subtab.on { background: var(--charcoal); color: #fff; border-color: var(--charcoal); }
   .rec-card {
     display:flex; align-items:flex-start; gap: 14px;
     background: white; border: 1px solid var(--sand); border-radius: 12px;
@@ -146,6 +149,7 @@
   }
   .rec-name { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: var(--charcoal); }
   .rec-desc { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+  .rec-map { width: 100%; height: 140px; border: 0; border-radius: 10px; margin-top: 10px; display: block; }
   .rec-link {
     display:inline-block; margin-top: 8px;
     font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
@@ -399,28 +403,53 @@ function renderItinerary(items) {
 
 /* ═══════════ Recommendations ═══════════ */
 
-function renderRecommendations(recs) {
-  if (!recs || recs.length === 0) {
+var recsData = [];
+var recFilter = 'food';
+
+/* No-API-key Google Maps embed (single-pin, works off the maps_url search query
+   we already store — avoids needing a paid Maps API key / billing setup). */
+function mapEmbedSrc(mapsUrl) {
+  if (!mapsUrl) return '';
+  try {
+    var q = new URL(mapsUrl).searchParams.get('query') || '';
+    return 'https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&output=embed';
+  } catch (e) { return ''; }
+}
+
+function recSubTabsHTML() {
+  return '<div class="rec-subtabs">'
+    + '<button class="rec-subtab' + (recFilter === 'food' ? ' on' : '') + '" onclick="setRecFilter(\'food\')">Restaurants</button>'
+    + '<button class="rec-subtab' + (recFilter === 'activity' ? ' on' : '') + '" onclick="setRecFilter(\'activity\')">Activities</button>'
+    + '</div>';
+}
+
+function renderRecommendationsPanel() {
+  if (!recsData || recsData.length === 0) {
     return '<div class="empty"><div class="em-icon">📍</div>Recommendations are coming soon for your trip.</div>';
   }
-  var food = recs.filter(function(r){ return r.category === 'food'; });
-  var activity = recs.filter(function(r){ return r.category === 'activity'; });
-  var html = '';
-  function group(title, list, icon) {
-    if (list.length === 0) return '';
-    var h = '<div class="rec-group-title">' + title + '</div>';
-    list.forEach(function(r) {
-      h += '<div class="rec-card"><div class="rec-pin">' + icon + '</div><div>'
-        + '<div class="rec-name">' + r.name + '</div>'
-        + (r.description ? '<div class="rec-desc">' + r.description + '</div>' : '')
-        + (r.maps_url ? '<a class="rec-link" href="' + r.maps_url + '" target="_blank" rel="noopener">View on Map ↗</a>' : '')
-        + '</div></div>';
-    });
-    return h;
+  var icon = recFilter === 'food' ? '🍜' : '🎡';
+  var list = recsData.filter(function(r){ return r.category === recFilter; });
+  var html = recSubTabsHTML();
+  if (list.length === 0) {
+    html += '<div class="empty" style="padding:30px 0">Nothing here yet.</div>';
+    return html;
   }
-  html += group('Food', food, '🍜');
-  html += group('Activities', activity, '🎡');
+  list.forEach(function(r) {
+    var embedSrc = mapEmbedSrc(r.maps_url);
+    html += '<div class="rec-card"><div class="rec-pin">' + icon + '</div><div style="flex:1;min-width:0">'
+      + '<div class="rec-name">' + r.name + '</div>'
+      + (r.description ? '<div class="rec-desc">' + r.description + '</div>' : '')
+      + (embedSrc ? '<iframe class="rec-map" src="' + embedSrc + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>' : '')
+      + (r.maps_url ? '<a class="rec-link" href="' + r.maps_url + '" target="_blank" rel="noopener">Open in Google Maps ↗</a>' : '')
+      + '</div></div>';
+  });
   return html;
+}
+
+function setRecFilter(cat) {
+  recFilter = cat;
+  var panel = document.getElementById('panel-recs');
+  if (panel) panel.innerHTML = renderRecommendationsPanel();
 }
 
 /* ═══════════ Tailoring (Inspiration Board — ported) ═══════════ */
@@ -901,13 +930,14 @@ function init() {
     .then(function(res) {
       if (!res.data || !res.data.ok) { showNotFound(); return; }
       dashClient = Object.assign({}, res.data.client, { email: email });
+      recsData = res.data.recommendations || [];
       var displayName = nameParam || dashClient.name;
       document.getElementById('app-root').innerHTML =
         sidebarHTML(displayName)
         + '<div class="main">'
         + '<div class="ph"><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Your personal trip dashboard</div></div>'
         + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(res.data.itinerary) + '</div>'
-        + '<div class="tab-panel" id="panel-recs">' + renderRecommendations(res.data.recommendations) + '</div>'
+        + '<div class="tab-panel" id="panel-recs">' + renderRecommendationsPanel() + '</div>'
         + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
         + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
         + '</div>'
