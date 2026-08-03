@@ -149,7 +149,7 @@
   }
   .rec-name { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: var(--charcoal); }
   .rec-desc { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
-  .rec-map { width: 100%; height: 140px; border: 0; border-radius: 10px; margin-top: 10px; display: block; }
+  .rec-map { width: 100%; height: 140px; border-radius: 10px; margin-top: 10px; overflow: hidden; background: var(--warm); }
   .rec-link {
     display:inline-block; margin-top: 8px;
     font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
@@ -405,15 +405,59 @@ function renderItinerary(items) {
 
 var recsData = [];
 var recFilter = 'food';
+var geocodeCache = {};
 
-/* No-API-key Google Maps embed (single-pin, works off the maps_url search query
-   we already store — avoids needing a paid Maps API key / billing setup). */
-function mapEmbedSrc(mapsUrl) {
+/* Inline map preview uses OpenStreetMap (no API key, no billing, loads
+   reliably) — geocoded from the same search text already stored in maps_url.
+   "Open in Google Maps" still links out to Google since that's what people
+   actually use for directions. */
+function mapQueryFromUrl(mapsUrl) {
   if (!mapsUrl) return '';
-  try {
-    var q = new URL(mapsUrl).searchParams.get('query') || '';
-    return 'https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&output=embed';
-  } catch (e) { return ''; }
+  try { return new URL(mapsUrl).searchParams.get('query') || ''; } catch (e) { return ''; }
+}
+
+function geocodeQuery(q) {
+  if (geocodeCache[q]) return Promise.resolve(geocodeCache[q]);
+  return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var loc = (data && data[0]) ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null;
+      if (loc) geocodeCache[q] = loc;
+      return loc;
+    })
+    .catch(function() { return null; });
+}
+
+function osmEmbedSrc(lat, lon) {
+  var d = 0.006;
+  return 'https://www.openstreetmap.org/export/embed.html?bbox='
+    + (lon - d) + ',' + (lat - d * 0.7) + ',' + (lon + d) + ',' + (lat + d * 0.7)
+    + '&layer=mapnik&marker=' + lat + ',' + lon;
+}
+
+/* Fills in each .rec-map placeholder after the HTML is in the DOM — geocoding
+   is async, and calls are staggered ~350ms apart to be gentle on Nominatim's
+   free service. Falls back to just removing the placeholder (link still shows)
+   if a location can't be found. */
+function loadRecMaps() {
+  var els = document.querySelectorAll('.rec-map[data-query]');
+  var delay = 0;
+  els.forEach(function(el) {
+    var q = el.getAttribute('data-query');
+    if (!q) return;
+    setTimeout(function() {
+      geocodeQuery(q).then(function(loc) {
+        if (!loc) { el.remove(); return; }
+        var f = document.createElement('iframe');
+        f.src = osmEmbedSrc(loc.lat, loc.lon);
+        f.loading = 'lazy';
+        f.style.cssText = 'width:100%;height:100%;border:0;display:block';
+        el.innerHTML = '';
+        el.appendChild(f);
+      });
+    }, delay);
+    delay += 350;
+  });
 }
 
 function recSubTabsHTML() {
@@ -435,11 +479,11 @@ function renderRecommendationsPanel() {
     return html;
   }
   list.forEach(function(r) {
-    var embedSrc = mapEmbedSrc(r.maps_url);
+    var q = mapQueryFromUrl(r.maps_url);
     html += '<div class="rec-card"><div class="rec-pin">' + icon + '</div><div style="flex:1;min-width:0">'
       + '<div class="rec-name">' + r.name + '</div>'
       + (r.description ? '<div class="rec-desc">' + r.description + '</div>' : '')
-      + (embedSrc ? '<iframe class="rec-map" src="' + embedSrc + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>' : '')
+      + (q ? '<div class="rec-map" data-query="' + q.replace(/"/g, '&quot;') + '"></div>' : '')
       + (r.maps_url ? '<a class="rec-link" href="' + r.maps_url + '" target="_blank" rel="noopener">Open in Google Maps ↗</a>' : '')
       + '</div></div>';
   });
@@ -449,7 +493,7 @@ function renderRecommendationsPanel() {
 function setRecFilter(cat) {
   recFilter = cat;
   var panel = document.getElementById('panel-recs');
-  if (panel) panel.innerHTML = renderRecommendationsPanel();
+  if (panel) { panel.innerHTML = renderRecommendationsPanel(); loadRecMaps(); }
 }
 
 /* ═══════════ Tailoring (Inspiration Board — ported) ═══════════ */
@@ -943,6 +987,7 @@ function init() {
         + '</div>'
         + bottomTabsHTML();
       wirePacking();
+      loadRecMaps();
     })
     .catch(function() {
       document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Something went wrong loading your dashboard. Please try again.</div></div>';
