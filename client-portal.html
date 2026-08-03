@@ -416,7 +416,10 @@ function checkCode(key) {
   window.location.href = CODES[key].url;
 }
 
-/* ── Vietnam dashboard lookup: code + name + email all in one step ── */
+/* ── Vietnam dashboard lookup: code + name + email all in one step ──
+   Validated server-side via /api/vietnam-login — the browser never talks to
+   Supabase directly for this data. Email is kept in sessionStorage (not the
+   URL) and re-checked server-side on every dashboard load. */
 function vtLookup() {
   var code = (document.getElementById('code-vietnam').value || '').trim();
   var name = (document.getElementById('vt-name').value || '').trim();
@@ -425,7 +428,6 @@ function vtLookup() {
   errEl.style.display = 'none';
 
   if (!code) { errEl.textContent = 'Please enter your access code.'; errEl.style.display = 'block'; return; }
-  if (code !== CODES.vietnam.code) { errEl.textContent = 'Invalid access code. Please check and try again.'; errEl.style.display = 'block'; return; }
   if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
   if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
 
@@ -433,19 +435,22 @@ function vtLookup() {
   btn.disabled = true;
   btn.innerHTML = '<span class="portal-spinner"></span>';
 
-  var url = SUPABASE_URL + '/rest/v1/vietnam_clients?email=eq.' + encodeURIComponent(email) + '&select=id,name,email&limit=1';
-  fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+  fetch('/api/vietnam-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: code, name: name, email: email })
+  })
+    .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); })
+    .then(function(res) {
       btn.disabled = false;
       btn.textContent = 'ENTER';
-      if (!data || data.length === 0) {
-        errEl.textContent = 'We couldn’t find a dashboard for that email. Please check with your tour coordinator.';
+      if (!res.data || !res.data.ok) {
+        errEl.textContent = (res.data && res.data.error) || 'Something went wrong. Please try again.';
         errEl.style.display = 'block';
         return;
       }
-      var client = data[0];
-      window.location.href = CODES.vietnam.url + '?cid=' + encodeURIComponent(client.id) + '&name=' + encodeURIComponent(client.name || '');
+      try { sessionStorage.setItem('vt_email', email); } catch (e) {}
+      window.location.href = CODES.vietnam.url + '?cid=' + encodeURIComponent(res.data.cid) + '&name=' + encodeURIComponent(res.data.name || '');
     })
     .catch(function() {
       btn.disabled = false;

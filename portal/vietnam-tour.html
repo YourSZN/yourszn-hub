@@ -878,40 +878,45 @@ function showNotFound() {
     + '</div></div>';
 }
 
+/* Client/itinerary/recommendations now come from /api/vietnam-dashboard, which
+   verifies the session email server-side before returning anything — the
+   browser no longer has direct read access to these tables (anon access was
+   revoked). A cid alone in the URL is not enough to see someone's data. */
 function init() {
   var cid = qs('cid');
   var nameParam = qs('name');
-  if (!cid) { showLoginRequired(); return; }
+  var email = '';
+  try { email = sessionStorage.getItem('vt_email') || ''; } catch (e) {}
+
+  if (!cid || !email) { showLoginRequired(); return; }
 
   document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Loading your dashboard…</div></div>';
 
-  var itinUrl = SUPABASE_URL + '/rest/v1/vietnam_itinerary_items?client_id=eq.' + encodeURIComponent(cid) + '&select=*&order=sort_order.asc';
-  var recUrl = SUPABASE_URL + '/rest/v1/vietnam_recommendations?client_id=eq.' + encodeURIComponent(cid) + '&select=*&order=sort_order.asc';
-  var clientUrl = SUPABASE_URL + '/rest/v1/vietnam_clients?id=eq.' + encodeURIComponent(cid) + '&select=id,name,email&limit=1';
-
-  Promise.all([
-    fetch(clientUrl, { headers: sbHeaders() }).then(function(r){ return r.json(); }),
-    fetch(itinUrl, { headers: sbHeaders() }).then(function(r){ return r.json(); }),
-    fetch(recUrl, { headers: sbHeaders() }).then(function(r){ return r.json(); })
-  ]).then(function(results) {
-    var client = results[0], items = results[1], recs = results[2];
-    if (!client || client.length === 0) { showNotFound(); return; }
-    dashClient = client[0];
-    var displayName = nameParam || dashClient.name;
-    document.getElementById('app-root').innerHTML =
-      sidebarHTML(displayName)
-      + '<div class="main">'
-      + '<div class="ph"><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Your personal trip dashboard</div></div>'
-      + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(items) + '</div>'
-      + '<div class="tab-panel" id="panel-recs">' + renderRecommendations(recs) + '</div>'
-      + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
-      + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
-      + '</div>'
-      + bottomTabsHTML();
-    wirePacking();
-  }).catch(function() {
-    document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Something went wrong loading your dashboard. Please try again.</div></div>';
-  });
+  fetch('/api/vietnam-dashboard', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cid: cid, email: email })
+  })
+    .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); })
+    .then(function(res) {
+      if (!res.data || !res.data.ok) { showNotFound(); return; }
+      dashClient = Object.assign({}, res.data.client, { email: email });
+      var displayName = nameParam || dashClient.name;
+      document.getElementById('app-root').innerHTML =
+        sidebarHTML(displayName)
+        + '<div class="main">'
+        + '<div class="ph"><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Your personal trip dashboard</div></div>'
+        + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(res.data.itinerary) + '</div>'
+        + '<div class="tab-panel" id="panel-recs">' + renderRecommendations(res.data.recommendations) + '</div>'
+        + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
+        + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
+        + '</div>'
+        + bottomTabsHTML();
+      wirePacking();
+    })
+    .catch(function() {
+      document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Something went wrong loading your dashboard. Please try again.</div></div>';
+    });
 }
 
 init();
