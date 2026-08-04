@@ -209,6 +209,12 @@
   .budget-row-cat { font-size:11px; color:var(--muted); margin-top:1px; }
   .budget-row-amount { font-family:'Cormorant Garamond',serif; font-size:17px; color:var(--charcoal); flex-shrink:0; }
 
+  /* Need to Know */
+  .ntk-card { background:white; border:1px solid var(--sand); border-radius:14px; padding:20px 24px; margin-bottom:14px; box-shadow:0 2px 10px rgba(28,23,18,.04); }
+  .ntk-title { font-family:'Cormorant Garamond',serif; font-size:19px; color:var(--charcoal); display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .ntk-icon { font-size:20px; }
+  .ntk-body { font-size:13px; color:var(--muted); line-height:1.6; }
+
   .empty { text-align:center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
   .empty .em-icon { font-size: 30px; margin-bottom: 10px; }
 
@@ -670,6 +676,28 @@ function deleteBudgetItem(id) {
     .catch(function() { showToast('Failed to remove — please try again', true); });
 }
 
+/* ═══════════ Need to Know (static content) ═══════════ */
+
+var NEED_TO_KNOW = [
+  { icon: '🛂', title: 'Visa & Entry', body: 'Australian passport holders can enter Vietnam visa-free for stays up to 45 days — just make sure your passport is valid for 6+ months from your entry date. No visa application needed for this trip length.' },
+  { icon: '💵', title: 'Money & Currency', body: 'The local currency is Vietnamese Dong (VND). Cash is king for markets, street food and small shops — cards are fine at hotels and larger restaurants. ATMs are everywhere in Hoi An and Da Nang; let your bank know you\'re travelling so your card isn\'t blocked.' },
+  { icon: '☀️', title: 'Weather', body: 'Late October sits in Hoi An\'s shoulder/wet season — expect warm, humid days (around 27–30°C) with a chance of afternoon showers. Pack light, breathable layers and a compact rain jacket.' },
+  { icon: '🧧', title: 'Customs & Etiquette', body: 'A friendly smile and a little effort with "xin chào" (hello) goes a long way. Dress modestly when visiting temples (shoulders/knees covered). Tipping isn\'t mandatory but is appreciated for good service — round up or leave 10%.' },
+  { icon: '🩺', title: 'Health & Safety', body: 'Tap water isn\'t safe to drink — stick to bottled or filtered water (including for brushing teeth). Sunscreen and mosquito repellent are worth packing. Vietnam is generally very safe for tourists; usual city-travel common sense applies.' },
+  { icon: '🛵', title: 'Getting Around', body: 'Hoi An\'s Old Town is best explored on foot or by bicycle (many hotels offer free bikes). Grab (the local ride-hailing app) is the easiest way to book cars/motorbike taxis between towns.' },
+  { icon: '📶', title: 'Staying Connected', body: 'Free wifi is widely available at cafes and hotels. For a local SIM or eSIM, options are available at the airport on arrival — handy for maps and Grab while you\'re out and about.' },
+  { icon: '📞', title: 'Need Help While Away?', body: 'If anything comes up during your trip, email hello@yourszn.com.au and we\'ll get back to you as soon as we can.' }
+];
+
+function renderNeedToKnowPanel() {
+  var html = '';
+  NEED_TO_KNOW.forEach(function(section) {
+    html += '<div class="ntk-card"><div class="ntk-title"><span class="ntk-icon">' + section.icon + '</span>' + section.title + '</div>'
+      + '<div class="ntk-body">' + section.body + '</div></div>';
+  });
+  return html;
+}
+
 /* ═══════════ Recommendations ═══════════ */
 
 var recsData = [];
@@ -1109,6 +1137,7 @@ var VT_NAV = [
   { id: 'packing', lbl: 'Packing', shortLbl: 'Packing', icon: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
   { id: 'budget', lbl: 'Budget', shortLbl: 'Budget', icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+  { id: 'needtoknow', lbl: 'Need to Know', shortLbl: 'Info', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
   { id: 'tailoring', lbl: 'Tailoring', shortLbl: 'Tailoring', icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>' }
 ];
 
@@ -1202,6 +1231,7 @@ function init() {
         + '<div class="tab-panel" id="panel-packing">' + renderPackingPanel() + '</div>'
         + '<div class="tab-panel" id="panel-recs">' + renderRecommendationsPanel() + '</div>'
         + '<div class="tab-panel" id="panel-budget">' + renderBudgetPanel() + '</div>'
+        + '<div class="tab-panel" id="panel-needtoknow">' + renderNeedToKnowPanel() + '</div>'
         + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
         + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
         + '</div>'
