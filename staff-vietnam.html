@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Staff — Vietnam Client Info</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --cream: #F7F3EE; --warm: #F2EDE6; --sand: #E5DDD4; --tan: #C9B99A;
@@ -17,7 +18,7 @@
   .hero h1 { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:400; }
   .hero p { font-size:12px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:6px; }
   .card { background:white; border:1px solid var(--sand); border-radius:14px; padding:24px 28px; margin-bottom:16px; box-shadow:0 2px 10px rgba(28,23,18,.04); }
-  .center-box { display:flex; align-items:center; justify-content:center; min-height:60vh; }
+  .center-box { display:flex; align-items:center; justify-content:center; min-height:60vh; padding: 20px; }
   .form-group { margin-bottom: 14px; text-align:left; }
   .form-group label { display:block; font-size:11px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
   .form-group input, .form-group select, .form-group textarea {
@@ -32,14 +33,15 @@
   .btn-primary { background:var(--charcoal); color:#fff; }
   .btn-primary:hover { opacity:.9; }
   .btn-secondary { background:var(--warm); color:var(--charcoal); border:1px solid var(--sand); }
-  .err { color:#C4685A; font-size:12px; margin-top:10px; display:none; }
+  .msg-title { font-family:'Cormorant Garamond',serif; font-size:22px; margin-bottom:10px; }
   .section-title { font-family:'Cormorant Garamond',serif; font-size:19px; margin-bottom:12px; }
   .doc-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--warm); font-size:13px; }
   .doc-row:last-of-type { border-bottom:none; }
   .doc-name { flex:1; min-width:0; word-break:break-word; }
-  .doc-tag { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); background:var(--warm); padding:2px 8px; border-radius:10px; margin-left:6px; }
   .link { color:var(--charcoal); text-decoration:underline; font-size:12px; }
-  .client-select { margin-bottom:24px; }
+  .client-select { margin-bottom:24px; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .client-select select { flex:1; min-width:200px; padding:10px 13px; border:1px solid var(--sand); border-radius:8px; font-family:'Inter',sans-serif; font-size:14px; background:white; }
+  .staff-badge { font-size:11px; color:var(--muted); text-align:right; }
   .toast { position:fixed; top:20px; right:20px; background:var(--charcoal); color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; opacity:0; transform:translateY(-8px); transition:all .25s; z-index:50; }
   .toast.show { opacity:1; transform:translateY(0); }
 </style>
@@ -50,7 +52,13 @@
 <div class="toast" id="toast"></div>
 
 <script>
-var STAFF_PASSWORD_KEY = 'vt_staff_password';
+var SUPA_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+var SUPA_KEY = 'sb_publishable_H4rfsOyYOd8A3OQr0ckmfQ_D_JVaGNJ';
+var _supa = null;
+function getSupa() { if (!_supa) _supa = supabase.createClient(SUPA_URL, SUPA_KEY); return _supa; }
+
+var staffToken = null;
+var staffEmail = null;
 var currentClients = [];
 var currentClientId = null;
 var currentInfo = null;
@@ -62,50 +70,39 @@ function showToast(msg) {
   setTimeout(function(){ t.className = 'toast'; }, 2200);
 }
 
-function getPassword() { try { return sessionStorage.getItem(STAFF_PASSWORD_KEY) || ''; } catch(e) { return ''; } }
-function setPassword(pw) { try { sessionStorage.setItem(STAFF_PASSWORD_KEY, pw); } catch(e) {} }
-
 function staffFetch(action, extra) {
-  var body = Object.assign({ staff_password: getPassword(), action: action }, extra || {});
+  var body = Object.assign({ staff_token: staffToken, action: action }, extra || {});
   return fetch('/api/vietnam-staff-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); });
 }
 
-function renderLogin(errMsg) {
+function renderLoggedOut() {
   document.getElementById('app-root').innerHTML =
     '<div class="center-box"><div class="card" style="max-width:380px;width:100%;text-align:center">'
-    + '<div class="section-title">Staff Access</div>'
-    + '<div class="form-group"><label>Password</label><input type="password" id="staff-pw-input" onkeydown="if(event.key===\'Enter\')attemptLogin()"></div>'
-    + '<button class="btn btn-primary" style="width:100%" onclick="attemptLogin()">Enter</button>'
-    + '<div class="err" id="staff-login-err">' + (errMsg || '') + '</div>'
+    + '<div class="msg-title">Please Log In</div>'
+    + '<div style="font-size:13px;color:var(--muted);margin-bottom:18px">Log into the main hub first, then come back to this page.</div>'
+    + '<a class="btn btn-primary" href="index.html">Go to Login</a>'
     + '</div></div>';
-  if (errMsg) document.getElementById('staff-login-err').style.display = 'block';
-  document.getElementById('staff-pw-input').focus();
 }
 
-function attemptLogin() {
-  var pw = document.getElementById('staff-pw-input').value;
-  setPassword(pw);
-  loadClientList(true);
-}
-
-function loadClientList(isLoginAttempt) {
+function loadClientList() {
   document.getElementById('app-root').innerHTML = '<div class="center-box"><div style="color:var(--muted)">Loading…</div></div>';
   staffFetch('list_clients').then(function(res) {
-    if (res.status === 401) { renderLogin(isLoginAttempt ? 'Incorrect password.' : ''); return; }
-    if (!res.data || !res.data.ok) { renderLogin('Something went wrong. Please try again.'); return; }
+    if (res.status === 401) { renderLoggedOut(); return; }
+    if (!res.data || !res.data.ok) { document.getElementById('app-root').innerHTML = '<div class="center-box">Something went wrong. Please refresh.</div>'; return; }
     currentClients = res.data.clients || [];
     renderShell();
-  }).catch(function() { renderLogin('Something went wrong. Please try again.'); });
+  }).catch(function() { document.getElementById('app-root').innerHTML = '<div class="center-box">Something went wrong. Please refresh.</div>'; });
 }
 
 function renderShell() {
   var options = '<option value="">— Select a client —</option>' + currentClients.map(function(c) {
-    return '<option value="' + c.id + '">' + c.name + ' (' + c.email + ')</option>';
+    return '<option value="' + c.id + '">' + c.name + (c.email ? ' (' + c.email + ')' : ' — no email yet') + '</option>';
   }).join('');
   document.getElementById('app-root').innerHTML =
     '<div class="wrap"><div class="hero"><h1>Vietnam Client Info</h1><p>Staff Only</p></div>'
-    + '<div class="client-select"><select id="client-picker" onchange="selectClient(this.value)">' + options + '</select></div>'
+    + '<div class="staff-badge">Logged in as ' + (staffEmail || '') + ' · <a class="link" href="index.html">← Back to Hub</a></div>'
+    + '<div class="client-select" style="margin-top:14px"><select id="client-picker" onchange="selectClient(this.value)">' + options + '</select></div>'
     + '<div id="client-detail"></div></div>';
 }
 
@@ -115,7 +112,7 @@ function selectClient(cid) {
   if (!cid) { detail.innerHTML = ''; return; }
   detail.innerHTML = '<div style="color:var(--muted);text-align:center;padding:30px">Loading client…</div>';
   staffFetch('get_client_info', { client_id: cid }).then(function(res) {
-    if (!res.data || !res.data.ok) { detail.innerHTML = '<div class="err" style="display:block">Failed to load.</div>'; return; }
+    if (!res.data || !res.data.ok) { detail.innerHTML = '<div style="color:#C4685A">Failed to load.</div>'; return; }
     currentInfo = res.data.info || {};
     currentDocs = res.data.documents || [];
     renderClientDetail();
@@ -204,10 +201,18 @@ function deleteStaffDoc(id) {
   });
 }
 
-/* Boot: verify stored password (if any) still works, else show login */
+/* Boot: use the real session from the internal hub's login (same origin, same
+   Supabase Auth) — no separate password prompt. */
 (function init() {
-  if (!getPassword()) { renderLogin(); return; }
-  loadClientList(false);
+  var db = getSupa();
+  if (!db) { renderLoggedOut(); return; }
+  db.auth.getSession().then(function(res) {
+    var session = res && res.data && res.data.session;
+    if (!session) { renderLoggedOut(); return; }
+    staffToken = session.access_token;
+    staffEmail = session.user && session.user.email;
+    loadClientList();
+  }).catch(function() { renderLoggedOut(); });
 })();
 </script>
 </body>

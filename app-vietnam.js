@@ -72,6 +72,10 @@ function vtClientStepToggle(list, idx, stepId) {
   var step = c.onboarding.find(function(s){ return s.id === stepId; });
   if (step) step.done = !step.done;
   vtSave(); renderVietnamTour();
+  // Only push to the portal record if this client has already been synced there
+  // (i.e. saved at least once via the Add/Edit modal) — avoids creating a
+  // duplicate/incomplete record from a checklist tick alone.
+  if (c.portalId) syncVtClientToPortal(c, list);
 }
 
 function _vtClientCard(list, c, idx) {
@@ -139,9 +143,12 @@ function renderVtClientsTab() {
   var templateKey = vtClientSubTab === 'booked' ? 'onboardingSop' : 'intOnboardingTemplate';
   var templateLabel = vtClientSubTab === 'booked' ? 'Booked Onboarding' : 'Interested Checklist';
 
-  var subtabBar = '<div style="display:flex;gap:8px;margin-bottom:18px">'
-    + '<button class="vt-tab'+(vtClientSubTab==='interested'?' on':'')+'" onclick="vtSetClientSubTab(\'interested\')">Interested ('+intList.length+')</button>'
-    + '<button class="vt-tab'+(vtClientSubTab==='booked'?' on':'')+'" onclick="vtSetClientSubTab(\'booked\')">Booked ('+bookedList.length+')</button>'
+  var subtabBar = '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">'
+    + '<div style="display:flex;gap:8px">'
+    +   '<button class="vt-tab'+(vtClientSubTab==='interested'?' on':'')+'" onclick="vtSetClientSubTab(\'interested\')">Interested ('+intList.length+')</button>'
+    +   '<button class="vt-tab'+(vtClientSubTab==='booked'?' on':'')+'" onclick="vtSetClientSubTab(\'booked\')">Booked ('+bookedList.length+')</button>'
+    + '</div>'
+    + '<a href="staff-vietnam.html" class="fin-row-edit" style="text-decoration:none">Contracts &amp; Client Info &#8594;</a>'
     + '</div>';
 
   var rows = activeList.map(function(c, i) { return _vtClientCard(listKey, c, i); }).join('')

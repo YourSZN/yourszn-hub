@@ -4617,6 +4617,7 @@ function vtEditClient(list, idx) {
   var isBooked = list==='booked';
   document.getElementById('vtcl-heading').textContent = (idx!==null&&idx>=0) ? 'Edit Client' : ('Add '+(isBooked?'Booked':'Interested')+' Client');
   document.getElementById('vtcl-name').value     = c.name     || '';
+  document.getElementById('vtcl-email').value    = c.email    || '';
   document.getElementById('vtcl-package').value  = c.package  || '';
   document.getElementById('vtcl-partner').value  = c.partner  || '';
   document.getElementById('vtcl-notes').value    = c.notes    || '';
@@ -4644,15 +4645,47 @@ function saveVtClient() {
   if (pkg === 'Double' && !partner) { document.getElementById('vtcl-err').textContent = 'Please enter the partner\'s name.'; return; }
   var lk = _vtClientList==='booked' ? 'bookedClients' : 'intClients';
   if (!vtData[lk]) vtData[lk] = [];
+  var existing = (_vtClientIdx!==null && _vtClientIdx>=0) ? vtData[lk][_vtClientIdx] : null;
   var obj = {
-    name:     name,
-    package:  pkg,
-    partner:  partner,
-    notes:    document.getElementById('vtcl-notes').value.trim(),
-    contract: document.getElementById('vtcl-contract').value.trim()
+    name:      name,
+    email:     document.getElementById('vtcl-email').value.trim(),
+    package:   pkg,
+    partner:   partner,
+    notes:     document.getElementById('vtcl-notes').value.trim(),
+    contract:  document.getElementById('vtcl-contract').value.trim(),
+    // preserved across edits — the plain rebuild above would otherwise wipe these
+    onboarding: existing ? existing.onboarding : undefined,
+    status:     existing ? existing.status : undefined,
+    portalId:   existing ? existing.portalId : undefined
   };
   if (_vtClientIdx!==null && _vtClientIdx>=0) vtData[lk][_vtClientIdx]=obj; else vtData[lk].push(obj);
   closeVtClientModal(); vtSave(); renderVietnamTour();
+  syncVtClientToPortal(obj, _vtClientList);
+}
+
+// Mirrors this client into the vietnam_clients table that powers their public
+// trip dashboard login — so adding/editing them here is the only step needed.
+// Uses the same signed-in staff session as the rest of the hub; silently
+// no-ops if that session isn't available (e.g. offline).
+function syncVtClientToPortal(obj, list) {
+  var db = getSupa(); if (!db) return;
+  db.auth.getSession().then(function(res) {
+    var session = res && res.data && res.data.session;
+    if (!session) return;
+    return fetch('/api/vietnam-staff-info', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        staff_token: session.access_token, action: 'upsert_client',
+        id: obj.portalId || null, name: obj.name, email: obj.email || null,
+        room_type: obj.package || null, partner_name: obj.partner || null,
+        notes: obj.notes || null, contract_drive_link: obj.contract || null,
+        list_type: list === 'booked' ? 'booked' : 'interested',
+        onboarding_steps: obj.onboarding || null
+      })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data && data.ok && data.id && !obj.portalId) { obj.portalId = data.id; vtSave(); }
+    });
+  }).catch(function(err) { console.warn('YourSZN: portal sync failed', err); });
 }
 
 function vtDeleteClient(list, idx) {
