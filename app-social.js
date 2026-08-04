@@ -711,9 +711,42 @@ function smRenderStrategy() {
     + smStrategyCard('TikTok', '1x per day', tiktokSched)
     + smStrategyCard('Instagram Feed', 'Daily posts', igSched)
     + '</div>'
+    + smFunnelPositioning()
     + smStrategyPillars()
     + smStrategyGuide()
     + smStrategyNotepad();
+}
+
+var SM_FUNNEL_STAGES = [
+  ['Attract',  'Stop the scroll and speak to the problem', '#C4956A'],
+  ['Nurture',  'Build trust and connection',                '#7A8C6E'],
+  ['Position', 'Show authority and proof',                  '#6366F1'],
+  ['Convert',  'Invite action with clear offers',            '#059669'],
+];
+var SM_POSITIONING_TYPES = ['Edu-Fluential', 'Perspective Shifting', 'Storytelling', 'Connection'];
+
+function smFunnelPositioning() {
+  return '<div class="card" style="margin-bottom:16px">'
+    + '<div class="ch"><div class="ct">Content Funnel & Positioning</div></div>'
+    + '<div class="cb">'
+    + '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Content Funnel Stages</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:20px">'
+    + SM_FUNNEL_STAGES.map(function(s) {
+        return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--warm);border-radius:8px">'
+          + '<div style="width:12px;height:12px;border-radius:50%;background:' + s[2] + ';flex-shrink:0;margin-top:3px"></div>'
+          + '<div><div style="font-size:12px;font-weight:700;color:var(--charcoal)">' + s[0] + '</div>'
+          + '<div style="font-size:11px;color:var(--muted);line-height:1.5">' + s[1] + '</div></div>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    + '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Content Positioning Type</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
+    + SM_POSITIONING_TYPES.map(function(t) {
+        return '<span style="font-size:12px;background:var(--warm);border:1px solid var(--sand);border-radius:20px;padding:5px 14px;color:var(--charcoal);font-weight:600">' + t + '</span>';
+      }).join('')
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:10px">Choose one Funnel Stage + one Positioning Type for each piece of content.</div>'
+    + '</div></div>';
 }
 
 function smStrategyGuide() {
