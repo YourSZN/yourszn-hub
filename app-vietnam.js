@@ -97,34 +97,7 @@ function _vtClientCard(list, c, idx) {
         : doneCount + ' / ' + total + ' steps' + (nextStep ? ' &middot; Next: ' + esc(nextStep.text) : ''))
     : 'No checklist steps yet';
 
-  var stepsHtml = steps.map(function(s) {
-    return '<div class="titem" style="padding:8px 0;border-bottom:1px solid var(--sand)">'
-      + '<div style="display:flex;align-items:center;gap:10px;width:100%">'
-      +   '<div class="tck'+(s.done?' done':'')+'" onclick="vtClientStepToggle(\''+list+'\','+idx+',\''+s.id+'\')" style="cursor:pointer"></div>'
-      +   '<div style="flex:1;min-width:0">'
-      +     '<div class="ttx'+(s.done?' done':'')+'">'+esc(s.text)+'</div>'
-      +     (s.notes ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+esc(s.notes)+'</div>' : '')
-      +   '</div>'
-      + '</div>'
-      + '</div>';
-  }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px 0">No checklist steps yet — edit the template above to add some.</div>';
-
-  var activeDetailTab = vtClientDetailTab[key] || 'checklist';
-  var detailHtml = '';
-  if (isOpen) {
-    var tabBtn = function(tabId, label) {
-      return '<button class="vt-tab'+(activeDetailTab===tabId?' on':'')+'" style="padding:5px 12px;font-size:11px" onclick="event.stopPropagation();vtSetClientDetailTab(\''+key+'\',\''+tabId+'\')">'+label+'</button>';
-    };
-    var tabsBar = '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      + tabBtn('checklist','Checklist') + tabBtn('info','Contract & Info') + tabBtn('lookbook','Lookbook')
-      + '</div>';
-    var body = activeDetailTab === 'checklist' ? stepsHtml
-      : activeDetailTab === 'info' ? vtRenderClientInfoTab(c, key)
-      : vtRenderClientLookbookTab(c, key);
-    detailHtml = '<div style="width:100%;margin-top:10px">' + tabsBar + '<div style="margin-top:10px">' + body + '</div></div>';
-  }
-
-  return '<div class="tour-doc-row" style="flex-wrap:wrap;flex-direction:column;align-items:stretch">'
+  return '<div class="tour-doc-row" style="flex-wrap:wrap;flex-direction:column;align-items:stretch'+(isOpen?';box-shadow:0 0 0 2px var(--charcoal) inset':'')+'">'
     + '<div style="display:flex;align-items:flex-start;justify-content:space-between;width:100%;gap:8px">'
     +   '<div style="flex:1;min-width:0">'
     +     '<div style="font-size:13px;font-weight:600;color:var(--charcoal)">'+esc(c.name)+(c.partner?' <span style="font-weight:400;color:var(--muted)">&amp; '+esc(c.partner)+'</span>':'')+'</div>'
@@ -142,15 +115,71 @@ function _vtClientCard(list, c, idx) {
     +     '<div style="font-size:12px;font-weight:600;color:'+(isComplete?'#10B981':'var(--charcoal)')+'">'+progressLine+'</div>'
     +     (total ? '<div style="background:var(--warm);border-radius:20px;height:5px;overflow:hidden;margin-top:5px;max-width:220px"><div style="background:'+(isComplete?'#10B981':'var(--charcoal)')+';height:100%;width:'+pct+'%;border-radius:20px"></div></div>' : '')
     +   '</div>'
-    +   '<span style="font-size:11px;color:var(--muted);flex-shrink:0;margin-left:8px">'+(isOpen?'Hide &#9650;':'Show &#9660;')+'</span>'
+    +   '<span style="font-size:11px;color:var(--charcoal);font-weight:600;flex-shrink:0;margin-left:8px">View Details &#8594;</span>'
     + '</div>'
-    + detailHtml
     + '</div>';
+}
+
+function vtStepsHtml(list, idx, c) {
+  var steps = c.onboarding || [];
+  return steps.map(function(s) {
+    return '<div class="titem" style="padding:8px 0;border-bottom:1px solid var(--sand)">'
+      + '<div style="display:flex;align-items:center;gap:10px;width:100%">'
+      +   '<div class="tck'+(s.done?' done':'')+'" onclick="vtClientStepToggle(\''+list+'\','+idx+',\''+s.id+'\')" style="cursor:pointer"></div>'
+      +   '<div style="flex:1;min-width:0">'
+      +     '<div class="ttx'+(s.done?' done':'')+'">'+esc(s.text)+'</div>'
+      +     (s.notes ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+esc(s.notes)+'</div>' : '')
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px 0">No checklist steps yet — edit the template above to add some.</div>';
+}
+
+function vtFindExpandedClient() {
+  if (!vtExpandedClient) return null;
+  var i = vtExpandedClient.lastIndexOf('-');
+  var list = vtExpandedClient.slice(0, i);
+  var idx = parseInt(vtExpandedClient.slice(i + 1), 10);
+  var arr = list === 'booked' ? (vtData.bookedClients || []) : (vtData.intClients || []);
+  var c = arr[idx];
+  return c ? { list: list, idx: idx, c: c } : null;
+}
+
+function vtCloseClientDetailModal() {
+  vtExpandedClient = null;
+  renderVietnamTour();
 }
 
 function vtSetClientDetailTab(key, tab) {
   vtClientDetailTab[key] = tab;
   renderVietnamTour();
+}
+
+function vtClientDetailModalHtml() {
+  var found = vtFindExpandedClient();
+  if (!found) return '';
+  var list = found.list, idx = found.idx, c = found.c;
+  var key = list + '-' + idx;
+  var activeDetailTab = vtClientDetailTab[key] || 'checklist';
+
+  var tabBtn = function(tabId, label) {
+    return '<button class="vt-tab'+(activeDetailTab===tabId?' on':'')+'" onclick="vtSetClientDetailTab(\''+key+'\',\''+tabId+'\')">'+label+'</button>';
+  };
+  var tabsBar = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">'
+    + tabBtn('checklist','Checklist') + tabBtn('info','Contract & Info') + tabBtn('lookbook','Lookbook')
+    + '</div>';
+  var body = activeDetailTab === 'checklist' ? vtStepsHtml(list, idx, c)
+    : activeDetailTab === 'info' ? vtRenderClientInfoTab(c, key)
+    : vtRenderClientLookbookTab(c, key);
+
+  return '<div style="position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px" onclick="vtCloseClientDetailModal()">'
+    + '<div class="sm-modal" style="max-width:760px;width:100%;max-height:88vh;overflow-y:auto" onclick="event.stopPropagation()">'
+    +   '<button onclick="vtCloseClientDetailModal()" class="sm-modal-x">&#215;</button>'
+    +   '<div class="sm-modal-title">'+esc(c.name)+(c.partner?' &amp; '+esc(c.partner):'')+'</div>'
+    +   tabsBar
+    +   body
+    + '</div>'
+    + '</div>';
 }
 
 /* ── Contract & Info (backed by vietnam_client_personal_info / vietnam_client_documents,
@@ -353,7 +382,7 @@ function renderVtClientsTab() {
     + '</div>'
     + '</div><div class="cb scrl">'+rows+'</div></div>';
 
-  return subtabBar + panel;
+  return subtabBar + panel + vtClientDetailModalHtml();
 }
 
 // ── Onboarding template editor (shared modal, scoped by template key) ──
