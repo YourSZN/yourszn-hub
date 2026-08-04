@@ -215,6 +215,13 @@
   .ntk-icon { font-size:20px; }
   .ntk-body { font-size:13px; color:var(--muted); line-height:1.6; }
 
+  /* Your Info */
+  .info-title { font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--charcoal); margin-bottom:6px; }
+  .info-sub { font-size:12px; color:var(--muted); }
+  .doc-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--warm); }
+  .doc-row:last-of-type { border-bottom:none; }
+  .doc-name { font-size:13px; color:var(--charcoal); flex:1; min-width:0; word-break:break-word; }
+
   .empty { text-align:center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
   .empty .em-icon { font-size: 30px; margin-bottom: 10px; }
 
@@ -698,6 +705,131 @@ function renderNeedToKnowPanel() {
   return html;
 }
 
+/* ═══════════ Your Info (contract, personal details, documents) ═══════════ */
+
+var yourInfoLoaded = false;
+var yourInfoData = { info: null, documents: [] };
+
+function infoBody(action, extra) {
+  return JSON.stringify(Object.assign({ cid: qs('cid'), email: dashClient && dashClient.email, action: action }, extra || {}));
+}
+
+function fmtFileSize() { return ''; }
+
+function renderYourInfoPanel() {
+  if (!yourInfoLoaded) return '<div class="empty">Loading your info…</div>';
+  var info = yourInfoData.info || {};
+  var docs = yourInfoData.documents || [];
+  var contract = docs.filter(function(d){ return d.doc_type === 'contract'; })[0];
+  var uploads = docs.filter(function(d){ return d.doc_type === 'client_upload'; });
+
+  var html = '<div class="card"><div class="info-title">Your Contract</div>';
+  if (contract) {
+    html += '<div class="doc-row"><span class="doc-name">📄 ' + contract.file_name + '</span>'
+      + (contract.url ? '<a class="rec-link" href="' + contract.url + '" target="_blank" rel="noopener">Download ↗</a>' : '<span class="info-sub">Link expired — reload to refresh</span>')
+      + '</div>';
+  } else {
+    html += '<div class="info-sub">Your tour coordinator hasn’t uploaded a contract yet.</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="card"><div class="info-title">Personal Details</div><div class="info-sub" style="margin-bottom:16px">Only visible to you and the YourSZN team.</div>'
+    + '<div class="prompts-section">'
+    + '<div class="form-group"><label>Passport Number</label><input id="info-passport-number" value="' + (info.passport_number || '') + '"></div>'
+    + '<div class="form-group"><label>Passport Expiry</label><input type="date" id="info-passport-expiry" value="' + (info.passport_expiry || '') + '"></div>'
+    + '<div class="form-group"><label>Emergency Contact Name</label><input id="info-ec-name" value="' + (info.emergency_contact_name || '') + '"></div>'
+    + '<div class="form-group"><label>Emergency Contact Phone</label><input id="info-ec-phone" value="' + (info.emergency_contact_phone || '') + '"></div>'
+    + '<div class="form-group full"><label>Dietary Needs</label><textarea id="info-dietary">' + (info.dietary_needs || '') + '</textarea></div>'
+    + '<div class="form-group full"><label>Allergies</label><textarea id="info-allergies">' + (info.allergies || '') + '</textarea></div>'
+    + '<div class="form-group full"><label>Anything Else We Should Know?</label><textarea id="info-notes">' + (info.notes || '') + '</textarea></div>'
+    + '</div>'
+    + '<button class="btn btn-primary btn-sm" onclick="saveYourInfo()">Save Details</button>'
+    + '</div>';
+
+  html += '<div class="card"><div class="info-title">Your Documents</div><div class="info-sub" style="margin-bottom:14px">Upload your passport scan, travel insurance, or anything else you want kept on hand — just for you.</div>';
+  uploads.forEach(function(d) {
+    html += '<div class="doc-row"><span class="doc-name">📎 ' + d.file_name + '</span>'
+      + (d.url ? '<a class="rec-link" href="' + d.url + '" target="_blank" rel="noopener" style="margin-right:10px">View ↗</a>' : '')
+      + '<button class="pack-icon-btn" onclick="deleteYourInfoDoc(\'' + d.id + '\')" title="Remove">✕</button>'
+      + '</div>';
+  });
+  html += '<input type="file" id="info-upload-input" style="display:none" onchange="uploadYourInfoDoc(this)">'
+    + '<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="document.getElementById(\'info-upload-input\').click()">+ Upload Document</button>'
+    + '<div class="info-sub" style="margin-top:8px" id="info-upload-status"></div>'
+    + '</div>';
+
+  return html;
+}
+
+function loadYourInfoPanel() {
+  var panel = document.getElementById('panel-yourinfo');
+  if (!panel) return;
+  panel.innerHTML = renderYourInfoPanel();
+  fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('get') })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      yourInfoLoaded = true;
+      yourInfoData = { info: data.info, documents: data.documents || [] };
+      panel.innerHTML = renderYourInfoPanel();
+    })
+    .catch(function() {
+      yourInfoLoaded = true;
+      panel.innerHTML = '<div class="empty">Couldn’t load your info. Please try again.</div>';
+    });
+}
+
+function saveYourInfo() {
+  var payload = {
+    passport_number: document.getElementById('info-passport-number').value.trim(),
+    passport_expiry: document.getElementById('info-passport-expiry').value || null,
+    emergency_contact_name: document.getElementById('info-ec-name').value.trim(),
+    emergency_contact_phone: document.getElementById('info-ec-phone').value.trim(),
+    dietary_needs: document.getElementById('info-dietary').value.trim(),
+    allergies: document.getElementById('info-allergies').value.trim(),
+    notes: document.getElementById('info-notes').value.trim()
+  };
+  fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('save_info', payload) })
+    .then(function() { showToast('Details saved'); })
+    .catch(function() { showToast('Failed to save — please try again', true); });
+}
+
+function uploadYourInfoDoc(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) { showToast('File must be under 4MB', true); input.value = ''; return; }
+  var statusEl = document.getElementById('info-upload-status');
+  statusEl.textContent = 'Uploading…';
+  var reader = new FileReader();
+  reader.onload = function() {
+    var base64 = reader.result.split(',')[1];
+    fetch('/api/vietnam-info', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: infoBody('upload', { file_name: file.name, content_type: file.type, file_base64: base64 })
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data.ok) {
+          yourInfoData.documents = data.documents;
+          document.getElementById('panel-yourinfo').innerHTML = renderYourInfoPanel();
+        } else {
+          statusEl.textContent = (data && data.error) || 'Upload failed.';
+        }
+      })
+      .catch(function() { statusEl.textContent = 'Upload failed. Please try again.'; });
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function deleteYourInfoDoc(id) {
+  fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('delete_document', { id: id }) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data.documents) { yourInfoData.documents = data.documents; document.getElementById('panel-yourinfo').innerHTML = renderYourInfoPanel(); }
+    })
+    .catch(function() { showToast('Failed to remove — please try again', true); });
+}
+
 /* ═══════════ Recommendations ═══════════ */
 
 var recsData = [];
@@ -1137,7 +1269,8 @@ var VT_NAV = [
   { id: 'packing', lbl: 'Packing', shortLbl: 'Packing', icon: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
   { id: 'budget', lbl: 'Budget', shortLbl: 'Budget', icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-  { id: 'needtoknow', lbl: 'Need to Know', shortLbl: 'Info', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
+  { id: 'needtoknow', lbl: 'Need to Know', shortLbl: 'Tips', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
+  { id: 'yourinfo', lbl: 'Your Info', shortLbl: 'My Info', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
   { id: 'tailoring', lbl: 'Tailoring', shortLbl: 'Tailoring', icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>' }
 ];
 
@@ -1177,6 +1310,7 @@ function setTab(tab) {
   if (tab === 'tailoring') initTailoringBoard();
   if (tab === 'packing') loadPackingPanel();
   if (tab === 'budget') loadBudgetPanel();
+  if (tab === 'yourinfo') loadYourInfoPanel();
 }
 
 function showLoginRequired() {
@@ -1233,6 +1367,7 @@ function init() {
         + '<div class="tab-panel" id="panel-budget">' + renderBudgetPanel() + '</div>'
         + '<div class="tab-panel" id="panel-needtoknow">' + renderNeedToKnowPanel() + '</div>'
         + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
+        + '<div class="tab-panel" id="panel-yourinfo">' + '<div class="empty">Loading your info…</div>' + '</div>'
         + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
         + '</div>'
         + bottomTabsHTML();

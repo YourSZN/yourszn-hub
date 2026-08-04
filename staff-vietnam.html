@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff — Vietnam Client Info</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F3EE; --warm: #F2EDE6; --sand: #E5DDD4; --tan: #C9B99A;
+    --charcoal: #1C1712; --muted: #8A7D72; --rose: #C49A8A; --green: #7A8C6E;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:var(--cream); color:var(--charcoal); min-height:100vh; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+  .hero { text-align:center; margin-bottom: 32px; }
+  .hero h1 { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:400; }
+  .hero p { font-size:12px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:6px; }
+  .card { background:white; border:1px solid var(--sand); border-radius:14px; padding:24px 28px; margin-bottom:16px; box-shadow:0 2px 10px rgba(28,23,18,.04); }
+  .center-box { display:flex; align-items:center; justify-content:center; min-height:60vh; }
+  .form-group { margin-bottom: 14px; text-align:left; }
+  .form-group label { display:block; font-size:11px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width:100%; padding:10px 13px; border:1px solid var(--sand); border-radius:8px;
+    font-family:'Inter',sans-serif; font-size:14px; color:var(--charcoal); background:var(--warm); outline:none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--charcoal); background:white; }
+  .form-group textarea { min-height:70px; resize:vertical; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:600px) { .grid2 { grid-template-columns:1fr; } }
+  .btn { padding:10px 22px; border-radius:24px; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; letter-spacing:.5px; border:none; cursor:pointer; }
+  .btn-primary { background:var(--charcoal); color:#fff; }
+  .btn-primary:hover { opacity:.9; }
+  .btn-secondary { background:var(--warm); color:var(--charcoal); border:1px solid var(--sand); }
+  .err { color:#C4685A; font-size:12px; margin-top:10px; display:none; }
+  .section-title { font-family:'Cormorant Garamond',serif; font-size:19px; margin-bottom:12px; }
+  .doc-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--warm); font-size:13px; }
+  .doc-row:last-of-type { border-bottom:none; }
+  .doc-name { flex:1; min-width:0; word-break:break-word; }
+  .doc-tag { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); background:var(--warm); padding:2px 8px; border-radius:10px; margin-left:6px; }
+  .link { color:var(--charcoal); text-decoration:underline; font-size:12px; }
+  .client-select { margin-bottom:24px; }
+  .toast { position:fixed; top:20px; right:20px; background:var(--charcoal); color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; opacity:0; transform:translateY(-8px); transition:all .25s; z-index:50; }
+  .toast.show { opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="app-root"><div class="center-box"><div style="text-align:center;color:var(--muted)">Loading…</div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var STAFF_PASSWORD_KEY = 'vt_staff_password';
+var currentClients = [];
+var currentClientId = null;
+var currentInfo = null;
+var currentDocs = [];
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show';
+  setTimeout(function(){ t.className = 'toast'; }, 2200);
+}
+
+function getPassword() { try { return sessionStorage.getItem(STAFF_PASSWORD_KEY) || ''; } catch(e) { return ''; } }
+function setPassword(pw) { try { sessionStorage.setItem(STAFF_PASSWORD_KEY, pw); } catch(e) {} }
+
+function staffFetch(action, extra) {
+  var body = Object.assign({ staff_password: getPassword(), action: action }, extra || {});
+  return fetch('/api/vietnam-staff-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); });
+}
+
+function renderLogin(errMsg) {
+  document.getElementById('app-root').innerHTML =
+    '<div class="center-box"><div class="card" style="max-width:380px;width:100%;text-align:center">'
+    + '<div class="section-title">Staff Access</div>'
+    + '<div class="form-group"><label>Password</label><input type="password" id="staff-pw-input" onkeydown="if(event.key===\'Enter\')attemptLogin()"></div>'
+    + '<button class="btn btn-primary" style="width:100%" onclick="attemptLogin()">Enter</button>'
+    + '<div class="err" id="staff-login-err">' + (errMsg || '') + '</div>'
+    + '</div></div>';
+  if (errMsg) document.getElementById('staff-login-err').style.display = 'block';
+  document.getElementById('staff-pw-input').focus();
+}
+
+function attemptLogin() {
+  var pw = document.getElementById('staff-pw-input').value;
+  setPassword(pw);
+  loadClientList(true);
+}
+
+function loadClientList(isLoginAttempt) {
+  document.getElementById('app-root').innerHTML = '<div class="center-box"><div style="color:var(--muted)">Loading…</div></div>';
+  staffFetch('list_clients').then(function(res) {
+    if (res.status === 401) { renderLogin(isLoginAttempt ? 'Incorrect password.' : ''); return; }
+    if (!res.data || !res.data.ok) { renderLogin('Something went wrong. Please try again.'); return; }
+    currentClients = res.data.clients || [];
+    renderShell();
+  }).catch(function() { renderLogin('Something went wrong. Please try again.'); });
+}
+
+function renderShell() {
+  var options = '<option value="">— Select a client —</option>' + currentClients.map(function(c) {
+    return '<option value="' + c.id + '">' + c.name + ' (' + c.email + ')</option>';
+  }).join('');
+  document.getElementById('app-root').innerHTML =
+    '<div class="wrap"><div class="hero"><h1>Vietnam Client Info</h1><p>Staff Only</p></div>'
+    + '<div class="client-select"><select id="client-picker" onchange="selectClient(this.value)">' + options + '</select></div>'
+    + '<div id="client-detail"></div></div>';
+}
+
+function selectClient(cid) {
+  currentClientId = cid;
+  var detail = document.getElementById('client-detail');
+  if (!cid) { detail.innerHTML = ''; return; }
+  detail.innerHTML = '<div style="color:var(--muted);text-align:center;padding:30px">Loading client…</div>';
+  staffFetch('get_client_info', { client_id: cid }).then(function(res) {
+    if (!res.data || !res.data.ok) { detail.innerHTML = '<div class="err" style="display:block">Failed to load.</div>'; return; }
+    currentInfo = res.data.info || {};
+    currentDocs = res.data.documents || [];
+    renderClientDetail();
+  });
+}
+
+function renderClientDetail() {
+  var contract = currentDocs.filter(function(d){ return d.doc_type === 'contract'; })[0];
+  var uploads = currentDocs.filter(function(d){ return d.doc_type === 'client_upload'; });
+  var info = currentInfo || {};
+
+  var html = '<div class="card"><div class="section-title">Contract</div>';
+  if (contract) {
+    html += '<div class="doc-row"><span class="doc-name">📄 ' + contract.file_name + '</span>'
+      + (contract.url ? '<a class="link" href="' + contract.url + '" target="_blank" rel="noopener">Download</a>' : '')
+      + '<button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:8px" onclick="deleteStaffDoc(\'' + contract.id + '\')">Remove</button></div>';
+  } else {
+    html += '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">No contract uploaded.</div>';
+  }
+  html += '<input type="file" id="staff-contract-input" style="display:none" onchange="uploadContract(this)">'
+    + '<button class="btn btn-secondary" style="margin-top:10px" onclick="document.getElementById(\'staff-contract-input\').click()">' + (contract ? 'Replace Contract' : '+ Upload Contract') + '</button>'
+    + '</div>';
+
+  html += '<div class="card"><div class="section-title">Personal Details</div>'
+    + '<div class="grid2">'
+    + '<div class="form-group"><label>Passport Number</label><input id="s-passport-number" value="' + (info.passport_number || '') + '"></div>'
+    + '<div class="form-group"><label>Passport Expiry</label><input type="date" id="s-passport-expiry" value="' + (info.passport_expiry || '') + '"></div>'
+    + '<div class="form-group"><label>Emergency Contact Name</label><input id="s-ec-name" value="' + (info.emergency_contact_name || '') + '"></div>'
+    + '<div class="form-group"><label>Emergency Contact Phone</label><input id="s-ec-phone" value="' + (info.emergency_contact_phone || '') + '"></div>'
+    + '</div>'
+    + '<div class="form-group"><label>Dietary Needs</label><textarea id="s-dietary">' + (info.dietary_needs || '') + '</textarea></div>'
+    + '<div class="form-group"><label>Allergies</label><textarea id="s-allergies">' + (info.allergies || '') + '</textarea></div>'
+    + '<div class="form-group"><label>Notes</label><textarea id="s-notes">' + (info.notes || '') + '</textarea></div>'
+    + '<button class="btn btn-primary" onclick="saveStaffInfo()">Save Details</button>'
+    + '</div>';
+
+  html += '<div class="card"><div class="section-title">Client-Uploaded Documents</div>';
+  if (uploads.length === 0) html += '<div style="font-size:13px;color:var(--muted)">None uploaded yet.</div>';
+  uploads.forEach(function(d) {
+    html += '<div class="doc-row"><span class="doc-name">📎 ' + d.file_name + '</span>'
+      + (d.url ? '<a class="link" href="' + d.url + '" target="_blank" rel="noopener">View</a>' : '')
+      + '<button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:8px" onclick="deleteStaffDoc(\'' + d.id + '\')">Remove</button></div>';
+  });
+  html += '</div>';
+
+  document.getElementById('client-detail').innerHTML = html;
+}
+
+function saveStaffInfo() {
+  var payload = {
+    client_id: currentClientId,
+    passport_number: document.getElementById('s-passport-number').value.trim(),
+    passport_expiry: document.getElementById('s-passport-expiry').value || null,
+    emergency_contact_name: document.getElementById('s-ec-name').value.trim(),
+    emergency_contact_phone: document.getElementById('s-ec-phone').value.trim(),
+    dietary_needs: document.getElementById('s-dietary').value.trim(),
+    allergies: document.getElementById('s-allergies').value.trim(),
+    notes: document.getElementById('s-notes').value.trim()
+  };
+  staffFetch('save_info', payload).then(function(res) {
+    if (res.data && res.data.ok) showToast('Saved'); else showToast('Failed to save');
+  });
+}
+
+function uploadContract(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) { showToast('File must be under 4MB'); input.value=''; return; }
+  var reader = new FileReader();
+  reader.onload = function() {
+    var base64 = reader.result.split(',')[1];
+    staffFetch('upload_contract', { client_id: currentClientId, file_name: file.name, content_type: file.type, file_base64: base64 })
+      .then(function(res) {
+        if (res.data && res.data.ok) { currentDocs = res.data.documents; renderClientDetail(); showToast('Contract uploaded'); }
+        else showToast((res.data && res.data.error) || 'Upload failed');
+      });
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function deleteStaffDoc(id) {
+  if (!confirm('Remove this document?')) return;
+  staffFetch('delete_document', { client_id: currentClientId, id: id }).then(function(res) {
+    if (res.data && res.data.documents) { currentDocs = res.data.documents; renderClientDetail(); }
+  });
+}
+
+/* Boot: verify stored password (if any) still works, else show login */
+(function init() {
+  if (!getPassword()) { renderLogin(); return; }
+  loadClientList(false);
+})();
+</script>
+</body>
+</html>
