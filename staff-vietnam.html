@@ -89,10 +89,13 @@ function loadClientList() {
   document.getElementById('app-root').innerHTML = '<div class="center-box"><div style="color:var(--muted)">Loading…</div></div>';
   staffFetch('list_clients').then(function(res) {
     if (res.status === 401) { renderLoggedOut(); return; }
-    if (!res.data || !res.data.ok) { document.getElementById('app-root').innerHTML = '<div class="center-box">Something went wrong. Please refresh.</div>'; return; }
+    if (!res.data || !res.data.ok) {
+      document.getElementById('app-root').innerHTML = '<div class="center-box"><div style="color:#C4685A;text-align:center">' + ((res.data && res.data.error) || ('Something went wrong (status ' + res.status + ').')) + '</div></div>';
+      return;
+    }
     currentClients = res.data.clients || [];
     renderShell();
-  }).catch(function() { document.getElementById('app-root').innerHTML = '<div class="center-box">Something went wrong. Please refresh.</div>'; });
+  }).catch(function(err) { document.getElementById('app-root').innerHTML = '<div class="center-box"><div style="color:#C4685A;text-align:center">Network error: ' + (err && err.message || err) + '</div></div>'; });
 }
 
 function renderShell() {
