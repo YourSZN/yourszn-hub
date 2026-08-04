@@ -48,6 +48,13 @@ var smAnalyticsLog   = []; // [{id, weekEnding, tt:{views,followers,likes,bestPo
 // ── Weekly Content Plan ──────────────────────────────────────
 var smWeekPlan    = {};  // { weekKey: { mon: {...}, tue: {...}, ... } }
 var smPlanWeekOff = 0;   // 0 = this week, -1 = last week, +1 = next week
+var smWeekTodo    = {};  // { weekKey: { static: 'film'|'edit'|'ready'|'', video: 'film'|'edit'|'ready'|'' } }
+
+var SM_TODO_STAGES = [
+  {key:'film',  label:'Film',  color:'#EF4444'},
+  {key:'edit',  label:'Edit',  color:'#F59E0B'},
+  {key:'ready', label:'Ready', color:'#22C55E'},
+];
 
 var SM_PLAN_DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
 
@@ -269,7 +276,63 @@ function smRenderPlan() {
   });
 
   html += '</tbody></table></div>';
+  html += smRenderWeekTodo(wk);
   return html;
+}
+
+function smSetWeekTodo(wk, item, stage) {
+  if (!smWeekTodo[wk]) smWeekTodo[wk] = {};
+  smWeekTodo[wk][item] = (smWeekTodo[wk][item] === stage) ? '' : stage;
+  saveData();
+  renderSocialPage();
+}
+
+function smRenderWeekTodo(wk) {
+  var todo = smWeekTodo[wk] || {};
+
+  var items = [
+    {key:'static', label:'Static'},
+    {key:'video',  label:'Video'},
+  ];
+
+  // Pull planned days from the grid above for this week: Carousel = static, any other set format = video
+  items.forEach(function(item) {
+    item.days = [];
+  });
+  SM_PLAN_DAYS.forEach(function(d) {
+    var data = smPlanGetDay(wk, d);
+    if (!data.format) return;
+    var bucket = data.format === 'Carousel' ? 'static' : 'video';
+    var linkedPost = data.postId ? socialPosts.find(function(p) { return p.id === data.postId; }) : null;
+    var label = d.charAt(0).toUpperCase() + d.slice(1) + (linkedPost ? ' — ' + linkedPost.title : ' — ' + data.format);
+    items.find(function(i) { return i.key === bucket; }).days.push(label);
+  });
+
+  var rows = items.map(function(item) {
+    var activeStage = todo[item.key] || '';
+    var daysHtml = item.days.length
+      ? '<div style="font-size:11px;color:var(--muted);line-height:1.6">' + item.days.map(esc).join('<br>') + '</div>'
+      : '<div style="font-size:11px;color:var(--muted);font-style:italic">Nothing planned yet</div>';
+
+    var stageButtons = SM_TODO_STAGES.map(function(s) {
+      var isOn = activeStage === s.key;
+      return '<button onclick="smSetWeekTodo(\'' + wk + '\',\'' + item.key + '\',\'' + s.key + '\')" '
+        + 'style="flex:1;border:none;border-radius:8px;padding:8px 4px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:opacity .15s;'
+        + (isOn ? 'background:' + s.color + ';color:white;' : 'background:var(--warm);color:var(--muted);border:1px solid var(--sand);')
+        + '">' + s.label + '</button>';
+    }).join('');
+
+    return '<div style="display:grid;grid-template-columns:110px 1fr 220px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--sand)">'
+      + '<div style="font-size:13px;font-weight:700;color:var(--charcoal)">' + item.label + '</div>'
+      + daysHtml
+      + '<div style="display:flex;gap:6px">' + stageButtons + '</div>'
+      + '</div>';
+  }).join('');
+
+  return '<div class="card" style="margin-top:16px">'
+    + '<div class="ch"><div class="ct">Weekly To-Do</div></div>'
+    + '<div class="cb" style="padding-top:4px">' + rows + '</div>'
+    + '</div>';
 }
 
 // ── Was post modified in last 48h? ──
