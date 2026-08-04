@@ -188,6 +188,27 @@
   .pack-add-bar #pack-new-text { flex:1; min-width:140px; }
   @media (max-width: 480px) { .pack-add-bar #pack-new-cat { width:100%; } }
 
+  /* Budget */
+  .budget-summary-card { background:white; border:1px solid var(--sand); border-radius:14px; padding:22px 24px; margin-bottom:20px; box-shadow:0 2px 10px rgba(28,23,18,.04); }
+  .budget-stat { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+  .budget-stat-label { font-family:'DM Sans',sans-serif; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .budget-stat-value { font-family:'Cormorant Garamond',serif; font-size:24px; color:var(--charcoal); }
+  .budget-progress-track { width:100%; height:8px; border-radius:6px; background:var(--warm); overflow:hidden; margin:12px 0 8px; }
+  .budget-progress-fill { height:100%; background:var(--green); border-radius:6px; transition:width .3s ease; }
+  .budget-progress-fill.over { background:var(--rose); }
+  .budget-remaining { font-size:13px; color:var(--muted); }
+  .budget-remaining.over { color:var(--rose); font-weight:600; }
+  .budget-goal-edit { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .budget-goal-edit input { border:1px solid var(--sand); border-radius:8px; padding:8px 12px; font-family:'Inter',sans-serif; font-size:13px; width:140px; outline:none; }
+  .budget-goal-edit input:focus { border-color:var(--charcoal); }
+  .budget-row { display:flex; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid var(--warm); }
+  .budget-row:last-child { border-bottom:none; }
+  .budget-row-date { font-family:'DM Sans',sans-serif; font-size:11px; color:var(--tan); width:64px; flex-shrink:0; }
+  .budget-row-main { flex:1; min-width:0; }
+  .budget-row-desc { font-size:14px; color:var(--charcoal); }
+  .budget-row-cat { font-size:11px; color:var(--muted); margin-top:1px; }
+  .budget-row-amount { font-family:'Cormorant Garamond',serif; font-size:17px; color:var(--charcoal); flex-shrink:0; }
+
   .empty { text-align:center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
   .empty .em-icon { font-size: 30px; margin-bottom: 10px; }
 
@@ -522,6 +543,130 @@ function deletePackItem(id) {
   packingItems = packingItems.filter(function(i){ return i.id !== id; });
   document.getElementById('panel-packing').innerHTML = renderPackingPanel();
   fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('delete', { id: id }) })
+    .catch(function() { showToast('Failed to remove — please try again', true); });
+}
+
+/* ═══════════ Budget (synced expense log + goal) ═══════════ */
+
+var budgetItems = [];
+var budgetGoal = null;
+var budgetLoaded = false;
+var budgetGoalEditing = false;
+
+function fmtMoney(n) {
+  n = Number(n) || 0;
+  return '$' + n.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function budgetBody(action, extra) {
+  return JSON.stringify(Object.assign({ cid: qs('cid'), email: dashClient && dashClient.email, action: action }, extra || {}));
+}
+
+function budgetSummaryHTML() {
+  var spent = budgetItems.reduce(function(sum, it) { return sum + Number(it.amount || 0); }, 0);
+  var html = '<div class="budget-summary-card">';
+  html += '<div class="budget-stat"><div class="budget-stat-label">Spent so far</div><div class="budget-stat-value">' + fmtMoney(spent) + '</div></div>';
+
+  if (budgetGoalEditing) {
+    html += '<div class="budget-goal-edit">'
+      + '<input type="number" id="budget-goal-input" placeholder="e.g. 2000" value="' + (budgetGoal || '') + '">'
+      + '<button class="btn btn-primary btn-sm" onclick="saveBudgetGoal()">Save</button>'
+      + '<button class="pack-icon-btn" onclick="cancelBudgetGoalEdit()">Cancel</button>'
+      + '</div>';
+  } else if (budgetGoal) {
+    var pct = Math.min(100, Math.round((spent / budgetGoal) * 100));
+    var over = spent > budgetGoal;
+    html += '<div class="budget-stat"><div class="budget-stat-label">Goal <button class="pack-icon-btn" onclick="startBudgetGoalEdit()" title="Edit goal">✎</button></div><div class="budget-stat-value">' + fmtMoney(budgetGoal) + '</div></div>'
+      + '<div class="budget-progress-track"><div class="budget-progress-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>'
+      + '<div class="budget-remaining' + (over ? ' over' : '') + '">' + (over ? 'You’re ' + fmtMoney(spent - budgetGoal) + ' over your goal' : fmtMoney(budgetGoal - spent) + ' remaining') + '</div>';
+  } else {
+    html += '<button class="btn btn-secondary btn-sm" onclick="startBudgetGoalEdit()">+ Set a Spending Goal</button>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderBudgetPanel() {
+  if (!budgetLoaded) return '<div class="empty">Loading your budget…</div>';
+  var html = budgetSummaryHTML();
+  html += '<div class="pack-add-bar">'
+    + '<input type="date" id="budget-new-date">'
+    + '<input id="budget-new-cat" placeholder="Category" style="width:120px">'
+    + '<input id="budget-new-desc" placeholder="Description" style="flex:1;min-width:120px">'
+    + '<input type="number" id="budget-new-amount" placeholder="Amount" style="width:100px" onkeydown="if(event.key===\'Enter\')addBudgetItem()">'
+    + '<button class="btn btn-primary btn-sm" onclick="addBudgetItem()">+ Add</button>'
+    + '</div>';
+  if (budgetItems.length === 0) {
+    html += '<div class="empty" style="padding:30px 0"><div class="em-icon">💵</div>No expenses logged yet.</div>';
+    return html;
+  }
+  html += '<div class="card">';
+  budgetItems.forEach(function(it) {
+    html += '<div class="budget-row">'
+      + '<div class="budget-row-date">' + (it.expense_date ? fmtDate(it.expense_date) : '—') + '</div>'
+      + '<div class="budget-row-main"><div class="budget-row-desc">' + (it.description || it.category || 'Expense') + '</div>'
+      + (it.category ? '<div class="budget-row-cat">' + it.category + '</div>' : '') + '</div>'
+      + '<div class="budget-row-amount">' + fmtMoney(it.amount) + '</div>'
+      + '<button class="pack-icon-btn" onclick="deleteBudgetItem(\'' + it.id + '\')" title="Remove">✕</button>'
+      + '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function loadBudgetPanel() {
+  var panel = document.getElementById('panel-budget');
+  if (!panel) return;
+  panel.innerHTML = renderBudgetPanel();
+  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('list') })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      budgetLoaded = true;
+      budgetItems = (data && data.items) || [];
+      budgetGoal = data && data.goal;
+      panel.innerHTML = renderBudgetPanel();
+    })
+    .catch(function() {
+      budgetLoaded = true;
+      panel.innerHTML = '<div class="empty">Couldn’t load your budget. Please try again.</div>';
+    });
+}
+
+function startBudgetGoalEdit() { budgetGoalEditing = true; document.getElementById('panel-budget').innerHTML = renderBudgetPanel(); document.getElementById('budget-goal-input').focus(); }
+function cancelBudgetGoalEdit() { budgetGoalEditing = false; document.getElementById('panel-budget').innerHTML = renderBudgetPanel(); }
+
+function saveBudgetGoal() {
+  var val = Number(document.getElementById('budget-goal-input').value);
+  if (!val || val <= 0) { showToast('Enter a valid amount', true); return; }
+  budgetGoal = val;
+  budgetGoalEditing = false;
+  document.getElementById('panel-budget').innerHTML = renderBudgetPanel();
+  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('set_goal', { amount: val }) })
+    .catch(function() { showToast('Failed to save goal', true); });
+}
+
+function addBudgetItem() {
+  var dateEl = document.getElementById('budget-new-date');
+  var catEl = document.getElementById('budget-new-cat');
+  var descEl = document.getElementById('budget-new-desc');
+  var amtEl = document.getElementById('budget-new-amount');
+  var amount = Number(amtEl.value);
+  if (!amount || amount <= 0) { amtEl.focus(); return; }
+  var payload = { expense_date: dateEl.value || null, category: catEl.value.trim(), description: descEl.value.trim(), amount: amount };
+  catEl.value = ''; descEl.value = ''; amtEl.value = '';
+  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('add', payload) })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      budgetItems = (data && data.items) || budgetItems;
+      document.getElementById('panel-budget').innerHTML = renderBudgetPanel();
+    })
+    .catch(function() { showToast('Failed to add expense', true); });
+}
+
+function deleteBudgetItem(id) {
+  budgetItems = budgetItems.filter(function(i){ return i.id !== id; });
+  document.getElementById('panel-budget').innerHTML = renderBudgetPanel();
+  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('delete', { id: id }) })
     .catch(function() { showToast('Failed to remove — please try again', true); });
 }
 
@@ -963,6 +1108,7 @@ var VT_NAV = [
   { id: 'itinerary', lbl: 'Itinerary', shortLbl: 'Itinerary', icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>' },
   { id: 'packing', lbl: 'Packing', shortLbl: 'Packing', icon: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
+  { id: 'budget', lbl: 'Budget', shortLbl: 'Budget', icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id: 'tailoring', lbl: 'Tailoring', shortLbl: 'Tailoring', icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>' }
 ];
 
@@ -1001,6 +1147,7 @@ function setTab(tab) {
   document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.toggle('on', p.id === 'panel-' + tab); });
   if (tab === 'tailoring') initTailoringBoard();
   if (tab === 'packing') loadPackingPanel();
+  if (tab === 'budget') loadBudgetPanel();
 }
 
 function showLoginRequired() {
@@ -1054,6 +1201,7 @@ function init() {
         + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(res.data.itinerary) + '</div>'
         + '<div class="tab-panel" id="panel-packing">' + renderPackingPanel() + '</div>'
         + '<div class="tab-panel" id="panel-recs">' + renderRecommendationsPanel() + '</div>'
+        + '<div class="tab-panel" id="panel-budget">' + renderBudgetPanel() + '</div>'
         + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
         + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
         + '</div>'
