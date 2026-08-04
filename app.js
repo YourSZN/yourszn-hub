@@ -4725,6 +4725,9 @@ function saveData() {
       smWeekPlan:smWeekPlan,
       smWeekTodo:smWeekTodo,
       smStrategyNotes:smStrategyNotes,
+      socialPosts:socialPosts,
+      smMentions:smMentions,
+      smAnalyticsLog:smAnalyticsLog,
       checklistTemplates:checklistTemplates,
       checklistInstances:checklistInstances,
       boardCards:boardCards,
@@ -4847,6 +4850,9 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.smWeekPlan)        smWeekPlan        = d.smWeekPlan;
   if (d.smWeekTodo)        smWeekTodo        = d.smWeekTodo;
   if (typeof d.smStrategyNotes === 'string') smStrategyNotes = d.smStrategyNotes;
+  if (d.socialPosts)       socialPosts       = d.socialPosts;
+  if (d.smMentions)        smMentions        = d.smMentions;
+  if (d.smAnalyticsLog)    smAnalyticsLog    = d.smAnalyticsLog;
   if (d.checklistTemplates) checklistTemplates = d.checklistTemplates;
   if (d.checklistInstances) checklistInstances = d.checklistInstances;
   if (d.boardCards)         boardCards         = d.boardCards;
