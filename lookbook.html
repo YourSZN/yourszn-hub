@@ -598,6 +598,32 @@ body {
 </style>
 </head>
 <body>
+<div id="__authGate" style="position:fixed;inset:0;z-index:99999;background:#F5F0EB;display:flex;align-items:center;justify-content:center;font-family:'Jost',sans-serif;color:#2C2420;text-align:center;padding:24px">
+  <div id="__authGateMsg">Checking access…</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function () {
+  var authClient = supabase.createClient('https://ntqemlkwsymdxhaonfdv.supabase.co', 'sb_publishable_H4rfsOyYOd8A3OQr0ckmfQ_D_JVaGNJ');
+  var gate = document.getElementById('__authGate');
+  var msg = document.getElementById('__authGateMsg');
+  try {
+    var res = await authClient.auth.getSession();
+    if (res.data && res.data.session) {
+      window.__authOk = true;
+      gate.remove();
+    } else {
+      window.__authOk = false;
+      msg.innerHTML = 'Please <a href="/" style="color:#3C3229">sign in</a> to view this page.';
+    }
+  } catch (e) {
+    window.__authOk = false;
+    msg.innerHTML = 'Please <a href="/" style="color:#3C3229">sign in</a> to view this page.';
+  }
+  window.__authGateDone = true;
+  window.dispatchEvent(new Event('__authGateDone'));
+})();
+</script>
 <script>if (window.self !== window.top) document.body.classList.add('in-iframe');</script>
 <style>
   body.in-iframe .site-header { display: none; }
@@ -1478,7 +1504,8 @@ async function adminRemovePhoto(itemId, photoId, path) {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
 // ── Init ──
-loadClients();
+function __startIfAuthed() { if (window.__authOk) loadClients(); }
+if (window.__authGateDone) { __startIfAuthed(); } else { window.addEventListener('__authGateDone', __startIfAuthed); }
 </script>
 </body>
 </html>

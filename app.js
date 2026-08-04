@@ -2,9 +2,9 @@
 // CONFIG — change PINs here
 // ══════════════════════════════════════
 var USERS = {
-latisha: { name:'Latisha', role:'Owner', pin:'0162', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','plan','staff','finances','vietnam','app','sops','social','marketing','online','comms'] },
-  salma:   { name:'Salma',   role:'Admin Support', pin:'3465', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','marketing','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', pin:'DISABLED', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','social','marketing','online','comms'] }
+latisha: { name:'Latisha', role:'Owner', email:'sykes_96@hotmail.com', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','plan','staff','finances','vietnam','app','sops','social','marketing','online','comms'] },
+  salma:   { name:'Salma',   role:'Admin Support', email:'azzahrasalma0@gmail.com', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','marketing','online','comms'] },
+  lemari:  { name:'Lemari',  role:'Content · Video', email:null, pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','social','marketing','online','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
@@ -29,43 +29,35 @@ var NAV = [
 ];
 
 // ── Login state ──
-var curUser = null, selUid = null, pin = '';
+var curUser = null, selUid = null;
 
-function selUser(id) {
-  selUid = id;
-  document.getElementById('step-user').style.display = 'none';
-  document.getElementById('step-pin').style.display = 'block';
-  document.getElementById('pin-prompt').textContent = 'Enter your PIN, ' + USERS[id].name;
-  pin = ''; updDots(); document.getElementById('perr').textContent = '';
-}
-function pk(d) {
-  if (pin.length >= 4) return;
-  pin += d; updDots();
-  if (pin.length === 4) setTimeout(chkPin, 200);
-}
-function pdel() { pin = pin.slice(0,-1); updDots(); }
-function updDots() {
-  for (var i=0;i<4;i++) {
-    var el = document.getElementById('d'+i);
-    if (el) el.className = 'pdot' + (i < pin.length ? ' on' : '');
+async function doSignIn() {
+  var email = (document.getElementById('login-email').value || '').trim();
+  var password = document.getElementById('login-password').value || '';
+  var errEl = document.getElementById('perr');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Enter your email and password.'; return; }
+  var db = getSupa();
+  if (!db) { errEl.textContent = 'Could not connect. Try again.'; return; }
+  var btn = document.getElementById('login-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  var result = await db.auth.signInWithPassword({ email: email, password: password });
+  if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+  if (result.error) {
+    errEl.textContent = 'Incorrect email or password.';
+    return;
   }
-}
-function chkPin() {
-  if (pin === USERS[selUid].pin) { curUser = selUid; launchApp(); }
-  else {
-    document.getElementById('perr').textContent = 'Incorrect PIN. Try again.';
-    pin = ''; updDots();
-    var dots = document.querySelector('.pdots');
-    dots.style.animation = 'none';
-    dots.offsetHeight;
-    dots.style.animation = 'shake .4s ease';
+  var matchedId = null;
+  Object.keys(USERS).forEach(function(id) {
+    if (USERS[id].email && USERS[id].email.toLowerCase() === email.toLowerCase()) matchedId = id;
+  });
+  if (!matchedId) {
+    errEl.textContent = 'This account is not set up for the dashboard.';
+    db.auth.signOut();
+    return;
   }
-}
-function goBack() {
-  document.getElementById('step-pin').style.display = 'none';
-  document.getElementById('step-user').style.display = 'block';
-  pin = ''; updDots(); selUid = null;
-  document.getElementById('perr').textContent = '';
+  curUser = matchedId;
+  launchApp();
 }
 // ── Stub vars for removed sections (still referenced in saveData/loadData) ──
 var adData = [];
@@ -585,13 +577,15 @@ function showPage(id) {
   }
 }
 function doLogout() {
-  curUser = selUid = null; pin = '';
+  var db = getSupa();
+  if (db) db.auth.signOut();
+  curUser = selUid = null;
   document.getElementById('app').style.display = 'none';
   var ls = document.getElementById('login-screen');
   ls.style.display = 'flex'; ls.classList.remove('hide');
-  document.getElementById('step-pin').style.display = 'none';
-  document.getElementById('step-user').style.display = 'block';
-  updDots();
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('perr').textContent = '';
 }
 
 // ── CALENDAR PERSISTENCE + LIVE BOOKINGS ─────────────────────
@@ -631,12 +625,6 @@ async function loadCalendarBookings() {
     if (window._refreshCalendarBookings) window._refreshCalendarBookings();
   } catch(e) { console.warn('loadCalendarBookings error:', e); }
 }
-document.addEventListener('keydown', function(e) {
-  if (!selUid) return;
-  if (e.key >= '0' && e.key <= '9') pk(e.key);
-  if (e.key === 'Backspace') pdel();
-});
-
 // ── Dashboard legacy task toggles ──
 function togTask(item) {
   var c = item.querySelector('.tck'), t = item.querySelector('.ttx');

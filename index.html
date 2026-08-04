@@ -106,32 +106,12 @@
   <div class="lbox">
     <div class="llogo" style="display:none">Your <span>SZN</span></div>
     <div class="ltag" style="display:none">Business Hub</div>
-    <div id="step-user" style="max-width:380px;margin:0 auto;width:100%;">
-      <button class="ubtn" onclick="selUser('latisha')" style="background:#3a3635;">Latisha</button>
-      <button class="ubtn" onclick="selUser('salma')" style="background:#7B9FBF;">Admin</button>
-    </div>
-    <div id="step-pin" style="background:rgba(28,23,18,0.85);border-radius:16px;padding:24px 20px;margin-top:8px;">
-      <div class="plabel" id="pin-prompt">Enter your PIN</div>
-      <div class="pdots">
-        <div class="pdot" id="d0"></div><div class="pdot" id="d1"></div>
-        <div class="pdot" id="d2"></div><div class="pdot" id="d3"></div>
-      </div>
-      <div class="ppad">
-        <button class="pkey" onclick="pk('1')">1</button>
-        <button class="pkey" onclick="pk('2')">2</button>
-        <button class="pkey" onclick="pk('3')">3</button>
-        <button class="pkey" onclick="pk('4')">4</button>
-        <button class="pkey" onclick="pk('5')">5</button>
-        <button class="pkey" onclick="pk('6')">6</button>
-        <button class="pkey" onclick="pk('7')">7</button>
-        <button class="pkey" onclick="pk('8')">8</button>
-        <button class="pkey" onclick="pk('9')">9</button>
-        <button class="pkey empty"></button>
-        <button class="pkey" onclick="pk('0')">0</button>
-        <button class="pkey del" onclick="pdel()">⌫</button>
-      </div>
+    <div id="step-login" style="max-width:340px;margin:0 auto;width:100%;background:rgba(28,23,18,0.85);border-radius:16px;padding:28px 24px;">
+      <div class="plabel">Sign in</div>
+      <input id="login-email" class="linp" type="email" placeholder="Email" autocomplete="username" onkeydown="if(event.key==='Enter'){document.getElementById('login-password').focus();}">
+      <input id="login-password" class="linp" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){doSignIn();}">
+      <button id="login-btn" class="ubtn" style="background:#3a3635;margin-top:6px" onclick="doSignIn()">Sign In</button>
       <div class="perr" id="perr"></div>
-      <button class="pbk" onclick="goBack()">← Back</button>
     </div>
   </div>
 </div>
