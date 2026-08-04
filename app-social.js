@@ -152,11 +152,6 @@ function smRenderPlan() {
   var fmtDate = function(d) { return d.toLocaleDateString('en-AU', { day:'numeric', month:'short' }); };
   var weekLabel = fmtDate(monday) + ' – ' + fmtDate(sunday);
 
-  var formats = [''].concat(SM_CONTENT_TYPES);
-
-  var sel = function(wk, d, field, opts, extraStyle) {
-    return '<select style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:6px 8px;font-size:12px;background:white;color:var(--charcoal);cursor:pointer;' + (extraStyle||'') + '" onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'' + field + '\',this.value)">' + opts + '</select>';
-  };
   var pillarDD = function(wk, d, currentPillar) {
     var col     = SM_PILLAR_COLORS[currentPillar] || '';
     var ddId    = 'sm-pd-' + d;
@@ -190,7 +185,6 @@ function smRenderPlan() {
     + '<colgroup>'
     + '<col style="width:52px">'
     + '<col style="width:190px">'
-    + '<col style="width:130px">'
     + '<col style="width:160px">'
     + '<col>'
     + '<col style="width:96px">'
@@ -198,7 +192,6 @@ function smRenderPlan() {
     + '<thead><tr style="background:var(--warm)">'
     + '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444;white-space:nowrap">day</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
-    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">format</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">action i hope<br><span style="font-weight:400;color:var(--muted)">viewer takes</span></th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">post title</th>'
     + '<th style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">status</th>'
@@ -227,12 +220,9 @@ function smRenderPlan() {
     var actionCell = (actionPills ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:' + (unselectedActions.length ? '6px' : '0') + '">' + actionPills + '</div>' : '')
       + (unselectedActions.length ? '<select style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:5px 8px;font-size:12px;background:white;color:var(--muted);cursor:pointer" onchange="var ai=SM_PLAN_ACTIONS.indexOf(this.value);if(ai>-1)smToggleAction(\'' + wk + '\',\'' + d + '\',ai);this.selectedIndex=0">' + addActionOpts + '</select>' : '');
 
-    var fOpts = formats.map(function(f) { return '<option value="' + esc(f) + '"' + (data.format === f ? ' selected' : '') + '>' + (f || '— Select —') + '</option>'; }).join('');
-
     html += '<tr style="background:white;' + accentBorder + border + '">'
       + '<td style="padding:10px 12px;font-weight:700;color:var(--charcoal);font-size:13px;white-space:nowrap;vertical-align:top">' + d + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + pillarDD(wk, d, data.pillar) + '</td>'
-      + '<td style="padding:6px 8px;vertical-align:top">' + sel(wk, d, 'format', fOpts) + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top">' + actionCell + '</td>'
       + (function() {
           var linkedPost = data.postId ? socialPosts.find(function(p) { return p.id === data.postId; }) : null;
@@ -282,7 +272,8 @@ function smRenderPlan() {
 
 function smSetWeekTodo(wk, item, stage) {
   if (!smWeekTodo[wk]) smWeekTodo[wk] = {};
-  smWeekTodo[wk][item] = (smWeekTodo[wk][item] === stage) ? '' : stage;
+  if (!smWeekTodo[wk][item]) smWeekTodo[wk][item] = {};
+  smWeekTodo[wk][item][stage] = !smWeekTodo[wk][item][stage];
   saveData();
   renderSocialPage();
 }
@@ -294,38 +285,40 @@ function smRenderWeekTodo(wk) {
     {key:'static', label:'Static'},
     {key:'video',  label:'Video'},
   ];
+  items.forEach(function(item) { item.days = []; });
 
-  // Pull planned days from the grid above for this week: Carousel = static, any other set format = video
-  items.forEach(function(item) {
-    item.days = [];
-  });
+  // Pull planned days from the grid above for this week: Static Posts pillar = static, every other pillar = video
   SM_PLAN_DAYS.forEach(function(d) {
     var data = smPlanGetDay(wk, d);
-    if (!data.format) return;
-    var bucket = data.format === 'Carousel' ? 'static' : 'video';
+    var bucket = data.pillar === 'Static Posts' ? 'static' : 'video';
     var linkedPost = data.postId ? socialPosts.find(function(p) { return p.id === data.postId; }) : null;
-    var label = d.charAt(0).toUpperCase() + d.slice(1) + (linkedPost ? ' — ' + linkedPost.title : ' — ' + data.format);
+    var label = d.charAt(0).toUpperCase() + d.slice(1) + (linkedPost ? ' — ' + linkedPost.title : '');
     items.find(function(i) { return i.key === bucket; }).days.push(label);
   });
 
   var rows = items.map(function(item) {
-    var activeStage = todo[item.key] || '';
+    var state   = todo[item.key] || {};
+    var isReady = !!state.ready;
+    var textCol = isReady ? 'color:var(--muted);text-decoration:line-through' : 'color:var(--charcoal)';
+
     var daysHtml = item.days.length
-      ? '<div style="font-size:11px;color:var(--muted);line-height:1.6">' + item.days.map(esc).join('<br>') + '</div>'
+      ? '<div style="font-size:11px;line-height:1.6;' + textCol + '">' + item.days.map(esc).join('<br>') + '</div>'
       : '<div style="font-size:11px;color:var(--muted);font-style:italic">Nothing planned yet</div>';
 
-    var stageButtons = SM_TODO_STAGES.map(function(s) {
-      var isOn = activeStage === s.key;
-      return '<button onclick="smSetWeekTodo(\'' + wk + '\',\'' + item.key + '\',\'' + s.key + '\')" '
-        + 'style="flex:1;border:none;border-radius:8px;padding:8px 4px;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:opacity .15s;'
-        + (isOn ? 'background:' + s.color + ';color:white;' : 'background:var(--warm);color:var(--muted);border:1px solid var(--sand);')
-        + '">' + s.label + '</button>';
+    var checkboxes = SM_TODO_STAGES.map(function(s) {
+      var checked = !!state[s.key];
+      return '<div onclick="smSetWeekTodo(\'' + wk + '\',\'' + item.key + '\',\'' + s.key + '\')" style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">'
+        + '<div style="width:18px;height:18px;border-radius:5px;border:2px solid ' + (checked ? s.color : '#C8BFB8') + ';background:' + (checked ? s.color : 'white') + ';flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s">'
+        +   (checked ? '<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.2 5.5L8 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
+        + '</div>'
+        + '<span style="font-size:11px;font-weight:600;color:var(--charcoal)">' + s.label + '</span>'
+        + '</div>';
     }).join('');
 
     return '<div style="display:grid;grid-template-columns:110px 1fr 220px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--sand)">'
-      + '<div style="font-size:13px;font-weight:700;color:var(--charcoal)">' + item.label + '</div>'
+      + '<div style="font-size:13px;font-weight:700;' + textCol + '">' + item.label + '</div>'
       + daysHtml
-      + '<div style="display:flex;gap:6px">' + stageButtons + '</div>'
+      + '<div style="display:flex;gap:14px">' + checkboxes + '</div>'
       + '</div>';
   }).join('');
 
