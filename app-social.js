@@ -90,7 +90,8 @@ function smPlanGetDay(wk, dayKey) {
     notes:        saved.notes        || '',
     link:         saved.link         || '',
     postId:       saved.postId       || null,
-    status:       saved.status       || 'not_started'
+    status:       saved.status       || 'not_started',
+    stories:      saved.stories      || ''
   };
 }
 
@@ -247,6 +248,7 @@ function smRenderPlan() {
     + '<col style="width:190px">'
     + '<col style="width:160px">'
     + '<col>'
+    + '<col style="width:170px">'
     + '<col style="width:96px">'
     + '</colgroup>'
     + '<thead><tr style="background:var(--warm)">'
@@ -254,6 +256,7 @@ function smRenderPlan() {
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">pillar</th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">action i hope<br><span style="font-weight:400;color:var(--muted)">viewer takes</span></th>'
     + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">post title</th>'
+    + '<th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">stories</th>'
     + '<th style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--charcoal);border-bottom:2px solid #EF4444">status</th>'
     + '</tr></thead><tbody>';
 
@@ -312,6 +315,11 @@ function smRenderPlan() {
           cell += '</td>';
           return cell;
         })()
+      + '<td style="padding:6px 8px;vertical-align:top">'
+      +   '<textarea placeholder="What stories do you need to post/make…" '
+      +     'style="width:100%;border:1px solid var(--sand);border-radius:6px;padding:8px;font-size:12px;background:white;color:var(--charcoal);min-height:70px;resize:vertical;outline:none;font-family:inherit;line-height:1.5;box-sizing:border-box" '
+      +     'onchange="smSavePlan(\'' + wk + '\',\'' + d + '\',\'stories\',this.value)">' + esc(data.stories) + '</textarea>'
+      + '</td>'
       + '<td style="padding:6px 8px;vertical-align:top;text-align:center">'
       +   smStatusDD(wk, d, data.status)
       + '</td>'
@@ -473,7 +481,7 @@ function smRenderPipeline() {
           + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">' + platTags + '</div>' : '')
           + '<div style="display:flex;align-items:center;gap:4px">'
           +   smContentTypeIcon(post.contentType)
-          +   (post.script ? smScriptIcon() : '')
+          +   ((post.scriptHook || post.scriptBody || post.scriptClosing || post.script) ? smScriptIcon() : '')
           +   (commentCount ? '<span style="font-size:9px;color:var(--muted)">&#128172; ' + commentCount + '</span>' : '')
           + '</div>'
           + dateLine
@@ -719,7 +727,7 @@ function smIdeaGroup(pillar, posts) {
       + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">'
       +   platTags
       +   smContentTypeIcon(post.contentType)
-      +   (post.script ? smScriptIcon() : '')
+      +   ((post.scriptHook || post.scriptBody || post.scriptClosing || post.script) ? smScriptIcon() : '')
       +   (post.assignedTo ? '<span style="font-size:9px;font-weight:700;background:var(--sand);color:var(--charcoal);padding:2px 7px;border-radius:6px">' + post.assignedTo + '</span>' : '')
       +   (isNew ? '<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated ' + smRelTime(post.lastModified) + '</span>' : '')
       + '</div>'
@@ -1096,10 +1104,14 @@ function smPostModal() {
     // Full-width: Concept
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">' + conceptRow + '</div>'
 
-    // Full-width: Script
+    // Full-width: Script (broken into Hook / Body / Closing)
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">'
     +     smLbl('Script')
-    +     SM_TA('sm-f-script', 6, 'Write or paste the script here…')
+    +     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">'
+    +       '<div>' + smLbl('Hook') + SM_TA('sm-f-script-hook', 5, 'How you open…') + '</div>'
+    +       '<div>' + smLbl('Body') + SM_TA('sm-f-script-body', 5, 'The main content…') + '</div>'
+    +       '<div>' + smLbl('Closing') + SM_TA('sm-f-script-closing', 5, 'How you wrap up…') + '</div>'
+    +     '</div>'
     +   '</div>'
 
     // Full-width: Comments
@@ -1143,7 +1155,12 @@ function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
   document.getElementById('sm-f-tos').value     = post ? (post.textOnScreen || '')  : '';
   document.getElementById('sm-f-caption').value = post ? (post.caption || '')       : '';
   document.getElementById('sm-f-drive').value   = post ? (post.driveLink || '')     : '';
-  document.getElementById('sm-f-script').value  = post ? (post.script || '')        : '';
+  // Hook/Body/Closing — for older posts saved before this split, fall back to
+  // showing their flat script in Body so nothing looks like it disappeared.
+  var hasSplitScript = post && (post.scriptHook || post.scriptBody || post.scriptClosing);
+  document.getElementById('sm-f-script-hook').value    = post ? (post.scriptHook || '') : '';
+  document.getElementById('sm-f-script-body').value    = post ? (hasSplitScript ? (post.scriptBody || '') : (post.script || '')) : '';
+  document.getElementById('sm-f-script-closing').value = post ? (post.scriptClosing || '') : '';
 
   smRenderInspoLinks(post ? (post.inspirationLinks || []) : []);
 
@@ -1212,7 +1229,9 @@ function smSavePost() {
     textOnScreen: document.getElementById('sm-f-tos').value.trim(),
     caption:      document.getElementById('sm-f-caption').value.trim(),
     driveLink:         document.getElementById('sm-f-drive').value.trim(),
-    script:            document.getElementById('sm-f-script').value.trim(),
+    scriptHook:        document.getElementById('sm-f-script-hook').value.trim(),
+    scriptBody:        document.getElementById('sm-f-script-body').value.trim(),
+    scriptClosing:     document.getElementById('sm-f-script-closing').value.trim(),
     inspirationLinks:  smGetInspoLinks(),
     comments:          existing ? (existing.comments || []) : _smDraftComments.slice(),
     createdAt:    existing ? (existing.createdAt || now) : now,
@@ -1221,7 +1240,7 @@ function smSavePost() {
 
   // Auto-advance out of Idea the moment a script exists — never moves a post
   // backward or touches one already further along than Idea.
-  if (obj.stage === 'idea' && obj.script) obj.stage = 'scripted';
+  if (obj.stage === 'idea' && (obj.scriptHook || obj.scriptBody || obj.scriptClosing)) obj.stage = 'scripted';
 
   if (_smEditId) {
     var idx = socialPosts.findIndex(function(p) { return p.id === _smEditId; });
