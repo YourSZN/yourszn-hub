@@ -336,6 +336,21 @@ function smRecentlyEdited(post) {
   return (Date.now() - post.lastModified) < 48 * 3600 * 1000;
 }
 
+// ── Should the "Updated" badge still show? Cleared by a manual "mark as
+// seen" (smMarkUpdateSeen), not just by opening the post — reappears if
+// the post is edited again after being marked seen. ──
+function smNeedsUpdateBadge(post) {
+  return smRecentlyEdited(post) && (!post.updateSeenAt || post.updateSeenAt < post.lastModified);
+}
+
+function smMarkUpdateSeen(postId) {
+  var post = socialPosts.find(function(p) { return p.id === postId; });
+  if (!post) return;
+  post.updateSeenAt = Date.now();
+  saveData();
+  renderSocialPage();
+}
+
 function smRelTime(ts) {
   var diff = Math.floor((Date.now() - ts) / 60000);
   if (diff < 60) return diff + 'm ago';
@@ -395,7 +410,7 @@ function smPipelineSetStage(pillar, stageKey) {
 }
 
 function smRenderPipeline() {
-  var totalUpdated = socialPosts.filter(smRecentlyEdited).length;
+  var totalUpdated = socialPosts.filter(smNeedsUpdateBadge).length;
 
   var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:8px">';
   html += (totalUpdated > 0
@@ -463,7 +478,7 @@ function smRenderPipeline() {
     } else {
       html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">';
       stagePosts.forEach(function(post) {
-        var isNew = smRecentlyEdited(post);
+        var isNew = smNeedsUpdateBadge(post);
         var platTags = (post.platform || []).map(function(p) {
           return '<span style="font-size:9px;font-weight:700;color:white;background:' + (p === 'TikTok' ? '#010101' : '#E1306C') + ';padding:2px 6px;border-radius:6px">' + p + '</span>';
         }).join('');
@@ -476,7 +491,10 @@ function smRenderPipeline() {
           + 'border-radius:10px;padding:12px;padding-left:14px;cursor:pointer;'
           + 'box-shadow:inset 3px 0 0 ' + col + ';transition:filter .15s" '
           + 'onmouseover="this.style.filter=\'brightness(.97)\'" onmouseout="this.style.filter=\'none\'">'
-          + (isNew ? '<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated</span></div>' : '')
+          + (isNew ? '<div style="margin-bottom:6px;display:flex;align-items:center;gap:4px">'
+              + '<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated</span>'
+              + '<button onclick="event.stopPropagation();smMarkUpdateSeen(\'' + post.id + '\')" title="Mark as seen" style="background:none;border:none;color:#92400E;cursor:pointer;font-size:11px;line-height:1;padding:0 2px;opacity:.7">&#10003;</button>'
+              + '</div>' : '')
           + '<div style="font-size:13px;font-weight:600;color:var(--charcoal);line-height:1.35;margin-bottom:8px">' + esc(post.title) + '</div>'
           + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">' + platTags + '</div>' : '')
           + '<div style="display:flex;align-items:center;gap:4px">'
@@ -710,7 +728,7 @@ function smIdeaGroup(pillar, posts) {
     + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">';
 
   posts.forEach(function(post) {
-    var isNew     = smRecentlyEdited(post);
+    var isNew     = smNeedsUpdateBadge(post);
     var pillarCol = SM_PILLAR_COLORS[post.pillar] || '#9CA3AF';
     var platTags  = (post.platform || []).map(function(p) {
       var c = p === 'TikTok' ? '#010101' : '#E1306C';
@@ -729,7 +747,9 @@ function smIdeaGroup(pillar, posts) {
       +   smContentTypeIcon(post.contentType)
       +   ((post.scriptHook || post.scriptBody || post.scriptClosing || post.script) ? smScriptIcon() : '')
       +   (post.assignedTo ? '<span style="font-size:9px;font-weight:700;background:var(--sand);color:var(--charcoal);padding:2px 7px;border-radius:6px">' + post.assignedTo + '</span>' : '')
-      +   (isNew ? '<span style="font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated ' + smRelTime(post.lastModified) + '</span>' : '')
+      +   (isNew ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 4px 2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated ' + smRelTime(post.lastModified)
+              + '<button onclick="event.stopPropagation();smMarkUpdateSeen(\'' + post.id + '\')" title="Mark as seen" style="background:none;border:none;color:#92400E;cursor:pointer;font-size:11px;line-height:1;padding:0 2px;opacity:.7">&#10003;</button>'
+              + '</span>' : '')
       + '</div>'
       + '</div>';
   });

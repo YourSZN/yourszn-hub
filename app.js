@@ -148,7 +148,7 @@ function renderIdeas() {
 }
 
 // ══ Marketing tabs ══
-var mktTab = 'website';
+var mktTab = 'overview';
 var creatorsList = [];
 var _creatorEditId = null;
 
@@ -338,8 +338,36 @@ function deleteCreator(id) {
 }
 
 
+var MKT_FUNNEL_STAGES = [
+  ['Awareness',     'People discover you and your brand exist',              '#C4956A'],
+  ['Interest',      'They start paying attention and engaging with content', '#7A8C6E'],
+  ['Consideration', 'They weigh you up against alternatives',                '#6366F1'],
+  ['Conversion',    'They take the action — book, buy, sign up',             '#059669'],
+  ['Loyalty',       'They come back, and refer others',                     '#8B5CF6'],
+];
+
+function renderMktOverview() {
+  var el = document.getElementById('mkt-content'); if (!el) return;
+  el.innerHTML = '<div class="card" style="margin-bottom:16px">'
+    + '<div class="ch"><div class="ct">Marketing Funnel</div></div>'
+    + '<div class="cb">'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">'
+    + MKT_FUNNEL_STAGES.map(function(s, i) {
+        return '<div style="display:flex;flex-direction:column;gap:8px">'
+          + '<div style="display:flex;align-items:center;gap:8px">'
+          +   '<div style="width:24px;height:24px;border-radius:50%;background:' + s[2] + ';color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + (i + 1) + '</div>'
+          +   '<div style="font-size:13px;font-weight:700;color:var(--charcoal)">' + s[0] + '</div>'
+          + '</div>'
+          + '<div style="font-size:12px;color:var(--muted);line-height:1.5">' + s[1] + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    + '</div></div>';
+}
+
 function renderMarketing() {
   if (mktTab === 'creators') { renderCreators(); return; }
+  if (mktTab === 'overview') { renderMktOverview(); return; }
   var el = document.getElementById('mkt-content'); if (!el) return;
   var tabLabels = {website:'Website Tasks',blog:'Blog',creators:'Creators',linkedin:'LinkedIn',gbp:'Google Business Profile'};
   var data = mktData[mktTab] || {lists:[]};
