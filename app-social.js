@@ -442,7 +442,7 @@ function smRenderPipeline() {
     SM_STAGES.forEach(function(s) {
       var count   = g.posts.filter(function(p) { return p.stage === s.key; }).length;
       var isActive = s.key === activeStage;
-      var safeKey = JSON.stringify(pillarKey);
+      var safeKey = esc(JSON.stringify(pillarKey));
       html += '<button onclick="smPipelineSetStage(' + safeKey + ',\'' + s.key + '\')" '
         + 'style="padding:6px 14px;border-radius:20px;border:1.5px solid ' + (isActive ? s.color : 'var(--sand)') + ';'
         + 'background:' + (isActive ? s.color : 'white') + ';'
