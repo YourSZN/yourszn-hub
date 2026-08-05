@@ -4723,7 +4723,6 @@ function saveData() {
       voucherRegistry:voucherRegistry,
       calendarEvents:calendarEvents,
       smWeekPlan:smWeekPlan,
-      smWeekTodo:smWeekTodo,
       smStrategyNotes:smStrategyNotes,
       socialPosts:socialPosts,
       smMentions:smMentions,
@@ -4848,7 +4847,6 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.voucherRegistry)   voucherRegistry   = d.voucherRegistry;
   if (d.calendarEvents)  { calendarEvents = d.calendarEvents; window._calendarEvents = calendarEvents; }
   if (d.smWeekPlan)        smWeekPlan        = d.smWeekPlan;
-  if (d.smWeekTodo)        smWeekTodo        = d.smWeekTodo;
   if (typeof d.smStrategyNotes === 'string') smStrategyNotes = d.smStrategyNotes;
   if (d.socialPosts)       socialPosts       = d.socialPosts;
   if (d.smMentions)        smMentions        = d.smMentions;

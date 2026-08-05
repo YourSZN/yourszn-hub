@@ -48,12 +48,13 @@ var smAnalyticsLog   = []; // [{id, weekEnding, tt:{views,followers,likes,bestPo
 // ── Weekly Content Plan ──────────────────────────────────────
 var smWeekPlan    = {};  // { weekKey: { mon: {...}, tue: {...}, ... } }
 var smPlanWeekOff = 0;   // 0 = this week, -1 = last week, +1 = next week
-var smWeekTodo    = {};  // { weekKey: { static: 'film'|'edit'|'ready'|'', video: 'film'|'edit'|'ready'|'' } }
 
-var SM_TODO_STAGES = [
-  {key:'film',  label:'Film',  color:'#EF4444'},
-  {key:'edit',  label:'Edit',  color:'#F59E0B'},
-  {key:'ready', label:'Ready', color:'#22C55E'},
+var SM_PLAN_STATUSES = [
+  {key:'not_started', label:'Not Started', color:'#EF4444'},
+  {key:'filmed',       label:'Filmed',      color:'#F97316'},
+  {key:'edited',       label:'Edited',      color:'#EAB308'},
+  {key:'ready',        label:'Ready',       color:'#22C55E'},
+  {key:'posted',       label:'Posted',      color:'#8B5CF6'},
 ];
 
 var SM_PLAN_DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
@@ -89,7 +90,7 @@ function smPlanGetDay(wk, dayKey) {
     notes:        saved.notes        || '',
     link:         saved.link         || '',
     postId:       saved.postId       || null,
-    ready:        !!saved.ready
+    status:       saved.status       || 'not_started'
   };
 }
 
@@ -134,15 +135,74 @@ function smPlanOpenPost(wk, dayKey) {
   }
 }
 
+function smPlanTogglePostDD(id) {
+  document.querySelectorAll('.sm-plan-post-dd').forEach(function(el) {
+    if (el.id !== id) el.style.display = 'none';
+  });
+  var el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+function smPlanLinkExisting(wk, dayKey, postId) {
+  smSavePlan(wk, dayKey, 'postId', postId);
+  renderSocialPage();
+}
+
+function smPlanPostPicker(wk, dayKey) {
+  var ddId    = 'sm-plan-post-dd-' + dayKey;
+  var trigger = '<button onclick="smPlanTogglePostDD(\'' + ddId + '\')" '
+    + 'style="width:100%;background:none;border:1px dashed var(--sand);border-radius:7px;padding:6px 10px;font-size:11px;color:var(--muted);cursor:pointer;text-align:left;font-family:inherit;margin-bottom:6px">+ Add post details</button>';
+  var newItem = '<div onclick="smPlanTogglePostDD(\'' + ddId + '\');smPlanOpenPost(\'' + wk + '\',\'' + dayKey + '\')" '
+    + 'style="padding:7px 10px;cursor:pointer;border-radius:5px;font-size:12px;font-weight:600;color:var(--charcoal);background:var(--warm);margin-bottom:4px">+ Create new post</div>';
+  var existing = socialPosts.slice().sort(function(a, b) { return (b.lastModified||0) - (a.lastModified||0); }).map(function(p) {
+    var stageObj = SM_STAGES.find(function(s) { return s.key === p.stage; });
+    return '<div onclick="smPlanTogglePostDD(\'' + ddId + '\');smPlanLinkExisting(\'' + wk + '\',\'' + dayKey + '\',\'' + p.id + '\')" '
+      + 'style="display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;border-radius:5px;font-size:12px" '
+      + 'onmouseover="this.style.background=\'var(--warm)\'" onmouseout="this.style.background=\'transparent\'">'
+      + '<span style="font-size:9px;font-weight:700;color:white;background:' + (stageObj ? stageObj.color : '#9CA3AF') + ';padding:2px 6px;border-radius:4px;flex-shrink:0">' + (stageObj ? esc(stageObj.label) : '') + '</span>'
+      + '<span style="color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">' + esc(p.title) + '</span>'
+      + '</div>';
+  }).join('');
+  return '<div style="position:relative">'
+    + trigger
+    + '<div id="' + ddId + '" class="sm-plan-post-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:white;border:1px solid var(--sand);border-radius:8px;padding:6px;min-width:240px;max-height:280px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12)">'
+    + newItem
+    + (existing ? '<div style="height:1px;background:var(--sand);margin:6px 0"></div>' + existing : '')
+    + '</div>'
+    + '</div>';
+}
+
 function smPlanUnlinkPost(wk, dayKey) {
   smSavePlan(wk, dayKey, 'postId', null);
   renderSocialPage();
 }
 
-function smToggleReady(wk, dayKey) {
-  var current = smPlanGetDay(wk, dayKey).ready;
-  smSavePlan(wk, dayKey, 'ready', !current);
+function smToggleStatusDD(id) {
+  document.querySelectorAll('.sm-status-dd').forEach(function(el) {
+    if (el.id !== id) el.style.display = 'none';
+  });
+  var el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+function smSetPlanStatus(wk, dayKey, statusKey) {
+  smSavePlan(wk, dayKey, 'status', statusKey);
   renderSocialPage();
+}
+
+function smStatusDD(wk, dayKey, currentStatus) {
+  var cur  = SM_PLAN_STATUSES.find(function(s) { return s.key === currentStatus; }) || SM_PLAN_STATUSES[0];
+  var ddId = 'sm-status-dd-' + dayKey;
+  var trigger = '<div onclick="smToggleStatusDD(\'' + ddId + '\')" style="width:100%;border:none;border-radius:20px;padding:8px 4px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;color:white;background:' + cur.color + ';font-family:inherit;text-align:center;user-select:none">' + cur.label + '</div>';
+  var items = SM_PLAN_STATUSES.map(function(s) {
+    return '<div onclick="smSetPlanStatus(\'' + wk + '\',\'' + dayKey + '\',\'' + s.key + '\')" style="padding:6px 10px;cursor:pointer;border-radius:4px;margin:2px 0;background:' + s.color + ';color:white;font-size:12px;font-weight:600;text-align:center">' + s.label + '</div>';
+  }).join('');
+  return '<div style="position:relative">'
+    + trigger
+    + '<div id="' + ddId + '" class="sm-status-dd" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:200;background:white;border:1px solid var(--sand);border-radius:8px;padding:6px;min-width:130px;box-shadow:0 4px 16px rgba(0,0,0,.12)">'
+    + items
+    + '</div>'
+    + '</div>';
 }
 
 function smRenderPlan() {
@@ -241,10 +301,7 @@ function smRenderPlan() {
               + '<button onclick="smPlanUnlinkPost(\'' + wk + '\',\'' + d + '\')" title="Unlink post" style="flex-shrink:0;background:none;border:none;font-size:14px;color:var(--muted);cursor:pointer;line-height:1;padding:2px 4px">&times;</button>'
               + '</div>';
           } else {
-            cell += '<button onclick="smPlanOpenPost(\'' + wk + '\',\'' + d + '\')" '
-              + 'style="width:100%;background:none;border:1px dashed var(--sand);border-radius:7px;padding:6px 10px;font-size:11px;color:var(--muted);cursor:pointer;text-align:left;font-family:inherit;margin-bottom:6px;transition:border-color .15s,color .15s" '
-              + 'onmouseover="this.style.borderColor=\'var(--charcoal)\';this.style.color=\'var(--charcoal)\'" '
-              + 'onmouseout="this.style.borderColor=\'var(--sand)\';this.style.color=\'var(--muted)\'">+ Add post details</button>';
+            cell += smPlanPostPicker(wk, d);
           }
 
           // Notes textarea always visible so existing plan content is preserved
@@ -256,76 +313,13 @@ function smRenderPlan() {
           return cell;
         })()
       + '<td style="padding:6px 8px;vertical-align:top;text-align:center">'
-      +   '<button onclick="smToggleReady(\'' + wk + '\',\'' + d + '\')" '
-      +     'title="' + (data.ready ? 'Ready — click to mark not ready' : 'Not filmed/made — click to mark ready') + '" '
-      +     'style="width:100%;border:none;border-radius:20px;padding:8px 4px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;color:white;background:' + (data.ready ? '#22C55E' : '#EF4444') + ';font-family:inherit;transition:background .15s">'
-      +     (data.ready ? 'Ready' : 'Not Ready')
-      +   '</button>'
+      +   smStatusDD(wk, d, data.status)
       + '</td>'
       + '</tr>';
   });
 
   html += '</tbody></table></div>';
-  html += smRenderWeekTodo(wk);
   return html;
-}
-
-function smSetWeekTodo(wk, item, stage) {
-  if (!smWeekTodo[wk]) smWeekTodo[wk] = {};
-  if (!smWeekTodo[wk][item]) smWeekTodo[wk][item] = {};
-  smWeekTodo[wk][item][stage] = !smWeekTodo[wk][item][stage];
-  saveData();
-  renderSocialPage();
-}
-
-function smRenderWeekTodo(wk) {
-  var todo = smWeekTodo[wk] || {};
-
-  var items = [
-    {key:'static', label:'Static'},
-    {key:'video',  label:'Video'},
-  ];
-  items.forEach(function(item) { item.days = []; });
-
-  // Pull planned days from the grid above for this week: Static Posts pillar = static, every other pillar = video
-  SM_PLAN_DAYS.forEach(function(d) {
-    var data = smPlanGetDay(wk, d);
-    var bucket = data.pillar === 'Static Posts' ? 'static' : 'video';
-    var linkedPost = data.postId ? socialPosts.find(function(p) { return p.id === data.postId; }) : null;
-    var label = d.charAt(0).toUpperCase() + d.slice(1) + (linkedPost ? ' — ' + linkedPost.title : '');
-    items.find(function(i) { return i.key === bucket; }).days.push(label);
-  });
-
-  var rows = items.map(function(item) {
-    var state   = todo[item.key] || {};
-    var isReady = !!state.ready;
-    var textCol = isReady ? 'color:var(--muted);text-decoration:line-through' : 'color:var(--charcoal)';
-
-    var daysHtml = item.days.length
-      ? '<div style="font-size:11px;line-height:1.6;' + textCol + '">' + item.days.map(esc).join('<br>') + '</div>'
-      : '<div style="font-size:11px;color:var(--muted);font-style:italic">Nothing planned yet</div>';
-
-    var checkboxes = SM_TODO_STAGES.map(function(s) {
-      var checked = !!state[s.key];
-      return '<div onclick="smSetWeekTodo(\'' + wk + '\',\'' + item.key + '\',\'' + s.key + '\')" style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">'
-        + '<div style="width:18px;height:18px;border-radius:5px;border:2px solid ' + (checked ? s.color : '#C8BFB8') + ';background:' + (checked ? s.color : 'white') + ';flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s">'
-        +   (checked ? '<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.2 5.5L8 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
-        + '</div>'
-        + '<span style="font-size:11px;font-weight:600;color:var(--charcoal)">' + s.label + '</span>'
-        + '</div>';
-    }).join('');
-
-    return '<div style="display:grid;grid-template-columns:110px 1fr 220px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--sand)">'
-      + '<div style="font-size:13px;font-weight:700;' + textCol + '">' + item.label + '</div>'
-      + daysHtml
-      + '<div style="display:flex;gap:14px">' + checkboxes + '</div>'
-      + '</div>';
-  }).join('');
-
-  return '<div class="card" style="margin-top:16px">'
-    + '<div class="ch"><div class="ct">Weekly To-Do</div></div>'
-    + '<div class="cb" style="padding-top:4px">' + rows + '</div>'
-    + '</div>';
 }
 
 // ── Was post modified in last 48h? ──
@@ -1019,6 +1013,16 @@ function smPostModal() {
   var leftCol = ''
     + '<div>' + smLbl('Title *') + SM_IN('sm-f-title', 'text', 'Post title…') + '</div>'
 
+    + '<div id="sm-add-to-plan-wrap" style="display:none;background:var(--warm);border-radius:8px;padding:10px 12px">'
+    +   smLbl("Add to This Week's Plan")
+    +   '<div style="display:flex;gap:8px">'
+    +     '<select id="sm-add-to-plan-day" class="fi" style="flex:1;box-sizing:border-box">'
+    +       SM_PLAN_DAYS.map(function(d) { return '<option value="' + d + '">' + d.charAt(0).toUpperCase() + d.slice(1) + '</option>'; }).join('')
+    +     '</select>'
+    +     '<button onclick="smAddPostToPlan()" class="btn btnp" style="padding:7px 14px;font-size:12px;white-space:nowrap">Add</button>'
+    +   '</div>'
+    + '</div>'
+
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     +   '<div>' + smLbl('Stage') + SM_SEL('sm-f-stage', ' onchange="smStageChange()"')
     +     SM_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
@@ -1151,6 +1155,8 @@ function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
   smStageChange();
 
   document.getElementById('sm-f-del').style.display = post ? 'inline-block' : 'none';
+  var addToPlanWrap = document.getElementById('sm-add-to-plan-wrap');
+  if (addToPlanWrap) addToPlanWrap.style.display = post ? 'block' : 'none';
   var errEl = document.getElementById('sm-f-err');
   if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
 
@@ -1160,6 +1166,15 @@ function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
 
   modal.style.display = 'block';
   setTimeout(function() { var t = document.getElementById('sm-f-title'); if (t) t.focus(); }, 80);
+}
+
+function smAddPostToPlan() {
+  if (!_smEditId) return;
+  var day = document.getElementById('sm-add-to-plan-day').value;
+  var wk  = smPlanWeekKey(smPlanWeekOff);
+  smSavePlan(wk, day, 'postId', _smEditId);
+  smCloseModal();
+  renderSocialPage();
 }
 
 function smCloseModal() {
@@ -1203,6 +1218,10 @@ function smSavePost() {
     createdAt:    existing ? (existing.createdAt || now) : now,
     lastModified: now
   };
+
+  // Auto-advance out of Idea the moment a script exists — never moves a post
+  // backward or touches one already further along than Idea.
+  if (obj.stage === 'idea' && obj.script) obj.stage = 'scripted';
 
   if (_smEditId) {
     var idx = socialPosts.findIndex(function(p) { return p.id === _smEditId; });
