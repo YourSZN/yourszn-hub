@@ -235,7 +235,7 @@ function _appWeekStartISO(d) {
   d = d || new Date();
   var day = d.getDay();
   var monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day===0?6:day-1));
-  return monday.toISOString().slice(0,10);
+  return ymdLocal(monday);
 }
 function _appMonthStartISO(d) {
   d = d || new Date();

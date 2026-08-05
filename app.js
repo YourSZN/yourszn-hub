@@ -939,6 +939,12 @@ function getWeekStart(off) {
   var d = new Date(); var day = d.getDay(); var diff = (day===0)?-6:1-day;
   d.setDate(d.getDate()+diff+(off*7)); d.setHours(0,0,0,0); return d;
 }
+// Local YYYY-MM-DD — use for date keys instead of toISOString(), which
+// converts to UTC first and silently shifts the date during early-morning
+// hours in timezones ahead of UTC (e.g. AEST), breaking week-key lookups.
+function ymdLocal(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 function fmtDate(d){return d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});}
 function weekLabel(off) {
   var s=getWeekStart(off); var e=new Date(s); e.setDate(s.getDate()+6);
@@ -976,7 +982,7 @@ var hiddenBoxOpen = {};   // uid -> bool
 var editingTaskId = null;
 // ── Per-week state helpers for recurring tasks ──
 function weekKey(off) {
-  return getWeekStart(off).toISOString().slice(0,10);
+  return ymdLocal(getWeekStart(off));
 }
 function getTS(t, off) {
   if (t.freq !== 'daily' && t.freq !== 'weekly') return {status:t.status, hrsTaken:t.hrsTaken, staffNotes:t.staffNotes};
@@ -4793,7 +4799,7 @@ function _applyLoadedData(d) {
   var dayOfWeek = now.getDay();
   var mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   var thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset);
-  var thisMondayStr = thisMonday.toISOString().slice(0, 10);
+  var thisMondayStr = ymdLocal(thisMonday);
   var lastReset = d.lastHrsReset || '';
 if (lastReset !== thisMondayStr && tasks && tasks.length) {
     tasks.forEach(function(t) {

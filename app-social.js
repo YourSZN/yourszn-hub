@@ -75,7 +75,7 @@ function smPlanWeekKey(off) {
   var day = now.getDay();
   var monday = new Date(now);
   monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + ((off||0) * 7));
-  return monday.toISOString().slice(0, 10);
+  return ymdLocal(monday);
 }
 
 function smPlanGetDay(wk, dayKey) {
