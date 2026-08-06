@@ -1404,6 +1404,7 @@
       <!-- Marketing tabs -->
       <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
         <button id="mkt-tab-overview" class="vt-tab on"  onclick="setMktTab('overview')">&#128200; Overview</button>
+        <button id="mkt-tab-strategy" class="vt-tab"     onclick="setMktTab('strategy')">&#127919; Strategy</button>
         <button id="mkt-tab-website"  class="vt-tab"     onclick="setMktTab('website')">&#127760; Website</button>
         <button id="mkt-tab-blog"     class="vt-tab"     onclick="setMktTab('blog')">&#128221; Blog</button>
         <button id="mkt-tab-creators" class="vt-tab"     onclick="setMktTab('creators')">&#127775; Creators</button>
@@ -1724,6 +1725,33 @@
         <button class="btn btnp" onclick="saveMktItem()">Save</button>
         <button class="btn btns" onclick="closeMktItemModal()">Cancel</button>
         <button id="mktim-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteMktItem(_mktListCtx,_mktItemEditId);closeMktItemModal();">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Marketing Banked Ad Modal ══ -->
+  <div id="mkt-ad-modal" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.55);z-index:600;align-items:center;justify-content:center;padding:20px">
+    <div class="sm-modal" style="max-width:480px;width:100%">
+      <button onclick="closeMktAdModal()" class="sm-modal-x">&#215;</button>
+      <div id="mktad-heading" class="sm-modal-title">Bank New Ad</div>
+      <div class="sm-field"><label class="sm-lbl">Ad Name *</label><input id="mktad-name" class="sm-inp" placeholder="e.g. TOF Broad Video V1"></div>
+      <div class="sm-field"><label class="sm-lbl">Primary Text</label><textarea id="mktad-primary" class="sm-inp" rows="3" placeholder="Main ad copy…"></textarea></div>
+      <div class="sm-field"><label class="sm-lbl">Headline</label><input id="mktad-headline" class="sm-inp" placeholder="Short headline"></div>
+      <div class="sm-field"><label class="sm-lbl">Description</label><input id="mktad-desc" class="sm-inp" placeholder="Additional description"></div>
+      <div class="sm-field"><label class="sm-lbl">CTA</label>
+        <select id="mktad-cta" class="sm-inp">
+          <option value="">— Select —</option>
+          <option>Shop Now</option><option>Learn More</option><option>Sign Up</option>
+          <option>Book Now</option><option>Get Offer</option><option>Contact Us</option>
+          <option>Download</option><option>Subscribe</option><option>Apply Now</option>
+          <option>Get Quote</option><option>Send Message</option><option>Watch More</option>
+        </select>
+      </div>
+      <div id="mktad-err" style="color:#EF4444;font-size:12px;min-height:16px"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn btnp" onclick="saveMktAd()">Save</button>
+        <button class="btn btns" onclick="closeMktAdModal()">Cancel</button>
+        <button id="mktad-del" class="btn" style="display:none;margin-left:auto;background:#FEE2E2;color:#EF4444;border:none" onclick="deleteMktAd(_mktAdEditTier,_mktAdEditId)">Delete</button>
       </div>
     </div>
   </div>

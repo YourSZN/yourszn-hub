@@ -365,9 +365,134 @@ function renderMktOverview() {
     + '</div></div>';
 }
 
+// ══ Marketing Strategy — Meta TOF/MOF/BOF funnel + banked ad copy ══
+var MKT_FUNNEL_TIERS = [
+  {key:'tof', label:'TOF', full:'Top of Funnel',    color:'#C4956A', desc:'Cold prospecting — broad, lookalike & interest-based targeting'},
+  {key:'mof', label:'MOF', full:'Middle of Funnel', color:'#7A8C6E', desc:'Retargeting those who engaged with TOF, website traffic & social engagement'},
+  {key:'bof', label:'BOF', full:'Bottom of Funnel', color:'#6366F1', desc:'Abandoned carts, email database, existing & churned customers'},
+];
+var mktBankedAds   = { tof: [], mof: [], bof: [] };
+var mktStrategyTier = 'tof';
+var _mktAdEditId = null, _mktAdEditTier = null;
+
+function mktSelectTier(tier) {
+  mktStrategyTier = tier;
+  renderMarketing();
+}
+
+function renderMktStrategy() {
+  var el = document.getElementById('mkt-content'); if (!el) return;
+
+  var shapes = [
+    {tier:'tof', pts:'20,10 380,10 320,85 80,85',    nameY:42,  countBelow:false},
+    {tier:'mof', pts:'80,95 320,95 260,165 140,165', nameY:124, countBelow:false},
+    {tier:'bof', pts:'140,175 260,175 200,245',      nameY:210, countBelow:true},
+  ];
+
+  var svg = '<svg viewBox="0 0 400 285" style="width:100%;max-width:420px;display:block;margin:0 auto 24px">'
+    + shapes.map(function(s) {
+        var t = MKT_FUNNEL_TIERS.find(function(x) { return x.key === s.tier; });
+        var count = (mktBankedAds[s.tier] || []).length;
+        var isActive = mktStrategyTier === s.tier;
+        var countLabel = count + ' ad' + (count === 1 ? '' : 's') + ' banked';
+        return '<polygon points="' + s.pts + '" fill="' + t.color + '" opacity="' + (isActive ? '1' : '0.55') + '" '
+          + 'stroke="' + (isActive ? '#1C1712' : 'transparent') + '" stroke-width="2" '
+          + 'style="cursor:pointer;transition:opacity .15s" onclick="mktSelectTier(\'' + s.tier + '\')"></polygon>'
+          + '<text x="200" y="' + s.nameY + '" text-anchor="middle" fill="white" font-size="' + (s.countBelow ? '17' : '20') + '" font-weight="700" font-family="Inter,sans-serif" style="pointer-events:none">' + t.label + '</text>'
+          + (s.countBelow
+              ? '<text x="200" y="272" text-anchor="middle" fill="#1C1712" font-size="11" font-weight="600" font-family="Inter,sans-serif" style="pointer-events:none">' + countLabel + '</text>'
+              : '<text x="200" y="' + (s.nameY + 18) + '" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="Inter,sans-serif" style="pointer-events:none">' + countLabel + '</text>');
+      }).join('')
+    + '</svg>';
+
+  var activeTier = MKT_FUNNEL_TIERS.find(function(t) { return t.key === mktStrategyTier; });
+  var ads = mktBankedAds[mktStrategyTier] || [];
+
+  var html = svg
+    + '<div class="card">'
+    + '<div class="ch" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+    +   '<div><div class="ct">' + activeTier.full + ' (' + activeTier.label + ')</div>'
+    +     '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + activeTier.desc + '</div></div>'
+    +   '<button class="btn btnp" onclick="openMktAdModal(\'' + mktStrategyTier + '\',null)">+ Bank Ad</button>'
+    + '</div>'
+    + '<div class="cb">';
+
+  if (!ads.length) {
+    html += '<div style="text-align:center;padding:40px;color:var(--muted)">No ads banked for this stage yet.</div>';
+  } else {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
+    ads.forEach(function(ad) {
+      html += '<div style="border:1px solid var(--sand);border-radius:10px;padding:14px;background:var(--warm)">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        +   '<div style="font-size:13px;font-weight:700;color:var(--charcoal)">' + esc(ad.name || 'Untitled ad') + '</div>'
+        +   '<div style="display:flex;gap:6px">'
+        +     '<button class="fin-row-edit" onclick="openMktAdModal(\'' + mktStrategyTier + '\',\'' + ad.id + '\')">Edit</button>'
+        +     '<button class="fin-row-edit" style="color:#EF4444" onclick="deleteMktAd(\'' + mktStrategyTier + '\',\'' + ad.id + '\')">Del</button>'
+        +   '</div>'
+        + '</div>'
+        + (ad.primaryText ? '<div style="font-size:11px;color:var(--muted);margin-bottom:4px"><strong style="color:var(--charcoal)">Primary Text:</strong> ' + esc(ad.primaryText) + '</div>' : '')
+        + (ad.headline ? '<div style="font-size:11px;color:var(--muted);margin-bottom:4px"><strong style="color:var(--charcoal)">Headline:</strong> ' + esc(ad.headline) + '</div>' : '')
+        + (ad.description ? '<div style="font-size:11px;color:var(--muted);margin-bottom:4px"><strong style="color:var(--charcoal)">Description:</strong> ' + esc(ad.description) + '</div>' : '')
+        + (ad.cta ? '<span style="display:inline-block;margin-top:4px;font-size:10px;font-weight:700;background:var(--sand);color:var(--charcoal);padding:3px 9px;border-radius:6px">' + esc(ad.cta) + '</span>' : '')
+        + '</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function openMktAdModal(tier, id) {
+  _mktAdEditTier = tier;
+  _mktAdEditId   = id;
+  var ad = id ? (mktBankedAds[tier] || []).find(function(a) { return a.id === id; }) : null;
+  document.getElementById('mktad-heading').textContent = ad ? 'Edit Ad' : 'Bank New Ad';
+  document.getElementById('mktad-name').value     = ad ? (ad.name || '') : '';
+  document.getElementById('mktad-primary').value  = ad ? (ad.primaryText || '') : '';
+  document.getElementById('mktad-headline').value = ad ? (ad.headline || '') : '';
+  document.getElementById('mktad-desc').value     = ad ? (ad.description || '') : '';
+  document.getElementById('mktad-cta').value      = ad ? (ad.cta || '') : '';
+  document.getElementById('mktad-err').textContent = '';
+  document.getElementById('mktad-del').style.display = id ? 'inline-block' : 'none';
+  document.getElementById('mkt-ad-modal').style.display = 'flex';
+}
+function closeMktAdModal() { document.getElementById('mkt-ad-modal').style.display = 'none'; }
+
+function saveMktAd() {
+  var name = document.getElementById('mktad-name').value.trim();
+  if (!name) { document.getElementById('mktad-err').textContent = 'Ad name is required.'; return; }
+  if (!mktBankedAds[_mktAdEditTier]) mktBankedAds[_mktAdEditTier] = [];
+  var obj = {
+    id: _mktAdEditId || ('ad' + Date.now()),
+    name: name,
+    primaryText: document.getElementById('mktad-primary').value.trim(),
+    headline:    document.getElementById('mktad-headline').value.trim(),
+    description: document.getElementById('mktad-desc').value.trim(),
+    cta:         document.getElementById('mktad-cta').value
+  };
+  if (_mktAdEditId) {
+    var idx = mktBankedAds[_mktAdEditTier].findIndex(function(a) { return a.id === _mktAdEditId; });
+    if (idx > -1) mktBankedAds[_mktAdEditTier][idx] = obj;
+  } else {
+    mktBankedAds[_mktAdEditTier].push(obj);
+  }
+  closeMktAdModal();
+  saveData();
+  renderMarketing();
+}
+
+function deleteMktAd(tier, id) {
+  if (!confirm('Delete this banked ad?')) return;
+  mktBankedAds[tier] = (mktBankedAds[tier] || []).filter(function(a) { return a.id !== id; });
+  closeMktAdModal();
+  saveData();
+  renderMarketing();
+}
+
 function renderMarketing() {
   if (mktTab === 'creators') { renderCreators(); return; }
   if (mktTab === 'overview') { renderMktOverview(); return; }
+  if (mktTab === 'strategy') { renderMktStrategy(); return; }
   var el = document.getElementById('mkt-content'); if (!el) return;
   var tabLabels = {website:'Website Tasks',blog:'Blog',creators:'Creators',linkedin:'LinkedIn',gbp:'Google Business Profile'};
   var data = mktData[mktTab] || {lists:[]};
@@ -4132,7 +4257,7 @@ function exportData() {
     bizIncome:bizIncome, bizExpenses:bizExpenses, personalExpenses:personalExpenses,
     sopList:sopList, brands:brands, watchlist:watchlist,
     socialSlots:socialSlots, metaSlots:metaSlots, metaSchedData:metaSchedData, celebData:celebData,
-    groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread, vtData:vtData, pwList:pwList, mktData:mktData, ideaList:ideaList, creatorsList:creatorsList,
+    groupMsgs:groupMsgs, dmMsgs:dmMsgs, auditD:auditD, commsUnread:commsUnread, vtData:vtData, pwList:pwList, mktData:mktData, mktBankedAds:mktBankedAds, ideaList:ideaList, creatorsList:creatorsList,
     clientAvatars:clientAvatars, customerFlow:customerFlow,
     cashflowLog:cashflowLog, moneyGoals:moneyGoals, incomeTaxSetAsideRate:incomeTaxSetAsideRate,
     appData:appData
@@ -4172,6 +4297,7 @@ function importData(file) {
       if (d.auditD)            auditD            = d.auditD;
       if (d.commsUnread)       commsUnread       = d.commsUnread;
       if (d.mktData)           mktData           = d.mktData;
+      if (d.mktBankedAds)      mktBankedAds      = d.mktBankedAds;
       if (d.creatorsList)      creatorsList      = d.creatorsList;
       if (d.clientAvatars)     clientAvatars     = d.clientAvatars;
       if (d.customerFlow)      customerFlow      = d.customerFlow;
@@ -4751,7 +4877,7 @@ function saveData() {
       groupMsgs:groupMsgs,
       auditD:auditD, vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff,
       hiddenTasks:hiddenTasks, taskWeekState:taskWeekState,
-      mktData:mktData, creatorsList:creatorsList,
+      mktData:mktData, mktBankedAds:mktBankedAds, creatorsList:creatorsList,
       pwList:pwList, lastHrsReset: window._hrsResetNeeded || '',
       crmClients:crmClients, crmIdSeq:crmIdSeq,
       voucherRegistry:voucherRegistry,
@@ -4870,6 +4996,7 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   if (d.ideaList)          ideaList          = d.ideaList;
   if (typeof d.metaWeekOff !== 'undefined') metaWeekOff = d.metaWeekOff;
   if (d.mktData)           mktData           = d.mktData;
+  if (d.mktBankedAds)      mktBankedAds      = d.mktBankedAds;
   if (d.creatorsList)      creatorsList      = d.creatorsList;
   // v37: only restore hiddenTasks/taskWeekState from cloud if we did NOT just run a weekly reset
   var _didWeeklyReset = (lastReset !== thisMondayStr && tasks && tasks.length);
