@@ -265,16 +265,27 @@ function renderOcaReport() {
 }
 
 // ── Storage / photo embedding ──
-// Both storage objects are behind an "authenticated" RLS policy (same convention as the
-// rest of the app's buckets), so this goes through the logged-in Supabase client rather
-// than a plain fetch() — a raw fetch would only carry the publishable key, not the
-// staff member's session, and would be rejected.
+// Templates get re-uploaded/overwritten in place fairly often while iterating on
+// them, and the storage endpoint serves them with `cache-control: public,
+// max-age=3600` — so the Supabase SDK's own `.download()` (a plain fetch under the
+// hood) can silently keep serving an hour-old cached copy of an already-replaced
+// file, even across page reloads, since that only clears the page's own cache, not
+// fetch() responses cached against this URL. Bypassing the SDK here with a manual
+// fetch — cache-busted and forced to skip the HTTP cache — guarantees we always get
+// whatever is actually in the bucket right now.
 async function ocaR2DownloadFromStorage(path) {
   var db = getSupa();
   if (!db) throw new Error('Not connected to Supabase — please refresh and sign in again.');
-  var res = await db.storage.from(OCA_REPORT_BUCKET).download(path);
-  if (res.error) throw new Error('Could not load "' + path + '": ' + res.error.message);
-  return res.data; // Blob
+  var sessionRes = await db.auth.getSession();
+  var token = sessionRes.data && sessionRes.data.session && sessionRes.data.session.access_token;
+  if (!token) throw new Error('Not signed in — please refresh and sign in again.');
+  var url = SUPA_URL + '/storage/v1/object/' + OCA_REPORT_BUCKET + '/' + path + '?_=' + Date.now();
+  var res = await fetch(url, {
+    cache: 'no-store',
+    headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY },
+  });
+  if (!res.ok) throw new Error('Could not load "' + path + '" (' + res.status + ')');
+  return await res.blob();
 }
 
 async function ocaR2FetchTemplateBytes() {
