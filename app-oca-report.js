@@ -664,8 +664,18 @@ function ocaR2InitPdfJsWorker() {
 // state onto a fresh copy of the real document.
 var _ocaR2CleanSnapshots = {}; // pageIndex -> ImageData
 
+// Photo uploads, name/date edits, and the Build Preview button can all trigger a rebuild,
+// and each rebuild takes 20-40s — so it's very easy for a second request to start before
+// the first one finishes (e.g. uploading two photos a few seconds apart). Without a guard,
+// both would race to clear and repopulate the same container, interleaving their page
+// elements and producing exactly the "pages are repeated/scrambled" symptom. This token
+// makes every in-flight run check, before each DOM mutation, whether a newer run has since
+// started — if so it just stops touching the DOM and lets the newer run own the result.
+var _ocaR2PreviewGeneration = 0;
+
 async function ocaR2RenderPreview() {
   var r = ocaReport;
+  var myGeneration = ++_ocaR2PreviewGeneration;
   var container = document.getElementById('oca-r2-preview');
   if (!container) return;
   if (!r.photoCutout) {
@@ -677,15 +687,18 @@ async function ocaR2RenderPreview() {
   var btn = document.getElementById('oca-r2-preview-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Building…'; }
   container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">Building preview — this can take 20–40 seconds the first time…</div>';
-  _ocaR2CleanSnapshots = {};
 
   try {
     await ocaR2PreloadLipstickImgs();
     var bytes = await ocaR2RebuildWithEdits();
+    if (myGeneration !== _ocaR2PreviewGeneration) return; // superseded while we were awaiting
     var pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+    if (myGeneration !== _ocaR2PreviewGeneration) return;
     container.innerHTML = '';
+    _ocaR2CleanSnapshots = {};
     for (var i = 1; i <= pdfJsDoc.numPages; i++) {
       var page = await pdfJsDoc.getPage(i);
+      if (myGeneration !== _ocaR2PreviewGeneration) return; // bail mid-loop if superseded
       var viewport = page.getViewport({ scale: OCA_R2_RENDER_SCALE });
       var canvas = document.createElement('canvas');
       canvas.width = viewport.width; canvas.height = viewport.height;
@@ -693,6 +706,7 @@ async function ocaR2RenderPreview() {
       canvas.dataset.pageIndex = String(i - 1);
       var ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      if (myGeneration !== _ocaR2PreviewGeneration) return;
       _ocaR2CleanSnapshots[i - 1] = ctx.getImageData(0, 0, canvas.width, canvas.height);
       canvas.addEventListener('mousedown', ocaR2OnPageMouseDown);
       canvas.addEventListener('click', ocaR2OnPageClickGated);
@@ -709,10 +723,11 @@ async function ocaR2RenderPreview() {
       ocaR2RedrawPageMarks(i - 1); // in case customTicks/erasePatches already existed for this page
     }
   } catch (err) {
+    if (myGeneration !== _ocaR2PreviewGeneration) return; // a newer run's error/success supersedes this one
     console.error(err);
     container.innerHTML = '<div style="padding:20px;color:#B04A3C;font-size:12px;max-width:500px">Could not build preview: ' + err.message + '</div>';
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Build Preview'; }
+    if (myGeneration === _ocaR2PreviewGeneration && btn) { btn.disabled = false; btn.textContent = 'Build Preview'; }
   }
 }
 
