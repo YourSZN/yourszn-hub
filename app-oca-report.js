@@ -28,12 +28,18 @@ var OCA_R2_CUTOUT_DIMS_LARGE = { w: 615, h: 820 };
 // placeholder box (1438x560) sitting on top of it.
 var OCA_R2_PHOTO_SLOTS = {
   coverPlaceholder: { w: 1438, h: 560  }, // client's cover photo — the placeholder box, not the background
-  face:             { w: 1024, h: 1366 },
-  contrastBlush:    { w: 820,  h: 1093 }, // shared by Contrast + Blush pages
+  face:             { w: 1024, h: 1366 }, // season-intro page
+  featuresBlush:    { w: 820,  h: 1093 }, // Features + Blush pages — colour
+  contrast:         { w: 820,  h: 1093 }, // Contrast page — same box size, but greyscale, so it's swapped separately
   hair:             { w: 150,  h: 72   },
   eyes:             { w: 134,  h: 82   },
   skin:             { w: 134,  h: 98   },
 };
+
+// 0-indexed page numbers for the two pages that share the 820x1093 box size but
+// need different treatment (colour vs greyscale) — see featuresBlush/contrast above.
+var OCA_R2_FEATURES_BLUSH_PAGES = [2, 18];
+var OCA_R2_CONTRAST_PAGE_INDEX = 4;
 
 // "Insert name here" placeholder text on the cover page (PDF points, top-left origin).
 var OCA_R2_NAME_BOX = { x0: 130.6, y0: 690.1, x1: 492.4, y1: 748.9, size: 46 };
@@ -45,11 +51,36 @@ var OCA_R2_TICK_SIZE = 22;
 var OCA_R2_RENDER_SCALE = 1.3;
 var OCA_R2_CLICK_HIT_RADIUS = 18; // pdf points — clicking within this of an existing mark toggles it off
 
+// The template's own hair/skin/eyes tags on the Contrast page are a rotated, baked-in
+// graphic (a shared raster the design tool reuses per-value, not real editable text),
+// so rather than fight that, each gets covered with a colour sampled from right next to
+// it, and a plain, legible replacement tag is drawn in its place with the real value.
+var OCA_R2_CONTRAST_TAGS = [
+  { key: 'hair',  label: 'HAIR',  x0: 319, y0: 495, coverColor: '#5d6168' },
+  { key: 'skin',  label: 'SKIN',  x0: 317, y0: 538, coverColor: '#c5c8cd' },
+  { key: 'eyes',  label: 'EYES',  x0: 334, y0: 583, coverColor: '#9fa1a8' },
+];
+var OCA_R2_CONTRAST_TAG_W = 74;
+var OCA_R2_CONTRAST_TAG_H = 34;
+
+// Lipstick page — the two swatches are separate real assets (not shared/baked like the
+// contrast tags), so they can be repositioned directly: cover the template's original
+// spot, then draw the same swatch at wherever the analyst drags it to.
+var OCA_R2_LIPSTICK_PAGE_INDEX = 19; // 0-indexed page 20
+var OCA_R2_LIPSTICK = {
+  left:  { path: 'lipstick_left.png',  w: 65.2, h: 58.5, defaultX: 195.8, defaultYTop: 753.65, coverColor: '#eca9a0' },
+  right: { path: 'lipstick_right.png', w: 59.2, h: 59.2, defaultX: 419.4, defaultYTop: 753.1,  coverColor: '#ebada1' },
+};
+var OCA_R2_LIPSTICK_DRAG_RADIUS = 26; // pdf points — how close a click needs to be to grab a swatch
+
 // ── Report state ──
 var ocaReport = {
   clientName: '',
   date: new Date().toISOString().split('T')[0],
   tickMode: 'place', // 'place' | 'erase'
+  contrastHair: null,
+  contrastSkin: null,
+  contrastEyes: null,
   // dataURLs (uploaded by analyst; fall back to the cutout if not provided)
   photoCutout: null,
   photoCover: null,
@@ -60,6 +91,10 @@ var ocaReport = {
   // analyst-placed marks, in PDF-point space (bottom-left origin), per page (0-indexed)
   customTicks: [],   // [{page, x, y}]
   erasePatches: [],  // [{page, x, y, color}]
+  // dragged lipstick swatch centres, PDF-point space (bottom-left origin) — null = use
+  // the template's original position until the analyst drags it somewhere else.
+  lipstickLeft: null,
+  lipstickRight: null,
 };
 
 // ── Background removal (client-side, MediaPipe selfie segmenter) ──
@@ -180,6 +215,7 @@ function ocaR2HandlePhoto(field, inputEl) {
         ocaR2InvalidateBase();
         renderOca();
         ocaR2RenderPreview();
+        if (field === 'photoFace' || field === 'photoCutout') ocaR2AutoContrast(cutDataUrl);
       });
     } else {
       ocaReport[field] = rawDataUrl;
@@ -189,6 +225,32 @@ function ocaR2HandlePhoto(field, inputEl) {
     }
   };
   reader.readAsDataURL(file);
+}
+
+// Suggests starting contrast values from the photo (face-landmark + pixel-brightness
+// analysis, reusing the same engine as the existing Auto-Contrast feature elsewhere in
+// the app) — the analyst can freely edit them afterward, this is just a starting point.
+function ocaR2AutoContrast(dataUrl) {
+  if (typeof mpAnalyzeContrast !== 'function') return;
+  ocaR2SetStatus('Estimating contrast…');
+  mpAnalyzeContrast(dataUrl, document.body).then(function(result) {
+    ocaR2SetStatus('');
+    if (!result) return;
+    ocaReport.contrastHair = result.hair.val;
+    ocaReport.contrastSkin = result.skin.val;
+    ocaReport.contrastEyes = result.eyes.val;
+    ocaR2InvalidateBase();
+    renderOca();
+    ocaR2RenderPreview();
+  });
+}
+
+function ocaR2OnContrastChange(key, value) {
+  var n = parseInt(value, 10);
+  ocaReport['contrast' + key[0].toUpperCase() + key.slice(1)] = isNaN(n) ? null : Math.max(1, Math.min(10, n));
+  ocaR2InvalidateBase();
+  clearTimeout(_ocaR2NameDebounce);
+  _ocaR2NameDebounce = setTimeout(function() { ocaR2RenderPreview(); }, 700);
 }
 
 var _ocaR2NameDebounce = null;
@@ -243,6 +305,19 @@ function renderOcaReport() {
     + '</div>';
   html += '</div>';
 
+  html += '<div style="padding:0 20px 16px">'
+    + '<div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Contrast Values (1–10) — suggested from the photo, edit freely</div>'
+    + '<div style="display:flex;gap:14px">'
+    + ['hair','skin','eyes'].map(function(k) {
+        var val = r['contrast' + k[0].toUpperCase() + k.slice(1)];
+        return '<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:capitalize">' + k + '</div>'
+          + '<input type="number" min="1" max="10" value="' + (val==null?'':val) + '" placeholder="—" '
+          + 'oninput="ocaR2OnContrastChange(\'' + k + '\',this.value)" '
+          + 'style="width:60px;padding:8px;border:1px solid var(--sand);border-radius:7px;font-size:13px;text-align:center;font-family:inherit;color:var(--deep)">'
+          + '</div>';
+      }).join('')
+    + '</div></div>';
+
   html += '<div style="padding:12px 20px;border-top:1px solid var(--sand);display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
     + '<button onclick="ocaR2RenderPreview()" id="oca-r2-preview-btn" style="background:var(--deep);color:white;border:none;padding:10px 20px;font-size:12.5px;font-weight:600;border-radius:9px;cursor:pointer">Build Preview</button>'
     + '<div style="width:1px;height:22px;background:var(--sand);margin:0 4px"></div>'
@@ -250,7 +325,7 @@ function renderOcaReport() {
     + '<button onclick="ocaR2SetTickMode(\'place\')" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:' + (r.tickMode==='place'?'var(--deep)':'white') + ';color:' + (r.tickMode==='place'?'white':'var(--deep)') + '">&#10003; Place Tick</button>'
     + '<button onclick="ocaR2SetTickMode(\'erase\')" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:' + (r.tickMode==='erase'?'#B04A3C':'white') + ';color:' + (r.tickMode==='erase'?'white':'var(--deep)') + '">&#10005; Erase</button>'
     + '</div>'
-    + '<div style="font-size:11px;color:var(--muted)">Click any page below to ' + (r.tickMode==='erase' ? 'paint over a default tick' : 'place a tick') + '. Click a mark again to remove it.</div>'
+    + '<div style="font-size:11px;color:var(--muted)">Click any page below to ' + (r.tickMode==='erase' ? 'paint over a default tick' : 'place a tick') + '. Click a mark again to remove it. On the Lipstick page, drag the swatches onto the lips.</div>'
     + '<div id="oca-r2-status" style="font-size:11px;color:var(--muted);margin-left:auto"></div>'
     + '<button onclick="ocaR2GeneratePdf()" id="oca-r2-btn" style="background:var(--deep);color:white;border:none;padding:10px 20px;font-size:12.5px;font-weight:600;border-radius:9px;cursor:pointer">&#11015; Download PDF</button>'
     + '</div>';
@@ -301,18 +376,49 @@ function ocaR2DataUrlToBytes(dataUrl) {
   return bytes;
 }
 
-async function ocaR2EmbedPhoto(pdfDoc, dataUrl) {
+// pdf-lib's drawImage always stretches the whole embedded image to exactly fill
+// the given width/height — it never crops. Every slot in the template is a fixed
+// aspect ratio, so without cropping first, any uploaded photo with a different
+// aspect ratio comes out squished/stretched (the cover placeholder, being very
+// wide, was the worst case). targetAspect (width/height) is optional — when given,
+// the source photo is center-cropped to that ratio before embedding, exactly like
+// CSS object-fit: cover, so it fills the box with correct proportions.
+async function ocaR2EmbedPhoto(pdfDoc, dataUrl, targetAspect, grayscale) {
   var img = await new Promise(function(resolve, reject) {
     var el = new Image();
     el.onload = function(){ resolve(el); };
     el.onerror = reject;
     el.src = dataUrl;
   });
-  // Normalise everything to PNG via canvas so embedPng always works (handles JPEG/HEIC-derived uploads too).
+  var sw = img.naturalWidth, sh = img.naturalHeight;
+  var sx = 0, sy = 0;
+  if (targetAspect) {
+    var srcAspect = sw / sh;
+    if (srcAspect > targetAspect) {
+      // source is relatively wider than the box — crop left/right, keep full height
+      var cropW = sh * targetAspect;
+      sx = (sw - cropW) / 2;
+      sw = cropW;
+    } else if (srcAspect < targetAspect) {
+      // source is relatively taller than the box — crop top/bottom, keep full width
+      var cropH = sw / targetAspect;
+      sy = (sh - cropH) / 2;
+      sh = cropH;
+    }
+  }
   var canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  canvas.width = Math.round(sw); canvas.height = Math.round(sh);
   var ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  if (grayscale) {
+    var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < data.data.length; i += 4) {
+      var g = data.data[i] * 0.299 + data.data[i+1] * 0.587 + data.data[i+2] * 0.114;
+      data.data[i] = data.data[i+1] = data.data[i+2] = g;
+    }
+    ctx.putImageData(data, 0, 0);
+  }
+  // Normalise everything to PNG via canvas so embedPng always works (handles JPEG/HEIC-derived uploads too).
   var pngDataUrl = canvas.toDataURL('image/png');
   return await pdfDoc.embedPng(ocaR2DataUrlToBytes(pngDataUrl));
 }
@@ -357,11 +463,20 @@ function ocaR2WalkAndSwap(pdfDoc, xobjDict, targetW, targetH, newImageRef, visit
 }
 
 function ocaR2SwapAllPages(pdfDoc, targetW, targetH, newImageRef) {
+  return ocaR2SwapOnPages(pdfDoc, null, targetW, targetH, newImageRef);
+}
+
+// pageIndices: null = every page; otherwise an array of 0-indexed page numbers to
+// restrict the swap to. Needed where the same image pixel size is reused across
+// pages that need genuinely different content (e.g. Contrast needs greyscale,
+// Features/Blush need colour, but all three share one box size in the template).
+function ocaR2SwapOnPages(pdfDoc, pageIndices, targetW, targetH, newImageRef) {
   var PDFName = PDFLib.PDFName;
   var pages = pdfDoc.getPages();
   var visited = new Set();
   var total = 0;
   for (var i = 0; i < pages.length; i++) {
+    if (pageIndices && pageIndices.indexOf(i) === -1) continue;
     var resources = pages[i].node.Resources();
     if (!resources) continue;
     var xobjDict = resources.lookup(PDFName.of('XObject'));
@@ -389,24 +504,48 @@ async function ocaR2BuildBaseBytes() {
   var rgb = PDFLib.rgb;
 
   ocaR2SetStatus('Embedding photos…');
-  var cutoutImg = await ocaR2EmbedPhoto(pdfDoc, r.photoCutout);
+  var cutoutAspect = OCA_R2_CUTOUT_DIMS.w / OCA_R2_CUTOUT_DIMS.h;
+  var cutoutImg = await ocaR2EmbedPhoto(pdfDoc, r.photoCutout, cutoutAspect);
   ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS.w, OCA_R2_CUTOUT_DIMS.h, cutoutImg.ref);
   ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS_LARGE.w, OCA_R2_CUTOUT_DIMS_LARGE.h, cutoutImg.ref);
 
   var slotMap = [
-    ['photoCover', OCA_R2_PHOTO_SLOTS.coverPlaceholder], // cover's small photo box, NOT the background photo
-    ['photoFace',  OCA_R2_PHOTO_SLOTS.face],
-    ['photoFace',  OCA_R2_PHOTO_SLOTS.contrastBlush],    // Contrast + Blush pages — real face, not the silhouette cutout
-    ['photoHair',  OCA_R2_PHOTO_SLOTS.hair],
-    ['photoEyes',  OCA_R2_PHOTO_SLOTS.eyes],
-    ['photoSkin',  OCA_R2_PHOTO_SLOTS.skin],
+    ['photoCover', OCA_R2_PHOTO_SLOTS.coverPlaceholder, null], // cover's small photo box, NOT the background photo
+    ['photoFace',  OCA_R2_PHOTO_SLOTS.face, null],
+    ['photoFace',  OCA_R2_PHOTO_SLOTS.featuresBlush, OCA_R2_FEATURES_BLUSH_PAGES], // Features + Blush — colour
+    ['photoHair',  OCA_R2_PHOTO_SLOTS.hair, null],
+    ['photoEyes',  OCA_R2_PHOTO_SLOTS.eyes, null],
+    ['photoSkin',  OCA_R2_PHOTO_SLOTS.skin, null],
   ];
   for (var i = 0; i < slotMap.length; i++) {
-    var field = slotMap[i][0], dims = slotMap[i][1];
+    var field = slotMap[i][0], dims = slotMap[i][1], pageIndices = slotMap[i][2];
     var dataUrl = r[field] || r.photoFace || r.photoCutout; // fall back chain if a specific shot wasn't provided
-    var img = await ocaR2EmbedPhoto(pdfDoc, dataUrl);
-    ocaR2SwapAllPages(pdfDoc, dims.w, dims.h, img.ref);
+    var img = await ocaR2EmbedPhoto(pdfDoc, dataUrl, dims.w / dims.h);
+    ocaR2SwapOnPages(pdfDoc, pageIndices, dims.w, dims.h, img.ref);
   }
+
+  // Contrast page — same box size as Features/Blush (820x1093) but needs its own
+  // greyscale-converted copy, and only on that one page.
+  var contrastSource = r.photoFace || r.photoCutout;
+  var contrastImg = await ocaR2EmbedPhoto(pdfDoc, contrastSource, OCA_R2_PHOTO_SLOTS.contrast.w / OCA_R2_PHOTO_SLOTS.contrast.h, true);
+  ocaR2SwapOnPages(pdfDoc, [OCA_R2_CONTRAST_PAGE_INDEX], OCA_R2_PHOTO_SLOTS.contrast.w, OCA_R2_PHOTO_SLOTS.contrast.h, contrastImg.ref);
+
+  // Contrast value tags — cover the template's baked-in rotated tag graphic and
+  // draw a plain, legible tag with the analyst's real value in the same spot.
+  var contrastPage = pdfDoc.getPages()[OCA_R2_CONTRAST_PAGE_INDEX];
+  var contrastH = contrastPage.getHeight();
+  var tagFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  OCA_R2_CONTRAST_TAGS.forEach(function(tag) {
+    var val = r['contrast' + tag.key[0].toUpperCase() + tag.key.slice(1)];
+    if (val == null) return; // nothing entered yet — leave the template's own tag showing
+    var cc = tag.coverColor;
+    var rr = parseInt(cc.slice(1,3),16)/255, gg = parseInt(cc.slice(3,5),16)/255, bb = parseInt(cc.slice(5,7),16)/255;
+    var y = contrastH - tag.y0 - OCA_R2_CONTRAST_TAG_H;
+    contrastPage.drawRectangle({ x: tag.x0 - 4, y: y - 4, width: OCA_R2_CONTRAST_TAG_W + 8, height: OCA_R2_CONTRAST_TAG_H + 8, color: rgb(rr, gg, bb) });
+    contrastPage.drawRectangle({ x: tag.x0, y: y, width: OCA_R2_CONTRAST_TAG_W, height: OCA_R2_CONTRAST_TAG_H, color: rgb(0.15, 0.13, 0.12) });
+    contrastPage.drawText(tag.label, { x: tag.x0 + 7, y: y + OCA_R2_CONTRAST_TAG_H - 13, size: 8, font: tagFont, color: rgb(1,1,1) });
+    contrastPage.drawText(String(val), { x: tag.x0 + 7, y: y + 6, size: 13, font: tagFont, color: rgb(1,1,1) });
+  });
 
   // Cover name overlay — patch over "Insert name here" with the real photo pixels from
   // that exact spot (extracted once from the template itself, no flat-colour guessing),
@@ -432,6 +571,22 @@ async function ocaR2BuildBaseBytes() {
     x: nb.x0 + ((nb.x1 - nb.x0) - nameWidth) / 2, y: coverH - nb.y1 + 6,
     size: nb.size, font: nameFont, color: rgb(0.94, 0.89, 0.76),
   });
+
+  // Lipstick swatches — only cover the template's original baked-in position here;
+  // the actual redraw-at-current-position happens in ocaR2RebuildWithEdits (the cheap
+  // replay layer) since that needs to stay fast while the analyst is dragging.
+  ocaR2SetStatus('Erasing default lipstick…');
+  var lipstickPage = pdfDoc.getPages()[OCA_R2_LIPSTICK_PAGE_INDEX];
+  var lipstickH = lipstickPage.getHeight();
+  for (var side in OCA_R2_LIPSTICK) {
+    var cfg = OCA_R2_LIPSTICK[side];
+    var cc = cfg.coverColor;
+    var lrr = parseInt(cc.slice(1,3),16)/255, lgg = parseInt(cc.slice(3,5),16)/255, lbb = parseInt(cc.slice(5,7),16)/255;
+    lipstickPage.drawRectangle({
+      x: cfg.defaultX - cfg.w/2 - 4, y: lipstickH - cfg.defaultYTop - cfg.h/2 - 4,
+      width: cfg.w + 8, height: cfg.h + 8, color: rgb(lrr, lgg, lbb),
+    });
+  }
 
   ocaR2SetStatus('');
   return await pdfDoc.save();
@@ -472,6 +627,22 @@ async function ocaR2RebuildWithEdits() {
     });
   }
 
+  // Lipstick — draw each swatch at its current (dragged or default) position. Lives here
+  // rather than in the base build so dragging never has to pay the full rebuild cost.
+  var lipstickPage = pages[OCA_R2_LIPSTICK_PAGE_INDEX];
+  if (lipstickPage) {
+    var lipstickH = lipstickPage.getHeight();
+    for (var side in OCA_R2_LIPSTICK) {
+      var cfg = OCA_R2_LIPSTICK[side];
+      var pos = r['lipstick' + side[0].toUpperCase() + side.slice(1)]; // bottom-origin {x,y} if dragged
+      var cx = pos ? pos.x : cfg.defaultX;
+      var cyBottom = pos ? pos.y : (lipstickH - cfg.defaultYTop);
+      var lipBlob = await ocaR2DownloadFromStorage(cfg.path);
+      var lipImg = await pdfDoc.embedPng(new Uint8Array(await lipBlob.arrayBuffer()));
+      lipstickPage.drawImage(lipImg, { x: cx - cfg.w/2, y: cyBottom - cfg.h/2, width: cfg.w, height: cfg.h });
+    }
+  }
+
   return await pdfDoc.save();
 }
 
@@ -502,12 +673,14 @@ async function ocaR2RenderPreview() {
     return;
   }
   ocaR2InitPdfJsWorker();
+  ocaR2EnsureDocListeners();
   var btn = document.getElementById('oca-r2-preview-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Building…'; }
   container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">Building preview — this can take 20–40 seconds the first time…</div>';
   _ocaR2CleanSnapshots = {};
 
   try {
+    await ocaR2PreloadLipstickImgs();
     var bytes = await ocaR2RebuildWithEdits();
     var pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
     container.innerHTML = '';
@@ -521,7 +694,8 @@ async function ocaR2RenderPreview() {
       var ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport: viewport }).promise;
       _ocaR2CleanSnapshots[i - 1] = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      canvas.addEventListener('click', ocaR2OnPageClick);
+      canvas.addEventListener('mousedown', ocaR2OnPageMouseDown);
+      canvas.addEventListener('click', ocaR2OnPageClickGated);
 
       var wrap = document.createElement('div');
       wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:520px';
@@ -560,9 +734,29 @@ function ocaR2DrawTickMark(ctx, cx, cy, radiusPx) {
   ctx.restore();
 }
 
-// Restores the clean (mark-free) snapshot for a page, then redraws every
-// currently-active tick/erase mark for it. Pure canvas work — no pdf-lib.
-function ocaR2RedrawPageMarks(pageIndex) {
+// Lipstick swatch images, preloaded once as real <img> elements so a drag can redraw
+// them on the canvas instantly (no pdf-lib/pdf.js round-trip while the mouse is moving).
+var _ocaR2LipstickImgs = {};
+function ocaR2PreloadLipstickImgs() {
+  return Promise.all(Object.keys(OCA_R2_LIPSTICK).map(function(side) {
+    if (_ocaR2LipstickImgs[side]) return Promise.resolve();
+    return ocaR2DownloadFromStorage(OCA_R2_LIPSTICK[side].path).then(function(blob) {
+      return new Promise(function(resolve) {
+        var url = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function() { _ocaR2LipstickImgs[side] = img; resolve(); };
+        img.src = url;
+      });
+    });
+  }));
+}
+
+var _ocaR2LipstickDrag = null; // { side } while actively dragging
+
+// Restores the clean (mark-free) snapshot for a page, then redraws every currently-active
+// tick/erase mark for it, plus the lipstick swatches if this is the Lipstick page. Pure
+// canvas work — no pdf-lib — so it's instant, safe to call on every drag frame.
+function ocaR2RedrawPageMarks(pageIndex, liveDragPos) {
   var canvas = document.querySelector('canvas[data-page-index="' + pageIndex + '"]');
   var clean = _ocaR2CleanSnapshots[pageIndex];
   if (!canvas || !clean) return;
@@ -579,18 +773,117 @@ function ocaR2RedrawPageMarks(pageIndex) {
     var cx = t.x * OCA_R2_RENDER_SCALE, cy = (canvas.height / OCA_R2_RENDER_SCALE - t.y) * OCA_R2_RENDER_SCALE;
     ocaR2DrawTickMark(ctx, cx, cy, (OCA_R2_TICK_SIZE / 2) * OCA_R2_RENDER_SCALE);
   });
+
+  if (pageIndex === OCA_R2_LIPSTICK_PAGE_INDEX) {
+    var canvasH = canvas.height / OCA_R2_RENDER_SCALE;
+    for (var side in OCA_R2_LIPSTICK) {
+      var cfg = OCA_R2_LIPSTICK[side];
+      var img = _ocaR2LipstickImgs[side];
+      if (!img) continue;
+      var live = liveDragPos && liveDragPos.side === side ? liveDragPos : null;
+      var pos = live || ocaReport['lipstick' + side[0].toUpperCase() + side.slice(1)];
+      var cx = (pos ? pos.x : cfg.defaultX) * OCA_R2_RENDER_SCALE;
+      var cyBottom = pos ? pos.y : (canvasH - cfg.defaultYTop);
+      var cy = (canvasH - cyBottom) * OCA_R2_RENDER_SCALE;
+      var w = cfg.w * OCA_R2_RENDER_SCALE, h = cfg.h * OCA_R2_RENDER_SCALE;
+      // The clean snapshot still shows the swatch at its ORIGINAL baked spot (that only
+      // gets truly erased in the slow base rebuild) — paint over it here too whenever the
+      // swatch has moved, so we never show two copies at once during/after a drag.
+      if (pos) {
+        var defCx = cfg.defaultX * OCA_R2_RENDER_SCALE, defCy = cfg.defaultYTop * OCA_R2_RENDER_SCALE;
+        ctx.fillStyle = cfg.coverColor;
+        ctx.fillRect(defCx - w/2 - 4, defCy - h/2 - 4, w + 8, h + 8);
+      }
+      ctx.drawImage(img, cx - w/2, cy - h/2, w, h);
+    }
+  }
+}
+
+function ocaR2PointInLipstick(pageIndex, pdfX, pdfY) {
+  if (pageIndex !== OCA_R2_LIPSTICK_PAGE_INDEX) return null;
+  for (var side in OCA_R2_LIPSTICK) {
+    var cfg = OCA_R2_LIPSTICK[side];
+    var pos = ocaReport['lipstick' + side[0].toUpperCase() + side.slice(1)];
+    var cx = pos ? pos.x : cfg.defaultX;
+    var cy = pos ? pos.y : null; // resolved against page height by the caller if null
+    if (cy == null) {
+      var canvas = document.querySelector('canvas[data-page-index="' + pageIndex + '"]');
+      cy = canvas ? (canvas.height / OCA_R2_RENDER_SCALE - cfg.defaultYTop) : 0;
+    }
+    if (Math.hypot(cx - pdfX, cy - pdfY) < OCA_R2_LIPSTICK_DRAG_RADIUS) return side;
+  }
+  return null;
+}
+
+function ocaR2CanvasToPdfPoint(canvas, clientX, clientY) {
+  var rect = canvas.getBoundingClientRect();
+  var scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+  var canvasX = (clientX - rect.left) * scaleX;
+  var canvasY = (clientY - rect.top) * scaleY;
+  return {
+    canvasX: canvasX, canvasY: canvasY,
+    pdfX: canvasX / OCA_R2_RENDER_SCALE,
+    pdfY: (canvas.height / OCA_R2_RENDER_SCALE) - (canvasY / OCA_R2_RENDER_SCALE),
+  };
+}
+
+// mousedown/mousemove/mouseup handle lipstick dragging; move/up are attached once at the
+// document level (not per-canvas) so a drag keeps tracking even if the cursor briefly
+// leaves the canvas bounds. Plain clicks (tick/erase placement) are handled separately by
+// each canvas's own 'click' listener, gated so a drag-release doesn't also register as one.
+var _ocaR2JustDraggedPage = null;
+
+function ocaR2OnPageMouseDown(e) {
+  var canvas = e.currentTarget;
+  var pageIndex = parseInt(canvas.dataset.pageIndex, 10);
+  var pt = ocaR2CanvasToPdfPoint(canvas, e.clientX, e.clientY);
+  var side = ocaR2PointInLipstick(pageIndex, pt.pdfX, pt.pdfY);
+  if (side) {
+    _ocaR2LipstickDrag = { side: side, pageIndex: pageIndex };
+    e.preventDefault();
+  }
+}
+
+function ocaR2OnDocumentMouseMove(e) {
+  if (!_ocaR2LipstickDrag) return;
+  var canvas = document.querySelector('canvas[data-page-index="' + _ocaR2LipstickDrag.pageIndex + '"]');
+  if (!canvas) return;
+  var pt = ocaR2CanvasToPdfPoint(canvas, e.clientX, e.clientY);
+  ocaR2RedrawPageMarks(_ocaR2LipstickDrag.pageIndex, { side: _ocaR2LipstickDrag.side, x: pt.pdfX, y: pt.pdfY });
+}
+
+function ocaR2OnDocumentMouseUp(e) {
+  if (!_ocaR2LipstickDrag) return;
+  var canvas = document.querySelector('canvas[data-page-index="' + _ocaR2LipstickDrag.pageIndex + '"]');
+  if (canvas) {
+    var pt = ocaR2CanvasToPdfPoint(canvas, e.clientX, e.clientY);
+    var side = _ocaR2LipstickDrag.side;
+    ocaReport['lipstick' + side[0].toUpperCase() + side.slice(1)] = { x: pt.pdfX, y: pt.pdfY };
+    ocaR2RedrawPageMarks(_ocaR2LipstickDrag.pageIndex);
+  }
+  _ocaR2JustDraggedPage = _ocaR2LipstickDrag.pageIndex;
+  _ocaR2LipstickDrag = null;
+}
+
+var _ocaR2DocListenersAttached = false;
+function ocaR2EnsureDocListeners() {
+  if (_ocaR2DocListenersAttached) return;
+  document.addEventListener('mousemove', ocaR2OnDocumentMouseMove);
+  document.addEventListener('mouseup', ocaR2OnDocumentMouseUp);
+  _ocaR2DocListenersAttached = true;
+}
+
+function ocaR2OnPageClickGated(e) {
+  var pageIndex = parseInt(e.currentTarget.dataset.pageIndex, 10);
+  if (_ocaR2JustDraggedPage === pageIndex) { _ocaR2JustDraggedPage = null; return; }
+  ocaR2OnPageClick(e);
 }
 
 function ocaR2OnPageClick(e) {
   var canvas = e.currentTarget;
-  var rect = canvas.getBoundingClientRect();
-  var scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
-  var canvasX = (e.clientX - rect.left) * scaleX;
-  var canvasY = (e.clientY - rect.top) * scaleY;
   var pageIndex = parseInt(canvas.dataset.pageIndex, 10);
-
-  var pdfX = canvasX / OCA_R2_RENDER_SCALE;
-  var pdfY = (canvas.height / OCA_R2_RENDER_SCALE) - (canvasY / OCA_R2_RENDER_SCALE); // flip to bottom-left origin
+  var pt = ocaR2CanvasToPdfPoint(canvas, e.clientX, e.clientY);
+  var pdfX = pt.pdfX, pdfY = pt.pdfY;
 
   var r = ocaReport;
   if (r.tickMode === 'erase') {
@@ -601,8 +894,8 @@ function ocaR2OnPageClick(e) {
       // Sample from the clean snapshot (not the live, possibly mark-covered canvas)
       // so an erase patch's fill colour is never accidentally picked up from another mark.
       var clean = _ocaR2CleanSnapshots[pageIndex];
-      var px = Math.max(0, Math.min(canvas.width - 1, Math.floor(canvasX)));
-      var py = Math.max(0, Math.min(canvas.height - 1, Math.floor(canvasY)));
+      var px = Math.max(0, Math.min(canvas.width - 1, Math.floor(pt.canvasX)));
+      var py = Math.max(0, Math.min(canvas.height - 1, Math.floor(pt.canvasY)));
       var pixel = clean ? [
         clean.data[(py * clean.width + px) * 4],
         clean.data[(py * clean.width + px) * 4 + 1],
