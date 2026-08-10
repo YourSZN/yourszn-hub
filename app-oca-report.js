@@ -12,6 +12,7 @@
 var OCA_REPORT_BUCKET = 'oca-report-assets';
 var OCA_REPORT_TEMPLATE_PATH = 'template_light_summer.pdf';
 var OCA_REPORT_TICK_PATH = 'tick_badge.png';
+var OCA_REPORT_NAME_PATCH_PATH = 'name_patch.png';
 
 // Every place the client's background-removed cutout appears is an image
 // object of one of these two pixel sizes (the template embeds the same photo
@@ -22,16 +23,23 @@ var OCA_R2_CUTOUT_DIMS_LARGE = { w: 615, h: 820 };
 
 // Other client-specific photo slots, identified by their exact pixel size
 // in the template (each used once or twice, never recoloured).
+// NOTE: the big cover background photo (2084x3124) is a fixed design asset —
+// never swapped. The client's cover photo instead goes into a smaller
+// placeholder box (1438x560) sitting on top of it.
 var OCA_R2_PHOTO_SLOTS = {
-  cover: { w: 2084, h: 3124 },
-  face:  { w: 1024, h: 1366 },
-  hair:  { w: 150,  h: 72   },
-  eyes:  { w: 134,  h: 82   },
-  skin:  { w: 134,  h: 98   },
+  coverPlaceholder: { w: 1438, h: 560  }, // client's cover photo — the placeholder box, not the background
+  face:             { w: 1024, h: 1366 },
+  contrastBlush:    { w: 820,  h: 1093 }, // shared by Contrast + Blush pages
+  hair:             { w: 150,  h: 72   },
+  eyes:             { w: 134,  h: 82   },
+  skin:             { w: 134,  h: 98   },
 };
 
 // "Insert name here" placeholder text on the cover page (PDF points, top-left origin).
 var OCA_R2_NAME_BOX = { x0: 130.6, y0: 690.1, x1: 492.4, y1: 748.9, size: 46 };
+// The patch image covers this same region (with padding) — extracted directly from the
+// template's own background photo so it blends seamlessly, no flat-colour guessing.
+var OCA_R2_NAME_PATCH_BOX = { x0: 100.6, y0: 670.1, x1: 522.4, y1: 768.9 };
 
 var OCA_R2_TICK_SIZE = 22;
 var OCA_R2_RENDER_SCALE = 1.3;
@@ -93,13 +101,36 @@ function ocaR2EnsureSegmenter() {
   return _ocaR2SegmenterPromise;
 }
 
+// If the upload already has real transparency (the analyst supplied a
+// properly background-removed cutout), running it through segmentation again
+// would just re-guess at edges we already know precisely — softening hair
+// strands and other fine detail for no reason. Detect that case by sampling
+// for alpha values that aren't fully 0 or 255 (a flat opaque photo has none).
+function ocaR2HasRealAlpha(img) {
+  var canvas = document.createElement('canvas');
+  var w = canvas.width = Math.min(img.naturalWidth, 200);
+  var h = canvas.height = Math.min(img.naturalHeight, 200);
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  var data = ctx.getImageData(0, 0, w, h).data;
+  var sawOpaque = false, sawTransparent = false;
+  for (var i = 3; i < data.length; i += 4) {
+    if (data[i] < 10) sawTransparent = true;
+    else if (data[i] > 245) sawOpaque = true;
+    else return true; // a soft/antialiased edge pixel — definitely real alpha
+  }
+  return sawTransparent && sawOpaque;
+}
+
 // Runs the uploaded photo through the segmenter and returns a transparent
 // PNG data URL (foreground opaque, background alpha-faded out). Falls back
-// to the original photo, unchanged, if the model fails to load.
+// to the original photo, unchanged, if the model fails to load — or if it
+// already has real transparency (see ocaR2HasRealAlpha above).
 function ocaR2RemoveBackground(dataUrl) {
   return new Promise(function(resolve) {
     var img = new Image();
     img.onload = function() {
+      if (ocaR2HasRealAlpha(img)) { resolve(dataUrl); return; }
       ocaR2EnsureSegmenter().then(function(segmenter) {
         var canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
@@ -204,7 +235,7 @@ function renderOcaReport() {
   html += '<div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Client Photos</div>'
     + '<div style="display:flex;gap:12px;flex-wrap:wrap">'
     + _ocaR2PhotoSlot('photoCutout', 'Cutout', 'Background auto-removed — used on every colour page')
-    + _ocaR2PhotoSlot('photoCover', 'Cover', 'Full body shot')
+    + _ocaR2PhotoSlot('photoCover', 'Cover', 'Fills the photo box on the cover — the background photo is fixed and never changes')
     + _ocaR2PhotoSlot('photoFace', 'Face', 'Background auto-removed')
     + _ocaR2PhotoSlot('photoHair', 'Hair', 'Close-up crop')
     + _ocaR2PhotoSlot('photoEyes', 'Eyes', 'Close-up crop')
@@ -352,20 +383,23 @@ async function ocaR2BuildBaseBytes() {
   ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS_LARGE.w, OCA_R2_CUTOUT_DIMS_LARGE.h, cutoutImg.ref);
 
   var slotMap = [
-    ['photoCover', OCA_R2_PHOTO_SLOTS.cover],
+    ['photoCover', OCA_R2_PHOTO_SLOTS.coverPlaceholder], // cover's small photo box, NOT the background photo
     ['photoFace',  OCA_R2_PHOTO_SLOTS.face],
+    ['photoFace',  OCA_R2_PHOTO_SLOTS.contrastBlush],    // Contrast + Blush pages — real face, not the silhouette cutout
     ['photoHair',  OCA_R2_PHOTO_SLOTS.hair],
     ['photoEyes',  OCA_R2_PHOTO_SLOTS.eyes],
     ['photoSkin',  OCA_R2_PHOTO_SLOTS.skin],
   ];
   for (var i = 0; i < slotMap.length; i++) {
     var field = slotMap[i][0], dims = slotMap[i][1];
-    var dataUrl = r[field] || r.photoCutout; // fall back to cutout if a specific shot wasn't provided
+    var dataUrl = r[field] || r.photoFace || r.photoCutout; // fall back chain if a specific shot wasn't provided
     var img = await ocaR2EmbedPhoto(pdfDoc, dataUrl);
     ocaR2SwapAllPages(pdfDoc, dims.w, dims.h, img.ref);
   }
 
-  // Cover name overlay — cover the placeholder, draw the real name.
+  // Cover name overlay — patch over "Insert name here" with the real photo pixels from
+  // that exact spot (extracted once from the template itself, no flat-colour guessing),
+  // then draw the name on top in the same style. No box, matches the original look.
   // Note: PyMuPDF bboxes used throughout this file are top-left origin (y grows downward);
   // pdf-lib pages are bottom-left origin (y grows upward), so every y must be flipped
   // via (pageHeight - pymupdf_y) before drawing.
@@ -373,9 +407,12 @@ async function ocaR2BuildBaseBytes() {
   var coverPage = pdfDoc.getPages()[0];
   var coverH = coverPage.getHeight();
   var nb = OCA_R2_NAME_BOX;
-  coverPage.drawRectangle({
-    x: nb.x0 - 6, y: coverH - nb.y1 - 10, width: (nb.x1 - nb.x0) + 12, height: (nb.y1 - nb.y0) + 20,
-    color: rgb(0.227, 0.137, 0.278), // matches the cover's dark purple panel
+  var patchBox = OCA_R2_NAME_PATCH_BOX;
+  var patchBlob = await ocaR2DownloadFromStorage(OCA_REPORT_NAME_PATCH_PATH);
+  var patchImg = await pdfDoc.embedPng(new Uint8Array(await patchBlob.arrayBuffer()));
+  coverPage.drawImage(patchImg, {
+    x: patchBox.x0, y: coverH - patchBox.y1,
+    width: patchBox.x1 - patchBox.x0, height: patchBox.y1 - patchBox.y0,
   });
   var nameFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRomanBoldItalic);
   var nameText = '“' + (r.clientName || 'Your Name') + '”';
