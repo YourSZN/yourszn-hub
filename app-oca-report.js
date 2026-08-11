@@ -58,15 +58,25 @@ var OCA_R2_TICK_SIZE = 22;
 var OCA_R2_RENDER_SCALE = 1.3;
 var OCA_R2_CLICK_HIT_RADIUS = 18; // pdf points — clicking within this of an existing mark toggles it off
 
-// Lipstick page — the template no longer has any baked-in colour marks on the model's
-// lips, so there's nothing to erase; the swatch is just drawn directly at wherever the
-// analyst drags it to (defaulting to roughly on the lips already).
+// Lipstick and Blush pages — the template has no baked-in colour marks on either (lips
+// or cheeks) anymore, so there's nothing to erase; each swatch is just drawn directly at
+// wherever the analyst drags it to (defaulting to roughly the right spot already).
+// OCA_R2_SWATCH_GROUPS maps a page index to its config + the ocaReport state-field prefix
+// used to store per-side dragged positions (e.g. 'lipstick' -> lipstickLeft/lipstickRight).
 var OCA_R2_LIPSTICK_PAGE_INDEX = 19; // 0-indexed page 20
 var OCA_R2_LIPSTICK = {
   left:  { path: 'lipstick_left.png',  w: 65.2, h: 58.5, defaultX: 195.8, defaultYTop: 753.65 },
   right: { path: 'lipstick_right.png', w: 59.2, h: 59.2, defaultX: 419.4, defaultYTop: 753.1 },
 };
-var OCA_R2_LIPSTICK_DRAG_RADIUS = 26; // pdf points — how close a click needs to be to grab a swatch
+var OCA_R2_BLUSH_PAGE_INDEX = 18; // 0-indexed page 19
+var OCA_R2_BLUSH = {
+  left:  { path: 'blush left.png',  w: 56, h: 61, defaultX: 275.9, defaultYTop: 621.1 },
+  right: { path: 'blush right.png', w: 56, h: 48, defaultX: 332.9, defaultYTop: 620.6 },
+};
+var OCA_R2_SWATCH_DRAG_RADIUS = 26; // pdf points — how close a click needs to be to grab a swatch
+var OCA_R2_SWATCH_GROUPS = {};
+OCA_R2_SWATCH_GROUPS[OCA_R2_LIPSTICK_PAGE_INDEX] = { statePrefix: 'lipstick', config: OCA_R2_LIPSTICK };
+OCA_R2_SWATCH_GROUPS[OCA_R2_BLUSH_PAGE_INDEX] = { statePrefix: 'blush', config: OCA_R2_BLUSH };
 
 // ── Report state ──
 var ocaReport = {
@@ -289,7 +299,7 @@ function renderOcaReport() {
     + '<button onclick="ocaR2SetTickMode(\'place\')" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:' + (r.tickMode==='place'?'var(--deep)':'white') + ';color:' + (r.tickMode==='place'?'white':'var(--deep)') + '">&#10003; Place Tick</button>'
     + '<button onclick="ocaR2SetTickMode(\'erase\')" style="padding:9px 16px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:' + (r.tickMode==='erase'?'#B04A3C':'white') + ';color:' + (r.tickMode==='erase'?'white':'var(--deep)') + '">&#10005; Erase</button>'
     + '</div>'
-    + '<div style="font-size:11px;color:var(--muted)">Click any page below to ' + (r.tickMode==='erase' ? 'paint over a default tick' : 'place a tick') + '. Click a mark again to remove it. On the Lipstick page, drag the swatches onto the lips.</div>'
+    + '<div style="font-size:11px;color:var(--muted)">Click any page below to ' + (r.tickMode==='erase' ? 'paint over a default tick' : 'place a tick') + '. Click a mark again to remove it. On the Lipstick and Blush pages, drag the swatches into place.</div>'
     + '<div id="oca-r2-status" style="font-size:11px;color:var(--muted);margin-left:auto"></div>'
     + '<button onclick="ocaR2GeneratePdf()" id="oca-r2-btn" style="background:var(--deep);color:white;border:none;padding:10px 20px;font-size:12.5px;font-weight:600;border-radius:9px;cursor:pointer">&#11015; Download PDF</button>'
     + '</div>';
@@ -318,7 +328,7 @@ async function ocaR2DownloadFromStorage(path) {
   var sessionRes = await db.auth.getSession();
   var token = sessionRes.data && sessionRes.data.session && sessionRes.data.session.access_token;
   if (!token) throw new Error('Not signed in — please refresh and sign in again.');
-  var url = SUPA_URL + '/storage/v1/object/' + OCA_REPORT_BUCKET + '/' + path + '?_=' + Date.now();
+  var url = SUPA_URL + '/storage/v1/object/' + OCA_REPORT_BUCKET + '/' + encodeURIComponent(path) + '?_=' + Date.now();
   var res = await fetch(url, {
     cache: 'no-store',
     headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPA_KEY },
@@ -593,9 +603,9 @@ async function ocaR2BuildBaseBytes() {
     size: nb.size, font: nameFont, color: rgb(0.94, 0.89, 0.76),
   });
 
-  // Lipstick swatches: the template has no baked-in colour marks anymore, so there's
-  // nothing to erase here — ocaR2RebuildWithEdits (the cheap replay layer) draws each
-  // swatch directly at its default or dragged position on every rebuild.
+  // Lipstick/Blush swatches: the template has no baked-in colour marks anymore, so
+  // there's nothing to erase here — ocaR2RebuildWithEdits (the cheap replay layer) draws
+  // each swatch directly at its default or dragged position on every rebuild.
 
   ocaR2SetStatus('');
   return await pdfDoc.save();
@@ -636,19 +646,22 @@ async function ocaR2RebuildWithEdits() {
     });
   }
 
-  // Lipstick — draw each swatch at its current (dragged or default) position. Lives here
-  // rather than in the base build so dragging never has to pay the full rebuild cost.
-  var lipstickPage = pages[OCA_R2_LIPSTICK_PAGE_INDEX];
-  if (lipstickPage) {
-    var lipstickH = lipstickPage.getHeight();
-    for (var side in OCA_R2_LIPSTICK) {
-      var cfg = OCA_R2_LIPSTICK[side];
-      var pos = r['lipstick' + side[0].toUpperCase() + side.slice(1)]; // bottom-origin {x,y} if dragged
+  // Lipstick + Blush — draw each swatch at its current (dragged or default) position.
+  // Lives here rather than in the base build so dragging never has to pay the full
+  // rebuild cost.
+  for (var groupPageIndex in OCA_R2_SWATCH_GROUPS) {
+    var group = OCA_R2_SWATCH_GROUPS[groupPageIndex];
+    var swatchPage = pages[groupPageIndex];
+    if (!swatchPage) continue;
+    var swatchPageH = swatchPage.getHeight();
+    for (var side in group.config) {
+      var cfg = group.config[side];
+      var pos = r[group.statePrefix + side[0].toUpperCase() + side.slice(1)]; // bottom-origin {x,y} if dragged
       var cx = pos ? pos.x : cfg.defaultX;
-      var cyBottom = pos ? pos.y : (lipstickH - cfg.defaultYTop);
-      var lipBlob = await ocaR2DownloadFromStorage(cfg.path);
-      var lipImg = await pdfDoc.embedPng(new Uint8Array(await lipBlob.arrayBuffer()));
-      lipstickPage.drawImage(lipImg, { x: cx - cfg.w/2, y: cyBottom - cfg.h/2, width: cfg.w, height: cfg.h });
+      var cyBottom = pos ? pos.y : (swatchPageH - cfg.defaultYTop);
+      var swatchBlob = await ocaR2DownloadFromStorage(cfg.path);
+      var swatchImg = await pdfDoc.embedPng(new Uint8Array(await swatchBlob.arrayBuffer()));
+      swatchPage.drawImage(swatchImg, { x: cx - cfg.w/2, y: cyBottom - cfg.h/2, width: cfg.w, height: cfg.h });
     }
   }
 
@@ -698,7 +711,7 @@ async function ocaR2RenderPreview() {
   container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">Building preview — this can take 20–40 seconds the first time…</div>';
 
   try {
-    await ocaR2PreloadLipstickImgs();
+    await ocaR2PreloadSwatchImgs();
     // The snapshot must come from the bare base bytes, not ocaR2RebuildWithEdits() —
     // ocaR2RedrawPageMarks always redraws every tick/erase patch/lipstick swatch fresh on
     // top of it anyway, so if the snapshot already had a swatch baked in (at whatever
@@ -763,28 +776,34 @@ function ocaR2DrawTickMark(ctx, cx, cy, radiusPx) {
   ctx.restore();
 }
 
-// Lipstick swatch images, preloaded once as real <img> elements so a drag can redraw
-// them on the canvas instantly (no pdf-lib/pdf.js round-trip while the mouse is moving).
-var _ocaR2LipstickImgs = {};
-function ocaR2PreloadLipstickImgs() {
-  return Promise.all(Object.keys(OCA_R2_LIPSTICK).map(function(side) {
-    if (_ocaR2LipstickImgs[side]) return Promise.resolve();
-    return ocaR2DownloadFromStorage(OCA_R2_LIPSTICK[side].path).then(function(blob) {
-      return new Promise(function(resolve) {
-        var url = URL.createObjectURL(blob);
-        var img = new Image();
-        img.onload = function() { _ocaR2LipstickImgs[side] = img; resolve(); };
-        img.src = url;
-      });
+// Lipstick/Blush swatch images, preloaded once as real <img> elements so a drag can
+// redraw them on the canvas instantly (no pdf-lib/pdf.js round-trip while the mouse moves).
+var _ocaR2SwatchImgs = {}; // statePrefix -> side -> <img>
+function ocaR2PreloadSwatchImgs() {
+  var loads = [];
+  for (var pageIndex in OCA_R2_SWATCH_GROUPS) {
+    var group = OCA_R2_SWATCH_GROUPS[pageIndex];
+    var bucket = _ocaR2SwatchImgs[group.statePrefix] || (_ocaR2SwatchImgs[group.statePrefix] = {});
+    Object.keys(group.config).forEach(function(side) {
+      if (bucket[side]) return;
+      loads.push(ocaR2DownloadFromStorage(group.config[side].path).then(function(blob) {
+        return new Promise(function(resolve) {
+          var url = URL.createObjectURL(blob);
+          var img = new Image();
+          img.onload = function() { bucket[side] = img; resolve(); };
+          img.src = url;
+        });
+      }));
     });
-  }));
+  }
+  return Promise.all(loads);
 }
 
-var _ocaR2LipstickDrag = null; // { side } while actively dragging
+var _ocaR2SwatchDrag = null; // { statePrefix, side, pageIndex } while actively dragging
 
 // Restores the clean (mark-free) snapshot for a page, then redraws every currently-active
-// tick/erase mark for it, plus the lipstick swatches if this is the Lipstick page. Pure
-// canvas work — no pdf-lib — so it's instant, safe to call on every drag frame.
+// tick/erase mark for it, plus any lipstick/blush swatches if this is one of those pages.
+// Pure canvas work — no pdf-lib — so it's instant, safe to call on every drag frame.
 function ocaR2RedrawPageMarks(pageIndex, liveDragPos) {
   var canvas = document.querySelector('canvas[data-page-index="' + pageIndex + '"]');
   var clean = _ocaR2CleanSnapshots[pageIndex];
@@ -803,38 +822,39 @@ function ocaR2RedrawPageMarks(pageIndex, liveDragPos) {
     ocaR2DrawTickMark(ctx, cx, cy, (OCA_R2_TICK_SIZE / 2) * OCA_R2_RENDER_SCALE);
   });
 
-  if (pageIndex === OCA_R2_LIPSTICK_PAGE_INDEX) {
+  var group = OCA_R2_SWATCH_GROUPS[pageIndex];
+  if (group) {
     var canvasH = canvas.height / OCA_R2_RENDER_SCALE;
-    for (var side in OCA_R2_LIPSTICK) {
-      var cfg = OCA_R2_LIPSTICK[side];
-      var img = _ocaR2LipstickImgs[side];
+    for (var side in group.config) {
+      var cfg = group.config[side];
+      var img = (_ocaR2SwatchImgs[group.statePrefix] || {})[side];
       if (!img) continue;
-      var live = liveDragPos && liveDragPos.side === side ? liveDragPos : null;
-      var pos = live || ocaReport['lipstick' + side[0].toUpperCase() + side.slice(1)];
+      var live = liveDragPos && liveDragPos.statePrefix === group.statePrefix && liveDragPos.side === side ? liveDragPos : null;
+      var pos = live || ocaReport[group.statePrefix + side[0].toUpperCase() + side.slice(1)];
       var cx = (pos ? pos.x : cfg.defaultX) * OCA_R2_RENDER_SCALE;
       var cyBottom = pos ? pos.y : (canvasH - cfg.defaultYTop);
       var cy = (canvasH - cyBottom) * OCA_R2_RENDER_SCALE;
       var w = cfg.w * OCA_R2_RENDER_SCALE, h = cfg.h * OCA_R2_RENDER_SCALE;
-      // The base rebuild always patches over the default-position swatch (with a live crop
-      // of the client's own photo) regardless of drag state, so the clean snapshot already
-      // has that spot covered — no separate erase-paint needed here, just draw the swatch.
+      // The base rebuild has no baked-in marks at all anymore, so the clean snapshot is
+      // already bare — no erase-paint needed here, just draw the swatch.
       ctx.drawImage(img, cx - w/2, cy - h/2, w, h);
     }
   }
 }
 
-function ocaR2PointInLipstick(pageIndex, pdfX, pdfY) {
-  if (pageIndex !== OCA_R2_LIPSTICK_PAGE_INDEX) return null;
-  for (var side in OCA_R2_LIPSTICK) {
-    var cfg = OCA_R2_LIPSTICK[side];
-    var pos = ocaReport['lipstick' + side[0].toUpperCase() + side.slice(1)];
+function ocaR2PointInSwatch(pageIndex, pdfX, pdfY) {
+  var group = OCA_R2_SWATCH_GROUPS[pageIndex];
+  if (!group) return null;
+  for (var side in group.config) {
+    var cfg = group.config[side];
+    var pos = ocaReport[group.statePrefix + side[0].toUpperCase() + side.slice(1)];
     var cx = pos ? pos.x : cfg.defaultX;
     var cy = pos ? pos.y : null; // resolved against page height by the caller if null
     if (cy == null) {
       var canvas = document.querySelector('canvas[data-page-index="' + pageIndex + '"]');
       cy = canvas ? (canvas.height / OCA_R2_RENDER_SCALE - cfg.defaultYTop) : 0;
     }
-    if (Math.hypot(cx - pdfX, cy - pdfY) < OCA_R2_LIPSTICK_DRAG_RADIUS) return side;
+    if (Math.hypot(cx - pdfX, cy - pdfY) < OCA_R2_SWATCH_DRAG_RADIUS) return { statePrefix: group.statePrefix, side: side };
   }
   return null;
 }
@@ -851,42 +871,43 @@ function ocaR2CanvasToPdfPoint(canvas, clientX, clientY) {
   };
 }
 
-// mousedown/mousemove/mouseup handle lipstick dragging; move/up are attached once at the
-// document level (not per-canvas) so a drag keeps tracking even if the cursor briefly
-// leaves the canvas bounds. Plain clicks (tick/erase placement) are handled separately by
-// each canvas's own 'click' listener, gated so a drag-release doesn't also register as one.
+// mousedown/mousemove/mouseup handle lipstick/blush dragging; move/up are attached once
+// at the document level (not per-canvas) so a drag keeps tracking even if the cursor
+// briefly leaves the canvas bounds. Plain clicks (tick/erase placement) are handled
+// separately by each canvas's own 'click' listener, gated so a drag-release doesn't also
+// register as one.
 var _ocaR2JustDraggedPage = null;
 
 function ocaR2OnPageMouseDown(e) {
   var canvas = e.currentTarget;
   var pageIndex = parseInt(canvas.dataset.pageIndex, 10);
   var pt = ocaR2CanvasToPdfPoint(canvas, e.clientX, e.clientY);
-  var side = ocaR2PointInLipstick(pageIndex, pt.pdfX, pt.pdfY);
-  if (side) {
-    _ocaR2LipstickDrag = { side: side, pageIndex: pageIndex };
+  var hit = ocaR2PointInSwatch(pageIndex, pt.pdfX, pt.pdfY);
+  if (hit) {
+    _ocaR2SwatchDrag = { statePrefix: hit.statePrefix, side: hit.side, pageIndex: pageIndex };
     e.preventDefault();
   }
 }
 
 function ocaR2OnDocumentMouseMove(e) {
-  if (!_ocaR2LipstickDrag) return;
-  var canvas = document.querySelector('canvas[data-page-index="' + _ocaR2LipstickDrag.pageIndex + '"]');
+  if (!_ocaR2SwatchDrag) return;
+  var canvas = document.querySelector('canvas[data-page-index="' + _ocaR2SwatchDrag.pageIndex + '"]');
   if (!canvas) return;
   var pt = ocaR2CanvasToPdfPoint(canvas, e.clientX, e.clientY);
-  ocaR2RedrawPageMarks(_ocaR2LipstickDrag.pageIndex, { side: _ocaR2LipstickDrag.side, x: pt.pdfX, y: pt.pdfY });
+  ocaR2RedrawPageMarks(_ocaR2SwatchDrag.pageIndex, { statePrefix: _ocaR2SwatchDrag.statePrefix, side: _ocaR2SwatchDrag.side, x: pt.pdfX, y: pt.pdfY });
 }
 
 function ocaR2OnDocumentMouseUp(e) {
-  if (!_ocaR2LipstickDrag) return;
-  var canvas = document.querySelector('canvas[data-page-index="' + _ocaR2LipstickDrag.pageIndex + '"]');
+  if (!_ocaR2SwatchDrag) return;
+  var canvas = document.querySelector('canvas[data-page-index="' + _ocaR2SwatchDrag.pageIndex + '"]');
   if (canvas) {
     var pt = ocaR2CanvasToPdfPoint(canvas, e.clientX, e.clientY);
-    var side = _ocaR2LipstickDrag.side;
-    ocaReport['lipstick' + side[0].toUpperCase() + side.slice(1)] = { x: pt.pdfX, y: pt.pdfY };
-    ocaR2RedrawPageMarks(_ocaR2LipstickDrag.pageIndex);
+    var side = _ocaR2SwatchDrag.side;
+    ocaReport[_ocaR2SwatchDrag.statePrefix + side[0].toUpperCase() + side.slice(1)] = { x: pt.pdfX, y: pt.pdfY };
+    ocaR2RedrawPageMarks(_ocaR2SwatchDrag.pageIndex);
   }
-  _ocaR2JustDraggedPage = _ocaR2LipstickDrag.pageIndex;
-  _ocaR2LipstickDrag = null;
+  _ocaR2JustDraggedPage = _ocaR2SwatchDrag.pageIndex;
+  _ocaR2SwatchDrag = null;
 }
 
 var _ocaR2DocListenersAttached = false;
