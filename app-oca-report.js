@@ -10,76 +10,110 @@
 // existing tick/erase spot again removes it.
 
 var OCA_REPORT_BUCKET = 'oca-report-assets';
-var OCA_REPORT_TEMPLATE_PATH = 'template_light_summer_compressed.pdf';
 var OCA_REPORT_TICK_PATH = 'tick_badge.png';
-var OCA_REPORT_NAME_PATCH_PATH = 'name_patch.png';
 
-// Every place the client's background-removed cutout appears is an image
-// object of one of these two pixel sizes (the template embeds the same photo
-// at two different resolutions depending on the cell's on-page size), reused
-// many times per page.
-var OCA_R2_CUTOUT_DIMS = { w: 410, h: 547 };
-var OCA_R2_CUTOUT_DIMS_LARGE = { w: 615, h: 820 };
-
-// Other client-specific photo slots, identified by their exact pixel size
-// in the template (each used once or twice, never recoloured).
-// NOTE: the big cover background photo (2084x3124) is a fixed design asset —
-// never swapped.
-var OCA_R2_PHOTO_SLOTS = {
-  face:             { w: 1024, h: 1366 }, // season-intro page
-  featuresBlush:    { w: 820,  h: 1093 }, // Features + Blush pages — colour
-  hair:             { w: 150,  h: 72   },
-  eyes:             { w: 134,  h: 82   },
-  skin:             { w: 134,  h: 98   },
+// Lipstick/blush swatch images are shared across every season (same 4 files) — only the
+// per-season page layout (template file, page indices, box positions) differs below.
+var OCA_R2_LIPSTICK = {
+  left:  { path: 'lipstick_left.png',  w: 65.2, h: 58.5 },
+  right: { path: 'lipstick_right.png', w: 59.2, h: 59.2 },
 };
-
-// 0-indexed page numbers for the two pages that share the 820x1093 box size.
-var OCA_R2_FEATURES_BLUSH_PAGES = [2, 18];
-
-// Cover photo and Contrast photo are no longer swapped into an existing template
-// image (the template just leaves that area blank now) — instead the uploaded
-// photo is drawn straight onto the page, contain-fit and centred with no padding
-// colour, inside these fixed boxes (PDF points, top-left origin, clipped to the
-// page). Positions come from where the old placeholder/photo used to sit.
-var OCA_R2_COVER_BOX = { x0: 0, y0: 267.11, x1: 595.5, y1: 617.82 };
-var OCA_R2_CONTRAST_PAGE_INDEX = 4;
-// The body copy above ends at y=472 and nothing sits below this box on the page — these
-// bounds (measured fresh against the blank template) sit safely clear of the text with
-// room to spare, centred horizontally.
-var OCA_R2_CONTRAST_BOX = { x0: 128, y0: 495, x1: 468, y1: 812 };
-
-// "Insert name here" placeholder text on the cover page (PDF points, top-left origin).
-var OCA_R2_NAME_BOX = { x0: 130.6, y0: 690.1, x1: 492.4, y1: 748.9, size: 46 };
-// The patch image covers this same region (with padding) — extracted directly from the
-// template's own background photo so it blends seamlessly, no flat-colour guessing.
-var OCA_R2_NAME_PATCH_BOX = { x0: 100.6, y0: 670.1, x1: 522.4, y1: 768.9 };
+var OCA_R2_BLUSH = {
+  left:  { path: 'blush left.png',  w: 56, h: 61 },
+  right: { path: 'blush right.png', w: 56, h: 48 },
+};
 
 var OCA_R2_TICK_SIZE = 22;
 var OCA_R2_RENDER_SCALE = 1.3;
 var OCA_R2_CLICK_HIT_RADIUS = 18; // pdf points — clicking within this of an existing mark toggles it off
-
-// Lipstick and Blush pages — the template has no baked-in colour marks on either (lips
-// or cheeks) anymore, so there's nothing to erase; each swatch is just drawn directly at
-// wherever the analyst drags it to (defaulting to roughly the right spot already).
-// OCA_R2_SWATCH_GROUPS maps a page index to its config + the ocaReport state-field prefix
-// used to store per-side dragged positions (e.g. 'lipstick' -> lipstickLeft/lipstickRight).
-var OCA_R2_LIPSTICK_PAGE_INDEX = 19; // 0-indexed page 20
-var OCA_R2_LIPSTICK = {
-  left:  { path: 'lipstick_left.png',  w: 65.2, h: 58.5, defaultX: 195.8, defaultYTop: 753.65 },
-  right: { path: 'lipstick_right.png', w: 59.2, h: 59.2, defaultX: 419.4, defaultYTop: 753.1 },
-};
-var OCA_R2_BLUSH_PAGE_INDEX = 18; // 0-indexed page 19
-var OCA_R2_BLUSH = {
-  left:  { path: 'blush left.png',  w: 56, h: 61, defaultX: 275.9, defaultYTop: 621.1 },
-  right: { path: 'blush right.png', w: 56, h: 48, defaultX: 332.9, defaultYTop: 620.6 },
-};
 var OCA_R2_SWATCH_DRAG_RADIUS = 26; // pdf points — how close a click needs to be to grab a swatch
-var OCA_R2_SWATCH_GROUPS = {};
-OCA_R2_SWATCH_GROUPS[OCA_R2_LIPSTICK_PAGE_INDEX] = { statePrefix: 'lipstick', config: OCA_R2_LIPSTICK };
-OCA_R2_SWATCH_GROUPS[OCA_R2_BLUSH_PAGE_INDEX] = { statePrefix: 'blush', config: OCA_R2_BLUSH };
+
+// ── Per-season template layout ──
+// Every season is built from the same Canva design language, but each has its own PDF
+// (different page count/order, since the amount of season-specific content varies), so
+// every page index and box position below has to be measured fresh per season. Only
+// Light Summer is measured/confirmed so far — the rest get filled in as their PDFs arrive
+// and get inspected the same way (page-by-page image/text extraction, then a real
+// pdf-lib render checked against the template before being called done).
+var OCA_R2_SEASONS = {
+  light_summer: {
+    label: 'Light Summer',
+    templatePath: 'template_light_summer_compressed.pdf',
+    namePatchPath: 'name_patch.png',
+    // Every place the client's background-removed cutout appears is an image object of
+    // one of these two pixel sizes (the template embeds the same photo at two different
+    // resolutions depending on the cell's on-page size), reused many times per page.
+    cutoutDims: { w: 410, h: 547 },
+    cutoutDimsLarge: { w: 615, h: 820 },
+    // Other client-specific photo slots, identified by their exact pixel size in the
+    // template (each used once or twice, never recoloured). NOTE: the big cover
+    // background photo (2084x3124) is a fixed design asset — never swapped.
+    photoSlots: {
+      face:          { w: 1024, h: 1366 }, // season-intro page
+      featuresBlush: { w: 820,  h: 1093 }, // Features + Blush pages — colour
+      hair:          { w: 150,  h: 72   },
+      eyes:          { w: 134,  h: 82   },
+      skin:          { w: 134,  h: 98   },
+    },
+    // 0-indexed page numbers for the two pages that share the 820x1093 box size.
+    featuresBlushPages: [2, 18],
+    // Cover photo and Contrast photo aren't swapped into an existing template image (the
+    // template leaves that area blank) — instead the uploaded photo is drawn straight
+    // onto the page, contain-fit and centred with no padding colour, inside these fixed
+    // boxes (PDF points, top-left origin, clipped to the page).
+    coverBox: { x0: 0, y0: 267.11, x1: 595.5, y1: 617.82 },
+    contrastPageIndex: 4,
+    contrastBox: { x0: 128, y0: 495, x1: 468, y1: 812 },
+    // "Insert name here" placeholder text on the cover page (PDF points, top-left origin).
+    nameBox: { x0: 130.6, y0: 690.1, x1: 492.4, y1: 748.9, size: 46 },
+    // The patch image covers this same region (with padding) — extracted directly from
+    // the template's own background photo so it blends seamlessly, no flat-colour
+    // guessing. Season-specific since every season's cover photo is different.
+    namePatchBox: { x0: 100.6, y0: 670.1, x1: 522.4, y1: 768.9 },
+    // Lipstick/Blush pages — no baked-in colour marks on either (lips or cheeks), so
+    // there's nothing to erase; each swatch is just drawn directly at wherever the
+    // analyst drags it to (defaulting to roughly the right spot already).
+    lipstickPageIndex: 19,
+    lipstick: {
+      left:  { defaultX: 195.8, defaultYTop: 753.65 },
+      right: { defaultX: 419.4, defaultYTop: 753.1 },
+    },
+    blushPageIndex: 18,
+    blush: {
+      left:  { defaultX: 275.9, defaultYTop: 621.1 },
+      right: { defaultX: 332.9, defaultYTop: 620.6 },
+    },
+  },
+};
+var OCA_R2_DEFAULT_SEASON = 'light_summer';
+
+function ocaR2ActiveSeason() {
+  return OCA_R2_SEASONS[ocaReport.season] || OCA_R2_SEASONS[OCA_R2_DEFAULT_SEASON];
+}
+
+// Builds OCA_R2_SWATCH_GROUPS-shaped config for the active season: page index -> config +
+// the ocaReport state-field prefix used to store per-side dragged positions (e.g.
+// 'lipstick' -> lipstickLeft/lipstickRight). Merges the shared path/w/h from
+// OCA_R2_LIPSTICK/OCA_R2_BLUSH with the active season's default positions.
+function ocaR2GetSwatchGroups() {
+  var season = ocaR2ActiveSeason();
+  function merged(shared, seasonCfg) {
+    var out = {};
+    for (var side in shared) {
+      out[side] = { path: shared[side].path, w: shared[side].w, h: shared[side].h,
+        defaultX: seasonCfg[side].defaultX, defaultYTop: seasonCfg[side].defaultYTop };
+    }
+    return out;
+  }
+  var groups = {};
+  groups[season.lipstickPageIndex] = { statePrefix: 'lipstick', config: merged(OCA_R2_LIPSTICK, season.lipstick) };
+  groups[season.blushPageIndex] = { statePrefix: 'blush', config: merged(OCA_R2_BLUSH, season.blush) };
+  return groups;
+}
 
 // ── Report state ──
 var ocaReport = {
+  season: OCA_R2_DEFAULT_SEASON,
   clientName: '',
   date: new Date().toISOString().split('T')[0],
   tickMode: 'place', // 'place' | 'erase'
@@ -244,6 +278,22 @@ function ocaR2SetTickMode(mode) {
   renderOca();
 }
 
+// Every page index/position in this file is specific to one season's PDF, so switching
+// seasons clears any placed ticks/erase patches/dragged swatches — they'd point at the
+// wrong page (or a page that doesn't exist) in a differently-laid-out template.
+function ocaR2OnSeasonChange(season) {
+  ocaReport.season = season;
+  ocaReport.customTicks = [];
+  ocaReport.erasePatches = [];
+  ocaReport.lipstickLeft = null;
+  ocaReport.lipstickRight = null;
+  ocaReport.blushLeft = null;
+  ocaReport.blushRight = null;
+  ocaR2InvalidateBase();
+  renderOca();
+  ocaR2RenderPreview();
+}
+
 // ── UI ──
 function _ocaR2PhotoSlot(field, label, hint) {
   var val = ocaReport[field];
@@ -261,6 +311,16 @@ function renderOcaReport() {
   var r = ocaReport;
 
   var html = '<div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">';
+
+  // Season picker — swaps the whole template + page layout. Sits above name/date since
+  // it determines everything else on this card.
+  html += '<div style="padding:14px 20px 0;background:var(--deep)">'
+    + '<div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:5px">Season</div>'
+    + '<select onchange="ocaR2OnSeasonChange(this.value)" style="width:100%;max-width:260px;padding:8px 10px;border:1px solid rgba(255,255,255,.2);border-radius:7px;font-size:13px;font-family:inherit;background:rgba(255,255,255,.1);color:white;outline:none">'
+    + Object.keys(OCA_R2_SEASONS).map(function(key) {
+        return '<option value="' + key + '"' + (r.season === key ? ' selected' : '') + '>' + OCA_R2_SEASONS[key].label + '</option>';
+      }).join('')
+    + '</select></div>';
 
   // Header — name/date, kept as quick text fields since typing beats click+prompt for plain data entry.
   html += '<div style="padding:14px 20px;background:var(--deep);display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">'
@@ -338,7 +398,7 @@ async function ocaR2DownloadFromStorage(path) {
 }
 
 async function ocaR2FetchTemplateBytes() {
-  var blob = await ocaR2DownloadFromStorage(OCA_REPORT_TEMPLATE_PATH);
+  var blob = await ocaR2DownloadFromStorage(ocaR2ActiveSeason().templatePath);
   return await blob.arrayBuffer();
 }
 
@@ -508,6 +568,7 @@ function ocaR2InvalidateBase() {
 
 async function ocaR2BuildBaseBytes() {
   var r = ocaReport;
+  var season = ocaR2ActiveSeason();
   var templateBytes = await ocaR2FetchTemplateBytes();
   var pdfDoc = await PDFLib.PDFDocument.load(templateBytes, { updateMetadata: false });
   var rgb = PDFLib.rgb;
@@ -516,17 +577,17 @@ async function ocaR2BuildBaseBytes() {
   // with white padding) rather than cropping to fill the box — cropping a face is worse
   // than a bit of empty space on the sides.
   ocaR2SetStatus('Embedding photos…');
-  var cutoutAspect = OCA_R2_CUTOUT_DIMS.w / OCA_R2_CUTOUT_DIMS.h; // 615x820 is the same ratio, shares this canvas
+  var cutoutAspect = season.cutoutDims.w / season.cutoutDims.h; // large cutout is the same ratio, shares this canvas
   var cutoutCanvas = await ocaR2BuildFitCanvas(r.photoCutout, cutoutAspect); // cover-fit, stays transparent — the per-cell colour has to show through around it
   var cutoutImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(cutoutCanvas.toDataURL('image/png')));
-  ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS.w, OCA_R2_CUTOUT_DIMS.h, cutoutImg.ref);
-  ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS_LARGE.w, OCA_R2_CUTOUT_DIMS_LARGE.h, cutoutImg.ref);
+  ocaR2SwapAllPages(pdfDoc, season.cutoutDims.w, season.cutoutDims.h, cutoutImg.ref);
+  ocaR2SwapAllPages(pdfDoc, season.cutoutDimsLarge.w, season.cutoutDimsLarge.h, cutoutImg.ref);
 
   // Cover and Contrast photos: the template just leaves this area blank now (no
   // placeholder image to swap into), so draw the uploaded photo straight onto the page —
   // contain-fit, no padding colour, so the page's own background/cream shows through any
   // gaps instead of a box.
-  var coverBox = OCA_R2_COVER_BOX;
+  var coverBox = season.coverBox;
   var coverDataUrl = r.photoCover || r.photoFace || r.photoCutout;
   var coverImg = await ocaR2EmbedPhoto(pdfDoc, coverDataUrl, (coverBox.x1 - coverBox.x0) / (coverBox.y1 - coverBox.y0), 'contain');
   var coverPage0 = pdfDoc.getPages()[0];
@@ -536,10 +597,10 @@ async function ocaR2BuildBaseBytes() {
     width: coverBox.x1 - coverBox.x0, height: coverBox.y1 - coverBox.y0,
   });
 
-  var contrastBox = OCA_R2_CONTRAST_BOX;
+  var contrastBox = season.contrastBox;
   var contrastSource = r.photoContrast || r.photoFace || r.photoCutout;
   var contrastImg = await ocaR2EmbedPhoto(pdfDoc, contrastSource, (contrastBox.x1 - contrastBox.x0) / (contrastBox.y1 - contrastBox.y0), 'contain');
-  var contrastPage = pdfDoc.getPages()[OCA_R2_CONTRAST_PAGE_INDEX];
+  var contrastPage = pdfDoc.getPages()[season.contrastPageIndex];
   var contrastPageH = contrastPage.getHeight();
   contrastPage.drawImage(contrastImg, {
     x: contrastBox.x0, y: contrastPageH - contrastBox.y1,
@@ -560,16 +621,16 @@ async function ocaR2BuildBaseBytes() {
   // Season-intro page (the "face" slot) sits on a colourful rainbow-striped background,
   // same as the swatch-grid pages — it needs the transparent cover-fit cutout treatment,
   // not white padding, or the rainbow gets replaced by a hard-edged white box.
-  var faceDims = OCA_R2_PHOTO_SLOTS.face;
+  var faceDims = season.photoSlots.face;
   var faceDataUrl = r.photoFace || r.photoCutout;
   var faceImg = await ocaR2EmbedPhoto(pdfDoc, faceDataUrl, faceDims.w / faceDims.h);
   ocaR2SwapOnPages(pdfDoc, null, faceDims.w, faceDims.h, faceImg.ref);
 
   var slotMap = [
-    ['photoFace',  OCA_R2_PHOTO_SLOTS.featuresBlush, OCA_R2_FEATURES_BLUSH_PAGES], // Features + Blush — colour, plain background
-    ['photoHair',  OCA_R2_PHOTO_SLOTS.hair, null],
-    ['photoEyes',  OCA_R2_PHOTO_SLOTS.eyes, null],
-    ['photoSkin',  OCA_R2_PHOTO_SLOTS.skin, null],
+    ['photoFace',  season.photoSlots.featuresBlush, season.featuresBlushPages], // Features + Blush — colour, plain background
+    ['photoHair',  season.photoSlots.hair, null],
+    ['photoEyes',  season.photoSlots.eyes, null],
+    ['photoSkin',  season.photoSlots.skin, null],
   ];
   for (var i = 0; i < slotMap.length; i++) {
     var field = slotMap[i][0], dims = slotMap[i][1], pageIndices = slotMap[i][2];
@@ -587,9 +648,9 @@ async function ocaR2BuildBaseBytes() {
   ocaR2SetStatus('Adding name…');
   var coverPage = pdfDoc.getPages()[0];
   var coverH = coverPage.getHeight();
-  var nb = OCA_R2_NAME_BOX;
-  var patchBox = OCA_R2_NAME_PATCH_BOX;
-  var patchBlob = await ocaR2DownloadFromStorage(OCA_REPORT_NAME_PATCH_PATH);
+  var nb = season.nameBox;
+  var patchBox = season.namePatchBox;
+  var patchBlob = await ocaR2DownloadFromStorage(season.namePatchPath);
   var patchImg = await pdfDoc.embedPng(new Uint8Array(await patchBlob.arrayBuffer()));
   coverPage.drawImage(patchImg, {
     x: patchBox.x0, y: coverH - patchBox.y1,
@@ -649,8 +710,9 @@ async function ocaR2RebuildWithEdits() {
   // Lipstick + Blush — draw each swatch at its current (dragged or default) position.
   // Lives here rather than in the base build so dragging never has to pay the full
   // rebuild cost.
-  for (var groupPageIndex in OCA_R2_SWATCH_GROUPS) {
-    var group = OCA_R2_SWATCH_GROUPS[groupPageIndex];
+  var swatchGroups = ocaR2GetSwatchGroups();
+  for (var groupPageIndex in swatchGroups) {
+    var group = swatchGroups[groupPageIndex];
     var swatchPage = pages[groupPageIndex];
     if (!swatchPage) continue;
     var swatchPageH = swatchPage.getHeight();
@@ -802,8 +864,9 @@ function ocaR2PreloadSwatchGroup(group) {
 }
 function ocaR2PreloadSwatchImgs() {
   var loads = [];
-  for (var pageIndex in OCA_R2_SWATCH_GROUPS) {
-    loads.push(ocaR2PreloadSwatchGroup(OCA_R2_SWATCH_GROUPS[pageIndex]));
+  var swatchGroups = ocaR2GetSwatchGroups();
+  for (var pageIndex in swatchGroups) {
+    loads.push(ocaR2PreloadSwatchGroup(swatchGroups[pageIndex]));
   }
   return Promise.all(loads);
 }
@@ -831,7 +894,7 @@ function ocaR2RedrawPageMarks(pageIndex, liveDragPos) {
     ocaR2DrawTickMark(ctx, cx, cy, (OCA_R2_TICK_SIZE / 2) * OCA_R2_RENDER_SCALE);
   });
 
-  var group = OCA_R2_SWATCH_GROUPS[pageIndex];
+  var group = ocaR2GetSwatchGroups()[pageIndex];
   if (group) {
     var canvasH = canvas.height / OCA_R2_RENDER_SCALE;
     for (var side in group.config) {
@@ -852,7 +915,7 @@ function ocaR2RedrawPageMarks(pageIndex, liveDragPos) {
 }
 
 function ocaR2PointInSwatch(pageIndex, pdfX, pdfY) {
-  var group = OCA_R2_SWATCH_GROUPS[pageIndex];
+  var group = ocaR2GetSwatchGroups()[pageIndex];
   if (!group) return null;
   for (var side in group.config) {
     var cfg = group.config[side];
