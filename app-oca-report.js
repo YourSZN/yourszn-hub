@@ -10,7 +10,7 @@
 // existing tick/erase spot again removes it.
 
 var OCA_REPORT_BUCKET = 'oca-report-assets';
-var OCA_REPORT_TEMPLATE_PATH = 'template_light_summer_compressed.pdf';
+var OCA_REPORT_TEMPLATE_PATH = 'template_light_summer_compressed_v2.pdf';
 var OCA_REPORT_TICK_PATH = 'tick_badge.png';
 var OCA_REPORT_NAME_PATCH_PATH = 'name_patch.png';
 
