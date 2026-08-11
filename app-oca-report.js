@@ -29,61 +29,72 @@ var OCA_R2_CLICK_HIT_RADIUS = 18; // pdf points — clicking within this of an e
 var OCA_R2_SWATCH_DRAG_RADIUS = 26; // pdf points — how close a click needs to be to grab a swatch
 
 // ── Per-season template layout ──
-// Every season is built from the same Canva design language, but each has its own PDF
-// (different page count/order, since the amount of season-specific content varies), so
-// every page index and box position below has to be measured fresh per season. Only
-// Light Summer is measured/confirmed so far — the rest get filled in as their PDFs arrive
-// and get inspected the same way (page-by-page image/text extraction, then a real
-// pdf-lib render checked against the template before being called done).
-var OCA_R2_SEASONS = {
-  light_summer: {
-    label: 'Light Summer',
-    templatePath: 'template_light_summer_compressed.pdf',
-    namePatchPath: 'name_patch.png',
-    // Every place the client's background-removed cutout appears is an image object of
-    // one of these two pixel sizes (the template embeds the same photo at two different
-    // resolutions depending on the cell's on-page size), reused many times per page.
-    cutoutDims: { w: 410, h: 547 },
-    cutoutDimsLarge: { w: 615, h: 820 },
-    // Other client-specific photo slots, identified by their exact pixel size in the
-    // template (each used once or twice, never recoloured). NOTE: the big cover
-    // background photo (2084x3124) is a fixed design asset — never swapped.
-    photoSlots: {
-      face:          { w: 1024, h: 1366 }, // season-intro page
-      featuresBlush: { w: 820,  h: 1093 }, // Features + Blush pages — colour
-      hair:          { w: 150,  h: 72   },
-      eyes:          { w: 134,  h: 82   },
-      skin:          { w: 134,  h: 98   },
-    },
-    // 0-indexed page numbers for the two pages that share the 820x1093 box size.
-    featuresBlushPages: [2, 18],
-    // Cover photo and Contrast photo aren't swapped into an existing template image (the
-    // template leaves that area blank) — instead the uploaded photo is drawn straight
-    // onto the page, contain-fit and centred with no padding colour, inside these fixed
-    // boxes (PDF points, top-left origin, clipped to the page).
-    coverBox: { x0: 0, y0: 267.11, x1: 595.5, y1: 617.82 },
-    contrastPageIndex: 4,
-    contrastBox: { x0: 128, y0: 495, x1: 468, y1: 812 },
-    // "Insert name here" placeholder text on the cover page (PDF points, top-left origin).
-    nameBox: { x0: 130.6, y0: 690.1, x1: 492.4, y1: 748.9, size: 46 },
-    // The patch image covers this same region (with padding) — extracted directly from
-    // the template's own background photo so it blends seamlessly, no flat-colour
-    // guessing. Season-specific since every season's cover photo is different.
-    namePatchBox: { x0: 100.6, y0: 670.1, x1: 522.4, y1: 768.9 },
-    // Lipstick/Blush pages — no baked-in colour marks on either (lips or cheeks), so
-    // there's nothing to erase; each swatch is just drawn directly at wherever the
-    // analyst drags it to (defaulting to roughly the right spot already).
-    lipstickPageIndex: 19,
-    lipstick: {
-      left:  { defaultX: 195.8, defaultYTop: 753.65 },
-      right: { defaultX: 419.4, defaultYTop: 753.1 },
-    },
-    blushPageIndex: 18,
-    blush: {
-      left:  { defaultX: 275.9, defaultYTop: 621.1 },
-      right: { defaultX: 332.9, defaultYTop: 620.6 },
-    },
+// Every season is built from the same shared Canva master (same page order, same photo-
+// slot pixel sizes, same box positions, same cover photo) — confirmed by inspecting Light
+// Summer, Soft Summer, Light Spring and True Summer's actual PDFs page-by-page (identical
+// image dimensions and identical PyMuPDF-measured text/box coordinates across all four).
+// So every season below shares one layout, overriding only what's genuinely season-
+// specific (which template file, its label). If a future season's Canva file turns out to
+// be laid out differently, override the specific field(s) that differ in that season's
+// entry — everything here is just a starting default, not an assumption to defend.
+var OCA_R2_SHARED_LAYOUT = {
+  namePatchPath: 'name_patch.png', // same cover photo across every season, so one patch works for all
+  // Every place the client's background-removed cutout appears is an image object of
+  // one of these two pixel sizes (the template embeds the same photo at two different
+  // resolutions depending on the cell's on-page size), reused many times per page.
+  cutoutDims: { w: 410, h: 547 },
+  cutoutDimsLarge: { w: 615, h: 820 },
+  // Other client-specific photo slots, identified by their exact pixel size in the
+  // template (each used once or twice, never recoloured). NOTE: the big cover
+  // background photo (2084x3124) is a fixed design asset — never swapped.
+  photoSlots: {
+    face:          { w: 1024, h: 1366 }, // season-intro page
+    featuresBlush: { w: 820,  h: 1093 }, // Features + Blush pages — colour
+    hair:          { w: 150,  h: 72   },
+    eyes:          { w: 134,  h: 82   },
+    skin:          { w: 134,  h: 98   },
   },
+  // 0-indexed page numbers for the two pages that share the 820x1093 box size.
+  featuresBlushPages: [2, 18],
+  // Cover photo and Contrast photo aren't swapped into an existing template image (the
+  // template leaves that area blank) — instead the uploaded photo is drawn straight
+  // onto the page, contain-fit and centred with no padding colour, inside these fixed
+  // boxes (PDF points, top-left origin, clipped to the page).
+  coverBox: { x0: 0, y0: 267.11, x1: 595.5, y1: 617.82 },
+  contrastPageIndex: 4,
+  contrastBox: { x0: 128, y0: 495, x1: 468, y1: 812 },
+  // "Insert name here" placeholder text on the cover page (PDF points, top-left origin).
+  nameBox: { x0: 130.6, y0: 690.1, x1: 492.4, y1: 748.9, size: 46 },
+  // The patch image covers this same region (with padding) — extracted directly from
+  // the template's own background photo so it blends seamlessly, no flat-colour guessing.
+  namePatchBox: { x0: 100.6, y0: 670.1, x1: 522.4, y1: 768.9 },
+  // Lipstick/Blush pages — no baked-in colour marks on either (lips or cheeks), so
+  // there's nothing to erase; each swatch is just drawn directly at wherever the
+  // analyst drags it to (defaulting to roughly the right spot already).
+  lipstickPageIndex: 19,
+  lipstick: {
+    left:  { defaultX: 195.8, defaultYTop: 753.65 },
+    right: { defaultX: 419.4, defaultYTop: 753.1 },
+  },
+  blushPageIndex: 18,
+  blush: {
+    left:  { defaultX: 275.9, defaultYTop: 621.1 },
+    right: { defaultX: 332.9, defaultYTop: 620.6 },
+  },
+};
+
+function ocaR2DefineSeason(label, templatePath, overrides) {
+  var season = Object.assign({}, OCA_R2_SHARED_LAYOUT, overrides || {});
+  season.label = label;
+  season.templatePath = templatePath;
+  return season;
+}
+
+var OCA_R2_SEASONS = {
+  light_summer: ocaR2DefineSeason('Light Summer', 'template_light_summer_compressed.pdf'),
+  soft_summer:  ocaR2DefineSeason('Soft Summer',  'template_soft_summer_compressed.pdf'),
+  light_spring: ocaR2DefineSeason('Light Spring', 'template_light_spring_compressed.pdf'),
+  true_summer:  ocaR2DefineSeason('True Summer',  'template_true_summer_compressed.pdf'),
 };
 var OCA_R2_DEFAULT_SEASON = 'light_summer';
 
