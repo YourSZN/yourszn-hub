@@ -719,7 +719,10 @@ async function ocaR2RenderPreview() {
     // copy visible behind the new one — a frozen "permanent" swatch plus the real moveable one.
     var bytes = await ocaR2GetBaseBytes();
     if (myGeneration !== _ocaR2PreviewGeneration) return; // superseded while we were awaiting
-    var pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+    // pdf.js's worker takes ownership of (detaches) whatever buffer it's handed, so pass it
+    // a copy — not the cached _ocaR2BaseBytes array itself, or the next Download click would
+    // hand pdf-lib an emptied-out buffer and fail with "No PDF header found".
+    var pdfJsDoc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
     if (myGeneration !== _ocaR2PreviewGeneration) return;
     container.innerHTML = '';
     _ocaR2CleanSnapshots = {};
