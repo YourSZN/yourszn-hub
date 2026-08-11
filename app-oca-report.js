@@ -51,6 +51,18 @@ var OCA_R2_TICK_SIZE = 22;
 var OCA_R2_RENDER_SCALE = 1.3;
 var OCA_R2_CLICK_HIT_RADIUS = 18; // pdf points — clicking within this of an existing mark toggles it off
 
+// The template's own hair/skin/eyes tag graphic on the Contrast page is a separate
+// image layered on top of the photo (not baked into it), so it has to be painted over
+// explicitly — swapping the photo underneath doesn't remove it. No longer replaced with
+// anything (the page is a plain photo upload now), just erased.
+var OCA_R2_CONTRAST_TAG_ERASE = [
+  { x0: 319, y0: 495, coverColor: '#5d6168' },
+  { x0: 317, y0: 538, coverColor: '#c5c8cd' },
+  { x0: 334, y0: 583, coverColor: '#9fa1a8' },
+];
+var OCA_R2_CONTRAST_TAG_W = 74;
+var OCA_R2_CONTRAST_TAG_H = 34;
+
 // Lipstick page — the two swatches are separate real assets (not shared/baked like the
 // contrast tags), so they can be repositioned directly: cover the template's original
 // spot, then draw the same swatch at wherever the analyst drags it to.
@@ -464,16 +476,15 @@ async function ocaR2BuildBaseBytes() {
   var pdfDoc = await PDFLib.PDFDocument.load(templateBytes, { updateMetadata: false });
   var rgb = PDFLib.rgb;
 
+  // Every photo slot shows the whole uploaded photo uncropped (contain-fit, letterboxed
+  // with white padding) rather than cropping to fill the box — cropping a face is worse
+  // than a bit of empty space on the sides.
   ocaR2SetStatus('Embedding photos…');
   var cutoutAspect = OCA_R2_CUTOUT_DIMS.w / OCA_R2_CUTOUT_DIMS.h;
-  var cutoutImg = await ocaR2EmbedPhoto(pdfDoc, r.photoCutout, cutoutAspect);
+  var cutoutImg = await ocaR2EmbedPhoto(pdfDoc, r.photoCutout, cutoutAspect, 'contain', '#ffffff');
   ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS.w, OCA_R2_CUTOUT_DIMS.h, cutoutImg.ref);
   ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS_LARGE.w, OCA_R2_CUTOUT_DIMS_LARGE.h, cutoutImg.ref);
 
-  // The cover placeholder box is very wide and short (~2.5:1) — a normal portrait photo
-  // center-cropped to that ratio ends up badly zoomed in (just eyes/nose). Shown whole
-  // instead (contain, letterboxed) so nothing gets cut off, at the cost of some empty
-  // space either side. Padded with white, close to the panel's own cream tone.
   var coverDims = OCA_R2_PHOTO_SLOTS.coverPlaceholder;
   var coverDataUrl = r.photoCover || r.photoFace || r.photoCutout;
   var coverImg = await ocaR2EmbedPhoto(pdfDoc, coverDataUrl, coverDims.w / coverDims.h, 'contain', '#ffffff');
@@ -489,15 +500,29 @@ async function ocaR2BuildBaseBytes() {
   for (var i = 0; i < slotMap.length; i++) {
     var field = slotMap[i][0], dims = slotMap[i][1], pageIndices = slotMap[i][2];
     var dataUrl = r[field] || r.photoFace || r.photoCutout; // fall back chain if a specific shot wasn't provided
-    var img = await ocaR2EmbedPhoto(pdfDoc, dataUrl, dims.w / dims.h);
+    var img = await ocaR2EmbedPhoto(pdfDoc, dataUrl, dims.w / dims.h, 'contain', '#ffffff');
     ocaR2SwapOnPages(pdfDoc, pageIndices, dims.w, dims.h, img.ref);
   }
 
   // Contrast page — same box size as Features/Blush (820x1093), but its own upload (a
   // screenshot the analyst prepares separately), used as-is, only on that one page.
   var contrastSource = r.photoContrast || r.photoFace || r.photoCutout;
-  var contrastImg = await ocaR2EmbedPhoto(pdfDoc, contrastSource, OCA_R2_PHOTO_SLOTS.contrast.w / OCA_R2_PHOTO_SLOTS.contrast.h);
+  var contrastImg = await ocaR2EmbedPhoto(pdfDoc, contrastSource, OCA_R2_PHOTO_SLOTS.contrast.w / OCA_R2_PHOTO_SLOTS.contrast.h, 'contain', '#ffffff');
   ocaR2SwapOnPages(pdfDoc, [OCA_R2_CONTRAST_PAGE_INDEX], OCA_R2_PHOTO_SLOTS.contrast.w, OCA_R2_PHOTO_SLOTS.contrast.h, contrastImg.ref);
+
+  // The template's hair/skin/eyes tag graphic is a SEPARATE image layered on top of the
+  // photo (not part of it), so swapping the photo alone doesn't remove it — paint over
+  // it with the surrounding colour, since we're not replacing it with anything now.
+  var contrastPage = pdfDoc.getPages()[OCA_R2_CONTRAST_PAGE_INDEX];
+  var contrastPageH = contrastPage.getHeight();
+  OCA_R2_CONTRAST_TAG_ERASE.forEach(function(tag) {
+    var cc = tag.coverColor;
+    var rr = parseInt(cc.slice(1,3),16)/255, gg = parseInt(cc.slice(3,5),16)/255, bb = parseInt(cc.slice(5,7),16)/255;
+    contrastPage.drawRectangle({
+      x: tag.x0 - 14, y: contrastPageH - tag.y0 - OCA_R2_CONTRAST_TAG_H - 14,
+      width: OCA_R2_CONTRAST_TAG_W + 28, height: OCA_R2_CONTRAST_TAG_H + 28, color: rgb(rr, gg, bb),
+    });
+  });
 
   // Cover name overlay — patch over "Insert name here" with the real photo pixels from
   // that exact spot (extracted once from the template itself, no flat-colour guessing),
