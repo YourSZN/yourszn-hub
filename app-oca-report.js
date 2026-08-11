@@ -84,10 +84,13 @@ var ocaReport = {
   // analyst-placed marks, in PDF-point space (bottom-left origin), per page (0-indexed)
   customTicks: [],   // [{page, x, y}]
   erasePatches: [],  // [{page, x, y, color}]
-  // dragged lipstick swatch centres, PDF-point space (bottom-left origin) — null = use
-  // the template's original position until the analyst drags it somewhere else.
+  // dragged lipstick/blush swatch centres, PDF-point space (bottom-left origin) — null =
+  // use the template's original position until the analyst drags it somewhere else.
   lipstickLeft: null,
   lipstickRight: null,
+  blushLeft: null,
+  blushRight: null,
+  contrastLevel: '', // 'Low' | 'Medium' | 'High' | 'Low/Medium' | 'Medium/High'
 };
 
 // ── Background removal (client-side, MediaPipe selfie segmenter) ──
@@ -271,6 +274,13 @@ function renderOcaReport() {
     + _ocaR2PhotoSlot('photoSkin', 'Skin', 'Close-up crop')
     + '</div>';
   html += '</div>';
+
+  html += '<div style="padding:0 20px 16px"><div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Contrast Level</div>'
+    + '<select onchange="ocaReport.contrastLevel=this.value;ocaR2OnNameOrDateChange()" style="padding:8px 10px;border:1px solid var(--sand);border-radius:7px;font-size:13px;font-family:inherit;background:#FAF6F1;color:var(--deep);outline:none">'
+    + ['', 'Low', 'Medium', 'High', 'Low/Medium', 'Medium/High'].map(function(opt) {
+        return '<option value="' + opt + '"' + (r.contrastLevel === opt ? ' selected' : '') + '>' + (opt || 'Not set') + '</option>';
+      }).join('')
+    + '</select></div>';
 
   html += '<div style="padding:12px 20px;border-top:1px solid var(--sand);display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
     + '<button onclick="ocaR2RenderPreview()" id="oca-r2-preview-btn" style="background:var(--deep);color:white;border:none;padding:10px 20px;font-size:12.5px;font-weight:600;border-radius:9px;cursor:pointer">Build Preview</button>'
@@ -525,6 +535,17 @@ async function ocaR2BuildBaseBytes() {
     x: contrastBox.x0, y: contrastPageH - contrastBox.y1,
     width: contrastBox.x1 - contrastBox.x0, height: contrastBox.y1 - contrastBox.y0,
   });
+  if (r.contrastLevel) {
+    var levelFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    var levelSize = 14;
+    var levelText = 'Contrast Level: ' + r.contrastLevel;
+    var levelWidth = levelFont.widthOfTextAtSize(levelText, levelSize);
+    contrastPage.drawText(levelText, {
+      x: contrastBox.x0 + ((contrastBox.x1 - contrastBox.x0) - levelWidth) / 2,
+      y: contrastPageH - 488,
+      size: levelSize, font: levelFont, color: rgb(0.1, 0.1, 0.1),
+    });
+  }
 
   // Season-intro page (the "face" slot) sits on a colourful rainbow-striped background,
   // same as the swatch-grid pages — it needs the transparent cover-fit cutout treatment,
