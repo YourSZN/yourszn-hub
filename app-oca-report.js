@@ -10,7 +10,7 @@
 // existing tick/erase spot again removes it.
 
 var OCA_REPORT_BUCKET = 'oca-report-assets';
-var OCA_REPORT_TEMPLATE_PATH = 'template_light_summer.pdf';
+var OCA_REPORT_TEMPLATE_PATH = 'template_light_summer_compressed.pdf';
 var OCA_REPORT_TICK_PATH = 'tick_badge.png';
 var OCA_REPORT_NAME_PATCH_PATH = 'name_patch.png';
 
@@ -24,22 +24,29 @@ var OCA_R2_CUTOUT_DIMS_LARGE = { w: 615, h: 820 };
 // Other client-specific photo slots, identified by their exact pixel size
 // in the template (each used once or twice, never recoloured).
 // NOTE: the big cover background photo (2084x3124) is a fixed design asset —
-// never swapped. The client's cover photo instead goes into a smaller
-// placeholder box (1438x560) sitting on top of it.
+// never swapped.
 var OCA_R2_PHOTO_SLOTS = {
-  coverPlaceholder: { w: 1438, h: 560  }, // client's cover photo — the placeholder box, not the background
   face:             { w: 1024, h: 1366 }, // season-intro page
   featuresBlush:    { w: 820,  h: 1093 }, // Features + Blush pages — colour
-  contrast:         { w: 820,  h: 1093 }, // Contrast page — same box size, but its own upload (a screenshot), swapped separately
   hair:             { w: 150,  h: 72   },
   eyes:             { w: 134,  h: 82   },
   skin:             { w: 134,  h: 98   },
 };
 
-// 0-indexed page numbers for the two pages that share the 820x1093 box size but
-// need a different photo — see featuresBlush/contrast above.
+// 0-indexed page numbers for the two pages that share the 820x1093 box size.
 var OCA_R2_FEATURES_BLUSH_PAGES = [2, 18];
+
+// Cover photo and Contrast photo are no longer swapped into an existing template
+// image (the template just leaves that area blank now) — instead the uploaded
+// photo is drawn straight onto the page, contain-fit and centred with no padding
+// colour, inside these fixed boxes (PDF points, top-left origin, clipped to the
+// page). Positions come from where the old placeholder/photo used to sit.
+var OCA_R2_COVER_BOX = { x0: 0, y0: 267.11, x1: 595.5, y1: 617.82 };
 var OCA_R2_CONTRAST_PAGE_INDEX = 4;
+// The body copy above ends at y=472 and nothing sits below this box on the page — these
+// bounds (measured fresh against the blank template) sit safely clear of the text with
+// room to spare, centred horizontally.
+var OCA_R2_CONTRAST_BOX = { x0: 128, y0: 495, x1: 468, y1: 812 };
 
 // "Insert name here" placeholder text on the cover page (PDF points, top-left origin).
 var OCA_R2_NAME_BOX = { x0: 130.6, y0: 690.1, x1: 492.4, y1: 748.9, size: 46 };
@@ -51,34 +58,13 @@ var OCA_R2_TICK_SIZE = 22;
 var OCA_R2_RENDER_SCALE = 1.3;
 var OCA_R2_CLICK_HIT_RADIUS = 18; // pdf points — clicking within this of an existing mark toggles it off
 
-// The template's own hair/skin/eyes tag graphic on the Contrast page is a separate
-// image layered on top of the photo (not baked into it), so it has to be painted over
-// explicitly — swapping the photo underneath doesn't remove it. No longer replaced with
-// anything (the page is a plain photo upload now), just erased. Like the lipstick cover
-// (see OCA_R2_LIPSTICK), the erase patch is a live crop of this client's own Contrast
-// photo (fx/fy = fractional position within the Contrast photo box below) rather than a
-// flat colour — a flat colour only matched the original template's own model.
-var OCA_R2_CONTRAST_BOX = { w: 418.66, h: 558.21 }; // Contrast photo's placement box on the page (pt)
-var OCA_R2_CONTRAST_TAG_ERASE = [
-  { x0: 319, y0: 495, fx: 0.6437, fy: 0.2265 },
-  { x0: 317, y0: 538, fx: 0.6389, fy: 0.3035 },
-  { x0: 334, y0: 583, fx: 0.6795, fy: 0.3841 },
-];
-var OCA_R2_CONTRAST_TAG_W = 74;
-var OCA_R2_CONTRAST_TAG_H = 34;
-
-// Lipstick page — the two swatches are separate real assets (not shared/baked like the
-// contrast tags), so they can be repositioned directly: cover the template's original
-// spot, then draw the same swatch at wherever the analyst drags it to. The cover patch
-// is cropped live from the client's own face photo (not a hardcoded colour guess, which
-// only ever matched the one template client it was sampled from) — fx/fy are its default
-// spot's position as a fraction of the underlying face photo, and boxW/boxH are that
-// photo's placed size on the page (PDF points), so the right patch of skin comes from
-// wherever that same spot lands on THIS client's photo, at the right physical size.
+// Lipstick page — the template no longer has any baked-in colour marks on the model's
+// lips, so there's nothing to erase; the swatch is just drawn directly at wherever the
+// analyst drags it to (defaulting to roughly on the lips already).
 var OCA_R2_LIPSTICK_PAGE_INDEX = 19; // 0-indexed page 20
 var OCA_R2_LIPSTICK = {
-  left:  { path: 'lipstick_left.png',  w: 65.2, h: 58.5, defaultX: 195.8, defaultYTop: 753.65, fx: 0.500, fy: 0.628, boxW: 281.4, boxH: 375.9 },
-  right: { path: 'lipstick_right.png', w: 59.2, h: 59.2, defaultX: 419.4, defaultYTop: 753.1,  fx: 0.512, fy: 0.627, boxW: 281.4, boxH: 375.9 },
+  left:  { path: 'lipstick_left.png',  w: 65.2, h: 58.5, defaultX: 195.8, defaultYTop: 753.65 },
+  right: { path: 'lipstick_right.png', w: 59.2, h: 59.2, defaultX: 419.4, defaultYTop: 753.1 },
 };
 var OCA_R2_LIPSTICK_DRAG_RADIUS = 26; // pdf points — how close a click needs to be to grab a swatch
 
@@ -277,9 +263,9 @@ function renderOcaReport() {
   html += '<div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Client Photos</div>'
     + '<div style="display:flex;gap:12px;flex-wrap:wrap">'
     + _ocaR2PhotoSlot('photoCutout', 'Cutout', 'Background auto-removed — used on every colour page')
-    + _ocaR2PhotoSlot('photoCover', 'Cover', 'Fills the photo box on the cover — the background photo is fixed and never changes')
+    + _ocaR2PhotoSlot('photoCover', 'Cover', 'Centred on the cover — the background photo is fixed and never changes')
     + _ocaR2PhotoSlot('photoFace', 'Face', 'Background auto-removed')
-    + _ocaR2PhotoSlot('photoContrast', 'Contrast', 'Screenshot of the contrast breakdown — used as-is, no processing')
+    + _ocaR2PhotoSlot('photoContrast', 'Contrast', 'Screenshot of the contrast breakdown, centred on the page')
     + _ocaR2PhotoSlot('photoHair', 'Hair', 'Close-up crop')
     + _ocaR2PhotoSlot('photoEyes', 'Eyes', 'Close-up crop')
     + _ocaR2PhotoSlot('photoSkin', 'Skin', 'Close-up crop')
@@ -352,8 +338,10 @@ function ocaR2DataUrlToBytes(dataUrl) {
 //   fit: 'cover'   — center-crop to the box's ratio (like CSS object-fit: cover).
 //                     Fills the box completely, but trims the top/bottom or sides.
 //   fit: 'contain' — scale the whole photo to fit inside the box uncropped (like CSS
-//                     object-fit: contain), padding the rest with padColor. Nothing
-//                     gets cut off, but there's empty space on two sides.
+//                     object-fit: contain). If padColor is given, pads the rest with
+//                     it; otherwise leaves the margin transparent (used for the cover/
+//                     Contrast boxes, which are drawn straight onto the blank page —
+//                     the page's own background shows through instead of a padded box).
 // Builds the fitted canvas (cover-cropped or contain-padded) without embedding it —
 // shared by ocaR2EmbedPhoto and by the lipstick cover-patch extraction, which needs to
 // sample real pixels from the exact image that's about to go on the page.
@@ -379,8 +367,10 @@ async function ocaR2BuildFitCanvas(dataUrl, targetAspect, fit, padColor) {
     }
     canvas.width = Math.round(canvasW); canvas.height = Math.round(canvasH);
     ctx = canvas.getContext('2d');
-    ctx.fillStyle = padColor || '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (padColor) {
+      ctx.fillStyle = padColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     ctx.drawImage(img, (canvas.width - sw) / 2, (canvas.height - sh) / 2, sw, sh);
   } else {
     var sx = 0, sy = 0;
@@ -512,10 +502,29 @@ async function ocaR2BuildBaseBytes() {
   ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS.w, OCA_R2_CUTOUT_DIMS.h, cutoutImg.ref);
   ocaR2SwapAllPages(pdfDoc, OCA_R2_CUTOUT_DIMS_LARGE.w, OCA_R2_CUTOUT_DIMS_LARGE.h, cutoutImg.ref);
 
-  var coverDims = OCA_R2_PHOTO_SLOTS.coverPlaceholder;
+  // Cover and Contrast photos: the template just leaves this area blank now (no
+  // placeholder image to swap into), so draw the uploaded photo straight onto the page —
+  // contain-fit, no padding colour, so the page's own background/cream shows through any
+  // gaps instead of a box.
+  var coverBox = OCA_R2_COVER_BOX;
   var coverDataUrl = r.photoCover || r.photoFace || r.photoCutout;
-  var coverImg = await ocaR2EmbedPhoto(pdfDoc, coverDataUrl, coverDims.w / coverDims.h, 'contain', '#ffffff');
-  ocaR2SwapOnPages(pdfDoc, null, coverDims.w, coverDims.h, coverImg.ref);
+  var coverImg = await ocaR2EmbedPhoto(pdfDoc, coverDataUrl, (coverBox.x1 - coverBox.x0) / (coverBox.y1 - coverBox.y0), 'contain');
+  var coverPage0 = pdfDoc.getPages()[0];
+  var coverPage0H = coverPage0.getHeight();
+  coverPage0.drawImage(coverImg, {
+    x: coverBox.x0, y: coverPage0H - coverBox.y1,
+    width: coverBox.x1 - coverBox.x0, height: coverBox.y1 - coverBox.y0,
+  });
+
+  var contrastBox = OCA_R2_CONTRAST_BOX;
+  var contrastSource = r.photoContrast || r.photoFace || r.photoCutout;
+  var contrastImg = await ocaR2EmbedPhoto(pdfDoc, contrastSource, (contrastBox.x1 - contrastBox.x0) / (contrastBox.y1 - contrastBox.y0), 'contain');
+  var contrastPage = pdfDoc.getPages()[OCA_R2_CONTRAST_PAGE_INDEX];
+  var contrastPageH = contrastPage.getHeight();
+  contrastPage.drawImage(contrastImg, {
+    x: contrastBox.x0, y: contrastPageH - contrastBox.y1,
+    width: contrastBox.x1 - contrastBox.x0, height: contrastBox.y1 - contrastBox.y0,
+  });
 
   var slotMap = [
     ['photoFace',  OCA_R2_PHOTO_SLOTS.face, null],
@@ -529,37 +538,6 @@ async function ocaR2BuildBaseBytes() {
     var dataUrl = r[field] || r.photoFace || r.photoCutout; // fall back chain if a specific shot wasn't provided
     var img = await ocaR2EmbedPhoto(pdfDoc, dataUrl, dims.w / dims.h, 'contain', '#ffffff');
     ocaR2SwapOnPages(pdfDoc, pageIndices, dims.w, dims.h, img.ref);
-  }
-
-  // Contrast page — same box size as Features/Blush (820x1093), but its own upload (a
-  // screenshot the analyst prepares separately), used as-is, only on that one page. The
-  // fitted canvas is kept in scope so the tag-erase patches below can crop straight from it.
-  var contrastSource = r.photoContrast || r.photoFace || r.photoCutout;
-  var contrastCanvas = await ocaR2BuildFitCanvas(contrastSource, OCA_R2_PHOTO_SLOTS.contrast.w / OCA_R2_PHOTO_SLOTS.contrast.h, 'contain', '#ffffff');
-  var contrastImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(contrastCanvas.toDataURL('image/png')));
-  ocaR2SwapOnPages(pdfDoc, [OCA_R2_CONTRAST_PAGE_INDEX], OCA_R2_PHOTO_SLOTS.contrast.w, OCA_R2_PHOTO_SLOTS.contrast.h, contrastImg.ref);
-
-  // The template's hair/skin/eyes tag graphic is a SEPARATE image layered on top of the
-  // photo (not part of it), so swapping the photo alone doesn't remove it. Paint over it
-  // with a live crop of this client's own Contrast photo (not a flat colour — see
-  // OCA_R2_CONTRAST_TAG_ERASE comment above) so it blends regardless of what they uploaded.
-  var contrastPage = pdfDoc.getPages()[OCA_R2_CONTRAST_PAGE_INDEX];
-  var contrastPageH = contrastPage.getHeight();
-  for (var ti = 0; ti < OCA_R2_CONTRAST_TAG_ERASE.length; ti++) {
-    var tag = OCA_R2_CONTRAST_TAG_ERASE[ti];
-    var tagPxPerPtX = contrastCanvas.width / OCA_R2_CONTRAST_BOX.w, tagPxPerPtY = contrastCanvas.height / OCA_R2_CONTRAST_BOX.h;
-    var tagPatchPxW = (OCA_R2_CONTRAST_TAG_W + 28) * tagPxPerPtX, tagPatchPxH = (OCA_R2_CONTRAST_TAG_H + 28) * tagPxPerPtY;
-    var tagCenterPx = tag.fx * contrastCanvas.width, tagCenterPy = tag.fy * contrastCanvas.height;
-    var tagPatchCanvas = document.createElement('canvas');
-    tagPatchCanvas.width = Math.max(1, Math.round(tagPatchPxW));
-    tagPatchCanvas.height = Math.max(1, Math.round(tagPatchPxH));
-    var tpctx = tagPatchCanvas.getContext('2d');
-    tpctx.drawImage(contrastCanvas, tagCenterPx - tagPatchPxW / 2, tagCenterPy - tagPatchPxH / 2, tagPatchPxW, tagPatchPxH, 0, 0, tagPatchCanvas.width, tagPatchCanvas.height);
-    var tagPatchImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(tagPatchCanvas.toDataURL('image/png')));
-    contrastPage.drawImage(tagPatchImg, {
-      x: tag.x0 - 14, y: contrastPageH - tag.y0 - OCA_R2_CONTRAST_TAG_H - 14,
-      width: OCA_R2_CONTRAST_TAG_W + 28, height: OCA_R2_CONTRAST_TAG_H + 28,
-    });
   }
 
   // Cover name overlay — patch over "Insert name here" with the real photo pixels from
@@ -587,34 +565,9 @@ async function ocaR2BuildBaseBytes() {
     size: nb.size, font: nameFont, color: rgb(0.94, 0.89, 0.76),
   });
 
-  // Lipstick swatches — only cover the template's original baked-in position here;
-  // the actual redraw-at-current-position happens in ocaR2RebuildWithEdits (the cheap
-  // replay layer) since that needs to stay fast while the analyst is dragging. The cover
-  // is a real crop of this client's own photo (see OCA_R2_LIPSTICK comment above) rather
-  // than a flat colour, so it blends regardless of their skin tone/lighting.
-  ocaR2SetStatus('Erasing default lipstick…');
-  var lipstickPage = pdfDoc.getPages()[OCA_R2_LIPSTICK_PAGE_INDEX];
-  var lipstickH = lipstickPage.getHeight();
-  for (var side in OCA_R2_LIPSTICK) {
-    var cfg = OCA_R2_LIPSTICK[side];
-    var pxPerPtX = cutoutCanvas.width / cfg.boxW, pxPerPtY = cutoutCanvas.height / cfg.boxH;
-    var patchPxW = cfg.w * pxPerPtX, patchPxH = cfg.h * pxPerPtY;
-    var centerPx = cfg.fx * cutoutCanvas.width, centerPy = cfg.fy * cutoutCanvas.height;
-    var patchCanvas = document.createElement('canvas');
-    patchCanvas.width = Math.max(1, Math.round(patchPxW));
-    patchCanvas.height = Math.max(1, Math.round(patchPxH));
-    var pctx = patchCanvas.getContext('2d');
-    pctx.drawImage(cutoutCanvas, centerPx - patchPxW/2, centerPy - patchPxH/2, patchPxW, patchPxH, 0, 0, patchCanvas.width, patchCanvas.height);
-    var patchImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(patchCanvas.toDataURL('image/png')));
-    // No padding: this needs to match the swatch image's own size exactly (drawn in
-    // ocaR2RebuildWithEdits) — any extra margin here shows up as a visible border peeking
-    // out around the lipstick mark, especially before it's ever dragged (when both land
-    // on exactly the same spot).
-    lipstickPage.drawImage(patchImg, {
-      x: cfg.defaultX - cfg.w/2, y: lipstickH - cfg.defaultYTop - cfg.h/2,
-      width: cfg.w, height: cfg.h,
-    });
-  }
+  // Lipstick swatches: the template has no baked-in colour marks anymore, so there's
+  // nothing to erase here — ocaR2RebuildWithEdits (the cheap replay layer) draws each
+  // swatch directly at its default or dragged position on every rebuild.
 
   ocaR2SetStatus('');
   return await pdfDoc.save();
