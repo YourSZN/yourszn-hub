@@ -779,22 +779,28 @@ function ocaR2DrawTickMark(ctx, cx, cy, radiusPx) {
 // Lipstick/Blush swatch images, preloaded once as real <img> elements so a drag can
 // redraw them on the canvas instantly (no pdf-lib/pdf.js round-trip while the mouse moves).
 var _ocaR2SwatchImgs = {}; // statePrefix -> side -> <img>
+// Loads one group's images. Pulled into its own function (rather than inlined in a loop)
+// so `group`/`bucket` are real per-call parameters/locals — with `var` in a shared loop
+// body instead, every async onload below would fire after the loop finished and all end
+// up writing into whichever group's bucket the loop landed on last.
+function ocaR2PreloadSwatchGroup(group) {
+  var bucket = _ocaR2SwatchImgs[group.statePrefix] || (_ocaR2SwatchImgs[group.statePrefix] = {});
+  return Promise.all(Object.keys(group.config).map(function(side) {
+    if (bucket[side]) return Promise.resolve();
+    return ocaR2DownloadFromStorage(group.config[side].path).then(function(blob) {
+      return new Promise(function(resolve) {
+        var url = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function() { bucket[side] = img; resolve(); };
+        img.src = url;
+      });
+    });
+  }));
+}
 function ocaR2PreloadSwatchImgs() {
   var loads = [];
   for (var pageIndex in OCA_R2_SWATCH_GROUPS) {
-    var group = OCA_R2_SWATCH_GROUPS[pageIndex];
-    var bucket = _ocaR2SwatchImgs[group.statePrefix] || (_ocaR2SwatchImgs[group.statePrefix] = {});
-    Object.keys(group.config).forEach(function(side) {
-      if (bucket[side]) return;
-      loads.push(ocaR2DownloadFromStorage(group.config[side].path).then(function(blob) {
-        return new Promise(function(resolve) {
-          var url = URL.createObjectURL(blob);
-          var img = new Image();
-          img.onload = function() { bucket[side] = img; resolve(); };
-          img.src = url;
-        });
-      }));
-    });
+    loads.push(ocaR2PreloadSwatchGroup(OCA_R2_SWATCH_GROUPS[pageIndex]));
   }
   return Promise.all(loads);
 }
