@@ -678,7 +678,12 @@ async function ocaR2RenderPreview() {
 
   try {
     await ocaR2PreloadLipstickImgs();
-    var bytes = await ocaR2RebuildWithEdits();
+    // The snapshot must come from the bare base bytes, not ocaR2RebuildWithEdits() —
+    // ocaR2RedrawPageMarks always redraws every tick/erase patch/lipstick swatch fresh on
+    // top of it anyway, so if the snapshot already had a swatch baked in (at whatever
+    // position was current when it was captured), dragging would leave that old baked-in
+    // copy visible behind the new one — a frozen "permanent" swatch plus the real moveable one.
+    var bytes = await ocaR2GetBaseBytes();
     if (myGeneration !== _ocaR2PreviewGeneration) return; // superseded while we were awaiting
     var pdfJsDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
     if (myGeneration !== _ocaR2PreviewGeneration) return;
