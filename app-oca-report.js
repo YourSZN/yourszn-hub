@@ -526,9 +526,16 @@ async function ocaR2BuildBaseBytes() {
     width: contrastBox.x1 - contrastBox.x0, height: contrastBox.y1 - contrastBox.y0,
   });
 
+  // Season-intro page (the "face" slot) sits on a colourful rainbow-striped background,
+  // same as the swatch-grid pages — it needs the transparent cover-fit cutout treatment,
+  // not white padding, or the rainbow gets replaced by a hard-edged white box.
+  var faceDims = OCA_R2_PHOTO_SLOTS.face;
+  var faceDataUrl = r.photoFace || r.photoCutout;
+  var faceImg = await ocaR2EmbedPhoto(pdfDoc, faceDataUrl, faceDims.w / faceDims.h);
+  ocaR2SwapOnPages(pdfDoc, null, faceDims.w, faceDims.h, faceImg.ref);
+
   var slotMap = [
-    ['photoFace',  OCA_R2_PHOTO_SLOTS.face, null],
-    ['photoFace',  OCA_R2_PHOTO_SLOTS.featuresBlush, OCA_R2_FEATURES_BLUSH_PAGES], // Features + Blush — colour
+    ['photoFace',  OCA_R2_PHOTO_SLOTS.featuresBlush, OCA_R2_FEATURES_BLUSH_PAGES], // Features + Blush — colour, plain background
     ['photoHair',  OCA_R2_PHOTO_SLOTS.hair, null],
     ['photoEyes',  OCA_R2_PHOTO_SLOTS.eyes, null],
     ['photoSkin',  OCA_R2_PHOTO_SLOTS.skin, null],
