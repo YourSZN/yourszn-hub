@@ -91,10 +91,15 @@ function ocaR2DefineSeason(label, templatePath, overrides) {
 }
 
 var OCA_R2_SEASONS = {
-  light_summer: ocaR2DefineSeason('Light Summer', 'template_light_summer_compressed.pdf'),
-  soft_summer:  ocaR2DefineSeason('Soft Summer',  'template_soft_summer_compressed.pdf'),
-  light_spring: ocaR2DefineSeason('Light Spring', 'template_light_spring_compressed.pdf'),
-  true_summer:  ocaR2DefineSeason('True Summer',  'template_true_summer_compressed.pdf'),
+  light_summer:  ocaR2DefineSeason('Light Summer',  'template_light_summer_compressed.pdf'),
+  soft_summer:   ocaR2DefineSeason('Soft Summer',   'template_soft_summer_compressed.pdf'),
+  light_spring:  ocaR2DefineSeason('Light Spring',  'template_light_spring_compressed.pdf'),
+  true_summer:   ocaR2DefineSeason('True Summer',   'template_true_summer_compressed.pdf'),
+  bright_spring: ocaR2DefineSeason('Bright Spring', 'template_bright_spring_compressed.pdf'),
+  soft_autumn:   ocaR2DefineSeason('Soft Autumn',   'template_soft_autumn_compressed.pdf'),
+  true_spring:   ocaR2DefineSeason('True Spring',   'template_true_spring_compressed.pdf'),
+  true_autumn:   ocaR2DefineSeason('True Autumn',   'template_true_autumn_compressed.pdf'),
+  dark_autumn:   ocaR2DefineSeason('Dark Autumn',   'template_dark_autumn_compressed.pdf'),
 };
 var OCA_R2_DEFAULT_SEASON = 'light_summer';
 
