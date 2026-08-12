@@ -100,7 +100,7 @@ var OCA_R2_SEASONS = {
   true_summer:   ocaR2DefineSeason('True Summer',   'template_true_summer_compressed.pdf'),
   bright_spring: ocaR2DefineSeason('Bright Spring', 'template_bright_spring_compressed_REPLACEMENT.pdf'),
   soft_autumn:   ocaR2DefineSeason('Soft Autumn',   'template_soft_autumn_compressed.pdf'),
-  true_spring:   ocaR2DefineSeason('True Spring',   'template_true_spring_compressed.pdf'),
+  true_spring:   ocaR2DefineSeason('True Spring',   'template_true_spring_compressed (1).pdf'),
   true_autumn:   ocaR2DefineSeason('True Autumn',   'template_true_autumn_compressed.pdf'),
   dark_autumn:   ocaR2DefineSeason('Dark Autumn',   'template_dark_autumn_compressed.pdf'),
   bright_winter: ocaR2DefineSeason('Bright Winter', 'template_bright_winter_compressed.pdf'),
