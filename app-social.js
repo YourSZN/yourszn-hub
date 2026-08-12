@@ -789,15 +789,6 @@ function smSetIdeaFilter(f) {
 // ══ POSTING STRATEGY ══
 
 function smRenderStrategy() {
-  var tiktokSched = [
-    ['Monday',    'The Your SZN World'],
-    ['Tuesday',   'Understanding Your Colouring'],
-    ['Wednesday', 'Real Colour Transformations (long)'],
-    ['Thursday',  'Shopping Without the Guesswork (series)'],
-    ['Friday',    'Real Colour Transformations (snippet)'],
-    ['Saturday',  'The Your SZN World (or Celebrity Analysis)'],
-    ['Sunday',    'Real Colour Transformations (long)'],
-  ];
   var igSched = [
     ['Monday',    'The Your SZN World'],
     ['Tuesday',   'Understanding Your Colouring'],
@@ -808,12 +799,9 @@ function smRenderStrategy() {
     ['Sunday',    'Carousel'],
   ];
 
-  return '<div class="g2" style="margin-bottom:16px">'
-    + smStrategyCard('TikTok', '1x per day', tiktokSched)
-    + smStrategyCard('Instagram Feed', 'Daily posts', igSched)
-    + '</div>'
-    + smFunnelPositioning()
+  return smStrategyCard('Instagram Feed', 'Daily posts', igSched, true)
     + smStrategyPillars()
+    + smFunnelPositioning()
     + smStrategyGuide()
     + smStrategyNotepad();
 }
@@ -1075,9 +1063,9 @@ function smSaveStrategyNotes(val) {
   saveData();
 }
 
-function smStrategyCard(platform, subtitle, schedule) {
+function smStrategyCard(platform, subtitle, schedule, standalone) {
   var platCol = platform === 'TikTok' ? '#010101' : '#E1306C';
-  return '<div class="card">'
+  return '<div class="card"' + (standalone ? ' style="margin-bottom:16px"' : '') + '>'
     + '<div class="ch">'
     +   '<div style="display:flex;align-items:center;gap:8px">'
     +     '<div style="font-size:10px;font-weight:700;color:white;background:' + platCol + ';padding:3px 9px;border-radius:8px">' + platform + '</div>'
@@ -1095,7 +1083,7 @@ function smStrategyCard(platform, subtitle, schedule) {
 }
 
 function smStrategyPillars() {
-  return '<div class="card">'
+  return '<div class="card" style="margin-bottom:16px">'
     + '<div class="ch"><div class="ct">Content Pillars</div></div>'
     + '<div class="cb" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'
     + SM_PILLARS.map(function(p) {
@@ -1156,42 +1144,50 @@ function smPostModal() {
         }).join('')
     +   '</div></div>'
 
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +   '<div>' + smLbl('Pillar') + SM_SEL('sm-f-pillar') + '<option value="">— Select pillar —</option>'
-    +     SM_PILLARS.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('')
-    +   '</select></div>'
-    +   '<div>' + smLbl('Content Type') + SM_SEL('sm-f-ctype') + '<option value="">— Select type —</option>'
-    +     SM_CONTENT_TYPES.map(function(t){ return '<option value="'+t+'">'+t+'</option>'; }).join('')
-    +   '</select></div>'
+    // Content Strategy — Pillar/Type/Topic/Angle/Purpose/Funnel/Positioning grouped
+    // into one shaded panel so it reads as a single unit, not a wall of fields.
+    + '<div style="background:var(--warm);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">'
+    +   '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase">Content Strategy</div>'
+
+    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +     '<div>' + smLbl('Pillar') + SM_SEL('sm-f-pillar') + '<option value="">— Select pillar —</option>'
+    +       SM_PILLARS.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('')
+    +     '</select></div>'
+    +     '<div>' + smLbl('Content Type') + SM_SEL('sm-f-ctype') + '<option value="">— Select type —</option>'
+    +       SM_CONTENT_TYPES.map(function(t){ return '<option value="'+t+'">'+t+'</option>'; }).join('')
+    +     '</select></div>'
+    +   '</div>'
+
+    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +     '<div>' + smLbl('Topic') + SM_IN('sm-f-topic', 'text', 'e.g. Common shopping mistakes') + '</div>'
+    +     '<div>' + smLbl('Angle') + SM_IN('sm-f-angle', 'text', 'e.g. Why black isn\'t always the safest option') + '</div>'
+    +   '</div>'
+
+    +   '<div>' + smLbl('Purpose') + SM_IN('sm-f-purpose', 'text', 'e.g. Attract new people and introduce the value of knowing their season') + '</div>'
+
+    +   '<div style="height:1px;background:var(--sand)"></div>'
+
+    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +     '<div>' + smLbl('Funnel Stage') + SM_SEL('sm-f-funnel-stage') + '<option value="">— Select —</option>'
+    +       SM_FUNNEL_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
+    +     '</select></div>'
+    +     '<div>' + smLbl('Positioning Type') + SM_SEL('sm-f-positioning-type', ' onchange="smPositioningTypeChange()"') + '<option value="">— Select —</option>'
+    +       SM_POSITIONING_TYPES.map(function(t){ return '<option value="'+t.key+'">'+t.label+'</option>'; }).join('')
+    +     '</select></div>'
+    +   '</div>'
+
+    +   '<div>' + smLbl('Positioning Format') + SM_SEL('sm-f-positioning-format') + '<option value="">— Select a Positioning Type first —</option></select></div>'
     + '</div>'
-
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +   '<div>' + smLbl('Topic') + SM_IN('sm-f-topic', 'text', 'e.g. Common shopping mistakes') + '</div>'
-    +   '<div>' + smLbl('Angle') + SM_IN('sm-f-angle', 'text', 'e.g. Why black isn\'t always the safest option') + '</div>'
-    + '</div>'
-
-    + '<div>' + smLbl('Purpose') + SM_IN('sm-f-purpose', 'text', 'e.g. Attract new people and introduce the value of knowing their season') + '</div>'
-
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +   '<div>' + smLbl('Funnel Stage') + SM_SEL('sm-f-funnel-stage') + '<option value="">— Select —</option>'
-    +     SM_FUNNEL_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
-    +   '</select></div>'
-    +   '<div>' + smLbl('Positioning Type') + SM_SEL('sm-f-positioning-type', ' onchange="smPositioningTypeChange()"') + '<option value="">— Select —</option>'
-    +     SM_POSITIONING_TYPES.map(function(t){ return '<option value="'+t.key+'">'+t.label+'</option>'; }).join('')
-    +   '</select></div>'
-    + '</div>'
-
-    + '<div>' + smLbl('Positioning Format') + SM_SEL('sm-f-positioning-format') + '<option value="">— Select a Positioning Type first —</option></select></div>'
 
     + '<div>' + smLbl('Assigned To') + SM_SEL('sm-f-assign') + '<option value="">— Unassigned —</option>'
     +   ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
-    + '</select></div>'
+    + '</select></div>';
 
-    + '<div>' + smLbl('Text on Screen') + SM_TA('sm-f-tos', 4, 'On-screen text…') + '</div>';
-
-  // Right col: Caption, Drive Link, Inspiration Links
+  // Right col: Caption, Text on Screen, Drive Link, Inspiration Links
   var rightCol = ''
     + '<div>' + smLbl('Caption') + SM_TA('sm-f-caption', 6, 'Caption + hashtags…') + '</div>'
+
+    + '<div>' + smLbl('Text on Screen') + SM_TA('sm-f-tos', 4, 'On-screen text…') + '</div>'
 
     + '<div>' + smLbl('Google Drive Link') + SM_IN('sm-f-drive','text','drive.google.com/…') + '</div>'
 
