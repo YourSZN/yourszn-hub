@@ -645,7 +645,7 @@ async function ocaR2BuildBaseBytes() {
   // than a bit of empty space on the sides.
   ocaR2SetStatus('Embedding photos…');
   var cutoutAspect = season.cutoutDims.w / season.cutoutDims.h; // large cutout is the same ratio, shares this canvas
-  var cutoutCanvas = await ocaR2BuildFitCanvas(r.photoCutout, cutoutAspect); // cover-fit, stays transparent — the per-cell colour has to show through around it
+  var cutoutCanvas = await ocaR2BuildFitCanvas(r.photoCutout, cutoutAspect, 'contain'); // contain-fit, stays transparent — the per-cell colour has to show through around it
   var cutoutImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(cutoutCanvas.toDataURL('image/png')));
   var squareGroups = season.squareContainGroups || [];
   var squarePages = squareGroups.reduce(function(acc, g){ return acc.concat(g.pages); }, []);
