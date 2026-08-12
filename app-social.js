@@ -867,6 +867,7 @@ var SM_FUNNEL_STAGES = [
 var SM_POSITIONING_TYPES = [
   {
     key:'edu_fluential', label:'Edu-Fluential', color:'#3B82F6',
+    blurb:'Content that teaches something valuable so people see you as someone who actually knows their craft.',
     whatItIs:'',
     formats:['Mistakes', 'Case Studies', 'Lessons', 'Frameworks/Processes'],
     steps:[
@@ -879,6 +880,7 @@ var SM_POSITIONING_TYPES = [
   },
   {
     key:'perspective_shifting', label:'Perspective Shifting', color:'#F59E0B',
+    blurb:'Challenges an outdated belief so your audience shifts from "this is how it\'s done" to "I need to try your way."',
     whatItIs:'This is content that hits like: "Wait… have I been thinking about this all wrong?" You\'re not just educating, you\'re confronting the thoughts, strategies, and advice that are keeping your audience stuck. It might trigger. It might polarise. But that\'s the point. It moves your audience from "this is how it\'s always done" → "I need to try your way."',
     formats:['Myth Busting', 'Industry Norm Challengers', 'Contrarian Opinions', 'Reframes'],
     steps:[
@@ -890,6 +892,7 @@ var SM_POSITIONING_TYPES = [
   },
   {
     key:'storytelling', label:'Storytelling', color:'#7A8C6E',
+    blurb:'Content that shares real moments, lessons & personal experiences so your message lands deeper and feels human.',
     whatItIs:'',
     formats:['Origin Story', 'Client Transformation Story', 'Defining Moment', 'Everyday Metaphor'],
     steps:[
@@ -903,6 +906,7 @@ var SM_POSITIONING_TYPES = [
   },
   {
     key:'connection', label:'Connection', color:'#8B5CF6',
+    blurb:'Content that shows your personality, values, and quirks so people feel like they know you beyond the brand/business.',
     whatItIs:"Connection content is the heart of your brand, not because it's the most educational or \"value-packed,\" but because it builds emotional resonance that logic can't touch. It's the voice note energy post, the vulnerable share after a hard day, the quiet win you celebrate that reminds them you're human too, the behind-the-scenes, the messy middle, the real talk. It's not polished. It's personal. And that's why it converts.",
     formats:['Personal Storytelling', 'Values & Beliefs', 'Relatable DITL', 'Vulnerability & Wins'],
     steps:[
@@ -1210,7 +1214,7 @@ function smPostModal() {
     +   '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase">Content Strategy</div>'
 
     +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +     '<div>' + smLbl('Pillar') + SM_SEL('sm-f-pillar') + '<option value="">— Select pillar —</option>'
+    +     '<div>' + smLbl('Pillar') + SM_SEL('sm-f-pillar', ' onchange="smPillarChange()"') + '<option value="">— Select pillar —</option>'
     +       SM_PILLARS.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('')
     +     '</select></div>'
     +     '<div>' + smLbl('Content Type') + SM_SEL('sm-f-ctype') + '<option value="">— Select type —</option>'
@@ -1219,7 +1223,7 @@ function smPostModal() {
     +   '</div>'
 
     +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +     '<div>' + smLbl('Topic') + SM_IN('sm-f-topic', 'text', 'e.g. Common shopping mistakes') + '</div>'
+    +     '<div>' + smLbl('Topic') + SM_SEL('sm-f-topic') + '<option value="">— Select a Pillar first —</option></select></div>'
     +     '<div>' + smLbl('Angle') + SM_IN('sm-f-angle', 'text', 'e.g. Why black isn\'t always the safest option') + '</div>'
     +   '</div>'
 
@@ -1227,14 +1231,9 @@ function smPostModal() {
 
     +   '<div style="height:1px;background:var(--sand)"></div>'
 
-    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +     '<div>' + smLbl('Funnel Stage') + SM_SEL('sm-f-funnel-stage') + '<option value="">— Select —</option>'
-    +       SM_FUNNEL_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
-    +     '</select></div>'
-    +     '<div>' + smLbl('Positioning Type') + SM_SEL('sm-f-positioning-type', ' onchange="smPositioningTypeChange()"') + '<option value="">— Select —</option>'
-    +       SM_POSITIONING_TYPES.map(function(t){ return '<option value="'+t.key+'">'+t.label+'</option>'; }).join('')
-    +     '</select></div>'
-    +   '</div>'
+    +   '<div>' + smLbl('Funnel Stage') + '<div id="sm-funnel-stage-picker"></div></div>'
+
+    +   '<div>' + smLbl('Positioning Type') + '<div id="sm-positioning-type-picker"></div></div>'
 
     +   '<div>' + smLbl('Positioning Format') + SM_SEL('sm-f-positioning-format') + '<option value="">— Select a Positioning Type first —</option></select></div>'
     + '</div>'
@@ -1315,6 +1314,81 @@ function smStageChange() {
   var wrap  = document.getElementById('sm-date-wrap');
   if (!stage || !wrap) return;
   wrap.style.display = (stage.value === 'scheduled' || stage.value === 'posted') ? 'block' : 'none';
+}
+
+// ── Pillar → Topic dropdown ──
+
+function smPopulatePillarTopics(pillarName, selectedTopic) {
+  var sel = document.getElementById('sm-f-topic');
+  if (!sel) return;
+  var info = SM_PILLAR_TOPICS[pillarName];
+  if (!info) {
+    sel.innerHTML = '<option value="">— Select a Pillar first —</option>';
+    sel.value = '';
+    return;
+  }
+  // If a previously-saved topic doesn't match this pillar's preset list (an
+  // older freeform value, or the pillar changed), keep it as an extra option
+  // instead of silently dropping it the moment the modal opens.
+  var extra = (selectedTopic && info.topics.indexOf(selectedTopic) === -1)
+    ? '<option value="' + esc(selectedTopic) + '">' + esc(selectedTopic) + ' (custom)</option>'
+    : '';
+  sel.innerHTML = '<option value="">— Select topic —</option>'
+    + extra
+    + info.topics.map(function(t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
+  sel.value = selectedTopic || '';
+}
+
+function smPillarChange() {
+  var pillarSel = document.getElementById('sm-f-pillar');
+  smPopulatePillarTopics(pillarSel ? pillarSel.value : '', '');
+}
+
+// ── Funnel Stage / Positioning Type — clickable pill pickers ──
+
+function smRenderFunnelStagePicker(selectedKey) {
+  var container = document.getElementById('sm-funnel-stage-picker');
+  if (!container) return;
+  var buttons = SM_FUNNEL_STAGES.map(function(s) {
+    var sel = s.key === selectedKey;
+    return '<button type="button" onclick="smSelectFunnelStage(\'' + s.key + '\')" '
+      + 'style="text-align:left;padding:9px 11px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .15s;'
+      + 'border:1.5px solid ' + (sel ? s.color : 'var(--sand)') + ';background:' + (sel ? s.color : 'white') + '">'
+      + '<div style="font-size:12px;font-weight:700;color:' + (sel ? 'white' : 'var(--charcoal)') + '">' + esc(s.label) + '</div>'
+      + '<div style="font-size:10px;color:' + (sel ? 'rgba(255,255,255,.85)' : 'var(--muted)') + ';line-height:1.4;margin-top:2px">' + esc(s.desc) + '</div>'
+      + '</button>';
+  }).join('');
+  container.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' + buttons + '</div>'
+    + '<input type="hidden" id="sm-f-funnel-stage" value="' + esc(selectedKey || '') + '">';
+}
+
+function smSelectFunnelStage(key) {
+  var hidden  = document.getElementById('sm-f-funnel-stage');
+  var current = hidden ? hidden.value : '';
+  smRenderFunnelStagePicker(current === key ? '' : key); // clicking the selected one again clears it
+}
+
+function smRenderPositioningTypePicker(selectedKey) {
+  var container = document.getElementById('sm-positioning-type-picker');
+  if (!container) return;
+  var buttons = SM_POSITIONING_TYPES.map(function(t) {
+    var sel = t.key === selectedKey;
+    return '<button type="button" onclick="smSelectPositioningType(\'' + t.key + '\')" '
+      + 'style="text-align:left;padding:9px 11px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .15s;'
+      + 'border:1.5px solid ' + (sel ? t.color : 'var(--sand)') + ';background:' + (sel ? t.color : 'white') + '">'
+      + '<div style="font-size:12px;font-weight:700;color:' + (sel ? 'white' : 'var(--charcoal)') + '">' + esc(t.label) + '</div>'
+      + '<div style="font-size:10px;color:' + (sel ? 'rgba(255,255,255,.85)' : 'var(--muted)') + ';line-height:1.4;margin-top:2px">' + esc(t.blurb) + '</div>'
+      + '</button>';
+  }).join('');
+  container.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' + buttons + '</div>'
+    + '<input type="hidden" id="sm-f-positioning-type" value="' + esc(selectedKey || '') + '">';
+}
+
+function smSelectPositioningType(key) {
+  var hidden  = document.getElementById('sm-f-positioning-type');
+  var current = hidden ? hidden.value : '';
+  smRenderPositioningTypePicker(current === key ? '' : key); // clicking the selected one again clears it
+  smPositioningTypeChange();
 }
 
 // ── Positioning Type → Positioning Format + Script fields ──
@@ -1408,11 +1482,11 @@ function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
   document.getElementById('sm-f-date').value    = post ? (post.scheduledDate || '') : (defaultDate || '');
   document.getElementById('sm-f-pillar').value  = post ? (post.pillar || '')        : (defaultPillar || '');
   document.getElementById('sm-f-ctype').value   = post ? (post.contentType || '')   : '';
-  document.getElementById('sm-f-topic').value   = post ? (post.topic || '')         : '';
+  smPopulatePillarTopics(post ? (post.pillar || '') : (defaultPillar || ''), post ? (post.topic || '') : '');
   document.getElementById('sm-f-angle').value   = post ? (post.angle || '')         : '';
   document.getElementById('sm-f-purpose').value = post ? (post.purpose || '')       : '';
-  document.getElementById('sm-f-funnel-stage').value      = post ? (post.funnelStage || '')      : '';
-  document.getElementById('sm-f-positioning-type').value  = post ? (post.positioningType || '')  : '';
+  smRenderFunnelStagePicker(post ? (post.funnelStage || '') : '');
+  smRenderPositioningTypePicker(post ? (post.positioningType || '') : '');
   smPopulatePositioningFormats(post ? (post.positioningType || '') : '', post ? (post.positioningFormat || '') : '');
   document.getElementById('sm-f-assign').value  = post ? (post.assignedTo || '')    : '';
   document.getElementById('sm-f-concept').value = post ? (post.concept || '')       : '';
