@@ -1179,87 +1179,91 @@ var SM_IN = function(id, type, placeholder) {
 };
 
 function smPostModal() {
-  // Left col: Title, Stage, Platform, Pillar+Type, Assigned To, Text on Screen
-  var leftCol = ''
-    + '<div>' + smLbl('Title *') + SM_IN('sm-f-title', 'text', 'Post title…') + '</div>'
+  // ── Section 1 (two columns): basic post info ──
+  var basicsSection = ''
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">'
 
-    + '<div id="sm-add-to-plan-wrap" style="display:none;background:var(--warm);border-radius:8px;padding:10px 12px">'
-    +   smLbl("Add to This Week's Plan")
-    +   '<div style="display:flex;gap:8px">'
-    +     '<select id="sm-add-to-plan-day" class="fi" style="flex:1;box-sizing:border-box">'
-    +       SM_PLAN_DAYS.map(function(d) { return '<option value="' + d + '">' + d.charAt(0).toUpperCase() + d.slice(1) + '</option>'; }).join('')
-    +     '</select>'
-    +     '<button onclick="smAddPostToPlan()" class="btn btnp" style="padding:7px 14px;font-size:12px;white-space:nowrap">Add</button>'
+    +   '<div>' + smLbl('Title *') + SM_IN('sm-f-title', 'text', 'Post title…') + '</div>'
+    +   '<div id="sm-add-to-plan-wrap" style="display:none;background:var(--warm);border-radius:8px;padding:10px 12px">'
+    +     smLbl("Add to This Week's Plan")
+    +     '<div style="display:flex;gap:8px">'
+    +       '<select id="sm-add-to-plan-day" class="fi" style="flex:1;box-sizing:border-box">'
+    +         SM_PLAN_DAYS.map(function(d) { return '<option value="' + d + '">' + d.charAt(0).toUpperCase() + d.slice(1) + '</option>'; }).join('')
+    +       '</select>'
+    +       '<button onclick="smAddPostToPlan()" class="btn btnp" style="padding:7px 14px;font-size:12px;white-space:nowrap">Add</button>'
+    +     '</div>'
     +   '</div>'
-    + '</div>'
 
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +   '<div>' + smLbl('Stage') + SM_SEL('sm-f-stage', ' onchange="smStageChange()"')
-    +     SM_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
+    +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +     '<div>' + smLbl('Stage') + SM_SEL('sm-f-stage', ' onchange="smStageChange()"')
+    +       SM_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
+    +     '</select></div>'
+    +     '<div id="sm-date-wrap" style="display:none">' + smLbl('Scheduled Date') + SM_IN('sm-f-date','date','') + '</div>'
+    +   '</div>'
+    +   '<div>' + smLbl('Content Type') + SM_SEL('sm-f-ctype') + '<option value="">— Select type —</option>'
+    +     SM_CONTENT_TYPES.map(function(t){ return '<option value="'+t+'">'+t+'</option>'; }).join('')
     +   '</select></div>'
-    +   '<div id="sm-date-wrap" style="display:none">' + smLbl('Scheduled Date') + SM_IN('sm-f-date','date','') + '</div>'
-    + '</div>'
 
-    + '<div>' + smLbl('Platform')
-    +   '<div style="display:flex;gap:16px;padding-top:3px">'
-    +   ['TikTok','Instagram'].map(function(p){
-          return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none">'
-            + '<input type="checkbox" id="sm-f-plat-'+p.toLowerCase()+'" value="'+p+'" style="width:15px;height:15px;cursor:pointer"> '+p+'</label>';
-        }).join('')
-    +   '</div></div>'
+    +   '<div>' + smLbl('Platform')
+    +     '<div style="display:flex;gap:16px;padding-top:3px">'
+    +     ['TikTok','Instagram'].map(function(p){
+            return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none">'
+              + '<input type="checkbox" id="sm-f-plat-'+p.toLowerCase()+'" value="'+p+'" style="width:15px;height:15px;cursor:pointer"> '+p+'</label>';
+          }).join('')
+    +     '</div></div>'
+    +   '<div>' + smLbl('Assigned To') + SM_SEL('sm-f-assign') + '<option value="">— Unassigned —</option>'
+    +     ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
+    +   '</select></div>'
 
-    // Content Strategy — Pillar/Type/Topic/Angle/Purpose/Funnel/Positioning grouped
-    // into one shaded panel so it reads as a single unit, not a wall of fields.
-    + '<div style="background:var(--warm);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:12px">'
+    + '</div>';
+
+  var conceptRow = '<div>' + smLbl('Concept') + SM_TA('sm-f-concept', 4, "What's the idea…") + '</div>';
+
+  // ── Section 2 (one column): Content Strategy + the Script it drives ──
+  var strategySection = ''
+    + '<div style="background:var(--warm);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">'
     +   '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase">Content Strategy</div>'
 
     +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     +     '<div>' + smLbl('Pillar') + SM_SEL('sm-f-pillar', ' onchange="smPillarChange()"') + '<option value="">— Select pillar —</option>'
     +       SM_PILLARS.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('')
     +     '</select></div>'
-    +     '<div>' + smLbl('Content Type') + SM_SEL('sm-f-ctype') + '<option value="">— Select type —</option>'
-    +       SM_CONTENT_TYPES.map(function(t){ return '<option value="'+t+'">'+t+'</option>'; }).join('')
-    +     '</select></div>'
+    +     '<div>' + smLbl('Topic') + SM_SEL('sm-f-topic') + '<option value="">— Select a Pillar first —</option></select></div>'
     +   '</div>'
 
     +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    +     '<div>' + smLbl('Topic') + SM_SEL('sm-f-topic') + '<option value="">— Select a Pillar first —</option></select></div>'
     +     '<div>' + smLbl('Angle') + SM_IN('sm-f-angle', 'text', 'e.g. Why black isn\'t always the safest option') + '</div>'
+    +     '<div>' + smLbl('Purpose') + SM_IN('sm-f-purpose', 'text', 'e.g. Attract & introduce the value of knowing your season') + '</div>'
     +   '</div>'
-
-    +   '<div>' + smLbl('Purpose') + SM_IN('sm-f-purpose', 'text', 'e.g. Attract new people and introduce the value of knowing their season') + '</div>'
 
     +   '<div style="height:1px;background:var(--sand)"></div>'
 
     +   '<div>' + smLbl('Funnel Stage') + '<div id="sm-funnel-stage-picker"></div></div>'
-
     +   '<div>' + smLbl('Positioning Type') + '<div id="sm-positioning-type-picker"></div></div>'
-
     +   '<div>' + smLbl('Positioning Format') + SM_SEL('sm-f-positioning-format') + '<option value="">— Select a Positioning Type first —</option></select></div>'
     + '</div>'
 
-    + '<div>' + smLbl('Assigned To') + SM_SEL('sm-f-assign') + '<option value="">— Unassigned —</option>'
-    +   ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
-    + '</select></div>';
+    // Script — fields adapt to the selected Positioning Type's Key Elements,
+    // so it lives right below the selections that drive it.
+    + '<div>'
+    +   smLbl('Script')
+    +   '<div id="sm-script-fields"></div>'
+    + '</div>';
 
-  // Right col: Caption, Text on Screen, Drive Link, Inspiration Links
-  var rightCol = ''
-    + '<div>' + smLbl('Caption') + SM_TA('sm-f-caption', 6, 'Caption + hashtags…') + '</div>'
-
-    + '<div>' + smLbl('Text on Screen') + SM_TA('sm-f-tos', 4, 'On-screen text…') + '</div>'
-
-    + '<div>' + smLbl('Google Drive Link') + SM_IN('sm-f-drive','text','drive.google.com/…') + '</div>'
-
-    + '<div>' + smLbl('Inspiration Links')
-    +   '<div id="sm-inspo-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>'
-    +   '<div style="display:flex;gap:6px">'
-    +     '<input id="sm-inspo-label" class="fi" placeholder="Label (optional)" style="flex:1;min-width:0;box-sizing:border-box;font-size:12px">'
-    +     '<input id="sm-inspo-url"   class="fi" placeholder="Paste URL…"       style="flex:2;min-width:0;box-sizing:border-box;font-size:12px">'
-    +     '<button onclick="smAddInspoLink()" class="btn btnp" style="padding:7px 12px;font-size:12px;white-space:nowrap;flex-shrink:0">+ Add</button>'
-    +   '</div></div>';
-
-  // Full-width bottom: Concept then Comments
-  var conceptRow = '<div>' + smLbl('Concept') + SM_TA('sm-f-concept', 5, "What's the idea…") + '</div>';
+  // ── Section 3 (two columns): caption + supporting content ──
+  var detailsSection = ''
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">'
+    +   '<div>' + smLbl('Caption') + SM_TA('sm-f-caption', 6, 'Caption + hashtags…') + '</div>'
+    +   '<div>' + smLbl('Google Drive Link') + SM_IN('sm-f-drive','text','drive.google.com/…') + '</div>'
+    +   '<div>' + smLbl('Text on Screen') + SM_TA('sm-f-tos', 4, 'On-screen text…') + '</div>'
+    +   '<div>' + smLbl('Inspiration Links')
+    +     '<div id="sm-inspo-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>'
+    +     '<div style="display:flex;gap:6px">'
+    +       '<input id="sm-inspo-label" class="fi" placeholder="Label (optional)" style="flex:1;min-width:0;box-sizing:border-box;font-size:12px">'
+    +       '<input id="sm-inspo-url"   class="fi" placeholder="Paste URL…"       style="flex:2;min-width:0;box-sizing:border-box;font-size:12px">'
+    +       '<button onclick="smAddInspoLink()" class="btn btnp" style="padding:7px 12px;font-size:12px;white-space:nowrap;flex-shrink:0">+ Add</button>'
+    +     '</div></div>'
+    + '</div>';
 
   var commentsRow = '<div id="sm-comments-section">'
     +   '<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">Comments</div>'
@@ -1278,20 +1282,15 @@ function smPostModal() {
 
     + '<div style="display:flex;flex-direction:column;gap:20px">'
 
-    // Two columns: left narrow (metadata), right wider (caption/links)
-    +   '<div style="display:grid;grid-template-columns:5fr 6fr;gap:28px;align-items:start">'
-    +     '<div style="display:flex;flex-direction:column;gap:14px">' + leftCol + '</div>'
-    +     '<div style="display:flex;flex-direction:column;gap:14px">' + rightCol + '</div>'
-    +   '</div>'
+    // Two columns → basics
+    +   basicsSection
 
-    // Full-width: Concept
+    // One column → concept, then Content Strategy + Script
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">' + conceptRow + '</div>'
+    +   '<div style="border-top:1px solid var(--warm);padding-top:18px;display:flex;flex-direction:column;gap:18px">' + strategySection + '</div>'
 
-    // Full-width: Script (fields adapt to the selected Positioning Type's Key Elements)
-    +   '<div style="border-top:1px solid var(--warm);padding-top:18px">'
-    +     smLbl('Script')
-    +     '<div id="sm-script-fields"></div>'
-    +   '</div>'
+    // Two columns → caption + supporting content
+    +   '<div style="border-top:1px solid var(--warm);padding-top:18px">' + detailsSection + '</div>'
 
     // Full-width: Comments
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">' + commentsRow + '</div>'
@@ -1358,7 +1357,7 @@ function smRenderFunnelStagePicker(selectedKey) {
       + '<div style="font-size:10px;color:' + (sel ? 'rgba(255,255,255,.85)' : 'var(--muted)') + ';line-height:1.4;margin-top:2px">' + esc(s.desc) + '</div>'
       + '</button>';
   }).join('');
-  container.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' + buttons + '</div>'
+  container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' + buttons + '</div>'
     + '<input type="hidden" id="sm-f-funnel-stage" value="' + esc(selectedKey || '') + '">';
 }
 
@@ -1380,7 +1379,7 @@ function smRenderPositioningTypePicker(selectedKey) {
       + '<div style="font-size:10px;color:' + (sel ? 'rgba(255,255,255,.85)' : 'var(--muted)') + ';line-height:1.4;margin-top:2px">' + esc(t.blurb) + '</div>'
       + '</button>';
   }).join('');
-  container.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' + buttons + '</div>'
+  container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' + buttons + '</div>'
     + '<input type="hidden" id="sm-f-positioning-type" value="' + esc(selectedKey || '') + '">';
 }
 
