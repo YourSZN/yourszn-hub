@@ -522,7 +522,7 @@ function smRenderPipeline() {
           + (platTags ? '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px">' + platTags + '</div>' : '')
           + '<div style="display:flex;align-items:center;gap:4px">'
           +   smContentTypeIcon(post.contentType)
-          +   ((post.scriptHook || post.scriptBody || post.scriptClosing || post.script) ? smScriptIcon() : '')
+          +   (smHasScript(post) ? smScriptIcon() : '')
           +   (commentCount ? '<span style="font-size:9px;color:var(--muted)">&#128172; ' + commentCount + '</span>' : '')
           + '</div>'
           + dateLine
@@ -768,7 +768,7 @@ function smIdeaGroup(pillar, posts) {
       + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">'
       +   platTags
       +   smContentTypeIcon(post.contentType)
-      +   ((post.scriptHook || post.scriptBody || post.scriptClosing || post.script) ? smScriptIcon() : '')
+      +   (smHasScript(post) ? smScriptIcon() : '')
       +   (post.assignedTo ? '<span style="font-size:9px;font-weight:700;background:var(--sand);color:var(--charcoal);padding:2px 7px;border-radius:6px">' + post.assignedTo + '</span>' : '')
       +   (isNew ? '<span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;background:#FEF3C7;color:#92400E;padding:2px 4px 2px 7px;border-radius:6px;border:1px solid #F59E0B">Updated ' + smRelTime(post.lastModified)
               + '<button onclick="event.stopPropagation();smMarkUpdateSeen(\'' + post.id + '\')" title="Mark as seen" style="background:none;border:none;color:#92400E;cursor:pointer;font-size:11px;line-height:1;padding:0 2px;opacity:.7">&#10003;</button>'
@@ -819,34 +819,101 @@ function smRenderStrategy() {
 }
 
 var SM_FUNNEL_STAGES = [
-  ['Attract',  'Stop the scroll and speak to the problem', '#C4956A'],
-  ['Nurture',  'Build trust and connection',                '#7A8C6E'],
-  ['Position', 'Show authority and proof',                  '#6366F1'],
-  ['Convert',  'Invite action with clear offers',            '#059669'],
+  { key:'attract',  label:'Attract',  desc:'Stop the scroll and speak to the problem', color:'#C4956A' },
+  { key:'nurture',  label:'Nurture',  desc:'Build trust and connection',                color:'#7A8C6E' },
+  { key:'position', label:'Position', desc:'Show authority and proof',                  color:'#6366F1' },
+  { key:'convert',  label:'Convert',  desc:'Invite action with clear offers',           color:'#059669' },
 ];
-var SM_POSITIONING_TYPES = ['Edu-Fluential', 'Perspective Shifting', 'Storytelling', 'Connection'];
+
+var SM_POSITIONING_TYPES = [
+  {
+    key:'edu_fluential', label:'Edu-Fluential', color:'#3B82F6',
+    whatItIs:'',
+    formats:['Mistakes', 'Case Studies', 'Lessons', 'Frameworks/Processes'],
+    steps:[
+      { key:'hook',     label:'Hook',            hint:'Direct, specific, and curiosity-driven.' },
+      { key:'story',    label:'Story or Context', hint:'Make it relatable or situational.' },
+      { key:'teaching', label:'Teaching Point',   hint:'Give a clear takeaway, but not the entire solution.' },
+      { key:'belief',   label:'Belief Shift',     hint:'Connect the point to why your audience needs your way.' },
+      { key:'cta',      label:'Call to Action',   hint:'Lead into your offer naturally.' }
+    ]
+  },
+  {
+    key:'perspective_shifting', label:'Perspective Shifting', color:'#F59E0B',
+    whatItIs:'This is content that hits like: "Wait… have I been thinking about this all wrong?" You\'re not just educating, you\'re confronting the thoughts, strategies, and advice that are keeping your audience stuck. It might trigger. It might polarise. But that\'s the point. It moves your audience from "this is how it\'s always done" → "I need to try your way."',
+    formats:['Myth Busting', 'Industry Norm Challengers', 'Contrarian Opinions', 'Reframes'],
+    steps:[
+      { key:'belief_before_after', label:'Before vs After Belief',       hint:'The outdated belief or common assumption (the before) and the new, empowered belief (the after).' },
+      { key:'evidence',            label:'Evidence / Logic / Experience', hint:"You're not just stating a belief, you're anchoring it in something real." },
+      { key:'tie_to_method',       label:'Tie to Your Method',            hint:"Show them why your method is the solution that actually supports the new belief." },
+      { key:'delivery',            label:'Confident Delivery',            hint:"If your energy feels shaky or apologetic, people won't trust the new belief you're offering." }
+    ]
+  },
+  {
+    key:'storytelling', label:'Storytelling', color:'#7A8C6E',
+    whatItIs:'',
+    formats:['Origin Story', 'Client Transformation Story', 'Defining Moment', 'Everyday Metaphor'],
+    steps:[
+      { key:'hook',       label:'Hook',       hint:'Grab attention with curiosity or emotion.' },
+      { key:'context',    label:'Context',    hint:'Set the scene with vivid detail.' },
+      { key:'conflict',   label:'Conflict',   hint:'Show the struggle, challenge, or decision point.' },
+      { key:'shift',      label:'Shift',      hint:'The turning point or realisation.' },
+      { key:'resolution', label:'Resolution', hint:'The outcome or result.' },
+      { key:'lesson',     label:'Lesson',     hint:"Tie it back to your audience's world and your offer." }
+    ]
+  },
+  {
+    key:'connection', label:'Connection', color:'#8B5CF6',
+    whatItIs:"Connection content is the heart of your brand, not because it's the most educational or \"value-packed,\" but because it builds emotional resonance that logic can't touch. It's the voice note energy post, the vulnerable share after a hard day, the quiet win you celebrate that reminds them you're human too, the behind-the-scenes, the messy middle, the real talk. It's not polished. It's personal. And that's why it converts.",
+    formats:['Personal Storytelling', 'Values & Beliefs', 'Relatable DITL', 'Vulnerability & Wins'],
+    steps:[
+      { key:'specific_detail',   label:'Specific, Vivid Detail',              hint:'The more specific your story, the more universal it becomes.' },
+      { key:'emotional_honesty', label:'Emotional Honesty (no oversharing)',  hint:"You're not looking for pity, you're leading with powerful relatability." },
+      { key:'shared_value',      label:'Tie to a Shared Value/Belief/Goal',   hint:'"You\'re not alone in this, and here\'s how we both win."' }
+    ]
+  }
+];
 
 function smFunnelPositioning() {
+  var funnelHtml = SM_FUNNEL_STAGES.map(function(s) {
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--warm);border-radius:8px">'
+      + '<div style="width:12px;height:12px;border-radius:50%;background:' + s.color + ';flex-shrink:0;margin-top:3px"></div>'
+      + '<div><div style="font-size:12px;font-weight:700;color:var(--charcoal)">' + s.label + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);line-height:1.5">' + s.desc + '</div></div>'
+      + '</div>';
+  }).join('');
+
+  var typesHtml = SM_POSITIONING_TYPES.map(function(t) {
+    var formatsHtml = t.formats.map(function(f) {
+      return '<span style="font-size:11px;background:white;border:1px solid var(--sand);border-radius:16px;padding:3px 11px;color:var(--charcoal);font-weight:600">' + esc(f) + '</span>';
+    }).join('');
+    var stepsHtml = t.steps.map(function(s, i) {
+      return '<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0' + (i ? ';border-top:1px solid var(--sand)' : '') + '">'
+        + '<div style="font-size:11px;font-weight:700;color:' + t.color + ';flex-shrink:0;min-width:16px">' + (i + 1) + '.</div>'
+        + '<div><div style="font-size:12px;font-weight:700;color:var(--charcoal)">' + esc(s.label) + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);line-height:1.5">' + esc(s.hint) + '</div></div>'
+        + '</div>';
+    }).join('');
+    return '<div style="border:1px solid var(--sand);border-radius:10px;padding:14px 16px;margin-bottom:12px">'
+      + '<div style="font-size:13px;font-weight:700;color:' + t.color + ';margin-bottom:' + (t.whatItIs ? '8px' : '10px') + '">' + esc(t.label) + '</div>'
+      + (t.whatItIs ? '<div style="font-size:12px;color:var(--charcoal);line-height:1.6;margin-bottom:12px">' + esc(t.whatItIs) + '</div>' : '')
+      + '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Formats</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">' + formatsHtml + '</div>'
+      + '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Key Elements</div>'
+      + stepsHtml
+      + '</div>';
+  }).join('');
+
   return '<div class="card" style="margin-bottom:16px">'
     + '<div class="ch"><div class="ct">Content Funnel & Positioning</div></div>'
     + '<div class="cb">'
     + '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Content Funnel Stages</div>'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:20px">'
-    + SM_FUNNEL_STAGES.map(function(s) {
-        return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--warm);border-radius:8px">'
-          + '<div style="width:12px;height:12px;border-radius:50%;background:' + s[2] + ';flex-shrink:0;margin-top:3px"></div>'
-          + '<div><div style="font-size:12px;font-weight:700;color:var(--charcoal)">' + s[0] + '</div>'
-          + '<div style="font-size:11px;color:var(--muted);line-height:1.5">' + s[1] + '</div></div>'
-          + '</div>';
-      }).join('')
+    + funnelHtml
     + '</div>'
     + '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Content Positioning Type</div>'
-    + '<div style="display:flex;flex-wrap:wrap;gap:8px">'
-    + SM_POSITIONING_TYPES.map(function(t) {
-        return '<span style="font-size:12px;background:var(--warm);border:1px solid var(--sand);border-radius:20px;padding:5px 14px;color:var(--charcoal);font-weight:600">' + t + '</span>';
-      }).join('')
-    + '</div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-top:10px">Choose one Funnel Stage + one Positioning Type for each piece of content.</div>'
+    + typesHtml
+    + '<div style="font-size:11px;color:var(--muted);margin-top:4px">Choose one Funnel Stage + one Positioning Type for each piece of content — set on the post itself in New/Edit Post.</div>'
     + '</div></div>';
 }
 
@@ -1105,6 +1172,17 @@ function smPostModal() {
 
     + '<div>' + smLbl('Purpose') + SM_IN('sm-f-purpose', 'text', 'e.g. Attract new people and introduce the value of knowing their season') + '</div>'
 
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +   '<div>' + smLbl('Funnel Stage') + SM_SEL('sm-f-funnel-stage') + '<option value="">— Select —</option>'
+    +     SM_FUNNEL_STAGES.map(function(s){ return '<option value="'+s.key+'">'+s.label+'</option>'; }).join('')
+    +   '</select></div>'
+    +   '<div>' + smLbl('Positioning Type') + SM_SEL('sm-f-positioning-type', ' onchange="smPositioningTypeChange()"') + '<option value="">— Select —</option>'
+    +     SM_POSITIONING_TYPES.map(function(t){ return '<option value="'+t.key+'">'+t.label+'</option>'; }).join('')
+    +   '</select></div>'
+    + '</div>'
+
+    + '<div>' + smLbl('Positioning Format') + SM_SEL('sm-f-positioning-format') + '<option value="">— Select a Positioning Type first —</option></select></div>'
+
     + '<div>' + smLbl('Assigned To') + SM_SEL('sm-f-assign') + '<option value="">— Unassigned —</option>'
     +   ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
     + '</select></div>'
@@ -1154,14 +1232,10 @@ function smPostModal() {
     // Full-width: Concept
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">' + conceptRow + '</div>'
 
-    // Full-width: Script (broken into Hook / Body / Closing)
+    // Full-width: Script (fields adapt to the selected Positioning Type's Key Elements)
     +   '<div style="border-top:1px solid var(--warm);padding-top:18px">'
     +     smLbl('Script')
-    +     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">'
-    +       '<div>' + smLbl('Hook') + SM_TA('sm-f-script-hook', 5, 'How you open…') + '</div>'
-    +       '<div>' + smLbl('Body') + SM_TA('sm-f-script-body', 5, 'The main content…') + '</div>'
-    +       '<div>' + smLbl('Closing') + SM_TA('sm-f-script-closing', 5, 'How you wrap up…') + '</div>'
-    +     '</div>'
+    +     '<div id="sm-script-fields"></div>'
     +   '</div>'
 
     // Full-width: Comments
@@ -1187,6 +1261,84 @@ function smStageChange() {
   wrap.style.display = (stage.value === 'scheduled' || stage.value === 'posted') ? 'block' : 'none';
 }
 
+// ── Positioning Type → Positioning Format + Script fields ──
+
+function smPopulatePositioningFormats(typeKey, selectedFormat) {
+  var sel = document.getElementById('sm-f-positioning-format');
+  if (!sel) return;
+  var ptDef = SM_POSITIONING_TYPES.find(function(t) { return t.key === typeKey; });
+  if (!ptDef) {
+    sel.innerHTML = '<option value="">— Select a Positioning Type first —</option>';
+    sel.value = '';
+    return;
+  }
+  sel.innerHTML = '<option value="">— Select format —</option>'
+    + ptDef.formats.map(function(f) { return '<option value="' + esc(f) + '">' + esc(f) + '</option>'; }).join('');
+  sel.value = selectedFormat || '';
+}
+
+// post: the socialPosts entry currently being edited (or null for a new post) —
+// used to pre-fill values only when its saved positioningType matches what's
+// selected right now, so switching types never destroys the other mode's data.
+function smRenderScriptFields(post) {
+  var container = document.getElementById('sm-script-fields');
+  if (!container) return;
+  var typeSel = document.getElementById('sm-f-positioning-type');
+  var typeKey = typeSel ? typeSel.value : '';
+  var ptDef   = SM_POSITIONING_TYPES.find(function(t) { return t.key === typeKey; });
+
+  var steps, values;
+  if (ptDef) {
+    steps  = ptDef.steps;
+    values = (post && post.positioningType === typeKey) ? (post.scriptSteps || {}) : {};
+  } else {
+    steps = [
+      { key:'hook',    label:'Hook',    hint:'How you open…' },
+      { key:'body',    label:'Body',    hint:'The main content…' },
+      { key:'closing', label:'Closing', hint:'How you wrap up…' }
+    ];
+    // Older posts saved before the hook/body/closing split fall back to
+    // showing their flat script in Body so nothing looks like it disappeared.
+    var hasSplitScript = post && (post.scriptHook || post.scriptBody || post.scriptClosing);
+    values = {
+      hook:    post ? (post.scriptHook || '') : '',
+      body:    post ? (hasSplitScript ? (post.scriptBody || '') : (post.script || '')) : '',
+      closing: post ? (post.scriptClosing || '') : ''
+    };
+  }
+
+  container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">'
+    + steps.map(function(s) {
+        return '<div>' + smLbl(s.label)
+          + '<textarea data-key="' + s.key + '" class="fi" rows="5" placeholder="' + esc(s.hint) + '" style="width:100%;box-sizing:border-box;resize:vertical">' + esc(values[s.key] || '') + '</textarea>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+}
+
+function smPositioningTypeChange() {
+  var typeSel = document.getElementById('sm-f-positioning-type');
+  var typeKey = typeSel ? typeSel.value : '';
+  smPopulatePositioningFormats(typeKey, '');
+  var existing = _smEditId ? socialPosts.find(function(p) { return p.id === _smEditId; }) : null;
+  smRenderScriptFields(existing);
+}
+
+function smReadScriptFields() {
+  var out = {};
+  document.querySelectorAll('#sm-script-fields [data-key]').forEach(function(el) {
+    out[el.getAttribute('data-key')] = el.value.trim();
+  });
+  return out;
+}
+
+function smHasScript(post) {
+  if (post.scriptHook || post.scriptBody || post.scriptClosing || post.script) return true;
+  var steps = post.scriptSteps;
+  if (!steps) return false;
+  return Object.keys(steps).some(function(k) { return !!steps[k]; });
+}
+
 function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
   _smEditId = id;
   var post  = id ? socialPosts.find(function(p) { return p.id === id; }) : null;
@@ -1203,17 +1355,15 @@ function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
   document.getElementById('sm-f-topic').value   = post ? (post.topic || '')         : '';
   document.getElementById('sm-f-angle').value   = post ? (post.angle || '')         : '';
   document.getElementById('sm-f-purpose').value = post ? (post.purpose || '')       : '';
+  document.getElementById('sm-f-funnel-stage').value      = post ? (post.funnelStage || '')      : '';
+  document.getElementById('sm-f-positioning-type').value  = post ? (post.positioningType || '')  : '';
+  smPopulatePositioningFormats(post ? (post.positioningType || '') : '', post ? (post.positioningFormat || '') : '');
   document.getElementById('sm-f-assign').value  = post ? (post.assignedTo || '')    : '';
   document.getElementById('sm-f-concept').value = post ? (post.concept || '')       : '';
   document.getElementById('sm-f-tos').value     = post ? (post.textOnScreen || '')  : '';
   document.getElementById('sm-f-caption').value = post ? (post.caption || '')       : '';
   document.getElementById('sm-f-drive').value   = post ? (post.driveLink || '')     : '';
-  // Hook/Body/Closing — for older posts saved before this split, fall back to
-  // showing their flat script in Body so nothing looks like it disappeared.
-  var hasSplitScript = post && (post.scriptHook || post.scriptBody || post.scriptClosing);
-  document.getElementById('sm-f-script-hook').value    = post ? (post.scriptHook || '') : '';
-  document.getElementById('sm-f-script-body').value    = post ? (hasSplitScript ? (post.scriptBody || '') : (post.script || '')) : '';
-  document.getElementById('sm-f-script-closing').value = post ? (post.scriptClosing || '') : '';
+  smRenderScriptFields(post);
 
   smRenderInspoLinks(post ? (post.inspirationLinks || []) : []);
 
@@ -1269,6 +1419,24 @@ function smSavePost() {
   var now = Date.now();
   var existing = _smEditId ? socialPosts.find(function(p) { return p.id === _smEditId; }) : null;
 
+  var positioningType = document.getElementById('sm-f-positioning-type').value;
+  var scriptFields = smReadScriptFields();
+  // Non-destructive: whichever mode (legacy Hook/Body/Closing vs. structured
+  // Key Elements) isn't currently rendered keeps its previously-saved value,
+  // so switching Positioning Type back and forth never loses the other's data.
+  var scriptHook, scriptBody, scriptClosing, scriptSteps;
+  if (positioningType) {
+    scriptHook    = existing ? (existing.scriptHook || '')    : '';
+    scriptBody    = existing ? (existing.scriptBody || '')    : '';
+    scriptClosing = existing ? (existing.scriptClosing || '') : '';
+    scriptSteps   = scriptFields;
+  } else {
+    scriptHook    = scriptFields.hook    || '';
+    scriptBody    = scriptFields.body    || '';
+    scriptClosing = scriptFields.closing || '';
+    scriptSteps   = existing ? (existing.scriptSteps || {}) : {};
+  }
+
   var obj = {
     id:           _smEditId || ('sp' + now),
     title:        title,
@@ -1280,14 +1448,18 @@ function smSavePost() {
     topic:        document.getElementById('sm-f-topic').value.trim(),
     angle:        document.getElementById('sm-f-angle').value.trim(),
     purpose:      document.getElementById('sm-f-purpose').value.trim(),
+    funnelStage:        document.getElementById('sm-f-funnel-stage').value,
+    positioningType:    positioningType,
+    positioningFormat:  document.getElementById('sm-f-positioning-format').value,
     assignedTo:   document.getElementById('sm-f-assign').value,
     concept:      document.getElementById('sm-f-concept').value.trim(),
     textOnScreen: document.getElementById('sm-f-tos').value.trim(),
     caption:      document.getElementById('sm-f-caption').value.trim(),
     driveLink:         document.getElementById('sm-f-drive').value.trim(),
-    scriptHook:        document.getElementById('sm-f-script-hook').value.trim(),
-    scriptBody:        document.getElementById('sm-f-script-body').value.trim(),
-    scriptClosing:     document.getElementById('sm-f-script-closing').value.trim(),
+    scriptHook:        scriptHook,
+    scriptBody:        scriptBody,
+    scriptClosing:     scriptClosing,
+    scriptSteps:       scriptSteps,
     inspirationLinks:  smGetInspoLinks(),
     comments:          existing ? (existing.comments || []) : _smDraftComments.slice(),
     createdAt:    existing ? (existing.createdAt || now) : now,
@@ -1296,7 +1468,7 @@ function smSavePost() {
 
   // Auto-advance out of Idea the moment a script exists — never moves a post
   // backward or touches one already further along than Idea.
-  if (obj.stage === 'idea' && (obj.scriptHook || obj.scriptBody || obj.scriptClosing)) obj.stage = 'scripted';
+  if (obj.stage === 'idea' && smHasScript(obj)) obj.stage = 'scripted';
 
   if (_smEditId) {
     var idx = socialPosts.findIndex(function(p) { return p.id === _smEditId; });
