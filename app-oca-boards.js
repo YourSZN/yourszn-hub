@@ -96,8 +96,8 @@ function renderOcaBoardExpanded() {
   // Board image with optional photo overlay
   function mkBoard(seasonName, isWinner) {
     var boardH = ocaBoardsCompare ? 'calc(100vh - 230px)' : 'calc(100vh - 200px)';
-    var maxH   = ocaBoardsCompare ? '82%' : '92%';
-    var maxW   = ocaBoardsCompare ? '55%' : '42%';
+    var maxH   = ocaBoardsCompare ? '90%' : '98%';
+    var maxW   = ocaBoardsCompare ? '65%' : '52%';
 
     return '<div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15)'+(isWinner?';outline:3px solid var(--deep)':'')+'">'
       // Board image with photo overlay
