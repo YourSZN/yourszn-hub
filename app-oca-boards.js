@@ -4,18 +4,18 @@
 
 var OCA_BOARDS_BUCKET_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/oca-report-assets';
 var OCA_SEASON_BOARD_FILES = {
-  'Light Summer':  'rectangle light summer.png',
-  'True Summer':   'rectangle true summer.png',
-  'Soft Summer':   'rectangle soft summer.png',
-  'Bright Winter': 'rectangle bright winter.png',
-  'True Winter':   'rectangle true winter.png',
-  'Dark Winter':   'rectangle dark winter.png',
-  'Soft Autumn':   'rectangle soft autumn.png',
-  'True Autumn':   'rectangle true autumn.png',
-  'Dark Autumn':   'rectangle dark autumn.png',
-  'Light Spring':  'rectangle light spring.png',
-  'True Spring':   'rectangle true spring.png',
-  'Bright Spring': 'Bright spring rectangle.png',
+  'Light Summer':  'rectangle light summer (1).png',
+  'True Summer':   'rectangle true summer (1).png',
+  'Soft Summer':   'rectangle soft summer (1).png',
+  'Bright Winter': 'rectangle bright winter (1).png',
+  'True Winter':   'rectangle true winter (1).png',
+  'Dark Winter':   'rectangle dark winter (1).png',
+  'Soft Autumn':   'rectangle soft autumn (1).png',
+  'True Autumn':   'rectangle true autumn (1).png',
+  'Dark Autumn':   'rectangle dark autumn (1).png',
+  'Light Spring':  'rectangle light spring (1).png',
+  'True Spring':   'rectangle true spring (1).png',
+  'Bright Spring': 'Bright spring rectangle (1).png',
 };
 function ocaBoardImgUrl(seasonName) {
   var file = OCA_SEASON_BOARD_FILES[seasonName];
