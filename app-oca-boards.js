@@ -1,6 +1,29 @@
 // ══ SEASON BOARDS ══
-// Visual stripe boards with client photo overlay and season comparison
+// Visual boards (pinwheel-style colour fan, cropped to a rectangle with the colours
+// radiating in from the left edge) with client photo overlay and season comparison.
 
+var OCA_BOARDS_BUCKET_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/oca-report-assets';
+var OCA_SEASON_BOARD_FILES = {
+  'Light Summer':  'rectangle light summer.png',
+  'True Summer':   'rectangle true summer.png',
+  'Soft Summer':   'rectangle soft summer.png',
+  'Bright Winter': 'rectangle bright winter.png',
+  'True Winter':   'rectangle true winter.png',
+  'Dark Winter':   'rectangle dark winter.png',
+  'Soft Autumn':   'rectangle soft autumn.png',
+  'True Autumn':   'rectangle true autumn.png',
+  'Dark Autumn':   'rectangle dark autumn.png',
+  'Light Spring':  'rectangle light spring.png',
+  'True Spring':   'rectangle true spring.png',
+  'Bright Spring': 'Bright spring rectangle.png',
+};
+function ocaBoardImgUrl(seasonName) {
+  var file = OCA_SEASON_BOARD_FILES[seasonName];
+  return file ? OCA_BOARDS_BUCKET_URL + '/' + encodeURIComponent(file) : '';
+}
+
+// Kept as reference colour data (used elsewhere for swatch lookups) — no longer drawn
+// directly now that each board is the designed pinwheel-rectangle image above.
 var OCA_SEASON_BOARDS = {
   'Soft Autumn':   ['#3D1335','#164C6E','#34897D','#3C3531','#E2D2A1','#4F4139','#B55332','#CB807F','#6D5E99','#35646D','#A29842','#455136','#889D66','#F5D67C','#6A5D51','#852A39','#2D3351','#6D5743','#F3BFB7'],
   'True Autumn':   ['#DB8646','#463720','#935322','#E8481E','#912B1C','#CA5318','#E08D6F','#9F2F22','#454887','#A29942','#465236','#889F45','#D29C4E','#675D51','#FE826C','#403854','#ED554D','#F8B53F'],
@@ -38,14 +61,12 @@ function renderOcaBoardsGrid() {
       + '<div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">' + fam.name + '</div>'
       + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">'
       + seasons.map(function(name) {
-          var colours = OCA_SEASON_BOARDS[name] || [];
           var season  = OCA_SEASONS[name];
-          var stripes = colours.map(function(h){ return '<div style="flex:1;background:'+h+'"></div>'; }).join('');
           return '<div onclick="ocaBoardsExpanded=\''+name.replace(/'/g,"\\'")+'\';ocaBoardsCompare=false;renderOca()" '
             + 'style="cursor:pointer;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:transform .15s,box-shadow .15s" '
             + 'onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 20px rgba(0,0,0,.13)\'" '
             + 'onmouseout="this.style.transform=\'\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,.08)\'">'
-            + '<div style="display:flex;height:110px">' + stripes + '</div>'
+            + '<div style="height:110px;background-image:url(\''+ocaBoardImgUrl(name)+'\');background-size:cover;background-position:left center;background-repeat:no-repeat"></div>'
             + '<div style="padding:10px 14px;background:white;border-top:1px solid #F0EAE2;display:flex;align-items:center;justify-content:space-between">'
             + '<div><div style="font-size:12px;font-weight:700;color:var(--deep)">' + name + '</div>'
             + '<div style="font-size:10px;color:var(--muted);margin-top:1px">' + (season ? season.desc : '') + '</div></div>'
@@ -72,18 +93,16 @@ function renderOcaBoardExpanded() {
       + opts + '</select>';
   }
 
-  // Stripe board with optional photo overlay
+  // Board image with optional photo overlay
   function mkBoard(seasonName, isWinner) {
-    var colours = OCA_SEASON_BOARDS[seasonName] || [];
-    var stripes = colours.map(function(h){ return '<div style="flex:1;background:'+h+'"></div>'; }).join('');
     var boardH = ocaBoardsCompare ? 'calc(100vh - 230px)' : 'calc(100vh - 200px)';
     var maxH   = ocaBoardsCompare ? '82%' : '92%';
     var maxW   = ocaBoardsCompare ? '55%' : '42%';
 
     return '<div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.15)'+(isWinner?';outline:3px solid var(--deep)':'')+'">'
-      // Stripe bar with photo overlay
+      // Board image with photo overlay
       + '<div style="position:relative;height:'+boardH+'">'
-      +   '<div style="display:flex;height:100%;position:absolute;inset:0">' + stripes + '</div>'
+      +   '<div style="height:100%;position:absolute;inset:0;background-image:url(\''+ocaBoardImgUrl(seasonName)+'\');background-size:cover;background-position:left center;background-repeat:no-repeat"></div>'
       +   (photo
             ? '<div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center">'
               + '<img src="'+photo+'" style="max-height:'+maxH+';max-width:'+maxW+';width:auto;height:auto;filter:drop-shadow(0 8px 32px rgba(0,0,0,.5))">'
