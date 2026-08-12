@@ -28,6 +28,57 @@ var SM_PILLAR_COLORS = {
   'The Your SZN World':             '#EF4444'
 };
 
+var SM_PILLAR_TOPICS = {
+  'Shopping Without the Guesswork': {
+    topics: [
+      'Shopping for your season',
+      'Brand and collection audits',
+      'How to identify colours online',
+      'Current fashion and makeup picks',
+      'Common seasonal shopping mistakes',
+      'Building a wardrobe without replacing everything',
+      'Why something looked beautiful online but wrong when you wore it'
+    ],
+    note: 'This theme can naturally lead to the app once someone knows her season.'
+  },
+  'Understanding Your Colouring': {
+    topics: [
+      'Undertone, overtone and contrast',
+      'The four seasons versus the 12-season system',
+      'Signs you may be wearing the wrong colours',
+      'Celebrity colour comparisons',
+      'Hair and makeup choices',
+      'Why free quizzes can give conflicting results',
+      'How professional analysis works'
+    ],
+    note: 'This theme creates demand for your online and in-person analysis.'
+  },
+  'Real Colour Transformations': {
+    topics: [
+      'Client session recordings',
+      'Before & after comparisons',
+      'Client reactions and discoveries',
+      'What changed after learning their season',
+      'Reviews and testimonials',
+      'Common client misconceptions',
+      'How you reached a client’s final result'
+    ],
+    note: 'This is your proof, nurture and trust-building theme.'
+  },
+  'The Your SZN World': {
+    topics: [
+      'Your expertise and opinions',
+      'Your own experiences with colour and style',
+      'Building the app',
+      'Behind the scenes of sessions and pop-ups',
+      'The tailoring tour',
+      'Trends you agree or disagree with',
+      'Your founder journey and business decisions'
+    ],
+    note: ''
+  }
+};
+
 // Old 5-pillar names → new 4-theme names, so existing saved posts and plan
 // entries keep their category instead of falling through to "Uncategorised".
 var SM_PILLAR_MIGRATION = {
@@ -1085,14 +1136,23 @@ function smStrategyCard(platform, subtitle, schedule, standalone) {
 function smStrategyPillars() {
   return '<div class="card" style="margin-bottom:16px">'
     + '<div class="ch"><div class="ct">Content Pillars</div></div>'
-    + '<div class="cb" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">'
+    + '<div class="cb" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start">'
     + SM_PILLARS.map(function(p) {
         var col   = SM_PILLAR_COLORS[p];
         var count = socialPosts.filter(function(sp) { return sp.pillar === p; }).length;
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--warm);border-radius:8px">'
-          + '<div style="width:12px;height:12px;border-radius:50%;background:' + col + ';flex-shrink:0"></div>'
-          + '<div><div style="font-size:12px;font-weight:600;color:var(--charcoal)">' + p + '</div>'
-          + '<div style="font-size:11px;color:var(--muted)">' + count + ' post' + (count !== 1 ? 's' : '') + '</div></div>'
+        var info  = SM_PILLAR_TOPICS[p] || { topics: [], note: '' };
+        var topicsHtml = info.topics.map(function(t) {
+          return '<li style="font-size:12px;color:var(--charcoal);line-height:1.5;padding-left:15px;position:relative">'
+            + '<span style="position:absolute;left:0;color:' + col + '">→</span>' + esc(t) + '</li>';
+        }).join('');
+        return '<div style="padding:12px 14px;background:var(--warm);border-radius:8px">'
+          + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+          +   '<div style="width:12px;height:12px;border-radius:50%;background:' + col + ';flex-shrink:0"></div>'
+          +   '<div><div style="font-size:13px;font-weight:700;color:var(--charcoal)">' + esc(p) + '</div>'
+          +   '<div style="font-size:11px;color:var(--muted)">' + count + ' post' + (count !== 1 ? 's' : '') + '</div></div>'
+          + '</div>'
+          + (topicsHtml ? '<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px">' + topicsHtml + '</ul>' : '')
+          + (info.note ? '<div style="font-size:11px;color:var(--muted);font-style:italic;line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px solid var(--sand)">' + esc(info.note) + '</div>' : '')
           + '</div>';
       }).join('')
     + '</div></div>';
