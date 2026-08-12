@@ -81,6 +81,22 @@ var OCA_R2_SHARED_LAYOUT = {
     left:  { defaultX: 275.9, defaultYTop: 621.1 },
     right: { defaultX: 332.9, defaultYTop: 620.6 },
   },
+  // On these pages, the template's own small-cutout placeholder box is measurably larger
+  // than the coloured square it's meant to sit inside (confirmed via direct PDF geometry
+  // inspection, not assumption — the photo placeholder and its decorative square backdrop
+  // were sized independently in the source Canva file), so a plain cover-fit swap makes
+  // the photo spill outside the square on every cell. Each group's frac is the square's
+  // position as a fraction of the oversized box (fx0,fy0 = top-left, fx1,fy1 = bottom-
+  // right; PyMuPDF top-left-origin convention, same as the rest of this file), measured
+  // per page (median across every cell on that page) and confirmed identical across
+  // seasons. Deliberately excludes page 5 ("Cool vs Warm") — its per-cell variance is too
+  // high (~10% spread) for one page-level fraction to fit every cell cleanly; that page
+  // keeps the plain cover-fit behaviour rather than risk an inconsistent-looking fix.
+  squareContainGroups: [
+    { pages: [3],      frac: { fx0: -0.0535, fy0: 0.0484, fx1: 1.025,  fy1: 0.9023 } },
+    { pages: [8, 9],   frac: { fx0: 0.0686,  fy0: 0.1113, fx1: 0.9609, fy1: 0.7879 } },
+    { pages: [14, 15], frac: { fx0: 0.0727,  fy0: 0.1121, fx1: 0.965,  fy1: 0.7887 } },
+  ],
 };
 
 function ocaR2DefineSeason(label, templatePath, overrides) {
@@ -494,6 +510,38 @@ async function ocaR2BuildFitCanvas(dataUrl, targetAspect, fit, padColor) {
   return canvas;
 }
 
+// Builds a cutout canvas for pages where the template's own photo placeholder box is
+// larger than the coloured square it's meant to sit inside (see squareContainGroups).
+// Since the placeholder's own draw position/size can't be changed — only which image it
+// references — this bakes the correct positioning into the image itself: a canvas the
+// same shape as the oversized box, transparent everywhere except the square's own
+// fractional region, where the whole photo is contain-fit (never cropped, just shrunk to
+// fit). Once swapped in, the transparent margin reveals the coloured square drawn
+// underneath instead of the photo spilling past its edges.
+async function ocaR2BuildSquareContainedCanvas(dataUrl, boxDims, frac) {
+  var img = await new Promise(function(resolve, reject) {
+    var el = new Image();
+    el.onload = function(){ resolve(el); };
+    el.onerror = reject;
+    el.src = dataUrl;
+  });
+  var sw = img.naturalWidth, sh = img.naturalHeight;
+  var canvas = document.createElement('canvas');
+  canvas.width = boxDims.w * 2; canvas.height = boxDims.h * 2; // 2x for a bit of headroom
+  var ctx = canvas.getContext('2d');
+
+  var sqX0 = frac.fx0 * canvas.width, sqY0 = frac.fy0 * canvas.height;
+  var sqX1 = frac.fx1 * canvas.width, sqY1 = frac.fy1 * canvas.height;
+  var sqW = sqX1 - sqX0, sqH = sqY1 - sqY0;
+  var sqAspect = sqW / sqH;
+  var srcAspect = sw / sh;
+  var drawW, drawH;
+  if (srcAspect > sqAspect) { drawW = sqW; drawH = sqW / srcAspect; }
+  else { drawH = sqH; drawW = sqH * srcAspect; }
+  ctx.drawImage(img, sqX0 + (sqW - drawW) / 2, sqY0 + (sqH - drawH) / 2, drawW, drawH);
+  return canvas;
+}
+
 // pdf-lib's drawImage always stretches the whole embedded image to exactly fill the
 // given width/height — it never crops or letterboxes on its own. Every slot in the
 // template is a fixed aspect ratio, so without doing one of those first, an uploaded
@@ -599,8 +647,24 @@ async function ocaR2BuildBaseBytes() {
   var cutoutAspect = season.cutoutDims.w / season.cutoutDims.h; // large cutout is the same ratio, shares this canvas
   var cutoutCanvas = await ocaR2BuildFitCanvas(r.photoCutout, cutoutAspect); // cover-fit, stays transparent — the per-cell colour has to show through around it
   var cutoutImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(cutoutCanvas.toDataURL('image/png')));
-  ocaR2SwapAllPages(pdfDoc, season.cutoutDims.w, season.cutoutDims.h, cutoutImg.ref);
+  var squareGroups = season.squareContainGroups || [];
+  var squarePages = squareGroups.reduce(function(acc, g){ return acc.concat(g.pages); }, []);
+  var normalPageIndices = null;
+  if (squarePages.length) {
+    var totalPages = pdfDoc.getPages().length;
+    normalPageIndices = [];
+    for (var pi = 0; pi < totalPages; pi++) {
+      if (squarePages.indexOf(pi) === -1) normalPageIndices.push(pi);
+    }
+  }
+  ocaR2SwapOnPages(pdfDoc, normalPageIndices, season.cutoutDims.w, season.cutoutDims.h, cutoutImg.ref);
   ocaR2SwapAllPages(pdfDoc, season.cutoutDimsLarge.w, season.cutoutDimsLarge.h, cutoutImg.ref);
+  for (var gi = 0; gi < squareGroups.length; gi++) {
+    var group = squareGroups[gi];
+    var groupCanvas = await ocaR2BuildSquareContainedCanvas(r.photoCutout, season.cutoutDims, group.frac);
+    var groupImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(groupCanvas.toDataURL('image/png')));
+    ocaR2SwapOnPages(pdfDoc, group.pages, season.cutoutDims.w, season.cutoutDims.h, groupImg.ref);
+  }
 
   // Cover and Contrast photos: the template just leaves this area blank now (no
   // placeholder image to swap into), so draw the uploaded photo straight onto the page —
