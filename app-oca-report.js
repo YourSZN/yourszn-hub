@@ -702,11 +702,12 @@ async function ocaR2BuildBaseBytes() {
   }
 
   // Season-intro page (the "face" slot) sits on a colourful rainbow-striped background,
-  // same as the swatch-grid pages — it needs the transparent cover-fit cutout treatment,
-  // not white padding, or the rainbow gets replaced by a hard-edged white box.
+  // same as the swatch-grid pages — contain-fit with no padColor keeps the canvas
+  // transparent so the rainbow shows through in the margins, and (just as importantly)
+  // never crops the client's face the way a cover-fit box-fill would.
   var faceDims = season.photoSlots.face;
   var faceDataUrl = r.photoFace || r.photoCutout;
-  var faceImg = await ocaR2EmbedPhoto(pdfDoc, faceDataUrl, faceDims.w / faceDims.h);
+  var faceImg = await ocaR2EmbedPhoto(pdfDoc, faceDataUrl, faceDims.w / faceDims.h, 'contain');
   ocaR2SwapOnPages(pdfDoc, null, faceDims.w, faceDims.h, faceImg.ref);
 
   var slotMap = [
