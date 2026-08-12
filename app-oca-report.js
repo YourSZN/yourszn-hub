@@ -81,6 +81,9 @@ var OCA_R2_SHARED_LAYOUT = {
     left:  { defaultX: 275.9, defaultYTop: 621.1 },
     right: { defaultX: 332.9, defaultYTop: 620.6 },
   },
+  // Cool-vs-Warm, Gold-vs-Silver, Warm/Cool Seasons and Sister Seasons — each shows several
+  // individually-sized client-photo comparisons (see ocaR2SwapComparisonPhotos).
+  comparisonPages: [6, 7, 10, 11, 12],
 };
 
 function ocaR2DefineSeason(label, templatePath, overrides) {
@@ -573,6 +576,75 @@ function ocaR2SwapOnPages(pdfDoc, pageIndices, targetW, targetH, newImageRef) {
   return total;
 }
 
+// Some pages (Warm Seasons, Cool Seasons, Gold vs Silver, Sister Seasons) show several
+// small client-photo comparisons where each cell is its own individually-sized crop —
+// there's no single shared (w,h) to match like the main cutout grids use, and the exact
+// sizes vary per season. Rather than hand-measuring every one of these per season, this
+// discovers them at runtime: collect every image on the page, drop the ones already
+// known/handled (cutout, face, etc.), and swap everything left EXCEPT the single largest
+// remaining size — that's always the page's own fixed decorative banner photo, since
+// every comparison cell is a client photo and the banner is reliably the biggest image.
+function ocaR2CollectPageImages(pdfDoc, pageIndex) {
+  var PDFName = PDFLib.PDFName;
+  var pages = pdfDoc.getPages();
+  var page = pages[pageIndex];
+  if (!page) return [];
+  var resources = page.node.Resources();
+  if (!resources) return [];
+  var xobjDict = resources.lookup(PDFName.of('XObject'));
+  var out = [];
+  function walk(dict, visited) {
+    if (!dict) return;
+    var entries = dict.entries();
+    for (var i = 0; i < entries.length; i++) {
+      var name = entries[i][0], ref = entries[i][1];
+      var refKey = ref.toString();
+      var obj = pdfDoc.context.lookup(ref);
+      if (!obj || !obj.dict) continue;
+      var subtype = obj.dict.get(PDFName.of('Subtype'));
+      var subtypeStr = subtype && subtype.toString();
+      if (subtypeStr === '/Image') {
+        var width = obj.dict.get(PDFName.of('Width'));
+        var height = obj.dict.get(PDFName.of('Height'));
+        var w = width && (width.numberValue !== undefined ? width.numberValue : width.value);
+        var h = height && (height.numberValue !== undefined ? height.numberValue : height.value);
+        out.push({ dict: dict, name: name, w: w, h: h });
+      } else if (subtypeStr === '/Form') {
+        if (visited.has(refKey)) continue;
+        visited.add(refKey);
+        var formResources = obj.dict.get(PDFName.of('Resources'));
+        var formResDict = formResources ? pdfDoc.context.lookup(formResources) : null;
+        if (formResDict) {
+          var nestedXobj = formResDict.get(PDFName.of('XObject'));
+          var nestedXobjDict = nestedXobj ? pdfDoc.context.lookup(nestedXobj) : null;
+          walk(nestedXobjDict, visited);
+        }
+      }
+    }
+  }
+  walk(xobjDict, new Set());
+  return out;
+}
+
+function ocaR2SwapComparisonPhotos(pdfDoc, pageIndices, newImageRef, excludeDims) {
+  var total = 0;
+  pageIndices.forEach(function(pageIndex) {
+    var imgs = ocaR2CollectPageImages(pdfDoc, pageIndex);
+    if (!imgs.length) return;
+    var candidates = imgs.filter(function(im) {
+      return !excludeDims.some(function(d) { return d.w === im.w && d.h === im.h; });
+    });
+    if (!candidates.length) return;
+    var maxArea = Math.max.apply(null, candidates.map(function(im){ return im.w * im.h; }));
+    candidates.forEach(function(im) {
+      if (im.w * im.h === maxArea) return; // skip the largest-area size — the page's banner
+      im.dict.set(im.name, newImageRef);
+      total++;
+    });
+  });
+  return total;
+}
+
 function ocaR2SetStatus(msg) {
   var el = document.getElementById('oca-r2-status');
   if (el) el.textContent = msg;
@@ -601,6 +673,10 @@ async function ocaR2BuildBaseBytes() {
   var cutoutImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(cutoutCanvas.toDataURL('image/png')));
   ocaR2SwapAllPages(pdfDoc, season.cutoutDims.w, season.cutoutDims.h, cutoutImg.ref);
   ocaR2SwapAllPages(pdfDoc, season.cutoutDimsLarge.w, season.cutoutDimsLarge.h, cutoutImg.ref);
+  if (season.comparisonPages && season.comparisonPages.length) {
+    var excludeDims = [season.cutoutDims, season.cutoutDimsLarge].concat(Object.keys(season.photoSlots).map(function(k){ return season.photoSlots[k]; }));
+    ocaR2SwapComparisonPhotos(pdfDoc, season.comparisonPages, cutoutImg.ref, excludeDims);
+  }
 
   // Cover and Contrast photos: the template just leaves this area blank now (no
   // placeholder image to swap into), so draw the uploaded photo straight onto the page —
