@@ -15,20 +15,42 @@ var SM_STAGES = [
 ];
 
 var SM_PILLARS = [
-  'Personal Expertise & Opinions',
-  'Colour Education',
-  'Shopping By Season',
-  'Client Sessions',
-  'Static Posts'
+  'Shopping Without the Guesswork',
+  'Understanding Your Colouring',
+  'Real Colour Transformations',
+  'The Your SZN World'
 ];
 
 var SM_PILLAR_COLORS = {
-  'Personal Expertise & Opinions': '#EF4444',
-  'Colour Education':               '#3B82F6',
-  'Shopping By Season':             '#22C55E',
-  'Client Sessions':                '#8B5CF6',
-  'Static Posts':                   '#F97316'
+  'Shopping Without the Guesswork': '#22C55E',
+  'Understanding Your Colouring':   '#3B82F6',
+  'Real Colour Transformations':    '#8B5CF6',
+  'The Your SZN World':             '#EF4444'
 };
+
+// Old 5-pillar names → new 4-theme names, so existing saved posts and plan
+// entries keep their category instead of falling through to "Uncategorised".
+var SM_PILLAR_MIGRATION = {
+  'Personal Expertise & Opinions': 'The Your SZN World',
+  'Colour Education':              'Understanding Your Colouring',
+  'Shopping By Season':            'Shopping Without the Guesswork',
+  'Client Sessions':               'Real Colour Transformations',
+  'Static Posts':                  'Shopping Without the Guesswork'
+};
+
+function smMigratePillars() {
+  var changed = false;
+  socialPosts.forEach(function(p) {
+    if (p.pillar && SM_PILLAR_MIGRATION[p.pillar]) { p.pillar = SM_PILLAR_MIGRATION[p.pillar]; changed = true; }
+  });
+  Object.keys(smWeekPlan).forEach(function(wk) {
+    Object.keys(smWeekPlan[wk]).forEach(function(dayKey) {
+      var day = smWeekPlan[wk][dayKey];
+      if (day && day.pillar && SM_PILLAR_MIGRATION[day.pillar]) { day.pillar = SM_PILLAR_MIGRATION[day.pillar]; changed = true; }
+    });
+  });
+  if (changed) saveData();
+}
 
 var SM_CONTENT_TYPES = ['Quick Chat', 'Reel', 'Carousel', 'Quick Comparisons', 'Review/Overlays', 'Celebrity Analysis', 'Consultation'];
 var SM_PLAN_ACTIONS  = ['Save', 'Follow', 'Comment', 'Share', 'Shop / Buy', 'DM Me', 'Book a Session', 'Visit Link in Bio', 'Sign Up', 'Try It'];
@@ -61,13 +83,13 @@ var SM_PLAN_DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
 
 // Default pillar per day — user can override per week
 var SM_PLAN_DEFAULTS = {
-  mon: { pillar:'Personal Expertise & Opinions', format:'' },
-  tue: { pillar:'Colour Education',               format:'' },
-  wed: { pillar:'Client Sessions',                format:'' },
-  thu: { pillar:'Shopping By Season',             format:'' },
-  fri: { pillar:'Static Posts',                   format:'Carousel' },
-  sat: { pillar:'Personal Expertise & Opinions',  format:'' },
-  sun: { pillar:'Static Posts',                   format:'Carousel' }
+  mon: { pillar:'The Your SZN World',             format:'' },
+  tue: { pillar:'Understanding Your Colouring',   format:'' },
+  wed: { pillar:'Real Colour Transformations',    format:'' },
+  thu: { pillar:'Shopping Without the Guesswork', format:'' },
+  fri: { pillar:'Shopping Without the Guesswork', format:'Carousel' },
+  sat: { pillar:'The Your SZN World',             format:'' },
+  sun: { pillar:'Understanding Your Colouring',   format:'Carousel' }
 };
 
 function smPlanWeekKey(off) {
@@ -361,6 +383,7 @@ function smRelTime(ts) {
 
 // ── Main page render ──
 function renderSocialPage() {
+  smMigratePillars();
   smSeedIdeas();
   var el = document.getElementById('social-page-content'); if (!el) return;
 
@@ -767,21 +790,21 @@ function smSetIdeaFilter(f) {
 
 function smRenderStrategy() {
   var tiktokSched = [
-    ['Monday',    'Personal Expertise & Opinions'],
-    ['Tuesday',   'Colour Education'],
-    ['Wednesday', 'Client Session (long)'],
-    ['Thursday',  'Shopping By Season (series)'],
-    ['Friday',    'Client Session (snippet)'],
-    ['Saturday',  'Personal Expertise & Opinions (or Celebrity Analysis)'],
-    ['Sunday',    'Client Session (long)'],
+    ['Monday',    'The Your SZN World'],
+    ['Tuesday',   'Understanding Your Colouring'],
+    ['Wednesday', 'Real Colour Transformations (long)'],
+    ['Thursday',  'Shopping Without the Guesswork (series)'],
+    ['Friday',    'Real Colour Transformations (snippet)'],
+    ['Saturday',  'The Your SZN World (or Celebrity Analysis)'],
+    ['Sunday',    'Real Colour Transformations (long)'],
   ];
   var igSched = [
-    ['Monday',    'Personal Expertise & Opinions'],
-    ['Tuesday',   'Colour Education'],
-    ['Wednesday', 'Client Session (long)'],
-    ['Thursday',  'Shopping By Season (series)'],
+    ['Monday',    'The Your SZN World'],
+    ['Tuesday',   'Understanding Your Colouring'],
+    ['Wednesday', 'Real Colour Transformations (long)'],
+    ['Thursday',  'Shopping Without the Guesswork (series)'],
     ['Friday',    'Carousel'],
-    ['Saturday',  'Personal Expertise & Opinions (or Celebrity Analysis)'],
+    ['Saturday',  'The Your SZN World (or Celebrity Analysis)'],
     ['Sunday',    'Carousel'],
   ];
 
@@ -1075,6 +1098,13 @@ function smPostModal() {
     +   '</select></div>'
     + '</div>'
 
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +   '<div>' + smLbl('Topic') + SM_IN('sm-f-topic', 'text', 'e.g. Common shopping mistakes') + '</div>'
+    +   '<div>' + smLbl('Angle') + SM_IN('sm-f-angle', 'text', 'e.g. Why black isn\'t always the safest option') + '</div>'
+    + '</div>'
+
+    + '<div>' + smLbl('Purpose') + SM_IN('sm-f-purpose', 'text', 'e.g. Attract new people and introduce the value of knowing their season') + '</div>'
+
     + '<div>' + smLbl('Assigned To') + SM_SEL('sm-f-assign') + '<option value="">— Unassigned —</option>'
     +   ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
     + '</select></div>'
@@ -1170,6 +1200,9 @@ function smOpenModal(id, defaultStage, defaultDate, defaultPillar) {
   document.getElementById('sm-f-date').value    = post ? (post.scheduledDate || '') : (defaultDate || '');
   document.getElementById('sm-f-pillar').value  = post ? (post.pillar || '')        : (defaultPillar || '');
   document.getElementById('sm-f-ctype').value   = post ? (post.contentType || '')   : '';
+  document.getElementById('sm-f-topic').value   = post ? (post.topic || '')         : '';
+  document.getElementById('sm-f-angle').value   = post ? (post.angle || '')         : '';
+  document.getElementById('sm-f-purpose').value = post ? (post.purpose || '')       : '';
   document.getElementById('sm-f-assign').value  = post ? (post.assignedTo || '')    : '';
   document.getElementById('sm-f-concept').value = post ? (post.concept || '')       : '';
   document.getElementById('sm-f-tos').value     = post ? (post.textOnScreen || '')  : '';
@@ -1244,6 +1277,9 @@ function smSavePost() {
     platform:     platforms,
     pillar:       document.getElementById('sm-f-pillar').value,
     contentType:  document.getElementById('sm-f-ctype').value,
+    topic:        document.getElementById('sm-f-topic').value.trim(),
+    angle:        document.getElementById('sm-f-angle').value.trim(),
+    purpose:      document.getElementById('sm-f-purpose').value.trim(),
     assignedTo:   document.getElementById('sm-f-assign').value,
     concept:      document.getElementById('sm-f-concept').value.trim(),
     textOnScreen: document.getElementById('sm-f-tos').value.trim(),
@@ -1712,88 +1748,88 @@ function smDeleteAnalyticsEntry(id) {
 
 var SM_SEED_IDEAS = [
   // ── Content ideas ──
-  { id:'seed_1',  pillar:'Colour Education',               contentType:'Carousel',  title:'Brands that do colour analysis right',             concept:'As a professional colour analyst it tickles my brain in the best way when brands dress their models in their season… [brand] is a great example of that… continue with examples of specific brands + models.' },
-  { id:'seed_2',  pillar:'Client Sessions',                contentType:'Carousel',  title:"My client's style before/after colour analysis",    concept:'Get past clients to send before styled/outfit pics and after. Show side-by-side transformation.' },
-  { id:'seed_3',  pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Why copying celebrity outfits rarely works',        concept:"If you've gone on Pinterest and tried to replicate a celebrity's outfit because you have the same features as them and it just hasn't worked… explain why features alone don't account for season." },
-  { id:'seed_4',  pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Shopping right after your colour analysis may be harder before it gets easier',  concept:'Walk through the transition period — then plug the app at the end: "this is why I\'ve made it easier for you…"' },
-  { id:'seed_5',  pillar:'Shopping By Season',             contentType:'Reel',      title:"Where I'd be shopping my [season] staples right now", concept:'Series format — swap out [season] each video. Show specific pieces from specific stores.' },
-  { id:'seed_6',  pillar:'Colour Education',               contentType:'Reel',      title:"If you're a big black wearer… navy may actually suit you better", concept:'Show examples of who this applies to. Can extend to lipstick shades, sunglasses shades etc. Simple specific change, profound outcome.' },
-  { id:'seed_7',  pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'If you buy clothes because they look good on the model…', concept:"How often have you returned them? If you shop without taking the model's features into account and just think the outfit is fire because of them… explain why this fails." },
-  { id:'seed_8',  pillar:'Colour Education',               contentType:'Quick Chat', title:'Problems olive skin girls know too well',           concept:'Relatable hook for olive-toned people. Frustrations, mismatch moments, and the colour analysis solution.' },
-  { id:'seed_9',  pillar:'Colour Education',               contentType:'Quick Chat', title:'Problems cool-toned brunettes know too well',       concept:'Relatable hook for cool-toned brunettes. Same structure as olive skin post.' },
-  { id:'seed_10', pillar:'Colour Education',               contentType:'Reel',      title:'White tee and jeans is the cool girl vibe… but could I convince you to try off-white?', concept:'Talk about who suits beige instead of white and what that does for someone chasing the clean/model-off-duty aesthetic. Show examples.' },
-  { id:'seed_11', pillar:'Colour Education',               contentType:'Reel',      title:'Your [undertone] matters more than the trend',      concept:'Series! Swap [undertone] for another word. Break down current trends/patterns — e.g. zebra print is all the rage right now, who does it work for and who does it not work for?' },
-  { id:'seed_12', pillar:'Colour Education',               contentType:'Quick Chat', title:'If you want your teeth to look whiter, your makeup should reflect your season', concept:'Catchy hook — test grabs like this. Explain the link between season and which shades brighten vs dull the smile.' },
-  { id:'seed_13', pillar:'Client Sessions',                contentType:'Carousel',  title:'What [colour] do you think my client looks best in?', concept:'Screenshot colour swatches. Eliminate until you get to the end and explain as you go. Interactive/poll format.' },
-  { id:'seed_14', pillar:'Shopping By Season',             contentType:'Carousel',  title:'How to tell if a colour is warm or cool when shopping online', concept:'Practical guide — what to look for in product photos, descriptions and swatches when you can\'t see it in person.' },
-  { id:'seed_15', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Colour analysis can save you money',               concept:"You'll stop buying those tops you said 'I'll wear them for an event' about but never reach for because deep down you know you wouldn't always wear them." },
+  { id:'seed_1',  pillar:'Understanding Your Colouring',               contentType:'Carousel',  title:'Brands that do colour analysis right',             concept:'As a professional colour analyst it tickles my brain in the best way when brands dress their models in their season… [brand] is a great example of that… continue with examples of specific brands + models.' },
+  { id:'seed_2',  pillar:'Real Colour Transformations',                contentType:'Carousel',  title:"My client's style before/after colour analysis",    concept:'Get past clients to send before styled/outfit pics and after. Show side-by-side transformation.' },
+  { id:'seed_3',  pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Why copying celebrity outfits rarely works',        concept:"If you've gone on Pinterest and tried to replicate a celebrity's outfit because you have the same features as them and it just hasn't worked… explain why features alone don't account for season." },
+  { id:'seed_4',  pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Shopping right after your colour analysis may be harder before it gets easier',  concept:'Walk through the transition period — then plug the app at the end: "this is why I\'ve made it easier for you…"' },
+  { id:'seed_5',  pillar:'Shopping Without the Guesswork',             contentType:'Reel',      title:"Where I'd be shopping my [season] staples right now", concept:'Series format — swap out [season] each video. Show specific pieces from specific stores.' },
+  { id:'seed_6',  pillar:'Understanding Your Colouring',               contentType:'Reel',      title:"If you're a big black wearer… navy may actually suit you better", concept:'Show examples of who this applies to. Can extend to lipstick shades, sunglasses shades etc. Simple specific change, profound outcome.' },
+  { id:'seed_7',  pillar:'The Your SZN World',  contentType:'Quick Chat', title:'If you buy clothes because they look good on the model…', concept:"How often have you returned them? If you shop without taking the model's features into account and just think the outfit is fire because of them… explain why this fails." },
+  { id:'seed_8',  pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'Problems olive skin girls know too well',           concept:'Relatable hook for olive-toned people. Frustrations, mismatch moments, and the colour analysis solution.' },
+  { id:'seed_9',  pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'Problems cool-toned brunettes know too well',       concept:'Relatable hook for cool-toned brunettes. Same structure as olive skin post.' },
+  { id:'seed_10', pillar:'Understanding Your Colouring',               contentType:'Reel',      title:'White tee and jeans is the cool girl vibe… but could I convince you to try off-white?', concept:'Talk about who suits beige instead of white and what that does for someone chasing the clean/model-off-duty aesthetic. Show examples.' },
+  { id:'seed_11', pillar:'Understanding Your Colouring',               contentType:'Reel',      title:'Your [undertone] matters more than the trend',      concept:'Series! Swap [undertone] for another word. Break down current trends/patterns — e.g. zebra print is all the rage right now, who does it work for and who does it not work for?' },
+  { id:'seed_12', pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'If you want your teeth to look whiter, your makeup should reflect your season', concept:'Catchy hook — test grabs like this. Explain the link between season and which shades brighten vs dull the smile.' },
+  { id:'seed_13', pillar:'Real Colour Transformations',                contentType:'Carousel',  title:'What [colour] do you think my client looks best in?', concept:'Screenshot colour swatches. Eliminate until you get to the end and explain as you go. Interactive/poll format.' },
+  { id:'seed_14', pillar:'Shopping Without the Guesswork',             contentType:'Carousel',  title:'How to tell if a colour is warm or cool when shopping online', concept:'Practical guide — what to look for in product photos, descriptions and swatches when you can\'t see it in person.' },
+  { id:'seed_15', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Colour analysis can save you money',               concept:"You'll stop buying those tops you said 'I'll wear them for an event' about but never reach for because deep down you know you wouldn't always wear them." },
   // ── Compilations ──
-  { id:'seed_16', pillar:'Client Sessions',                contentType:'Reel',      title:'My face when the client picks the exact colours I knew they\'d hate', concept:'Compilation — clips of bad reactions, max 3 secs each.' },
-  { id:'seed_17', pillar:'Client Sessions',                contentType:'Reel',      title:"I'll never get over watching a client discover their season", concept:'Compilation — clips of positive reactions, max 3 secs each.' },
-  { id:'seed_18', pillar:'Client Sessions',                contentType:'Reel',      title:"Me figuring out how I'm going to break it to my clients when they don't see that these are their worst colours", concept:'Compilation — clips of the opposite reactions you expected them to have, max 3 secs each.' },
+  { id:'seed_16', pillar:'Real Colour Transformations',                contentType:'Reel',      title:'My face when the client picks the exact colours I knew they\'d hate', concept:'Compilation — clips of bad reactions, max 3 secs each.' },
+  { id:'seed_17', pillar:'Real Colour Transformations',                contentType:'Reel',      title:"I'll never get over watching a client discover their season", concept:'Compilation — clips of positive reactions, max 3 secs each.' },
+  { id:'seed_18', pillar:'Real Colour Transformations',                contentType:'Reel',      title:"Me figuring out how I'm going to break it to my clients when they don't see that these are their worst colours", concept:'Compilation — clips of the opposite reactions you expected them to have, max 3 secs each.' },
   // ── Tyla batch 2 ──
-  { id:'seed_19', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'If I had $300 to spend at [Brand] as a Soft Autumn',                    concept:'Walk through a specific budget shop at a brand (swap out the brand each time). Show exactly which pieces and why they work for that season.' },
-  { id:'seed_20', pillar:'Colour Education',               contentType:'Quick Chat', title:'The reason "wrong" colours make you look tired',                         concept:'Colour reflects back onto the skin. Green undertones can emphasise redness, yellow can exaggerate sallowness, grey can drain warmth… elaborate with examples.' },
-  { id:'seed_21', pillar:'Shopping By Season',             contentType:'Reel',       title:'Shopping for a light summer palette in winter — [3] stores doing it right now', concept:'Shopping for a light summer palette isn\'t easy during the winter months… but there are [3] stores doing it well right now: list them out.' },
-  { id:'seed_22', pillar:'Static Posts',                   contentType:'Reel',       title:'"This look" — recreating a seasonal inspo look as a chatty 30-45 sec video', concept:'Summer colour palettes can be tricky to shop for when winter shopping comes around, but I\'m making that easier for you… show the pinterest inspo (pic overlay), then the look you\'ve put together (overlay on top, like on IG). Say where the pieces are from first, THEN go into the value-based notes of your caption. Can end on: "i\'ve just opened more virtual online colour analysis spots if you\'d like to know your season!"' },
-  { id:'seed_23', pillar:'Shopping By Season',             contentType:'Reel',       title:'MECCA haul — blush & eyeshadow palettes by season',                     concept:'MECCA: Blush and eyeshadow palettes. This would be major — break down which shades work for which seasons.' },
-  { id:'seed_24', pillar:'Client Sessions',                contentType:'Reel',       title:'Compilation of clients\' BEST reactions',                               concept:'Compilation — one clip of a best/most positive client reaction per client. Max 3 secs each.' },
-  { id:'seed_25', pillar:'Static Posts',                   contentType:'Carousel',   title:'"You\'re probably a light summer if…" series',                          concept:'"You\'re probably a light summer if…" series — can be done for each season, maybe one a week. Static carousel format.' },
-  { id:'seed_26', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'The difference between "that colour is pretty" and "that colour SUUUITS YOU"', concept:'Explain the difference between objectively liking a colour vs it actually suiting your season. This could also be used as text on screen for a client if you\'re showing the difference.' },
-  { id:'seed_27', pillar:'Colour Education',               contentType:'Quick Chat', title:'Online colour analysis — why your phone can pick up what your eyes can\'t', concept:'If you\'ve been hesitant on online colour analysis, your phone/camera can actually pick up colour inconsistencies that your eyes adapt to in real life. It can work surprisingly well with the right lighting/photos, and if you have a comprehensive follow-up like mine. Maybe insert screenshot.' },
-  { id:'seed_28', pillar:'Shopping By Season',             contentType:'Reel',       title:'Shopping my season at [Store] — gym clothes, Portmans new arrivals, new releases', concept:'Series format — swap out the store and category each time. Specific picks: gym clothes, Portmans brand-specific new arrivals, new releases.' },
-  { id:'seed_29', pillar:'Client Sessions',                contentType:'Reel',       title:'Compilation of clients\' WORST reactions',                              concept:'Compilation — one clip of a client\'s worst/most unexpected reaction per client. Max 3 secs each.' },
-  { id:'seed_30', pillar:'Static Posts',                   contentType:'Quick Chat', title:'Hot takes: colour analyst edition',                                     concept:'Share unpopular opinions or surprising insights from a colour analyst\'s perspective. Punchy, opinionated format.' },
-  { id:'seed_31', pillar:'Shopping By Season',             contentType:'Reel',       title:'I analysed the new [Brand] collection so you don\'t have to',           concept:'New collection review — break down which pieces work for which seasons so your audience doesn\'t have to do the work. Swap out [Brand] each time.' },
-  { id:'seed_32', pillar:'Client Sessions',                contentType:'Reel',       title:'One-off client clips',                                                  concept:'One-off standout clips from client sessions — interesting moments, reactions, or discoveries that don\'t fit a compilation.' },
-  { id:'seed_33', pillar:'Client Sessions',                contentType:'Reel',       title:'Short before/afters',                                                   concept:'Short before/after clips from client sessions showing the colour transformation. Quick and punchy.' },
+  { id:'seed_19', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'If I had $300 to spend at [Brand] as a Soft Autumn',                    concept:'Walk through a specific budget shop at a brand (swap out the brand each time). Show exactly which pieces and why they work for that season.' },
+  { id:'seed_20', pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'The reason "wrong" colours make you look tired',                         concept:'Colour reflects back onto the skin. Green undertones can emphasise redness, yellow can exaggerate sallowness, grey can drain warmth… elaborate with examples.' },
+  { id:'seed_21', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'Shopping for a light summer palette in winter — [3] stores doing it right now', concept:'Shopping for a light summer palette isn\'t easy during the winter months… but there are [3] stores doing it well right now: list them out.' },
+  { id:'seed_22', pillar:'Shopping Without the Guesswork',                   contentType:'Reel',       title:'"This look" — recreating a seasonal inspo look as a chatty 30-45 sec video', concept:'Summer colour palettes can be tricky to shop for when winter shopping comes around, but I\'m making that easier for you… show the pinterest inspo (pic overlay), then the look you\'ve put together (overlay on top, like on IG). Say where the pieces are from first, THEN go into the value-based notes of your caption. Can end on: "i\'ve just opened more virtual online colour analysis spots if you\'d like to know your season!"' },
+  { id:'seed_23', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'MECCA haul — blush & eyeshadow palettes by season',                     concept:'MECCA: Blush and eyeshadow palettes. This would be major — break down which shades work for which seasons.' },
+  { id:'seed_24', pillar:'Real Colour Transformations',                contentType:'Reel',       title:'Compilation of clients\' BEST reactions',                               concept:'Compilation — one clip of a best/most positive client reaction per client. Max 3 secs each.' },
+  { id:'seed_25', pillar:'Understanding Your Colouring',                   contentType:'Carousel',   title:'"You\'re probably a light summer if…" series',                          concept:'"You\'re probably a light summer if…" series — can be done for each season, maybe one a week. Static carousel format.' },
+  { id:'seed_26', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'The difference between "that colour is pretty" and "that colour SUUUITS YOU"', concept:'Explain the difference between objectively liking a colour vs it actually suiting your season. This could also be used as text on screen for a client if you\'re showing the difference.' },
+  { id:'seed_27', pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'Online colour analysis — why your phone can pick up what your eyes can\'t', concept:'If you\'ve been hesitant on online colour analysis, your phone/camera can actually pick up colour inconsistencies that your eyes adapt to in real life. It can work surprisingly well with the right lighting/photos, and if you have a comprehensive follow-up like mine. Maybe insert screenshot.' },
+  { id:'seed_28', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'Shopping my season at [Store] — gym clothes, Portmans new arrivals, new releases', concept:'Series format — swap out the store and category each time. Specific picks: gym clothes, Portmans brand-specific new arrivals, new releases.' },
+  { id:'seed_29', pillar:'Real Colour Transformations',                contentType:'Reel',       title:'Compilation of clients\' WORST reactions',                              concept:'Compilation — one clip of a client\'s worst/most unexpected reaction per client. Max 3 secs each.' },
+  { id:'seed_30', pillar:'The Your SZN World',                   contentType:'Quick Chat', title:'Hot takes: colour analyst edition',                                     concept:'Share unpopular opinions or surprising insights from a colour analyst\'s perspective. Punchy, opinionated format.' },
+  { id:'seed_31', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'I analysed the new [Brand] collection so you don\'t have to',           concept:'New collection review — break down which pieces work for which seasons so your audience doesn\'t have to do the work. Swap out [Brand] each time.' },
+  { id:'seed_32', pillar:'Real Colour Transformations',                contentType:'Reel',       title:'One-off client clips',                                                  concept:'One-off standout clips from client sessions — interesting moments, reactions, or discoveries that don\'t fit a compilation.' },
+  { id:'seed_33', pillar:'Real Colour Transformations',                contentType:'Reel',       title:'Short before/afters',                                                   concept:'Short before/after clips from client sessions showing the colour transformation. Quick and punchy.' },
   // ── Carousel ideas batch ──
-  // Personal Expertise & Opinions
-  { id:'seed_34', pillar:'Personal Expertise & Opinions',  contentType:'Reel',       title:'Season-based club content (green screen inspired by the clubs I created)', concept:'Film a video/green screen inspired by the season-based clubs you created. Show the concept and why it works.' },
-  { id:'seed_35', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'What nobody warns you about dealing with [specific problem] clients',       concept:'Some people just want confirmation that the colours they like suit them — in reality, often they are wrong. Share what it\'s really like to navigate that.' },
-  { id:'seed_36', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'AI colour analysis vs virtual/online colour analysis — what\'s the difference?', concept:'Break down the difference between AI-generated colour analysis and a real virtual/online session. What each can and can\'t do.' },
-  { id:'seed_37', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'"Why does this outfit make her look tired, but this one makes her glow?" Celebrity edition', concept:'Celebrity edition — can be shoot, edited, and scheduled in advance. Pick a celeb and contrast two outfits to show the colour theory at play.' },
-  { id:'seed_38', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Comments and opinions on a trending celeb look of the week',               concept:'React to a specific trending celeb look in real-time (e.g. Selena Gomez\'s look in London). Should be shot, edited and posted within that week.' },
-  { id:'seed_39', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'"What I would advise [celeb]\'s stylist"',                                 concept:'Pick a celebrity and advise their stylist — what season they are, what\'s working, what isn\'t, and what would suit them better.' },
-  { id:'seed_40', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'"Look younger with these tips" — a colour analyst take',                   concept:'Colour analyst perspective on the tips that actually work for looking younger. Tie it back to season and which shades are ageing vs brightening.' },
-  { id:'seed_41', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Hair theory and colour theory — more effective when you know your season',  concept:'How hair colour theory and seasonal colour theory overlap. Why knowing your season makes hair decisions easier and more effective.' },
-  { id:'seed_42', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Dressing up will change your life <last minute>',                          concept:'The impact of dressing intentionally vs grabbing whatever fits. Last-minute angle — what knowing your season does when you\'re getting ready fast.' },
-  { id:'seed_43', pillar:'Personal Expertise & Opinions',  contentType:'Carousel',   title:'Colour and patterns combo each season',                                     concept:'Show which pattern styles and colour combinations work best for each season. Visual carousel format.' },
-  { id:'seed_44', pillar:'Personal Expertise & Opinions',  contentType:'Carousel',   title:'Colour combos for each season',                                             concept:'A breakdown of the best colour pairings for each season — what works and why. Visual carousel.' },
-  { id:'seed_45', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'If you told me 3 years ago I\'d be wearing pastel yellow… I wouldn\'t have believed you', concept:'Personal story of evolving into your season palette. Relatable for people who haven\'t embraced their colours yet.' },
-  { id:'seed_46', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'"My fave look" celebrity edition',                                          concept:'Share your personal favourite celebrity look and break down WHY it works from a colour analysis perspective. Use inspo images.' },
-  { id:'seed_47', pillar:'Personal Expertise & Opinions',  contentType:'Carousel',   title:'Colour pairings — inspo',                                                   concept:'Colour pairing inspo post — show combinations that work beautifully together and which seasons they suit.' },
-  { id:'seed_48', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Why I stopped buying clothes I never wear',                                  concept:'Personal story — the shift that happens when you know your season and shop intentionally. Relatable hook.' },
-  { id:'seed_49', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Things I do differently now that I know my colours',                        concept:'Before vs after knowing your season — specific habits that changed. Relatable and actionable.' },
-  { id:'seed_50', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'Honest question… how many unworn pieces do you have in your wardrobe?',      concept:'Hook with a question. Lead into how knowing your season solves the unworn-clothes problem.' },
-  { id:'seed_51', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'The moment I realised I\'d been shopping for the wrong person',              concept:'Personal realisation story — shopping for who you want to be vs who you actually are. Season analysis as the turning point.' },
-  { id:'seed_52', pillar:'Personal Expertise & Opinions',  contentType:'Quick Chat', title:'What changed when I stopped buying what I liked and started buying what suited me', concept:'The mindset shift from "do I like this?" to "does this suit me?" and how colour analysis made that click.' },
-  // Colour Education
-  { id:'seed_53', pillar:'Colour Education',               contentType:'Carousel',   title:'Patterns for the seasons — 3 steps: Colour, Contrast, Style',               concept:'Educational carousel breaking down how to approach patterns for your season in 3 steps: picking the right colour, applying contrast correctly, and styling it.' },
-  { id:'seed_54', pillar:'Colour Education',               contentType:'Quick Chat', title:'If you\'re a winter still wearing dark colours top to toe — you need to apply contrast', concept:'If you\'re a winter and wearing dark colours head to toe, YOU NEED TO BE APPLYING CONTRAST. Explain why and show examples.' },
-  { id:'seed_55', pillar:'Colour Education',               contentType:'Quick Chat', title:'Do you like it? Do you wear it? — if you have to guess, you probably haven\'t', concept:'"Do you like it? Do you wear it? If you have to guess... chances are you haven\'t worn it for months or even ever." The colour analysis solution.' },
-  { id:'seed_56', pillar:'Colour Education',               contentType:'Quick Chat', title:'"Colour blocking is boring" — rebuttal',                                    concept:'Push back on the idea that colour blocking is boring. Show how seasonal colour blocking is actually stunning and easy to do.' },
-  { id:'seed_57', pillar:'Colour Education',               contentType:'Carousel',   title:'Intensifiers & enhancers — what they are and how to use them',               concept:'Educational post explaining colour intensifiers and enhancers — what they do to your look and how to apply the concept to your season.' },
-  { id:'seed_58', pillar:'Colour Education',               contentType:'Carousel',   title:'Monochromatic colours — how to do it for your season',                       concept:'Educational breakdown of monochromatic dressing by season. How to nail a tonal look without looking washed out.' },
-  { id:'seed_59', pillar:'Colour Education',               contentType:'Carousel',   title:'What is colour value?',                                                      concept:'Educational explainer on colour value (lightness/darkness scale) and why it matters for your season.' },
-  { id:'seed_60', pillar:'Colour Education',               contentType:'Carousel',   title:'What is colour chroma?',                                                     concept:'Educational explainer on chroma (saturation/intensity) and how it affects which colours suit your season.' },
-  { id:'seed_61', pillar:'Colour Education',               contentType:'Carousel',   title:'What is colour temperature?',                                                concept:'Educational explainer on warm vs cool colour temperature and how it relates to seasonal colour analysis.' },
-  { id:'seed_62', pillar:'Colour Education',               contentType:'Carousel',   title:'What is a tint?',                                                            concept:'Educational explainer on tints (colours mixed with white) and which seasons they suit.' },
-  { id:'seed_63', pillar:'Colour Education',               contentType:'Quick Chat', title:'What is contrast and how do you find yours?',                                 concept:'Explain colour contrast in seasonal analysis — high vs low contrast, and how to identify your natural contrast level to dress accordingly.' },
-  { id:'seed_64', pillar:'Colour Education',               contentType:'Carousel',   title:'What is shade?',                                                             concept:'Educational explainer on shades (colours mixed with black) and which seasons can wear them without looking drained.' },
-  { id:'seed_65', pillar:'Colour Education',               contentType:'Carousel',   title:'What is tone?',                                                              concept:'Educational explainer on tones (colours mixed with grey) and how they apply to muted/soft seasonal palettes.' },
-  // Shopping By Season
-  { id:'seed_66', pillar:'Shopping By Season',             contentType:'Reel',       title:'Colour combos I like for each season (with green screen)',                   concept:'Use green screen to show colour combo swatches for each season. Visual and shareable format.' },
-  { id:'seed_67', pillar:'Shopping By Season',             contentType:'Quick Chat', title:'Imagine if you could shop for your season without searching for hours',       concept:'Hook: "Imagine if you could shop for your season, without having to search for hours finding the right colours" — then mention the app as the solution.' },
-  { id:'seed_68', pillar:'Shopping By Season',             contentType:'Reel',       title:'Window shop with me by season / Shop with me as a Light Summer',             concept:'Series format — window shopping or in-store shopping as a specific season. Show the picks and why they work. Swap out season each time.' },
-  { id:'seed_69', pillar:'Shopping By Season',             contentType:'Reel',       title:'Light summer clothes/makeup haul',                                           concept:'Haul-style video for light summer palette — clothes and makeup. Show the pieces, explain why they work for the season.' },
-  { id:'seed_70', pillar:'Shopping By Season',             contentType:'Reel',       title:'Do this with light summer stuff — from makeup to outfits to accessories',    concept:'Show how to style light summer season across all categories: makeup, outfits, accessories. Use inspo as a reference.' },
-  // Static Posts / Carousels
-  { id:'seed_71', pillar:'Static Posts',                   contentType:'Reel',       title:'Recreate this Pinterest look with me — for each season',                    concept:'Series — pick a Pinterest look and recreate it for a specific season. Show the inspo, your take, and why it works. Can repeat for each season.' },
-  { id:'seed_72', pillar:'Static Posts',                   contentType:'Carousel',   title:'Colour edits — e.g. Yellows for each season',                               concept:'Static carousel showing how the same colour (e.g. yellow) looks different across seasons — from pale lemon for lights to deep ochre for darks.' },
-  { id:'seed_73', pillar:'Static Posts',                   contentType:'Carousel',   title:'"Know your prints" each season',                                             concept:'A guide to which print styles (floral, geometric, animal print etc.) suit each season and why — based on scale, contrast, and colour.' },
-  { id:'seed_74', pillar:'Static Posts',                   contentType:'Carousel',   title:'Building a wardrobe that actually works each season',                        concept:'Practical carousel guide — the capsule wardrobe approach for each season. What to invest in, what to avoid, and how to build intentionally.' },
-  { id:'seed_75', pillar:'Static Posts',                   contentType:'Carousel',   title:'Signs you have a cool/warm undertone',                                       concept:'Visual guide to identifying cool vs warm undertones — the signs to look for in skin, hair, and eye colour. Clear and shareable.' },
+  // The Your SZN World
+  { id:'seed_34', pillar:'The Your SZN World',  contentType:'Reel',       title:'Season-based club content (green screen inspired by the clubs I created)', concept:'Film a video/green screen inspired by the season-based clubs you created. Show the concept and why it works.' },
+  { id:'seed_35', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'What nobody warns you about dealing with [specific problem] clients',       concept:'Some people just want confirmation that the colours they like suit them — in reality, often they are wrong. Share what it\'s really like to navigate that.' },
+  { id:'seed_36', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'AI colour analysis vs virtual/online colour analysis — what\'s the difference?', concept:'Break down the difference between AI-generated colour analysis and a real virtual/online session. What each can and can\'t do.' },
+  { id:'seed_37', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'"Why does this outfit make her look tired, but this one makes her glow?" Celebrity edition', concept:'Celebrity edition — can be shoot, edited, and scheduled in advance. Pick a celeb and contrast two outfits to show the colour theory at play.' },
+  { id:'seed_38', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Comments and opinions on a trending celeb look of the week',               concept:'React to a specific trending celeb look in real-time (e.g. Selena Gomez\'s look in London). Should be shot, edited and posted within that week.' },
+  { id:'seed_39', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'"What I would advise [celeb]\'s stylist"',                                 concept:'Pick a celebrity and advise their stylist — what season they are, what\'s working, what isn\'t, and what would suit them better.' },
+  { id:'seed_40', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'"Look younger with these tips" — a colour analyst take',                   concept:'Colour analyst perspective on the tips that actually work for looking younger. Tie it back to season and which shades are ageing vs brightening.' },
+  { id:'seed_41', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Hair theory and colour theory — more effective when you know your season',  concept:'How hair colour theory and seasonal colour theory overlap. Why knowing your season makes hair decisions easier and more effective.' },
+  { id:'seed_42', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Dressing up will change your life <last minute>',                          concept:'The impact of dressing intentionally vs grabbing whatever fits. Last-minute angle — what knowing your season does when you\'re getting ready fast.' },
+  { id:'seed_43', pillar:'The Your SZN World',  contentType:'Carousel',   title:'Colour and patterns combo each season',                                     concept:'Show which pattern styles and colour combinations work best for each season. Visual carousel format.' },
+  { id:'seed_44', pillar:'The Your SZN World',  contentType:'Carousel',   title:'Colour combos for each season',                                             concept:'A breakdown of the best colour pairings for each season — what works and why. Visual carousel.' },
+  { id:'seed_45', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'If you told me 3 years ago I\'d be wearing pastel yellow… I wouldn\'t have believed you', concept:'Personal story of evolving into your season palette. Relatable for people who haven\'t embraced their colours yet.' },
+  { id:'seed_46', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'"My fave look" celebrity edition',                                          concept:'Share your personal favourite celebrity look and break down WHY it works from a colour analysis perspective. Use inspo images.' },
+  { id:'seed_47', pillar:'The Your SZN World',  contentType:'Carousel',   title:'Colour pairings — inspo',                                                   concept:'Colour pairing inspo post — show combinations that work beautifully together and which seasons they suit.' },
+  { id:'seed_48', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Why I stopped buying clothes I never wear',                                  concept:'Personal story — the shift that happens when you know your season and shop intentionally. Relatable hook.' },
+  { id:'seed_49', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Things I do differently now that I know my colours',                        concept:'Before vs after knowing your season — specific habits that changed. Relatable and actionable.' },
+  { id:'seed_50', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'Honest question… how many unworn pieces do you have in your wardrobe?',      concept:'Hook with a question. Lead into how knowing your season solves the unworn-clothes problem.' },
+  { id:'seed_51', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'The moment I realised I\'d been shopping for the wrong person',              concept:'Personal realisation story — shopping for who you want to be vs who you actually are. Season analysis as the turning point.' },
+  { id:'seed_52', pillar:'The Your SZN World',  contentType:'Quick Chat', title:'What changed when I stopped buying what I liked and started buying what suited me', concept:'The mindset shift from "do I like this?" to "does this suit me?" and how colour analysis made that click.' },
+  // Understanding Your Colouring
+  { id:'seed_53', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'Patterns for the seasons — 3 steps: Colour, Contrast, Style',               concept:'Educational carousel breaking down how to approach patterns for your season in 3 steps: picking the right colour, applying contrast correctly, and styling it.' },
+  { id:'seed_54', pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'If you\'re a winter still wearing dark colours top to toe — you need to apply contrast', concept:'If you\'re a winter and wearing dark colours head to toe, YOU NEED TO BE APPLYING CONTRAST. Explain why and show examples.' },
+  { id:'seed_55', pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'Do you like it? Do you wear it? — if you have to guess, you probably haven\'t', concept:'"Do you like it? Do you wear it? If you have to guess... chances are you haven\'t worn it for months or even ever." The colour analysis solution.' },
+  { id:'seed_56', pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'"Colour blocking is boring" — rebuttal',                                    concept:'Push back on the idea that colour blocking is boring. Show how seasonal colour blocking is actually stunning and easy to do.' },
+  { id:'seed_57', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'Intensifiers & enhancers — what they are and how to use them',               concept:'Educational post explaining colour intensifiers and enhancers — what they do to your look and how to apply the concept to your season.' },
+  { id:'seed_58', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'Monochromatic colours — how to do it for your season',                       concept:'Educational breakdown of monochromatic dressing by season. How to nail a tonal look without looking washed out.' },
+  { id:'seed_59', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'What is colour value?',                                                      concept:'Educational explainer on colour value (lightness/darkness scale) and why it matters for your season.' },
+  { id:'seed_60', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'What is colour chroma?',                                                     concept:'Educational explainer on chroma (saturation/intensity) and how it affects which colours suit your season.' },
+  { id:'seed_61', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'What is colour temperature?',                                                concept:'Educational explainer on warm vs cool colour temperature and how it relates to seasonal colour analysis.' },
+  { id:'seed_62', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'What is a tint?',                                                            concept:'Educational explainer on tints (colours mixed with white) and which seasons they suit.' },
+  { id:'seed_63', pillar:'Understanding Your Colouring',               contentType:'Quick Chat', title:'What is contrast and how do you find yours?',                                 concept:'Explain colour contrast in seasonal analysis — high vs low contrast, and how to identify your natural contrast level to dress accordingly.' },
+  { id:'seed_64', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'What is shade?',                                                             concept:'Educational explainer on shades (colours mixed with black) and which seasons can wear them without looking drained.' },
+  { id:'seed_65', pillar:'Understanding Your Colouring',               contentType:'Carousel',   title:'What is tone?',                                                              concept:'Educational explainer on tones (colours mixed with grey) and how they apply to muted/soft seasonal palettes.' },
+  // Shopping Without the Guesswork
+  { id:'seed_66', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'Colour combos I like for each season (with green screen)',                   concept:'Use green screen to show colour combo swatches for each season. Visual and shareable format.' },
+  { id:'seed_67', pillar:'Shopping Without the Guesswork',             contentType:'Quick Chat', title:'Imagine if you could shop for your season without searching for hours',       concept:'Hook: "Imagine if you could shop for your season, without having to search for hours finding the right colours" — then mention the app as the solution.' },
+  { id:'seed_68', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'Window shop with me by season / Shop with me as a Light Summer',             concept:'Series format — window shopping or in-store shopping as a specific season. Show the picks and why they work. Swap out season each time.' },
+  { id:'seed_69', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'Light summer clothes/makeup haul',                                           concept:'Haul-style video for light summer palette — clothes and makeup. Show the pieces, explain why they work for the season.' },
+  { id:'seed_70', pillar:'Shopping Without the Guesswork',             contentType:'Reel',       title:'Do this with light summer stuff — from makeup to outfits to accessories',    concept:'Show how to style light summer season across all categories: makeup, outfits, accessories. Use inspo as a reference.' },
+  // (formerly Static Posts — redistributed across the 4 themes)
+  { id:'seed_71', pillar:'Shopping Without the Guesswork',                   contentType:'Reel',       title:'Recreate this Pinterest look with me — for each season',                    concept:'Series — pick a Pinterest look and recreate it for a specific season. Show the inspo, your take, and why it works. Can repeat for each season.' },
+  { id:'seed_72', pillar:'Understanding Your Colouring',                   contentType:'Carousel',   title:'Colour edits — e.g. Yellows for each season',                               concept:'Static carousel showing how the same colour (e.g. yellow) looks different across seasons — from pale lemon for lights to deep ochre for darks.' },
+  { id:'seed_73', pillar:'Shopping Without the Guesswork',                   contentType:'Carousel',   title:'"Know your prints" each season',                                             concept:'A guide to which print styles (floral, geometric, animal print etc.) suit each season and why — based on scale, contrast, and colour.' },
+  { id:'seed_74', pillar:'Shopping Without the Guesswork',                   contentType:'Carousel',   title:'Building a wardrobe that actually works each season',                        concept:'Practical carousel guide — the capsule wardrobe approach for each season. What to invest in, what to avoid, and how to build intentionally.' },
+  { id:'seed_75', pillar:'Understanding Your Colouring',                   contentType:'Carousel',   title:'Signs you have a cool/warm undertone',                                       concept:'Visual guide to identifying cool vs warm undertones — the signs to look for in skin, hair, and eye colour. Clear and shareable.' },
 ];
 
 function smSeedIdeas() {
