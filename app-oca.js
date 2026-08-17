@@ -1681,12 +1681,12 @@ function ocaMetalClearVotes() {
 
 function renderOcaMetals() {
   var drapes = [
-    {key:'silver_glitter', name:'Silver / White Gold',       defaultY:270},
-    {key:'silver_satin',   name:'Matte Silver / White Gold', defaultY:270},
-    {key:'gold_foil',      name:'14-24ct Yellow Gold',       defaultY:300},
-    {key:'gold_matte',     name:'Matte Yellow Gold',         defaultY:300},
-    {key:'rich_gold',      name:'Rich Gold',                 defaultY:300},
-    {key:'copper',         name:'Copper',                    defaultY:300}
+    {key:'silver_glitter', name:'Silver / White Gold',       defaultY:260},
+    {key:'silver_satin',   name:'Matte Silver / White Gold', defaultY:260},
+    {key:'gold_foil',      name:'14-24ct Yellow Gold',       defaultY:280},
+    {key:'gold_matte',     name:'Matte Yellow Gold',         defaultY:280},
+    {key:'rich_gold',      name:'Rich Gold',                 defaultY:280},
+    {key:'copper',         name:'Copper',                    defaultY:280}
   ];
 
   // ── Tally bar ──
@@ -1714,12 +1714,12 @@ function renderOcaMetals() {
     // for a normally-scaled face) landing on the nose/mouth instead of the neck.
     var faceTag = ocaPhoto
       ? '<img id="metal-face-' + d.key + '" src="' + ocaPhoto + '" '
-        + 'style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:58%;z-index:1;pointer-events:none">'
+        + 'style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:46%;z-index:1;pointer-events:none">'
       : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#e8e4e0;z-index:1;pointer-events:none">'
         + '<span style="font-size:13px;color:#aaa">Upload photo above</span></div>';
 
     return '<div style="flex:1;min-width:0;display:flex;flex-direction:column">'
-      + '<div id="metal-panel-' + d.key + '" style="position:relative;height:460px;overflow:hidden;background:#e8e4e0">'
+      + '<div id="metal-panel-' + d.key + '" style="position:relative;height:560px;overflow:hidden;background:#e8e4e0">'
       + faceTag
       + '<img id="metal-drape-' + d.key + '" src="' + OCA_IMG[d.key] + '" '
       + 'style="position:absolute;left:' + pos.x + 'px;top:' + pos.y + 'px;width:100%;z-index:2;cursor:move;user-select:none;touch-action:none" '
