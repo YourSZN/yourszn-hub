@@ -1681,12 +1681,12 @@ function ocaMetalClearVotes() {
 
 function renderOcaMetals() {
   var drapes = [
-    {key:'silver_glitter', name:'Silver / White Gold',       defaultY:220},
-    {key:'silver_satin',   name:'Matte Silver / White Gold', defaultY:220},
-    {key:'gold_foil',      name:'14-24ct Yellow Gold',       defaultY:250},
-    {key:'gold_matte',     name:'Matte Yellow Gold',         defaultY:250},
-    {key:'rich_gold',      name:'Rich Gold',                 defaultY:250},
-    {key:'copper',         name:'Copper',                    defaultY:250}
+    {key:'silver_glitter', name:'Silver / White Gold',       defaultY:270},
+    {key:'silver_satin',   name:'Matte Silver / White Gold', defaultY:270},
+    {key:'gold_foil',      name:'14-24ct Yellow Gold',       defaultY:300},
+    {key:'gold_matte',     name:'Matte Yellow Gold',         defaultY:300},
+    {key:'rich_gold',      name:'Rich Gold',                 defaultY:300},
+    {key:'copper',         name:'Copper',                    defaultY:300}
   ];
 
   // ── Tally bar ──
@@ -1708,14 +1708,18 @@ function renderOcaMetals() {
   function drapeCard(d) {
     var pos = ocaMetalPos[d.key] || {x:0, y:d.defaultY};
     var starred = !!ocaMetalVotes[d.key];
+    // Whole-photo, natural aspect (width only, no forced height/object-fit) — a
+    // fixed narrow-tall box here used to force a heavy cover-fit zoom that
+    // cropped straight to hairline-to-eyebrows, leaving the drape (positioned
+    // for a normally-scaled face) landing on the nose/mouth instead of the neck.
     var faceTag = ocaPhoto
       ? '<img id="metal-face-' + d.key + '" src="' + ocaPhoto + '" '
-        + 'style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:50%;height:80%;object-fit:cover;object-position:center top;z-index:1;pointer-events:none">'
+        + 'style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:58%;z-index:1;pointer-events:none">'
       : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#e8e4e0;z-index:1;pointer-events:none">'
         + '<span style="font-size:13px;color:#aaa">Upload photo above</span></div>';
 
     return '<div style="flex:1;min-width:0;display:flex;flex-direction:column">'
-      + '<div id="metal-panel-' + d.key + '" style="position:relative;height:700px;overflow:hidden;background:#e8e4e0">'
+      + '<div id="metal-panel-' + d.key + '" style="position:relative;height:460px;overflow:hidden;background:#e8e4e0">'
       + faceTag
       + '<img id="metal-drape-' + d.key + '" src="' + OCA_IMG[d.key] + '" '
       + 'style="position:absolute;left:' + pos.x + 'px;top:' + pos.y + 'px;width:100%;z-index:2;cursor:move;user-select:none;touch-action:none" '
