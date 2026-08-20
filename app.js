@@ -1186,19 +1186,29 @@ function setTS(t, off, field, val) {
   if (!taskWeekState[wk][t.id]) taskWeekState[wk][t.id] = {status:'not-started', hrsTaken:0, staffNotes:''};
   taskWeekState[wk][t.id][field] = val;
 }
-// setTS() above only mutates the task object directly for one-off tasks
-// (daily/weekly tasks store per-week state in taskWeekState instead) — this
-// persists that direct mutation to the tasks table. Call it after any setTS()
-// on a one-off task; harmless no-op otherwise.
-function persistOneOffTaskFields(t) {
-  if (!t || t.freq === 'daily' || t.freq === 'weekly') return;
-  var db = getSupa(); if (!db) return;
-  db.from('tasks').update({
-    status: t.status, hrs_taken: t.hrsTaken, staff_notes: t.staffNotes,
-    updated_at: new Date().toISOString()
-  }).eq('id', t.id).then(function(res) {
-    if (res && res.error) console.error('YourSZN: task status save failed', res.error.message);
-  });
+// Persists whatever setTS() just changed — one-off tasks store status/hours/
+// notes directly on the task row (tasks table); daily/weekly tasks store it
+// per-week (task_week_state table, one row per week+task). Call this once
+// after any setTS() call(s) on a task, with the same `off` used there.
+function persistTaskStatus(t, off) {
+  var db = getSupa(); if (!db || !t) return;
+  if (t.freq === 'daily' || t.freq === 'weekly') {
+    var s = getTS(t, off);
+    db.from('task_week_state').upsert({
+      week_key: weekKey(off), task_id: t.id,
+      status: s.status||'not-started', hrs_taken: s.hrsTaken||0, staff_notes: s.staffNotes||'',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'week_key,task_id' }).then(function(res) {
+      if (res && res.error) console.error('YourSZN: task week state save failed', res.error.message);
+    });
+  } else {
+    db.from('tasks').update({
+      status: t.status, hrs_taken: t.hrsTaken, staff_notes: t.staffNotes,
+      updated_at: new Date().toISOString()
+    }).eq('id', t.id).then(function(res) {
+      if (res && res.error) console.error('YourSZN: task status save failed', res.error.message);
+    });
+  }
 }
 function isHiddenThisWeek(taskId, off) {
   var wk = weekKey(off);
@@ -1216,7 +1226,7 @@ function quickCycleStatus(taskId, weekOff) {
   var cur = getTS(t, weekOff).status || 'not-started';
   var next = cur === 'not-started' ? 'in-progress' : cur === 'in-progress' ? 'done' : 'not-started';
   setTS(t, weekOff, 'status', next);
-  persistOneOffTaskFields(t);
+  persistTaskStatus(t, weekOff);
   debouncedSave();
   renderTaskBoard();
 }
@@ -1574,6 +1584,8 @@ async function saveTask() {
     is_template: isTemplate
   };
   var db = getSupa();
+  var isNewTask = !editingTaskId; // captured now — editingTaskId is a mutable global that
+                                   // could change before the async upsert below resolves
   if (editingTaskId) {
     var existing = tasks.find(function(x){ return x.id===editingTaskId; });
     if (existing) { obj.hrsTaken=existing.hrsTaken||existing.hrs_taken||0; obj.staffNotes=existing.staffNotes||existing.staff_notes||''; }
@@ -1585,6 +1597,7 @@ async function saveTask() {
       setTS(updated, taskWeekOff, 'status', obj.status);
       setTS(updated, taskWeekOff, 'hrsTaken', obj.hrsTaken);
       setTS(updated, taskWeekOff, 'staffNotes', obj.staffNotes);
+      persistTaskStatus(updated, taskWeekOff);
     }
 
   } else {
@@ -1596,9 +1609,10 @@ obj.id = crypto.randomUUID();
     }
 
   }
-  // Tasks save straight to the tasks table (per-row) rather than through the
-  // shared blob — see saveData()'s note. taskNotifs/taskWeekState/hiddenTasks
-  // still go through saveData() below as before.
+  // Tasks/notifs save straight to their own tables (per-row) rather than
+  // through the shared blob — see saveData()'s note. The notif insert has to
+  // wait until after the task row exists (task_notifs.task_id references
+  // tasks.id), so it's chained onto the upsert below rather than fired above.
   if (db) {
     var dbRow = {
       id: obj.id, title: obj.title, assigned_to: obj.assignedTo, category: obj.category,
@@ -1609,7 +1623,8 @@ obj.id = crypto.randomUUID();
       updated_at: new Date().toISOString()
     };
     db.from('tasks').upsert(dbRow, { onConflict: 'id' }).then(function(res) {
-      if (res && res.error) console.error('YourSZN: task save failed', res.error.message);
+      if (res && res.error) { console.error('YourSZN: task save failed', res.error.message); return; }
+      if (isNewTask && obj.assignedTo !== 'latisha') insertTaskNotif(obj.id, obj.assignedTo, 'assigned');
     });
   }
   saveData();
@@ -1689,7 +1704,7 @@ var _off = staffTaskWeekOff;
   // Bug: this never persisted anything before — setTS() only mutates in-memory
   // state, and nothing here called a save. Status/hours/notes entered via this
   // modal were silently lost on the next reload, for every task, every time.
-  persistOneOffTaskFields(t);
+  persistTaskStatus(t, _off);
   debouncedSave();
   closeStaffTaskModal();
   renderTaskBoard();
@@ -1702,7 +1717,7 @@ function requestTaskRemoval() {
   setTS(t, _off, 'status', 'blocked');
   var _prev = getTS(t, _off).staffNotes || '';
   setTS(t, _off, 'staffNotes', (_prev?_prev+'\n':'')+'[Removal requested by '+USERS[curUser].name+']');
-  persistOneOffTaskFields(t);
+  persistTaskStatus(t, _off);
   debouncedSave();
   alert('Removal request sent to Latisha.');
   closeStaffTaskModal(); renderTaskBoard();
@@ -2221,12 +2236,22 @@ var _s=getTS(t, staffTaskWeekOff);
   document.getElementById('staff-modal').style.display='flex';
 }
 function closeStaffModal(){document.getElementById('staff-modal').style.display='none';}
+// NOTE: this is a SECOND, separate definition of saveStaffTask()/requestTaskDeletion()
+// — there's an earlier one (~L1698/1712, "STAFF TASK MODAL" section, stm-* ids) whose
+// same-named aliases get shadowed by these later declarations (JS: last function
+// declaration with a given name wins). This pair is the one actually wired up — the
+// "My Dashboard" staff-modal (smodal-* ids) below calls these by their bare names.
 function saveStaffTask() {
   var t=tasks.find(function(x){return x.id===editingStaffTaskId;}); if(!t) return;
   var _off = staffTaskWeekOff;
   setTS(t, _off, 'status', document.getElementById('smodal-status').value);
   setTS(t, _off, 'hrsTaken', parseFloat(document.getElementById('smodal-hrs').value)||0);
   setTS(t, _off, 'staffNotes', document.getElementById('smodal-notes').value);
+  // Bug: same as saveStaffTaskUpdate() had — setTS() only mutates in-memory
+  // state, and nothing here called a save, so every update through this
+  // modal was silently lost on the next reload.
+  persistTaskStatus(t, _off);
+  debouncedSave();
   closeStaffModal();
   renderStaffDashboard();
   if(curUser==='latisha') renderDashTaskProgress();
@@ -2237,6 +2262,8 @@ function requestTaskDeletion() {
   setTS(t, _off, 'status', 'blocked');
   var _prev = getTS(t, _off).staffNotes || '';
   setTS(t, _off, 'staffNotes', (_prev?_prev+'\n':'')+'[Removal requested by '+USERS[curUser].name+']');
+  persistTaskStatus(t, _off);
+  debouncedSave();
   alert('Removal request sent to Latisha.');
   closeStaffModal(); renderStaffDashboard();
 }
@@ -3794,12 +3821,41 @@ function confirmHideTask() {
   hideTask(taskId);
 }
 
+// hiddenTasks/taskNotifs save straight to their own tables — same reasoning
+// as client_slots/tasks (see saveData()'s note) — rather than through the
+// shared blob. Bug fix: hideTask()/unhideTask() previously called no save
+// function at all (not even the old blob one), so completing/hiding a task —
+// probably the single most common staff action — was never actually saved.
+function saveHiddenTask(taskId) {
+  var db = getSupa(); if (!db) return;
+  var h = hiddenTasks[taskId]; if (!h) return;
+  db.from('hidden_tasks').upsert({
+    task_id: taskId, hidden_by: h.by, completed_date: h.completedDate,
+    staff_notes: h.staffNotes||'', week_key: h._week, updated_at: new Date().toISOString()
+  }, { onConflict: 'task_id' }).then(function(res) {
+    if (res && res.error) console.error('YourSZN: hidden task save failed', res.error.message);
+  });
+}
+function deleteHiddenTask(taskId) {
+  var db = getSupa(); if (!db) return;
+  db.from('hidden_tasks').delete().eq('task_id', taskId).then(function(res) {
+    if (res && res.error) console.error('YourSZN: hidden task delete failed', res.error.message);
+  });
+}
+function insertTaskNotif(taskId, forUser, type) {
+  var db = getSupa(); if (!db) return;
+  db.from('task_notifs').insert({ task_id: taskId, for_user: forUser, type: type, seen: false }).then(function(res) {
+    if (res && res.error) console.error('YourSZN: task notif save failed', res.error.message);
+  });
+}
+
 // Hides a task — sets completedDate to today, records who did it
 function hideTask(taskId) {
   var t = tasks.find(function(x){ return x.id===taskId; });
   if (!t) return;
   var _hoff = (curUser === 'latisha') ? taskWeekOff : staffTaskWeekOff;
   setTS(t, _hoff, 'status', 'done');
+  persistTaskStatus(t, _hoff);
   var today = new Date().toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'});
   hiddenTasks[taskId] = {
     by: curUser,
@@ -3807,6 +3863,7 @@ function hideTask(taskId) {
     staffNotes: getTS(t, _hoff).staffNotes || '',
     _week: weekKey(_hoff)
   };
+  saveHiddenTask(taskId);
   fireCompletedNotif(taskId);
   renderTaskBoard();
   renderDashTaskProgress();
@@ -3819,9 +3876,10 @@ function unhideTask(taskId) {
   if (!h) return;
   if (curUser !== 'latisha' && h.by !== curUser) return;
   delete hiddenTasks[taskId];
+  deleteHiddenTask(taskId);
   var t = tasks.find(function(x){ return x.id===taskId; });
   var _uoff = (curUser === 'latisha') ? taskWeekOff : staffTaskWeekOff;
-  if (t) setTS(t, _uoff, 'status', 'in-progress');
+  if (t) { setTS(t, _uoff, 'status', 'in-progress'); persistTaskStatus(t, _uoff); }
   renderTaskBoard();
   renderHiddenBox();
 }
@@ -3829,6 +3887,7 @@ function unhideTask(taskId) {
 // Fire a "completed" notification for Latisha
 function fireCompletedNotif(taskId) {
   taskNotifs.push({ id: Date.now(), taskId: taskId, forUser: 'latisha', type:'completed', seen:false });
+  insertTaskNotif(taskId, 'latisha', 'completed');
   updateTaskBadge();
 }
 
@@ -3863,10 +3922,14 @@ function updateTaskBadge() {
 // Clear badge when user opens task page
 function clearTaskBadge() {
   // Mark all relevant notifs as seen
-  if (curUser === 'latisha') {
-    taskNotifs.forEach(function(n){ if (n.forUser==='latisha' && n.type==='completed') n.seen=true; });
-  } else {
-    taskNotifs.forEach(function(n){ if (n.forUser===curUser && n.type==='assigned') n.seen=true; });
+  var forUser = curUser === 'latisha' ? 'latisha' : curUser;
+  var type = curUser === 'latisha' ? 'completed' : 'assigned';
+  taskNotifs.forEach(function(n){ if (n.forUser===forUser && n.type===type) n.seen=true; });
+  var db = getSupa();
+  if (db) {
+    db.from('task_notifs').update({ seen: true }).eq('for_user', forUser).eq('type', type).then(function(res) {
+      if (res && res.error) console.error('YourSZN: task notif seen save failed', res.error.message);
+    });
   }
   updateTaskBadge();
   // Hide both banners
@@ -4939,14 +5002,17 @@ function saveData() {
     var strip = function(o) { if (!o) return o; var c = Object.assign({}, o); delete c.thumb; return c; };
 
     // Shared: everything all three users need to see
-    // NOTE: cRows (client slots) and tasks are intentionally NOT included here —
-    // they're saved directly to their own tables (client_slots / tasks) per-row,
-    // via saveClientSlot()/saveAllClientSlots() and saveTask(), instead of being
-    // bundled into this single blob. That's what stops one tab's save (which only
-    // has a stale in-memory copy of whatever it loaded at page-open) from silently
-    // overwriting another tab's concurrent edits — see saveClientSlot/saveTask.
+    // NOTE: cRows (client slots), tasks, taskWeekState, hiddenTasks and
+    // taskNotifs are intentionally NOT included here — they're saved directly
+    // to their own tables (client_slots / tasks / task_week_state /
+    // hidden_tasks / task_notifs) per-row, via saveClientSlot()/
+    // saveAllClientSlots()/saveTask()/persistTaskStatus()/saveHiddenTask()/
+    // deleteHiddenTask()/insertTaskNotif(), instead of being bundled into this
+    // single blob. That's what stops one tab's save (which only has a stale
+    // in-memory copy of whatever it loaded at page-open) from silently
+    // overwriting another tab's concurrent edits.
     var sharedPayload = {
-      tours:tours, taskNotifs:taskNotifs,
+      tours:tours,
       vidData: vidData.map(strip), adData:adData,
       bizIncome:bizIncome, bizExpenses:bizExpenses, personalExpenses:personalExpenses,
       sopList:sopList, brands:brands, watchlist:watchlist,
@@ -4956,7 +5022,6 @@ function saveData() {
       celebData: celebData.map(function(c){ var cc=strip(c); if(cc.videos) cc.videos=cc.videos.map(strip); return cc; }),
       groupMsgs:groupMsgs,
       auditD:auditD, vtData:vtData, ideaList:ideaList, metaWeekOff:metaWeekOff,
-      hiddenTasks:hiddenTasks, taskWeekState:taskWeekState,
       mktData:mktData, mktBankedAds:mktBankedAds, creatorsList:creatorsList,
       pwList:pwList, lastHrsReset: window._hrsResetNeeded || '',
       crmClients:crmClients, crmIdSeq:crmIdSeq,
@@ -4985,9 +5050,10 @@ function saveData() {
       dmMsgs: (function(){ var o={}; Object.keys(dmMsgs).forEach(function(k){ if(curUser && k.indexOf(curUser)>-1) o[k]=dmMsgs[k]; }); return o; })()
     };
 
-    // Local backup (merged, for offline fallback) — cRows/tasks aren't part of
-    // sharedPayload (see note above) but still belong in the offline snapshot.
-    try { localStorage.setItem('yszn_v1', JSON.stringify(Object.assign({cRows:cRows, tasks:tasks}, sharedPayload, userPayload))); } catch(e2){}
+    // Local backup (merged, for offline fallback) — these fields aren't part
+    // of sharedPayload (see note above) but still belong in the offline snapshot.
+    var localExtras = {cRows:cRows, tasks:tasks, taskWeekState:taskWeekState, hiddenTasks:hiddenTasks, taskNotifs:taskNotifs};
+    try { localStorage.setItem('yszn_v1', JSON.stringify(Object.assign(localExtras, sharedPayload, userPayload))); } catch(e2){}
 
     cloudSave(sharedPayload, userPayload, curUser);
   } catch(e) { console.warn('saveData error:', e); }
@@ -5010,7 +5076,7 @@ function clientSlotsFromRows(rows) {
   return arr;
 }
 // Maps a tasks-table row (snake_case) back to the camelCase shape the rest of
-// the app expects — see saveTask()/persistOneOffTaskFields() for the reverse direction.
+// the app expects — see saveTask()/persistTaskStatus() for the reverse direction.
 function taskFromDbRow(r) {
   return {
     id: r.id, title: r.title||'', assignedTo: r.assigned_to||'', category: r.category||'',
@@ -5022,12 +5088,43 @@ function taskFromDbRow(r) {
   };
 }
 
+// Maps hidden_tasks rows back to the {taskId: {by, completedDate, staffNotes,
+// _week}} shape hiddenTasks has always used — see saveHiddenTask() for the
+// reverse direction.
+function hiddenTasksFromRows(rows) {
+  var out = {};
+  rows.forEach(function(r) {
+    out[r.task_id] = { by: r.hidden_by, completedDate: r.completed_date, staffNotes: r.staff_notes||'', _week: r.week_key };
+  });
+  return out;
+}
+// Maps task_week_state rows back to the {weekKey: {taskId: {status,hrsTaken,
+// staffNotes}}} shape taskWeekState has always used — see persistTaskStatus().
+function taskWeekStateFromRows(rows) {
+  var out = {};
+  rows.forEach(function(r) {
+    if (!out[r.week_key]) out[r.week_key] = {};
+    out[r.week_key][r.task_id] = { status: r.status||'not-started', hrsTaken: r.hrs_taken||0, staffNotes: r.staff_notes||'' };
+  });
+  return out;
+}
+// Maps task_notifs rows back to the {id,taskId,forUser,type,seen} shape
+// taskNotifs has always used — see insertTaskNotif() for the reverse direction.
+function taskNotifsFromRows(rows) {
+  return rows.map(function(r) {
+    return { id: r.id, taskId: r.task_id, forUser: r.for_user, type: r.type, seen: !!r.seen };
+  });
+}
+
 function loadData() {
   var db = getSupa();
-  var slotsPromise = db ? db.from('client_slots').select('*').order('slot_index') : Promise.resolve(null);
-  var tasksPromise = db ? db.from('tasks').select('*').order('created_at') : Promise.resolve(null);
-  Promise.all([cloudLoad(curUser), slotsPromise, tasksPromise]).then(function(results) {
-    var d = results[0], slotsRes = results[1], tasksRes = results[2];
+  var slotsPromise    = db ? db.from('client_slots').select('*').order('slot_index') : Promise.resolve(null);
+  var tasksPromise    = db ? db.from('tasks').select('*').order('created_at') : Promise.resolve(null);
+  var hiddenPromise   = db ? db.from('hidden_tasks').select('*') : Promise.resolve(null);
+  var twsPromise      = db ? db.from('task_week_state').select('*') : Promise.resolve(null);
+  var notifsPromise   = db ? db.from('task_notifs').select('*').order('created_at') : Promise.resolve(null);
+  Promise.all([cloudLoad(curUser), slotsPromise, tasksPromise, hiddenPromise, twsPromise, notifsPromise]).then(function(results) {
+    var d = results[0], slotsRes = results[1], tasksRes = results[2], hiddenRes = results[3], twsRes = results[4], notifsRes = results[5];
     if (!d) {
       try {
         var raw = localStorage.getItem('yszn_v1');
@@ -5035,13 +5132,22 @@ function loadData() {
       } catch(e) {}
     }
     if (!d) d = {};
-    // client_slots / tasks are the source of truth now — override whatever
-    // (stale) copies might still be sitting in the shared blob or local backup.
+    // These tables are the source of truth now — override whatever (stale)
+    // copies might still be sitting in the shared blob or local backup.
     if (slotsRes && !slotsRes.error && slotsRes.data && slotsRes.data.length) {
       d.cRows = clientSlotsFromRows(slotsRes.data);
     }
     if (tasksRes && !tasksRes.error && tasksRes.data && tasksRes.data.length) {
       d.tasks = tasksRes.data.map(taskFromDbRow);
+    }
+    if (hiddenRes && !hiddenRes.error && hiddenRes.data) {
+      d.hiddenTasks = hiddenTasksFromRows(hiddenRes.data);
+    }
+    if (twsRes && !twsRes.error && twsRes.data) {
+      d.taskWeekState = taskWeekStateFromRows(twsRes.data);
+    }
+    if (notifsRes && !notifsRes.error && notifsRes.data) {
+      d.taskNotifs = taskNotifsFromRows(notifsRes.data);
     }
     if (Object.keys(d).length === 0) return;
     _applyLoadedData(d);
@@ -5099,6 +5205,11 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
         db.from('tasks').update({ hrs_taken: 0, status: 'not-started', staff_notes: '', notes: '', updated_at: new Date().toISOString() })
           .in('freq', ['daily','weekly'])
           .then(function(res) { if (res && res.error) console.error('YourSZN: weekly task reset save failed', res.error.message); });
+        // Mirrors the in-memory hiddenTasks={} / taskWeekState={} clears above.
+        db.from('hidden_tasks').delete().not('task_id', 'is', null)
+          .then(function(res) { if (res && res.error) console.error('YourSZN: weekly hidden_tasks reset failed', res.error.message); });
+        db.from('task_week_state').delete().not('task_id', 'is', null)
+          .then(function(res) { if (res && res.error) console.error('YourSZN: weekly task_week_state reset failed', res.error.message); });
       }
       console.log('YourSZN: weekly reset saved to cloud');
     }, 500);
