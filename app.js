@@ -797,6 +797,41 @@ var cRows = [];
 for (var ci=0;ci<30;ci++) cRows.push({name:'',day:'',date:'',type:'',con:'',atts:[],inv:'',notes:''});
 var dragFrom = null;
 
+// Client slots save directly to their own row in client_slots (one row per
+// slot_index), instead of being bundled into the app_state shared blob — see
+// the note in saveData() for why. Each slot's identity IS its position (0-29),
+// matching how the grid always worked (drag-reorder just swaps two slots'
+// content), so slot_index doubles as both the row key and the display order.
+var _clientSlotSaveTimers = {};
+function saveClientSlot(i) {
+  var db = getSupa(); if (!db) return;
+  var d = cRows[i]; if (!d) return;
+  db.from('client_slots').upsert({
+    slot_index: i, name: d.name||'', day: d.day||'', date: d.date||'',
+    type: d.type||'', con: d.con||'', atts: d.atts||[], inv: d.inv||'', notes: d.notes||'',
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'slot_index' }).then(function(res) {
+    if (res && res.error) console.error('YourSZN: client slot save failed', res.error.message);
+  });
+}
+function debouncedSaveClientSlot(i) {
+  clearTimeout(_clientSlotSaveTimers[i]);
+  _clientSlotSaveTimers[i] = setTimeout(function(){ saveClientSlot(i); }, 1500);
+}
+// For actions that touch every slot at once (Clear All, drag-reorder) — one
+// bulk upsert rather than 30 separate debounced writes.
+function saveAllClientSlots() {
+  var db = getSupa(); if (!db) return;
+  var now = new Date().toISOString();
+  var rows = cRows.map(function(d,i) {
+    return { slot_index:i, name:d.name||'', day:d.day||'', date:d.date||'', type:d.type||'',
+      con:d.con||'', atts:d.atts||[], inv:d.inv||'', notes:d.notes||'', updated_at: now };
+  });
+  db.from('client_slots').upsert(rows, { onConflict: 'slot_index' }).then(function(res) {
+    if (res && res.error) console.error('YourSZN: client slots bulk save failed', res.error.message);
+  });
+}
+
 function atypeColor(v) {
   if (!v||v==='—') return '';
   if (v.indexOf('Premium')>-1) return 'color:#7C3AED;font-weight:500';
@@ -807,12 +842,12 @@ function clearClients() {
   if (!confirm('Clear all 30 slots?')) return;
   for (var ci=0;ci<30;ci++) cRows[ci]={name:'',day:'',date:'',type:'',con:'',atts:[],inv:'',notes:''};
   renderClients();
-  debouncedSave();
+  saveAllClientSlots();
 }
 function clearClientRow(i) {
   cRows[i] = {name:'',day:'',date:'',type:'',con:'',atts:[],inv:'',notes:''};
   renderClients();
-  debouncedSave();
+  debouncedSaveClientSlot(i);
 }
 function renderClients() {
   var tb = document.getElementById('ctbody'); if (!tb) return;
@@ -1017,7 +1052,7 @@ function makeClientRow(i) {
     row.addEventListener('drop',function(e){
       e.preventDefault();row.classList.remove('dragover');
       if(dragFrom===null||dragFrom===idx)return;
-      var m=cRows.splice(dragFrom,1)[0];cRows.splice(idx,0,m);dragFrom=null;renderClients();
+      var m=cRows.splice(dragFrom,1)[0];cRows.splice(idx,0,m);dragFrom=null;renderClients();saveAllClientSlots();
     });
   })(i,tr);
   var dayOpts = CDAYS_OPT.map(function(v){return '<option'+(v===(d.day||'—')?' selected':'')+'>'+v+'</option>';}).join('');
@@ -1046,17 +1081,17 @@ function debouncedSave() {
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function(){ saveData(); }, 1500);
 }
-function cfType(i,sel){cRows[i].type=sel.value;sel.style=atypeColor(sel.value);updCSummary();debouncedSave();}
-function cf(i,f,v){cRows[i][f]=v;updCSummary();debouncedSave();}
-function addAtt(i){cRows[i].atts.push({name:'',con:'—'});renderClients();debouncedSave();}
+function cfType(i,sel){cRows[i].type=sel.value;sel.style=atypeColor(sel.value);updCSummary();debouncedSaveClientSlot(i);}
+function cf(i,f,v){cRows[i][f]=v;updCSummary();debouncedSaveClientSlot(i);}
+function addAtt(i){cRows[i].atts.push({name:'',con:'—'});renderClients();debouncedSaveClientSlot(i);}
 function mkAttRow(ri,ai,name,con){
   var div=document.createElement('div');div.className='attrow';
   var cOpts=CONS.map(function(c){return '<option'+(c===(con||'—')?' selected':'')+'>'+c+'</option>';}).join('');
   div.innerHTML='<input class="ci" placeholder="Name" value="'+(name||'')+'" style="min-width:75px" onchange="sa('+ri+','+ai+',\'name\',this.value)"><select class="csel" onchange="sa('+ri+','+ai+',\'con\',this.value)">'+cOpts+'</select><button class="rematt" onclick="remAtt('+ri+','+ai+')">x</button>';
   return div;
 }
-function sa(ri,ai,f,v){if(cRows[ri].atts[ai])cRows[ri].atts[ai][f]=v;debouncedSave();}
-function remAtt(ri,ai){cRows[ri].atts.splice(ai,1);renderClients();debouncedSave();}
+function sa(ri,ai,f,v){if(cRows[ri].atts[ai])cRows[ri].atts[ai][f]=v;debouncedSaveClientSlot(ri);}
+function remAtt(ri,ai){cRows[ri].atts.splice(ai,1);renderClients();debouncedSaveClientSlot(ri);}
 function updCSummary(){
   var t=0,inv=0,v=0,p=0;
   cRows.forEach(function(r){
@@ -1151,6 +1186,20 @@ function setTS(t, off, field, val) {
   if (!taskWeekState[wk][t.id]) taskWeekState[wk][t.id] = {status:'not-started', hrsTaken:0, staffNotes:''};
   taskWeekState[wk][t.id][field] = val;
 }
+// setTS() above only mutates the task object directly for one-off tasks
+// (daily/weekly tasks store per-week state in taskWeekState instead) — this
+// persists that direct mutation to the tasks table. Call it after any setTS()
+// on a one-off task; harmless no-op otherwise.
+function persistOneOffTaskFields(t) {
+  if (!t || t.freq === 'daily' || t.freq === 'weekly') return;
+  var db = getSupa(); if (!db) return;
+  db.from('tasks').update({
+    status: t.status, hrs_taken: t.hrsTaken, staff_notes: t.staffNotes,
+    updated_at: new Date().toISOString()
+  }).eq('id', t.id).then(function(res) {
+    if (res && res.error) console.error('YourSZN: task status save failed', res.error.message);
+  });
+}
 function isHiddenThisWeek(taskId, off) {
   var wk = weekKey(off);
   return hiddenTasks[taskId] && hiddenTasks[taskId]._week === wk;
@@ -1167,6 +1216,7 @@ function quickCycleStatus(taskId, weekOff) {
   var cur = getTS(t, weekOff).status || 'not-started';
   var next = cur === 'not-started' ? 'in-progress' : cur === 'in-progress' ? 'done' : 'not-started';
   setTS(t, weekOff, 'status', next);
+  persistOneOffTaskFields(t);
   debouncedSave();
   renderTaskBoard();
 }
@@ -1527,6 +1577,7 @@ async function saveTask() {
   if (editingTaskId) {
     var existing = tasks.find(function(x){ return x.id===editingTaskId; });
     if (existing) { obj.hrsTaken=existing.hrsTaken||existing.hrs_taken||0; obj.staffNotes=existing.staffNotes||existing.staff_notes||''; }
+    obj.id = editingTaskId;
     tasks = tasks.map(function(t){ return t.id===editingTaskId ? Object.assign(t,obj) : t; });
     // v37: for recurring tasks, write status/hrs/notes to per-week state
     var updated = tasks.find(function(x){ return x.id===editingTaskId; });
@@ -1544,6 +1595,22 @@ obj.id = crypto.randomUUID();
       updateTaskBadge();
     }
 
+  }
+  // Tasks save straight to the tasks table (per-row) rather than through the
+  // shared blob — see saveData()'s note. taskNotifs/taskWeekState/hiddenTasks
+  // still go through saveData() below as before.
+  if (db) {
+    var dbRow = {
+      id: obj.id, title: obj.title, assigned_to: obj.assignedTo, category: obj.category,
+      freq: obj.freq, due_date: obj.due, week_date: obj.weekDate, priority: obj.priority,
+      hrs_allowed: obj.hrsAllowed, hrs_taken: obj.hrsTaken, status: obj.status,
+      description: obj.desc, video_url: obj.videoUrl, file_url: obj.fileUrl,
+      notes: obj.notes, staff_notes: obj.staffNotes, is_template: obj.is_template,
+      updated_at: new Date().toISOString()
+    };
+    db.from('tasks').upsert(dbRow, { onConflict: 'id' }).then(function(res) {
+      if (res && res.error) console.error('YourSZN: task save failed', res.error.message);
+    });
   }
   saveData();
   closeTaskModal();
@@ -1619,6 +1686,11 @@ var _off = staffTaskWeekOff;
   setTS(t, _off, 'status', document.getElementById('stm-status').value);
   setTS(t, _off, 'hrsTaken', parseFloat(document.getElementById('stm-hrs').value)||0);
   setTS(t, _off, 'staffNotes', document.getElementById('stm-notes').value);
+  // Bug: this never persisted anything before — setTS() only mutates in-memory
+  // state, and nothing here called a save. Status/hours/notes entered via this
+  // modal were silently lost on the next reload, for every task, every time.
+  persistOneOffTaskFields(t);
+  debouncedSave();
   closeStaffTaskModal();
   renderTaskBoard();
   renderDashTaskProgress();
@@ -1630,6 +1702,8 @@ function requestTaskRemoval() {
   setTS(t, _off, 'status', 'blocked');
   var _prev = getTS(t, _off).staffNotes || '';
   setTS(t, _off, 'staffNotes', (_prev?_prev+'\n':'')+'[Removal requested by '+USERS[curUser].name+']');
+  persistOneOffTaskFields(t);
+  debouncedSave();
   alert('Removal request sent to Latisha.');
   closeStaffTaskModal(); renderTaskBoard();
 }
@@ -4865,8 +4939,14 @@ function saveData() {
     var strip = function(o) { if (!o) return o; var c = Object.assign({}, o); delete c.thumb; return c; };
 
     // Shared: everything all three users need to see
+    // NOTE: cRows (client slots) and tasks are intentionally NOT included here —
+    // they're saved directly to their own tables (client_slots / tasks) per-row,
+    // via saveClientSlot()/saveAllClientSlots() and saveTask(), instead of being
+    // bundled into this single blob. That's what stops one tab's save (which only
+    // has a stale in-memory copy of whatever it loaded at page-open) from silently
+    // overwriting another tab's concurrent edits — see saveClientSlot/saveTask.
     var sharedPayload = {
-      cRows:cRows, tours:tours, tasks:tasks, taskNotifs:taskNotifs,
+      tours:tours, taskNotifs:taskNotifs,
       vidData: vidData.map(strip), adData:adData,
       bizIncome:bizIncome, bizExpenses:bizExpenses, personalExpenses:personalExpenses,
       sopList:sopList, brands:brands, watchlist:watchlist,
@@ -4905,23 +4985,65 @@ function saveData() {
       dmMsgs: (function(){ var o={}; Object.keys(dmMsgs).forEach(function(k){ if(curUser && k.indexOf(curUser)>-1) o[k]=dmMsgs[k]; }); return o; })()
     };
 
-    // Local backup (merged, for offline fallback)
-    try { localStorage.setItem('yszn_v1', JSON.stringify(Object.assign({}, sharedPayload, userPayload))); } catch(e2){}
+    // Local backup (merged, for offline fallback) — cRows/tasks aren't part of
+    // sharedPayload (see note above) but still belong in the offline snapshot.
+    try { localStorage.setItem('yszn_v1', JSON.stringify(Object.assign({cRows:cRows, tasks:tasks}, sharedPayload, userPayload))); } catch(e2){}
 
     cloudSave(sharedPayload, userPayload, curUser);
   } catch(e) { console.warn('saveData error:', e); }
 }
 
 // ── LOAD DATA (cloud first, local fallback) ───────────────────
+// Maps a client_slots row back to the {name,day,date,type,con,atts,inv,notes}
+// shape cRows has always used — see saveClientSlot() for the reverse direction.
+function clientSlotsFromRows(rows) {
+  var arr = [];
+  for (var i = 0; i < 30; i++) arr.push({name:'',day:'',date:'',type:'',con:'',atts:[],inv:'',notes:''});
+  rows.forEach(function(r) {
+    if (r.slot_index >= 0 && r.slot_index < 30) {
+      arr[r.slot_index] = {
+        name: r.name||'', day: r.day||'', date: r.date||'', type: r.type||'',
+        con: r.con||'', atts: r.atts||[], inv: r.inv||'', notes: r.notes||''
+      };
+    }
+  });
+  return arr;
+}
+// Maps a tasks-table row (snake_case) back to the camelCase shape the rest of
+// the app expects — see saveTask()/persistOneOffTaskFields() for the reverse direction.
+function taskFromDbRow(r) {
+  return {
+    id: r.id, title: r.title||'', assignedTo: r.assigned_to||'', category: r.category||'',
+    freq: r.freq||'weekly', due: r.due_date||'', weekDate: r.week_date||'',
+    priority: r.priority||'', hrsAllowed: r.hrs_allowed||0, hrsTaken: r.hrs_taken||0,
+    status: r.status||'not-started', desc: r.description||'', videoUrl: r.video_url||'',
+    fileUrl: r.file_url||'', notes: r.notes||'', staffNotes: r.staff_notes||'',
+    is_template: !!r.is_template
+  };
+}
+
 function loadData() {
-  cloudLoad(curUser).then(function(d) {
+  var db = getSupa();
+  var slotsPromise = db ? db.from('client_slots').select('*').order('slot_index') : Promise.resolve(null);
+  var tasksPromise = db ? db.from('tasks').select('*').order('created_at') : Promise.resolve(null);
+  Promise.all([cloudLoad(curUser), slotsPromise, tasksPromise]).then(function(results) {
+    var d = results[0], slotsRes = results[1], tasksRes = results[2];
     if (!d) {
       try {
         var raw = localStorage.getItem('yszn_v1');
         if (raw) d = JSON.parse(raw);
       } catch(e) {}
     }
-    if (!d) return;
+    if (!d) d = {};
+    // client_slots / tasks are the source of truth now — override whatever
+    // (stale) copies might still be sitting in the shared blob or local backup.
+    if (slotsRes && !slotsRes.error && slotsRes.data && slotsRes.data.length) {
+      d.cRows = clientSlotsFromRows(slotsRes.data);
+    }
+    if (tasksRes && !tasksRes.error && tasksRes.data && tasksRes.data.length) {
+      d.tasks = tasksRes.data.map(taskFromDbRow);
+    }
+    if (Object.keys(d).length === 0) return;
     _applyLoadedData(d);
   }).catch(function() {
     try {
@@ -4970,7 +5092,16 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
     window._hrsResetNeeded = thisMondayStr;
     // v37: persist the reset immediately so stale data doesn't come back
     window._cloudDataLoaded = true;
-    setTimeout(function() { saveData(); console.log('YourSZN: weekly reset saved to cloud'); }, 500);
+    setTimeout(function() {
+      saveData();
+      var db = getSupa();
+      if (db) {
+        db.from('tasks').update({ hrs_taken: 0, status: 'not-started', staff_notes: '', notes: '', updated_at: new Date().toISOString() })
+          .in('freq', ['daily','weekly'])
+          .then(function(res) { if (res && res.error) console.error('YourSZN: weekly task reset save failed', res.error.message); });
+      }
+      console.log('YourSZN: weekly reset saved to cloud');
+    }, 500);
   } else {
     window._hrsResetNeeded = lastReset;
   }
