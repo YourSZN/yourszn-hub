@@ -36,6 +36,7 @@ function launchApp() {
   } else {
     renderMyHub();
   }
+  setTimeout(function(){ initRevenueCat(); }, 150);
 }
 
 function buildNav(allowed) {
