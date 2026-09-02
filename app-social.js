@@ -103,12 +103,10 @@ function smMigratePillars() {
   if (changed) saveData();
 }
 
-var SM_CONTENT_TYPES = ['Quick Chat', 'Reel', 'Carousel', 'Quick Comparisons', 'Review/Overlays', 'Celebrity Analysis', 'Consultation'];
+var SM_CONTENT_TYPES = ['Greenscreen', 'Pop-ups', 'Talking Head', 'Carousels', 'B-roll/Voiceovers'];
 var SM_PLAN_ACTIONS  = ['Save', 'Follow', 'Comment', 'Share', 'Shop / Buy', 'DM Me', 'Book a Session', 'Visit Link in Bio', 'Sign Up', 'Try It'];
 
 var smActiveTab      = 'pipeline';
-var smCalMonth       = new Date().getMonth();
-var smCalYear        = new Date().getFullYear();
 var smIdeaBankFilter   = 'All';
 var smPipelineStage    = {}; // pillar → active stage key
 var _smEditId        = null;
@@ -590,170 +588,196 @@ function smRenderPipeline() {
 
 // ══ CALENDAR ══
 
+// ══ WEEKLY CALENDAR (replaces the old month-grid) ══
+// Days as columns, one field per row, mirroring the external planning doc
+// this was modelled on. Each day column is backed by a real Pipeline post
+// (socialPosts entry) linked the same way "Plan" links posts — via
+// smWeekPlan[wk][dayKey].postId — so this and Plan never fork into two
+// separate data models for "what's the post for this day."
+var smCalWeekOff = 0;
+var SM_CAL_DAY_LABELS = {mon:'Monday', tue:'Tuesday', wed:'Wednesday', thu:'Thursday', fri:'Friday', sat:'Saturday', sun:'Sunday'};
+
+// Returns the linked post for wk/dayKey, creating a blank one and linking it
+// the first time any field on that day is touched — so staff never have to
+// go through "New Post" first just to start filling in the weekly grid.
+function smCalEnsurePost(wk, dayKey) {
+  var day  = smPlanGetDay(wk, dayKey);
+  var post = day.postId ? socialPosts.find(function(p){ return p.id === day.postId; }) : null;
+  if (post) return post;
+  var now = Date.now();
+  post = {
+    id: 'sp' + now + Math.floor(Math.random()*1000),
+    title: '', stage: 'idea', platform: [], pillar: day.pillar || '',
+    createdAt: now, lastModified: now
+  };
+  socialPosts.push(post);
+  smSavePlan(wk, dayKey, 'postId', post.id); // also calls saveData()
+  return post;
+}
+
+function smCalSaveField(wk, dayKey, field, val) {
+  var post = smCalEnsurePost(wk, dayKey);
+  post[field] = val;
+  post.lastModified = Date.now();
+  saveData();
+}
+
+// Pillar change also clears Topic if the old value doesn't belong to the
+// newly-selected pillar's list — same guard smPillarChange() does in the
+// full modal — then re-renders so the Topic dropdown's options refresh.
+function smCalSetPillar(wk, dayKey, val) {
+  var post = smCalEnsurePost(wk, dayKey);
+  post.pillar = val;
+  if (post.topic && (!SM_PILLAR_TOPICS[val] || SM_PILLAR_TOPICS[val].topics.indexOf(post.topic) === -1)) {
+    post.topic = '';
+  }
+  post.lastModified = Date.now();
+  saveData();
+  renderSocialPage();
+}
+
+// Position Type needs a re-render too, since its blurb line depends on the
+// selection.
+function smCalSetPositioningType(wk, dayKey, val) {
+  smCalSaveField(wk, dayKey, 'positioningType', val);
+  renderSocialPage();
+}
+
+function smCalUploadPhoto(wk, dayKey, inputEl) {
+  var file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+  var db = getSupa();
+  if (!db) { alert('Not connected — try again once you\'re signed in.'); return; }
+  var post = smCalEnsurePost(wk, dayKey);
+  var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  var path = 'weekly-plan/' + wk + '/' + dayKey + '-' + Date.now() + '-' + safeName;
+  db.storage.from('yszn-social').upload(path, file, { upsert: true }).then(function(res) {
+    if (res.error) { console.error('YourSZN: photo upload failed', res.error.message); alert('Upload failed: ' + res.error.message); return; }
+    var pub = db.storage.from('yszn-social').getPublicUrl(path);
+    post.referenceImageUrl = (pub && pub.data) ? pub.data.publicUrl : '';
+    post.lastModified = Date.now();
+    saveData();
+    renderSocialPage();
+  });
+}
+
+function smCalWeekJumpTo(dateStr) {
+  // How many whole weeks (Mon-start) between this week and the week containing dateStr.
+  var target = new Date(dateStr + 'T00:00:00');
+  var td = target.getDay();
+  var targetMonday = new Date(target);
+  targetMonday.setDate(target.getDate() - (td === 0 ? 6 : td - 1));
+  var thisMonday = new Date(smPlanWeekKey(0) + 'T00:00:00');
+  smCalWeekOff = Math.round((targetMonday - thisMonday) / (7*24*60*60*1000));
+}
+
+function smCalPrev() { smCalWeekOff--; renderSocialPage(); }
+function smCalNext() { smCalWeekOff++; renderSocialPage(); }
+
 function smRenderCalendar() {
-  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  var dayNames   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var wk     = smPlanWeekKey(smCalWeekOff);
+  var monday = new Date(wk + 'T00:00:00');
+  var sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  var fmtDate = function(d) { return d.toLocaleDateString('en-AU', { day:'numeric', month:'short' }); };
+  var weekLabel = fmtDate(monday) + ' – ' + fmtDate(sunday);
 
-  var firstDay = new Date(smCalYear, smCalMonth, 1);
-  var lastDay  = new Date(smCalYear, smCalMonth + 1, 0);
-  var startDow = firstDay.getDay();
-  var totalDays = lastDay.getDate();
-
-  var byDate = {};
-  socialPosts.forEach(function(p) {
-    if (!p.scheduledDate) return;
-    var parts = p.scheduledDate.split('-');
-    if (parseInt(parts[0]) !== smCalYear || parseInt(parts[1]) - 1 !== smCalMonth) return;
-    var d = parseInt(parts[2]);
-    if (!byDate[d]) byDate[d] = [];
-    byDate[d].push(p);
-  });
-
-  // Build plan tiles from smWeekPlan for the current month
-  var planByDate = {};
-  var dayOffsets = { mon:0, tue:1, wed:2, thu:3, fri:4, sat:5, sun:6 };
-  Object.keys(smWeekPlan).forEach(function(wk) {
-    var monday = new Date(wk + 'T00:00:00');
-    SM_PLAN_DAYS.forEach(function(dayKey) {
-      var planDate = new Date(monday);
-      planDate.setDate(monday.getDate() + dayOffsets[dayKey]);
-      if (planDate.getFullYear() !== smCalYear || planDate.getMonth() !== smCalMonth) return;
-      var data = smPlanGetDay(wk, dayKey);
-      if (!data.pillar && !data.notes && !data.format) return;
-      var dn = planDate.getDate();
-      if (!planByDate[dn]) planByDate[dn] = [];
-      planByDate[dn].push({ wk: wk, dayKey: dayKey, data: data });
-    });
-  });
-
-  var today = new Date();
-  var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-
-  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
-    + '<button onclick="smCalPrev()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:14px;color:var(--charcoal)">&#8592;</button>'
-    + '<div style="font-size:20px;font-weight:700;color:var(--deep)">' + monthNames[smCalMonth] + ' ' + smCalYear + '</div>'
-    + '<button onclick="smCalNext()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:14px;color:var(--charcoal)">&#8594;</button>'
+  var html = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">'
+    + '<button onclick="smCalPrev()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:13px;color:var(--charcoal)">&#8592; Prev</button>'
+    + '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:20px;font-weight:500;color:var(--charcoal);flex:1;text-align:center">' + weekLabel + '</div>'
+    + '<button onclick="smCalNext()" style="background:none;border:1px solid var(--sand);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:13px;color:var(--charcoal)">Next &#8594;</button>'
+    + (smCalWeekOff !== 0 ? '<button onclick="smCalWeekOff=0;renderSocialPage()" style="background:var(--charcoal);color:white;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:600">This Week</button>' : '')
     + '</div>';
 
-  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px">'
-    + dayNames.map(function(dn) {
-        return '<div style="text-align:center;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.8px;padding:6px 0">' + dn + '</div>';
+  var dayKeys = SM_PLAN_DAYS;
+  var inputStyle = 'width:100%;border:1px solid var(--sand);border-radius:6px;padding:6px 8px;font-size:11px;box-sizing:border-box;font-family:inherit;background:white;color:var(--charcoal)';
+  var taStyle    = inputStyle + ';min-height:64px;resize:vertical;line-height:1.5';
+  var selStyle   = inputStyle + ';cursor:pointer';
+
+  // Each row: {label, cell(wk, dayKey, post) -> html}
+  var rows = [
+    { label: 'Screenshot', cell: function(wk, dayKey, post) {
+        var fid = 'sm-cal-photo-' + dayKey;
+        var img = post.referenceImageUrl
+          ? '<div><img src="' + esc(post.referenceImageUrl) + '" style="width:100%;max-height:110px;object-fit:cover;border-radius:6px;display:block;cursor:pointer" onclick="document.getElementById(\'' + fid + '\').click()">'
+            + '<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:3px;cursor:pointer" onclick="document.getElementById(\'' + fid + '\').click()">Change</div></div>'
+          : '<div onclick="document.getElementById(\'' + fid + '\').click()" style="border:1.5px dashed var(--sand);border-radius:6px;padding:18px 6px;text-align:center;cursor:pointer;color:var(--muted);font-size:11px;line-height:1.4">+ Upload<br>screenshot</div>';
+        return '<input type="file" accept="image/*" id="' + fid + '" style="display:none" onchange="smCalUploadPhoto(\'' + wk + '\',\'' + dayKey + '\',this)">' + img;
+      }},
+    { label: 'Link', cell: function(wk, dayKey, post) {
+        return '<input type="url" placeholder="Link…" value="' + esc(post.referenceLink||'') + '" onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'referenceLink\',this.value)" style="' + inputStyle + '">';
+      }},
+    { label: 'Pillar', cell: function(wk, dayKey, post) {
+        var bg = post.pillar ? (SM_PILLAR_COLORS[post.pillar]||'#9CA3AF') : 'white';
+        var fg = post.pillar ? 'white' : 'var(--charcoal)';
+        var opts = '<option value="">— Select —</option>' + SM_PILLARS.map(function(p) {
+          return '<option value="' + esc(p) + '"' + (p===post.pillar?' selected':'') + '>' + esc(p) + '</option>';
+        }).join('');
+        return '<select onchange="smCalSetPillar(\'' + wk + '\',\'' + dayKey + '\',this.value)" style="' + selStyle + ';font-weight:600;background:' + bg + ';color:' + fg + '">' + opts + '</select>';
+      }},
+    { label: 'Topic', cell: function(wk, dayKey, post) {
+        var info = SM_PILLAR_TOPICS[post.pillar];
+        var opts = info
+          ? '<option value="">— Select —</option>' + info.topics.map(function(t) {
+              return '<option value="' + esc(t) + '"' + (t===post.topic?' selected':'') + '>' + esc(t) + '</option>';
+            }).join('')
+          : '<option value="">— Select a pillar first —</option>';
+        return '<select ' + (info?'':'disabled') + ' onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'topic\',this.value)" style="' + selStyle + '">' + opts + '</select>';
+      }},
+    { label: 'Funnel', cell: function(wk, dayKey, post) {
+        var opts = '<option value="">— Select —</option>' + SM_FUNNEL_STAGES.map(function(f) {
+          return '<option value="' + f.key + '"' + (f.key===post.funnelStage?' selected':'') + '>' + esc(f.label) + '</option>';
+        }).join('');
+        return '<select onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'funnelStage\',this.value)" style="' + selStyle + '">' + opts + '</select>';
+      }},
+    { label: 'Content Type', cell: function(wk, dayKey, post) {
+        var opts = '<option value="">— Select —</option>' + SM_CONTENT_TYPES.map(function(c) {
+          return '<option value="' + esc(c) + '"' + (c===post.contentType?' selected':'') + '>' + esc(c) + '</option>';
+        }).join('');
+        return '<select onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'contentType\',this.value)" style="' + selStyle + '">' + opts + '</select>';
+      }},
+    { label: 'Position Type', cell: function(wk, dayKey, post) {
+        var opts = '<option value="">— Select —</option>' + SM_POSITIONING_TYPES.map(function(t) {
+          return '<option value="' + t.key + '"' + (t.key===post.positioningType?' selected':'') + '>' + esc(t.label) + '</option>';
+        }).join('');
+        var def = SM_POSITIONING_TYPES.find(function(t) { return t.key === post.positioningType; });
+        var blurb = def ? '<div style="font-size:10px;color:var(--muted);line-height:1.4;margin-top:5px">' + esc(def.blurb) + '</div>' : '';
+        return '<select onchange="smCalSetPositioningType(\'' + wk + '\',\'' + dayKey + '\',this.value)" style="' + selStyle + '">' + opts + '</select>' + blurb;
+      }},
+    { label: 'Hook', cell: function(wk, dayKey, post) {
+        return '<textarea placeholder="Hook…" onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'scriptHook\',this.value)" style="' + taStyle + '">' + esc(post.scriptHook||'') + '</textarea>';
+      }},
+    { label: 'Caption', cell: function(wk, dayKey, post) {
+        return '<textarea placeholder="Caption…" onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'caption\',this.value)" style="' + taStyle + '">' + esc(post.caption||'') + '</textarea>';
+      }},
+    { label: 'Script', cell: function(wk, dayKey, post) {
+        return '<textarea placeholder="Script…" onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'scriptText\',this.value)" style="' + taStyle + '">' + esc(post.scriptText||'') + '</textarea>';
+      }},
+  ];
+
+  html += '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--sand)">'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1180px;table-layout:fixed">'
+    + '<colgroup><col style="width:110px">' + dayKeys.map(function(){ return '<col style="width:150px">'; }).join('') + '</colgroup>'
+    + '<thead><tr style="background:var(--warm)">'
+    + '<th style="padding:10px 12px;text-align:left"></th>'
+    + dayKeys.map(function(dk) {
+        return '<th style="padding:10px 8px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--charcoal);border-bottom:2px solid #EF4444">' + SM_CAL_DAY_LABELS[dk] + '</th>';
       }).join('')
-    + '</div>';
+    + '</tr></thead><tbody>';
 
-  // Calculate row count so grid can fill the viewport height
-  var totalCells = startDow + totalDays;
-  var numRows    = Math.ceil(totalCells / 7);
-  var cellH      = 'calc((100vh - 280px) / ' + numRows + ')';
-
-  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:' + cellH + ';gap:4px">';
-
-  // Empty leading cells
-  for (var i = 0; i < startDow; i++) {
-    html += '<div style="background:var(--warm);border-radius:10px;opacity:.25"></div>';
-  }
-
-  for (var d = 1; d <= totalDays; d++) {
-    var dateStr  = smCalYear + '-' + String(smCalMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    var isToday  = dateStr === todayStr;
-    var dayPosts = byDate[d] || [];
-    var planEntries = planByDate[d] || [];
-    var primaryPlan = planEntries[0] || null;
-
-    // Determine cell colour: plan pillar takes priority, else white/today tint
-    var pc = primaryPlan ? (SM_PILLAR_COLORS[primaryPlan.data.pillar] || '#9CA3AF') : null;
-    var cellBg     = pc || (isToday ? '#EDE9FE' : 'white');
-    var cellBorder = isToday && !pc ? 'border:2px solid #A78BFA;' : 'border:1px solid ' + (pc ? pc : 'var(--sand)') + ';';
-
-    var cellClick = primaryPlan
-      ? 'smPlanOpenPost(\'' + primaryPlan.wk + '\',\'' + primaryPlan.dayKey + '\')'
-      : 'smOpenModal(null,\'idea\',\'' + dateStr + '\')';
-
-    html += '<div style="' + cellBorder + 'background:' + cellBg + ';border-radius:10px;padding:10px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;position:relative" onclick="' + cellClick + '">';
-
-    // Stage status badges (top-right) — derived from linked Pipeline post
-    var stageOrder = ['idea','scripted','filmed','edited','g2g','scheduled','posted'];
-    var linkedStage = null;
-    if (primaryPlan && primaryPlan.data.postId) {
-      var lp = socialPosts.find(function(p) { return p.id === primaryPlan.data.postId; });
-      if (lp) linkedStage = lp.stage;
-    }
-    var stageIdx   = linkedStage ? stageOrder.indexOf(linkedStage) : -1;
-    var isFilmed   = stageIdx >= stageOrder.indexOf('filmed');
-    var isEdited   = stageIdx >= stageOrder.indexOf('edited');
-
-    // Date number row with status badges
-    var dateColor = pc ? 'rgba(255,255,255,.75)' : (isToday ? '#7C3AED' : 'var(--muted)');
-    html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-shrink:0;gap:4px">'
-      + '<div style="font-size:11px;font-weight:700;color:' + dateColor + '">' + d + '</div>';
-
-    if (isFilmed || isEdited) {
-      html += '<div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end">';
-      if (isFilmed) {
-        html += '<span style="font-size:8px;font-weight:800;color:' + (pc ? 'rgba(255,255,255,.9)' : 'var(--charcoal)') + ';background:' + (pc ? 'rgba(255,255,255,.22)' : 'var(--warm)') + ';border-radius:4px;padding:2px 5px;letter-spacing:.3px;white-space:nowrap">🎬 Filmed</span>';
-      }
-      if (isEdited) {
-        html += '<span style="font-size:8px;font-weight:800;color:' + (pc ? 'rgba(255,255,255,.9)' : 'var(--charcoal)') + ';background:' + (pc ? 'rgba(255,255,255,.22)' : 'var(--warm)') + ';border-radius:4px;padding:2px 5px;letter-spacing:.3px;white-space:nowrap">✂️ Edited</span>';
-      }
-      html += '</div>';
-    }
-
-    html += '</div>';
-
-    // Primary plan content fills the cell
-    if (primaryPlan) {
-      var pd = primaryPlan.data;
-      var calLinkedPost = pd.postId ? socialPosts.find(function(p) { return p.id === pd.postId; }) : null;
-      var titleText = (calLinkedPost && calLinkedPost.title) ? calLinkedPost.title : (pd.notes || pd.pillar || '');
-      html += '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0">';
-      if (pd.format) {
-        html += '<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">' + esc(pd.format) + '</div>';
-      }
-      html += '<div style="font-size:14px;font-weight:700;color:white;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical">' + esc(titleText) + '</div>';
-      if (pd.link) {
-        html += '<div style="margin-top:6px;font-size:10px;color:rgba(255,255,255,.65)">🔗</div>';
-      }
-      html += '</div>';
-    }
-
-    // Pipeline posts (stage-coloured badges at the bottom)
-    if (dayPosts.length) {
-      html += '<div style="margin-top:auto;padding-top:4px;display:flex;flex-direction:column;gap:2px;flex-shrink:0">';
-      dayPosts.forEach(function(post) {
-        var stageObj = SM_STAGES.find(function(s) { return s.key === post.stage; });
-        var col = stageObj ? stageObj.color : '#6B7280';
-        html += '<div onclick="event.stopPropagation();smOpenModal(\'' + post.id + '\')" title="' + esc(post.title) + '" style="font-size:9px;font-weight:700;background:' + col + ';color:white;border-radius:4px;padding:2px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-          + esc(post.title) + '</div>';
-      });
-      html += '</div>';
-    }
-
-    html += '</div>';
-  }
-
-  html += '</div>';
-
-  // Legend
-  html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--sand)">';
-  SM_PILLARS.forEach(function(p) {
-    var col = SM_PILLAR_COLORS[p] || '#9CA3AF';
-    html += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)">'
-      + '<div style="width:10px;height:10px;border-radius:3px;background:' + col + '"></div>' + esc(p.split(' ')[0]) + '</div>';
+  rows.forEach(function(row, ri) {
+    var border = ri === rows.length - 1 ? '' : 'border-bottom:1px solid var(--sand)';
+    html += '<tr style="' + border + '">'
+      + '<td style="padding:8px 12px;font-weight:700;color:var(--charcoal);font-size:11px;vertical-align:top;background:var(--warm)">' + esc(row.label) + '</td>';
+    dayKeys.forEach(function(dayKey) {
+      var day  = smPlanGetDay(wk, dayKey);
+      var post = day.postId ? (socialPosts.find(function(p){ return p.id === day.postId; }) || {}) : {};
+      html += '<td style="padding:6px 8px;vertical-align:top">' + row.cell(wk, dayKey, post) + '</td>';
+    });
+    html += '</tr>';
   });
-  html += '</div>';
 
+  html += '</tbody></table></div>';
   return html;
-}
-
-function smCalPrev() {
-  smCalMonth--;
-  if (smCalMonth < 0) { smCalMonth = 11; smCalYear--; }
-  renderSocialPage();
-}
-function smCalNext() {
-  smCalMonth++;
-  if (smCalMonth > 11) { smCalMonth = 0; smCalYear++; }
-  renderSocialPage();
 }
 
 // ══ IDEA BANK ══
@@ -1611,11 +1635,9 @@ function smSavePost() {
     }
   }
 
-  // Jump calendar to the scheduled month if a date was set
+  // Jump calendar to the scheduled week if a date was set
   if (obj.scheduledDate && (smActiveTab === 'calendar' || smActiveTab === 'pipeline')) {
-    var parts = obj.scheduledDate.split('-');
-    smCalYear  = parseInt(parts[0]);
-    smCalMonth = parseInt(parts[1]) - 1;
+    smCalWeekJumpTo(obj.scheduledDate);
   }
 
   smCloseModal();
@@ -1672,7 +1694,7 @@ function smGetInspoLinks() {
 
 // ══ COMMENTS ══
 
-var SM_VIDEO_TYPES = ['Quick Chat', 'Reel', 'Quick Comparisons', 'Review/Overlays', 'Celebrity Analysis', 'Consultation'];
+var SM_VIDEO_TYPES = ['Greenscreen', 'Pop-ups', 'Talking Head', 'B-roll/Voiceovers'];
 
 function smContentTypeIcon(contentType) {
   if (!contentType) return '';
