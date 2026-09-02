@@ -635,6 +635,33 @@ function smCalSetPillar(wk, dayKey, val) {
   saveData();
   renderSocialPage();
 }
+function smCalSelectPillar(wk, dayKey, pillarIdx) {
+  smCalSetPillar(wk, dayKey, pillarIdx >= 0 ? SM_PILLARS[pillarIdx] : '');
+}
+// Colour-coded pillar picker — a plain <select> with an inline background
+// colour doesn't reliably render in every browser (Safari in particular
+// tends to keep its own native control chrome instead), so this uses the
+// same div-based dropdown as the Plan tab's pillar picker instead. Reuses
+// smTogglePillarDD()/.sm-pillar-dd from there — that toggle is generic
+// (keyed by element id), not tied to Plan's own instances.
+function smCalPillarDD(wk, dayKey, currentPillar) {
+  var ddId = 'sm-cal-pd-' + dayKey;
+  var col  = SM_PILLAR_COLORS[currentPillar] || '';
+  var trigger = col
+    ? '<div onclick="smTogglePillarDD(\'' + ddId + '\')" style="padding:6px 10px;border-radius:6px;background:' + col + ';color:white;font-size:11px;font-weight:700;cursor:pointer;user-select:none">' + esc(currentPillar) + ' &#9662;</div>'
+    : '<div onclick="smTogglePillarDD(\'' + ddId + '\')" style="padding:6px 10px;border-radius:6px;background:white;border:1px solid var(--sand);color:var(--muted);font-size:11px;cursor:pointer;user-select:none">— Select — &#9662;</div>';
+  var items = SM_PILLARS.map(function(p, pi) {
+    var c = SM_PILLAR_COLORS[p] || '#9CA3AF';
+    return '<div onclick="smCalSelectPillar(\'' + wk + '\',\'' + dayKey + '\',' + pi + ')" style="padding:6px 10px;cursor:pointer;border-radius:4px;margin:2px 0;background:' + c + ';color:white;font-size:12px;font-weight:600">' + esc(p) + '</div>';
+  }).join('');
+  var clearItem = '<div onclick="smCalSelectPillar(\'' + wk + '\',\'' + dayKey + '\',-1)" style="padding:5px 10px;cursor:pointer;color:var(--muted);font-size:11px;border-top:1px solid var(--sand);margin-top:4px">Clear</div>';
+  return '<div style="position:relative">'
+    + trigger
+    + '<div id="' + ddId + '" class="sm-pillar-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:white;border:1px solid var(--sand);border-radius:8px;padding:6px;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.12)">'
+    + items + clearItem
+    + '</div>'
+    + '</div>';
+}
 
 // Position Type needs a re-render too, since its blurb line depends on the
 // selection.
@@ -707,12 +734,7 @@ function smRenderCalendar() {
         return '<input type="url" placeholder="Link…" value="' + esc(post.referenceLink||'') + '" onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'referenceLink\',this.value)" style="' + inputStyle + '">';
       }},
     { label: 'Pillar', cell: function(wk, dayKey, post) {
-        var bg = post.pillar ? (SM_PILLAR_COLORS[post.pillar]||'#9CA3AF') : 'white';
-        var fg = post.pillar ? 'white' : 'var(--charcoal)';
-        var opts = '<option value="">— Select —</option>' + SM_PILLARS.map(function(p) {
-          return '<option value="' + esc(p) + '"' + (p===post.pillar?' selected':'') + '>' + esc(p) + '</option>';
-        }).join('');
-        return '<select onchange="smCalSetPillar(\'' + wk + '\',\'' + dayKey + '\',this.value)" style="' + selStyle + ';font-weight:600;background:' + bg + ';color:' + fg + '">' + opts + '</select>';
+        return smCalPillarDD(wk, dayKey, post.pillar || '');
       }},
     { label: 'Topic', cell: function(wk, dayKey, post) {
         var info = SM_PILLAR_TOPICS[post.pillar];
@@ -740,8 +762,20 @@ function smRenderCalendar() {
           return '<option value="' + t.key + '"' + (t.key===post.positioningType?' selected':'') + '>' + esc(t.label) + '</option>';
         }).join('');
         var def = SM_POSITIONING_TYPES.find(function(t) { return t.key === post.positioningType; });
-        var blurb = def ? '<div style="font-size:10px;color:var(--muted);line-height:1.4;margin-top:5px">' + esc(def.blurb) + '</div>' : '';
-        return '<select onchange="smCalSetPositioningType(\'' + wk + '\',\'' + dayKey + '\',this.value)" style="' + selStyle + '">' + opts + '</select>' + blurb;
+        var explain = '';
+        if (def) {
+          var whatItIs = def.whatItIs ? '<div style="font-size:10px;color:var(--charcoal);line-height:1.5;margin-bottom:8px">' + esc(def.whatItIs) + '</div>' : '';
+          var formats = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">' + def.formats.map(function(f) {
+            return '<span style="font-size:9px;background:white;border:1px solid var(--sand);border-radius:12px;padding:2px 8px;color:var(--charcoal);font-weight:600">' + esc(f) + '</span>';
+          }).join('') + '</div>';
+          var steps = def.steps.map(function(s, i) {
+            return '<div style="font-size:10px;color:var(--charcoal);padding:5px 0' + (i ? ';border-top:1px solid var(--sand)' : '') + '"><b>' + esc(s.label) + ':</b> <span style="color:var(--muted)">' + esc(s.hint) + '</span></div>';
+          }).join('');
+          explain = '<div style="font-size:10px;color:var(--muted);line-height:1.4;margin-top:5px">' + esc(def.blurb) + '</div>'
+            + '<details style="margin-top:4px"><summary style="cursor:pointer;font-size:10px;color:var(--muted);font-weight:600">Show full explanation</summary>'
+            + '<div style="margin-top:8px">' + whatItIs + formats + steps + '</div></details>';
+        }
+        return '<select onchange="smCalSetPositioningType(\'' + wk + '\',\'' + dayKey + '\',this.value)" style="' + selStyle + '">' + opts + '</select>' + explain;
       }},
     { label: 'Hook', cell: function(wk, dayKey, post) {
         return '<textarea placeholder="Hook…" onchange="smCalSaveField(\'' + wk + '\',\'' + dayKey + '\',\'scriptHook\',this.value)" style="' + taStyle + '">' + esc(post.scriptHook||'') + '</textarea>';
@@ -755,12 +789,18 @@ function smRenderCalendar() {
   ];
 
   html += '<div style="overflow-x:auto;border-radius:12px;border:1px solid var(--sand)">'
-    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1180px;table-layout:fixed">'
-    + '<colgroup><col style="width:110px">' + dayKeys.map(function(){ return '<col style="width:150px">'; }).join('') + '</colgroup>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1330px;table-layout:fixed">'
+    + '<colgroup><col style="width:110px">' + dayKeys.map(function(){ return '<col style="width:174px">'; }).join('') + '</colgroup>'
     + '<thead><tr style="background:var(--warm)">'
     + '<th style="padding:10px 12px;text-align:left"></th>'
     + dayKeys.map(function(dk) {
-        return '<th style="padding:10px 8px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--charcoal);border-bottom:2px solid #EF4444">' + SM_CAL_DAY_LABELS[dk] + '</th>';
+        var data = smPlanGetDay(wk, dk);
+        return '<th style="padding:10px 8px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--charcoal);border-bottom:2px solid #EF4444">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
+          + '<span>' + SM_CAL_DAY_LABELS[dk] + '</span>'
+          + '<span style="width:76px">' + smStatusDD(wk, dk, data.status) + '</span>'
+          + '</div>'
+          + '</th>';
       }).join('')
     + '</tr></thead><tbody>';
 
