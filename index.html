@@ -689,6 +689,7 @@
           <button class="fin-tab" onclick="showFinTab('charts',this)">Charts</button>
           <button class="fin-tab" onclick="showFinTab('cashflow',this)">Cashflow</button>
           <button class="fin-tab" onclick="showFinTab('goals',this)">Money Goals</button>
+          <button class="fin-tab" onclick="showFinTab('convcalc',this)">Conversion Calc</button>
         </div>
       </div>
 
@@ -756,6 +757,12 @@
           <button class="btn btnp" style="font-size:11px" onclick="openMoneyGoalModal(null)">+ Add Money Goal</button>
         </div>
         <div id="fin-goals-content"></div>
+      </div>
+
+      <!-- ── CONVERSION CALCULATOR TAB ── -->
+      <div id="fin-convcalc" style="display:none">
+        <div style="font-family:'Fraunces',serif;font-size:22px;color:var(--deep);margin-bottom:14px">Conversion Calculator</div>
+        <div id="fin-convcalc-content"></div>
       </div>
     </div>
 
@@ -1780,7 +1787,7 @@
 <script src="app-vouchers.js"></script>
 <script src="app-vietnam.js"></script>
 <script src="app-mobileapp.js"></script>
-<script src="app-finances.js"></script>
+<script src="app-finances.js?v=2"></script>
 <script src="app-comms.js"></script>
 <script src="app.js?v=3"></script>
 <script src="app-plan.js"></script>

@@ -74,7 +74,7 @@ function setFinPeriod(p, btn) {
 
 function showFinTab(tab, btn) {
   finTab = tab;
-  ['business','personal','charts','cashflow','goals'].forEach(function(t) {
+  ['business','personal','charts','cashflow','goals','convcalc'].forEach(function(t) {
     var sec = document.getElementById('fin-' + t);
     if (sec) sec.style.display = (t === tab) ? 'block' : 'none';
   });
@@ -89,6 +89,51 @@ function renderFinances() {
   if (finTab === 'charts')   { if (typeof renderFinCharts   === 'function') renderFinCharts(); }
   if (finTab === 'cashflow') { if (typeof renderCashflow    === 'function') renderCashflow(); }
   if (finTab === 'goals')    { if (typeof renderMoneyGoals  === 'function') renderMoneyGoals(); }
+  if (finTab === 'convcalc') { renderConversionCalc(); }
+}
+
+// ── Conversion Calculator ──────────────────────────────────────
+// Deliberately stateless — a quick one-off calculator, nothing saved or
+// tracked over time. Reads its three inputs straight off the DOM and
+// recomputes on every keystroke; there's no backing data model to keep
+// in sync, so there's nothing for saveData()/loadData() to touch here.
+function ccRecalc() {
+  var leads   = parseFloat(document.getElementById('cc-leads')  && document.getElementById('cc-leads').value)  || 0;
+  var clients = parseFloat(document.getElementById('cc-clients')&& document.getElementById('cc-clients').value)|| 0;
+  var revenue = parseFloat(document.getElementById('cc-revenue')&& document.getElementById('cc-revenue').value)|| 0;
+
+  var rateEl = document.getElementById('cc-rate');
+  var perConvEl = document.getElementById('cc-per-conv');
+  var perLeadEl = document.getElementById('cc-per-lead');
+  if (!rateEl) return;
+
+  rateEl.textContent = leads > 0 ? (Math.round((clients / leads) * 1000) / 10) + '%' : '—';
+  perConvEl.textContent = clients > 0 ? fmtAmt(revenue / clients) : '—';
+  perLeadEl.textContent = leads > 0 ? fmtAmt(revenue / leads) : '—';
+
+  var warnEl = document.getElementById('cc-warn');
+  if (warnEl) warnEl.style.display = (clients > leads && leads > 0) ? 'block' : 'none';
+}
+
+function renderConversionCalc() {
+  var el = document.getElementById('fin-convcalc-content'); if (!el) return;
+  var fieldWrap = 'display:flex;flex-direction:column;gap:6px';
+  var lbl = 'font-size:12px;font-weight:600;color:var(--muted)';
+  var inp = 'width:100%;border:1px solid var(--sand);border-radius:8px;padding:10px 12px;font-size:15px;box-sizing:border-box';
+
+  el.innerHTML =
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:20px;max-width:520px">Enter your numbers for any period you like (a week, a month, a campaign) — nothing here is saved, it just calculates on the spot.</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;max-width:640px;margin-bottom:24px">'
+    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Leads</label><input type="number" min="0" step="1" id="cc-leads" oninput="ccRecalc()" placeholder="0" style="' + inp + '"></div>'
+    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Paying Clients</label><input type="number" min="0" step="1" id="cc-clients" oninput="ccRecalc()" placeholder="0" style="' + inp + '"></div>'
+    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Revenue From Them ($)</label><input type="number" min="0" step="0.01" id="cc-revenue" oninput="ccRecalc()" placeholder="0.00" style="' + inp + '"></div>'
+    + '</div>'
+    + '<div id="cc-warn" style="display:none;background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:24px;max-width:640px">Paying Clients is higher than Leads — double check the numbers.</div>'
+    + '<div class="srow" style="max-width:640px">'
+    +   '<div class="sc" style="flex:1"><div class="slb">Conversion Rate</div><div class="sv">' + '<span id="cc-rate">—</span></div></div>'
+    +   '<div class="sc" style="flex:1"><div class="slb">Avg Revenue / Paying Client</div><div class="sv"><span id="cc-per-conv">—</span></div></div>'
+    +   '<div class="sc" style="flex:1"><div class="slb">Avg Revenue / Lead</div><div class="sv"><span id="cc-per-lead">—</span></div></div>'
+    + '</div>';
 }
 
 // Shared helper — calculates total income respecting clients×rate
