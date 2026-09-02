@@ -811,6 +811,10 @@ function smRenderCalendar() {
     dayKeys.forEach(function(dayKey) {
       var day  = smPlanGetDay(wk, dayKey);
       var post = day.postId ? (socialPosts.find(function(p){ return p.id === day.postId; }) || {}) : {};
+      // Show the day-of-week default pillar (SM_PLAN_DEFAULTS, same schedule
+      // Plan already uses) even before a post exists for that day — otherwise
+      // every day shows blank until something else is typed in first.
+      if (!post.pillar) post.pillar = day.pillar;
       html += '<td style="padding:6px 8px;vertical-align:top">' + row.cell(wk, dayKey, post) + '</td>';
     });
     html += '</tr>';
