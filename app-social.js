@@ -437,11 +437,9 @@ function renderSocialPage() {
   var el = document.getElementById('social-page-content'); if (!el) return;
 
   var tabs = [
-    {key:'plan',      label:'Plan'},
-    {key:'pipeline',  label:'Pipeline'},
     {key:'calendar',  label:'Calendar'},
+    {key:'pipeline',  label:'Pipeline'},
     {key:'strategy',  label:'Posting Strategy'},
-    {key:'analytics', label:'Analytics'},
   ];
 
   var tabHtml = '<div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">'
