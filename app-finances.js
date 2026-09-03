@@ -93,47 +93,180 @@ function renderFinances() {
 }
 
 // ── Conversion Calculator ──────────────────────────────────────
-// Deliberately stateless — a quick one-off calculator, nothing saved or
-// tracked over time. Reads its three inputs straight off the DOM and
-// recomputes on every keystroke; there's no backing data model to keep
+// Deliberately stateless — a quick planning tool, nothing saved or
+// tracked over time. Reads every input straight off the DOM and
+// recomputes on every change; there's no backing data model to keep
 // in sync, so there's nothing for saveData()/loadData() to touch here.
-function ccRecalc() {
-  var leads   = parseFloat(document.getElementById('cc-leads')  && document.getElementById('cc-leads').value)  || 0;
-  var clients = parseFloat(document.getElementById('cc-clients')&& document.getElementById('cc-clients').value)|| 0;
-  var revenue = parseFloat(document.getElementById('cc-revenue')&& document.getElementById('cc-revenue').value)|| 0;
+//
+// Reverse-funnel model: start from a monthly revenue target and price,
+// work out how many sales that needs, then — given a conversion rate —
+// how much sales-page traffic that takes, and the gap against traffic
+// you're actually getting today. Conversion rate and projection period
+// are sliders so the numbers respond live as you explore "what if."
+var CC_DEFAULTS = { price: 349, revenue: 10000, traffic: 0, conversion: 2, months: 1 };
 
-  var rateEl = document.getElementById('cc-rate');
-  var perConvEl = document.getElementById('cc-per-conv');
-  var perLeadEl = document.getElementById('cc-per-lead');
-  if (!rateEl) return;
-
-  rateEl.textContent = leads > 0 ? (Math.round((clients / leads) * 1000) / 10) + '%' : '—';
-  perConvEl.textContent = clients > 0 ? fmtAmt(revenue / clients) : '—';
-  perLeadEl.textContent = leads > 0 ? fmtAmt(revenue / leads) : '—';
-
-  var warnEl = document.getElementById('cc-warn');
-  if (warnEl) warnEl.style.display = (clients > leads && leads > 0) ? 'block' : 'none';
+function ccVal(id) {
+  var el = document.getElementById(id);
+  return el ? parseFloat(el.value) || 0 : 0;
 }
+
+function ccReset() {
+  document.getElementById('cc-price').value      = CC_DEFAULTS.price;
+  document.getElementById('cc-revenue').value    = CC_DEFAULTS.revenue;
+  document.getElementById('cc-traffic').value    = CC_DEFAULTS.traffic;
+  document.getElementById('cc-conversion').value = CC_DEFAULTS.conversion;
+  document.getElementById('cc-months').value     = CC_DEFAULTS.months;
+  ccRecalc();
+}
+
+function ccRecalc() {
+  var priceEl = document.getElementById('cc-price'); if (!priceEl) return;
+
+  var price      = ccVal('cc-price');
+  var revenue    = ccVal('cc-revenue');
+  var traffic    = ccVal('cc-traffic');
+  var convPct    = ccVal('cc-conversion');
+  var months     = ccVal('cc-months') || 1;
+  var convFrac   = convPct / 100;
+
+  // Ceiling, not round, for every count below — you can't make "half a
+  // sale," and a traffic target should round up (safer to slightly over-
+  // estimate the visits you need than to fall short). Visits are ceiled
+  // from the UNROUNDED sales goal, not the already-ceiled display value —
+  // ceiling twice in a row compounds the rounding error.
+  var salesGoalRaw   = price > 0 ? revenue / price : 0;
+  var salesGoal      = Math.ceil(salesGoalRaw);
+  var monthlyVisits  = convFrac > 0 ? Math.ceil(salesGoalRaw / convFrac) : 0;
+  var weeklyRevenue  = revenue * 12 / 52;
+  var weeklySalesRaw = price > 0 ? weeklyRevenue / price : 0;
+  var weeklyVisits   = convFrac > 0 ? Math.ceil(weeklySalesRaw / convFrac) : 0;
+  var quarterlyVisits = monthlyVisits * 3;
+  var periodVisits    = monthlyVisits * months;
+  var totalRevenuePeriod = revenue * months;
+
+  document.getElementById('cc-sales-goal').textContent    = salesGoal.toLocaleString('en-AU');
+  document.getElementById('cc-visits-monthly').textContent   = monthlyVisits.toLocaleString('en-AU');
+  document.getElementById('cc-visits-weekly').textContent    = weeklyVisits.toLocaleString('en-AU');
+  document.getElementById('cc-visits-quarterly').textContent = quarterlyVisits.toLocaleString('en-AU');
+  document.getElementById('cc-visits-period').textContent    = periodVisits.toLocaleString('en-AU');
+  document.getElementById('cc-hero-revenue').textContent     = fmtAmtRound(revenue);
+
+  var gap = monthlyVisits - traffic;
+  var gapValEl = document.getElementById('cc-gap-value');
+  var gapExplainEl = document.getElementById('cc-gap-explain');
+  var trafficWorth = traffic * convFrac * price;
+  if (gap > 0.5) {
+    gapValEl.textContent = Math.ceil(gap).toLocaleString('en-AU') + ' more visits';
+    gapExplainEl.textContent = 'You need ' + monthlyVisits.toLocaleString('en-AU') + ' a month and you get '
+      + Math.round(traffic).toLocaleString('en-AU') + '. Today that traffic is worth about ' + fmtAmtRound(trafficWorth)
+      + ' a month at ' + ccFmtPct(convPct) + ' conversion. Close the gap with traffic, or lift conversion so you need less of it.';
+  } else {
+    gapValEl.textContent = 'You’re covered';
+    gapExplainEl.textContent = 'You need ' + monthlyVisits.toLocaleString('en-AU') + ' a month and you get '
+      + Math.round(traffic).toLocaleString('en-AU') + ' — that traffic alone can hit this target at ' + ccFmtPct(convPct) + ' conversion.';
+  }
+
+  document.getElementById('cc-conversion-display').textContent = ccFmtPct(convPct);
+  document.getElementById('cc-conversion-plus').textContent  = ccFmtPct(convPct * 1.1);
+  document.getElementById('cc-conversion-minus').textContent = ccFmtPct(convPct * 0.9);
+
+  document.getElementById('cc-months-display').textContent = months;
+  document.getElementById('cc-months-total-revenue').textContent = fmtAmtRound(totalRevenuePeriod);
+
+  document.getElementById('cc-summary').innerHTML = 'To hit <b>' + fmtAmtRound(revenue) + ' per month</b> at <b>' + fmtAmtRound(price) + ' per service</b>, '
+    + 'you need <b>' + salesGoal.toLocaleString('en-AU') + ' sales</b>, meaning roughly <b>' + monthlyVisits.toLocaleString('en-AU') + ' sales page visits per month</b> '
+    + 'at a <b>' + ccFmtPct(convPct) + ' conversion rate</b>.';
+}
+
+function ccFmtPct(p) { return (Math.round(p * 10) / 10) + '%'; }
 
 function renderConversionCalc() {
   var el = document.getElementById('fin-convcalc-content'); if (!el) return;
   var fieldWrap = 'display:flex;flex-direction:column;gap:6px';
-  var lbl = 'font-size:12px;font-weight:600;color:var(--muted)';
-  var inp = 'width:100%;border:1px solid var(--sand);border-radius:8px;padding:10px 12px;font-size:15px;box-sizing:border-box';
+  var lbl = 'font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)';
+  var inp = 'width:100%;border:1px solid var(--sand);border-radius:8px;padding:10px 12px;font-size:20px;font-family:\'Cormorant Garamond\',serif;box-sizing:border-box;background:white;color:var(--deep)';
+  var stepTitle = 'font-family:\'Fraunces\',serif;font-size:22px;color:var(--deep);margin:2px 0 6px';
+  var stepEyebrow = 'font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px';
+  var stepDesc = 'font-size:13px;color:var(--muted);max-width:640px;margin-bottom:20px;line-height:1.6';
+  var cardWrap = 'background:var(--warm);border:1px solid var(--sand);border-radius:12px;padding:20px';
+  var sliderCard = cardWrap + ';text-align:center';
+  var bigNum = 'font-family:\'Cormorant Garamond\',serif;font-size:44px;color:var(--deep);line-height:1;margin:10px 0';
 
   el.innerHTML =
-    '<div style="font-size:13px;color:var(--muted);margin-bottom:20px;max-width:520px">Enter your numbers for any period you like (a week, a month, a campaign) — nothing here is saved, it just calculates on the spot.</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;max-width:640px;margin-bottom:24px">'
-    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Leads</label><input type="number" min="0" step="1" id="cc-leads" oninput="ccRecalc()" placeholder="0" style="' + inp + '"></div>'
-    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Paying Clients</label><input type="number" min="0" step="1" id="cc-clients" oninput="ccRecalc()" placeholder="0" style="' + inp + '"></div>'
-    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Revenue From Them ($)</label><input type="number" min="0" step="0.01" id="cc-revenue" oninput="ccRecalc()" placeholder="0.00" style="' + inp + '"></div>'
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn btns" style="font-size:11px" onclick="ccReset()">Reset</button></div>'
+
+    // ── STEP ONE ──
+    + '<div style="' + stepEyebrow + '">Step One</div>'
+    + '<div style="' + stepTitle + '">Your Target</div>'
+    + '<div style="' + stepDesc + '">Set the revenue you want each month and what you charge. The sales goal calculates itself.</div>'
+    + '<div style="background:var(--deep);color:white;border-radius:12px;padding:20px 24px;margin-bottom:16px;max-width:720px">'
+    +   '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:6px">Target Monthly Revenue</div>'
+    +   '<div style="font-family:\'Cormorant Garamond\',serif;font-size:40px" id="cc-hero-revenue">—</div>'
     + '</div>'
-    + '<div id="cc-warn" style="display:none;background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:24px;max-width:640px">Paying Clients is higher than Leads — double check the numbers.</div>'
-    + '<div class="srow" style="max-width:640px">'
-    +   '<div class="sc" style="flex:1"><div class="slb">Conversion Rate</div><div class="sv">' + '<span id="cc-rate">—</span></div></div>'
-    +   '<div class="sc" style="flex:1"><div class="slb">Avg Revenue / Paying Client</div><div class="sv"><span id="cc-per-conv">—</span></div></div>'
-    +   '<div class="sc" style="flex:1"><div class="slb">Avg Revenue / Lead</div><div class="sv"><span id="cc-per-lead">—</span></div></div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;max-width:720px;margin-bottom:32px">'
+    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Price Per Service / Product</label><input type="number" min="0" step="1" id="cc-price" oninput="ccRecalc()" value="' + CC_DEFAULTS.price + '" style="' + inp + '"></div>'
+    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Desired Revenue Per Month</label><input type="number" min="0" step="1" id="cc-revenue" oninput="ccRecalc()" value="' + CC_DEFAULTS.revenue + '" style="' + inp + '"></div>'
+    +   '<div style="' + fieldWrap + '"><label style="' + lbl + '">Sales Goal, Number of Sales</label><div style="' + inp + ';border-color:transparent;background:var(--warm)"><b id="cc-sales-goal">—</b></div></div>'
+    + '</div>'
+
+    // ── STEP TWO ──
+    + '<div style="' + stepEyebrow + '">Step Two</div>'
+    + '<div style="' + stepTitle + '">Traffic You Need</div>'
+    + '<div style="' + stepDesc + '">These are visits to your sales page or checkout, not social media views. A reel view is not a visit. Only people who land on the page you sell from count here.</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;max-width:720px;margin-bottom:16px">'
+    +   '<div style="' + cardWrap + '"><div style="' + lbl + '">Sales Page Visits, Monthly</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep);margin-top:6px" id="cc-visits-monthly">—</div></div>'
+    +   '<div style="' + cardWrap + '"><div style="' + lbl + '">Sales Page Visits, Weekly</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep);margin-top:6px" id="cc-visits-weekly">—</div></div>'
+    +   '<div style="' + cardWrap + '"><div style="' + lbl + '">Sales Page Visits, Quarterly</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep);margin-top:6px" id="cc-visits-quarterly">—</div></div>'
+    +   '<div style="' + cardWrap + '"><div style="' + lbl + '">Total Visits, Selected Period</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:28px;color:var(--deep);margin-top:6px" id="cc-visits-period">—</div></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:16px;max-width:720px;margin-bottom:32px">'
+    +   '<div style="' + cardWrap + '">'
+    +     '<label style="' + lbl + '">Sales Page Visits You Get Now, Monthly</label>'
+    +     '<input type="number" min="0" step="1" id="cc-traffic" oninput="ccRecalc()" value="' + CC_DEFAULTS.traffic + '" style="' + inp + ';margin-top:8px">'
+    +     '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">From your website or funnel analytics, not your social media reach.</div>'
+    +   '</div>'
+    +   '<div style="background:var(--deep);color:white;border-radius:12px;padding:20px">'
+    +     '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:6px">Your Traffic Gap</div>'
+    +     '<div style="font-family:\'Cormorant Garamond\',serif;font-size:26px;margin-bottom:8px" id="cc-gap-value">—</div>'
+    +     '<div style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.6" id="cc-gap-explain"></div>'
+    +   '</div>'
+    + '</div>'
+
+    // ── STEP THREE ──
+    + '<div style="' + stepEyebrow + '">Step Three</div>'
+    + '<div style="' + stepTitle + '">Move The Levers</div>'
+    + '<div style="' + stepDesc + '">Conversion rate is sales efficiency. Projection period shows what the same month compounds to over time.</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:720px;margin-bottom:24px">'
+    +   '<div style="' + sliderCard + '">'
+    +     '<div style="' + stepTitle.replace('22px','16px') + '">Conversion Rate</div>'
+    +     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Sales divided by sales page visits</div>'
+    +     '<div style="font-size:11px;color:var(--muted)">Plus 10 percent to <span id="cc-conversion-plus">—</span></div>'
+    +     '<div style="' + bigNum + '" id="cc-conversion-display">—</div>'
+    +     '<div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Conversion</div>'
+    +     '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Minus 10 percent to <span id="cc-conversion-minus">—</span></div>'
+    +     '<input type="range" id="cc-conversion" min="0.2" max="25" step="0.1" value="' + CC_DEFAULTS.conversion + '" oninput="ccRecalc()" style="width:100%">'
+    +     '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px"><span>0.2%</span><span>25%</span></div>'
+    +     '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:14px;text-align:left">Use the rate your own sales page reports if you have it. If you are estimating, warm traffic from an email list or a nurtured audience converts higher than cold social traffic, and the higher your price the lower the rate tends to sit. Conversion is the denominator here, so halving it doubles the traffic you need.</div>'
+    +   '</div>'
+    +   '<div style="' + sliderCard + '">'
+    +     '<div style="' + stepTitle.replace('22px','16px') + '">Projection Period</div>'
+    +     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Move this to view totals</div>'
+    +     '<div style="' + bigNum + '" id="cc-months-display">—</div>'
+    +     '<div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Months</div>'
+    +     '<div style="font-size:13px;color:var(--charcoal);margin-bottom:14px">Total revenue: <b id="cc-months-total-revenue">—</b></div>'
+    +     '<input type="range" id="cc-months" min="1" max="24" step="1" value="' + CC_DEFAULTS.months + '" oninput="ccRecalc()" style="width:100%">'
+    +     '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px"><span>1 mo</span><span>24 mo</span></div>'
+    +     '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:14px;text-align:left">Sales page visits = revenue ÷ (conversion × price). Total visits = monthly visits × months.</div>'
+    +   '</div>'
+    + '</div>'
+
+    // ── SUMMARY ──
+    + '<div style="border-left:4px solid var(--deep);background:var(--warm);border-radius:0 12px 12px 0;padding:18px 22px;max-width:720px">'
+    +   '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Your SZN, Your Number</div>'
+    +   '<div style="font-size:14px;color:var(--charcoal);line-height:1.6" id="cc-summary"></div>'
     + '</div>';
+
+  ccRecalc();
 }
 
 // Shared helper — calculates total income respecting clients×rate
