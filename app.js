@@ -168,6 +168,108 @@ function setMktTab(tab) {
   else renderMarketing();
 }
 
+// ── Ad Budget Calculator ────────────────────────────────────────
+// Ported from the team's "Chain Academy: Paid Ads Budget Calculator"
+// Google Sheet (both tabs) — same formulas, verified against the sheet's
+// own worked examples before shipping. Deliberately stateless like the
+// Finances conversion calculator: reads its inputs off the DOM and
+// recomputes on every keystroke, nothing saved.
+var mktCalcMode = 'service'; // 'service' | 'ecomm'
+var MKT_CALC_DEFAULTS = {
+  service: { leadGoal: 100, cpm: 15,  ctr: 0.56, conv: 11 },
+  ecomm:   { revenue: 100000, aov: 150, cpm: 20, ctr: 2.1, conv: 3 }
+};
+
+function mktCalcVal(id) {
+  var el = document.getElementById(id);
+  return el ? parseFloat(el.value) || 0 : 0;
+}
+
+function mktSetCalcMode(mode) {
+  mktCalcMode = mode;
+  renderMktAdCalc();
+}
+
+function mktCalcRecalc() {
+  var cpm    = mktCalcVal('mkc-cpm');
+  var ctr    = mktCalcVal('mkc-ctr');
+  var conv   = mktCalcVal('mkc-conv');
+  var ctrFrac  = ctr / 100;
+  var convFrac = conv / 100;
+  var cpc = ctrFrac > 0 ? (cpm / 1000) / ctrFrac : 0;
+  document.getElementById('mkc-cpc').textContent = cpc > 0 ? fmtAmt(cpc) : '—';
+
+  if (mktCalcMode === 'service') {
+    var leadGoal = mktCalcVal('mkc-lead-goal');
+    var clicksNeeded = convFrac > 0 ? leadGoal / convFrac : 0;
+    var adBudget = clicksNeeded * cpc;
+    var cpl = leadGoal > 0 ? adBudget / leadGoal : 0;
+    document.getElementById('mkc-clicks').textContent = Math.round(clicksNeeded).toLocaleString('en-AU');
+    document.getElementById('mkc-cpl').textContent = cpl > 0 ? fmtAmt(cpl) : '—';
+    document.getElementById('mkc-budget').textContent = fmtAmtRound(adBudget);
+  } else {
+    var revenue = mktCalcVal('mkc-revenue');
+    var aov     = mktCalcVal('mkc-aov');
+    var salesNeeded = aov > 0 ? revenue / aov : 0;
+    var clicksNeeded2 = convFrac > 0 ? salesNeeded / convFrac : 0;
+    var adBudget2 = clicksNeeded2 * cpc;
+    var cpa  = salesNeeded > 0 ? adBudget2 / salesNeeded : 0;
+    var roas = adBudget2 > 0 ? revenue / adBudget2 : 0;
+    document.getElementById('mkc-clicks').textContent = Math.round(clicksNeeded2).toLocaleString('en-AU');
+    document.getElementById('mkc-sales').textContent = Math.round(salesNeeded).toLocaleString('en-AU');
+    document.getElementById('mkc-cpa').textContent = cpa > 0 ? fmtAmt(cpa) : '—';
+    document.getElementById('mkc-roas').textContent = roas > 0 ? (Math.round(roas * 100) / 100) + 'x' : '—';
+    document.getElementById('mkc-budget').textContent = fmtAmtRound(adBudget2);
+  }
+}
+
+function renderMktAdCalc() {
+  var el = document.getElementById('mkt-content'); if (!el) return;
+  var d = MKT_CALC_DEFAULTS[mktCalcMode];
+  var fieldWrap = 'display:flex;flex-direction:column;gap:6px';
+  var lbl = 'font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)';
+  var inp = 'width:100%;border:1px solid var(--sand);border-radius:8px;padding:10px 12px;font-size:18px;font-family:\'Cormorant Garamond\',serif;box-sizing:border-box;background:white;color:var(--deep)';
+  var cardWrap = 'background:var(--warm);border:1px solid var(--sand);border-radius:12px;padding:20px';
+  var resultNum = 'font-family:\'Cormorant Garamond\',serif;font-size:26px;color:var(--deep);margin-top:6px';
+
+  var toggle = '<div style="display:flex;gap:8px;margin-bottom:20px">'
+    + '<button class="btn ' + (mktCalcMode==='service'?'btnp':'btns') + '" style="font-size:12px" onclick="mktSetCalcMode(\'service\')">Service-Based</button>'
+    + '<button class="btn ' + (mktCalcMode==='ecomm'?'btnp':'btns') + '" style="font-size:12px" onclick="mktSetCalcMode(\'ecomm\')">Ecomm</button>'
+    + '</div>';
+
+  var inputsHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;max-width:760px;margin-bottom:24px">';
+  if (mktCalcMode === 'service') {
+    inputsHtml += '<div style="' + fieldWrap + '"><label style="' + lbl + '">Lead Volume Goal</label><input type="number" min="0" step="1" id="mkc-lead-goal" oninput="mktCalcRecalc()" value="' + d.leadGoal + '" style="' + inp + '"></div>';
+  } else {
+    inputsHtml += '<div style="' + fieldWrap + '"><label style="' + lbl + '">Revenue Goal From Ads ($)</label><input type="number" min="0" step="1" id="mkc-revenue" oninput="mktCalcRecalc()" value="' + d.revenue + '" style="' + inp + '"></div>'
+      + '<div style="' + fieldWrap + '"><label style="' + lbl + '">Average Order Value ($)</label><input type="number" min="0" step="1" id="mkc-aov" oninput="mktCalcRecalc()" value="' + d.aov + '" style="' + inp + '"></div>';
+  }
+  inputsHtml += '<div style="' + fieldWrap + '"><label style="' + lbl + '">Cost Per 1,000 Impressions (CPM, $)</label><input type="number" min="0" step="0.01" id="mkc-cpm" oninput="mktCalcRecalc()" value="' + d.cpm + '" style="' + inp + '"></div>'
+    + '<div style="' + fieldWrap + '"><label style="' + lbl + '">Click-Through Rate (CTR, %)</label><input type="number" min="0" step="0.01" id="mkc-ctr" oninput="mktCalcRecalc()" value="' + d.ctr + '" style="' + inp + '"></div>'
+    + '<div style="' + fieldWrap + '"><label style="' + lbl + '">' + (mktCalcMode==='service'?'Lead Conversion Rate (%)':'Conversion Rate (%)') + '</label><input type="number" min="0" step="0.01" id="mkc-conv" oninput="mktCalcRecalc()" value="' + d.conv + '" style="' + inp + '"></div>'
+    + '</div>';
+
+  var resultsHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;max-width:760px;margin-bottom:20px">'
+    + '<div style="' + cardWrap + '"><div style="' + lbl + '">Cost Per Click (CPC)</div><div style="' + resultNum + '" id="mkc-cpc">—</div></div>'
+    + '<div style="' + cardWrap + '"><div style="' + lbl + '">Clicks Needed</div><div style="' + resultNum + '" id="mkc-clicks">—</div></div>';
+  if (mktCalcMode === 'service') {
+    resultsHtml += '<div style="' + cardWrap + '"><div style="' + lbl + '">Cost Per Lead (CPL)</div><div style="' + resultNum + '" id="mkc-cpl">—</div></div>';
+  } else {
+    resultsHtml += '<div style="' + cardWrap + '"><div style="' + lbl + '">Sales Needed</div><div style="' + resultNum + '" id="mkc-sales">—</div></div>'
+      + '<div style="' + cardWrap + '"><div style="' + lbl + '">Cost Per Acquisition (CPA)</div><div style="' + resultNum + '" id="mkc-cpa">—</div></div>'
+      + '<div style="' + cardWrap + '"><div style="' + lbl + '">Return On Ad Spend (ROAS)</div><div style="' + resultNum + '" id="mkc-roas">—</div></div>';
+  }
+  resultsHtml += '</div>';
+
+  var heroHtml = '<div style="background:var(--deep);color:white;border-radius:12px;padding:20px 24px;max-width:400px">'
+    + '<div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:6px">Your Ad Budget</div>'
+    + '<div style="font-family:\'Cormorant Garamond\',serif;font-size:40px" id="mkc-budget">—</div>'
+    + '</div>';
+
+  el.innerHTML = toggle + inputsHtml + resultsHtml + heroHtml;
+  mktCalcRecalc();
+}
+
 var _mktListEditId = null, _mktItemEditId = null, _mktListCtx = null;
 
 
@@ -493,6 +595,7 @@ function renderMarketing() {
   if (mktTab === 'creators') { renderCreators(); return; }
   if (mktTab === 'overview') { renderMktOverview(); return; }
   if (mktTab === 'strategy') { renderMktStrategy(); return; }
+  if (mktTab === 'adcalc') { renderMktAdCalc(); return; }
   var el = document.getElementById('mkt-content'); if (!el) return;
   var tabLabels = {website:'Website Tasks',blog:'Blog',creators:'Creators',linkedin:'LinkedIn',gbp:'Google Business Profile'};
   var data = mktData[mktTab] || {lists:[]};
