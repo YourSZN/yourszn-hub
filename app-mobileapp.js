@@ -216,16 +216,7 @@ function renderAppFeedback() {
   el.innerHTML = '<div class="fin-cat-block"><div class="fin-cat-body" style="padding-top:8px">'+list.map(_appFeedbackRow).join('')+'</div></div>';
 }
 
-// ══════════════════════════════════════
-// BRANDS CHART (placeholder — data source TBC)
-// ══════════════════════════════════════
-
-function renderAppBrandsChartTab() {
-  var el = document.getElementById('app-brands-content'); if (!el) return;
-  el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:60px 20px;text-align:center;border:1px dashed var(--sand);border-radius:12px">'
-    + 'Brands Chart — coming soon.<br><span style="font-size:12px">This will show brand data once it\'s connected.</span>'
-    + '</div>';
-}
+// BRANDS CHART — see app-brands.js
 
 // ══════════════════════════════════════
 // CHECKLIST (Weekly / Monthly, auto-reset)
