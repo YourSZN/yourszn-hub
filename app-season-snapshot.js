@@ -18,12 +18,12 @@ function ocaSnapshotJump(name) {
   renderOca();
 }
 
-// Quick-pick grid: one row per family, click any sub-season to jump
+// Quick-pick grid: 2 columns — Summer/Winter stacked on the left, Autumn/Spring on the right
 var OCA_SNAPSHOT_GROUPS = [
-  ['Spring', ['Light Spring', 'True Spring', 'Bright Spring']],
   ['Summer', ['Light Summer', 'True Summer', 'Soft Summer']],
+  ['Winter', ['Dark Winter', 'True Winter', 'Bright Winter']],
   ['Autumn', ['Soft Autumn', 'True Autumn', 'Dark Autumn']],
-  ['Winter', ['Dark Winter', 'True Winter', 'Bright Winter']]
+  ['Spring', ['Light Spring', 'True Spring', 'Bright Spring']]
 ];
 
 function snapshotSeasonPicker() {
@@ -43,7 +43,7 @@ function snapshotSeasonPicker() {
       + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + chips + '</div>'
       + '</div>';
   }).join('');
-  return '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px">' + rows + '</div>';
+  return '<div style="display:grid;grid-template-rows:repeat(2,auto);grid-auto-flow:column;justify-content:center;column-gap:28px;row-gap:8px;margin-bottom:16px">' + rows + '</div>';
 }
 
 function renderOcaSnapshot() {
