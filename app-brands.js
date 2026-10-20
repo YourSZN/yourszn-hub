@@ -234,7 +234,16 @@ function _appBrandInjectModal() {
     +   '<div class="sm-field"><label class="sm-lbl">Brand *</label><input id="abm-name" ' + inp + ' placeholder="e.g. Sol Sana"></div>'
     +   '<div class="sm-field"><label class="sm-lbl">Website</label><input id="abm-website" ' + inp + ' placeholder="solsana.com"></div>'
     + '</div>'
-    + '<div class="sm-field"><label class="sm-lbl">Categories (comma separated)</label><input id="abm-cats" ' + inp + ' list="abm-cat-list" placeholder="e.g. Shoes, Bags"><datalist id="abm-cat-list"></datalist></div>'
+    + '<div class="sm-field" style="position:relative"><label class="sm-lbl">Categories</label>'
+    +   '<div id="abm-cats-btn" onclick="_abmCatToggle(event)" class="sm-inp" style="cursor:pointer;display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:42px;padding-right:30px;position:relative"></div>'
+    +   '<div id="abm-cats-panel" onclick="event.stopPropagation()" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;background:white;border:1px solid var(--sand);border-radius:10px;box-shadow:0 10px 30px rgba(28,23,18,.15);z-index:10;padding:8px">'
+    +     '<div id="abm-cats-list" style="max-height:220px;overflow-y:auto"></div>'
+    +     '<div style="display:flex;gap:6px;border-top:1px solid var(--sand);padding-top:8px;margin-top:6px">'
+    +       '<input id="abm-cat-new" placeholder="Add new category…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_abmCatAdd();}" style="flex:1;padding:7px 10px;border:1px solid var(--sand);border-radius:7px;font-size:13px;font-family:inherit">'
+    +       '<button type="button" onclick="_abmCatAdd()" class="btn btnp" style="padding:6px 12px;font-size:12px">Add</button>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
     +   '<div class="sm-field"><label class="sm-lbl">Status</label><select id="abm-status" ' + inp + '>'
     +     APP_BRAND_STATUS_ORDER.map(function(k) { return '<option value="' + k + '">' + APP_BRAND_STATUS[k].label + '</option>'; }).join('')
@@ -277,6 +286,65 @@ function _appBrandAffChange() {
   document.getElementById('abm-affname-wrap').style.display = v === 'other' ? 'block' : 'none';
 }
 
+// ── Category multi-select ──
+var abmCats = [];       // selected in the open modal
+var abmExtraCats = [];  // new categories typed in this modal, not yet on any brand
+
+function _abmAllCats() {
+  var set = {};
+  _appBrandCategories().concat(abmExtraCats, abmCats).forEach(function(c) { set[c] = 1; });
+  return Object.keys(set).sort(function(a, b) { return a.localeCompare(b); });
+}
+
+function _abmCatRender() {
+  var btn = document.getElementById('abm-cats-btn'); if (!btn) return;
+  btn.innerHTML = (abmCats.length
+      ? abmCats.map(function(c, i) {
+          return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 6px 3px 9px;border-radius:6px;background:var(--cream);color:var(--deep)">' + esc(c)
+            + '<span onclick="event.stopPropagation();_abmCatToggleOne(' + i + ',true)" style="cursor:pointer;opacity:.55;font-size:14px;line-height:1">&#215;</span></span>';
+        }).join('')
+      : '<span style="color:var(--muted);font-size:13px">Select categories…</span>')
+    + '<span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--muted)">&#9662;</span>';
+  var list = document.getElementById('abm-cats-list');
+  var keepScroll = list.scrollTop;
+  list.innerHTML = _abmAllCats().map(function(c) {
+    var on = abmCats.indexOf(c) > -1;
+    return '<label style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--deep);' + (on ? 'background:var(--cream);' : '') + '">'
+      + '<input type="checkbox" ' + (on ? 'checked ' : '') + 'onchange="_abmCatSet(this.dataset.cat,this.checked)" data-cat="' + esc(c) + '"> ' + esc(c) + '</label>';
+  }).join('') || '<div style="font-size:12px;color:var(--muted);padding:8px">No categories yet — add one below.</div>';
+  list.scrollTop = keepScroll;
+}
+
+function _abmCatSet(cat, on) {
+  var i = abmCats.indexOf(cat);
+  if (on && i < 0) abmCats.push(cat);
+  if (!on && i > -1) abmCats.splice(i, 1);
+  _abmCatRender();
+}
+function _abmCatToggleOne(idx) { abmCats.splice(idx, 1); _abmCatRender(); }
+
+function _abmCatAdd() {
+  var inp = document.getElementById('abm-cat-new');
+  var v = inp.value.trim(); if (!v) return;
+  var existing = _abmAllCats().find(function(c) { return c.toLowerCase() === v.toLowerCase(); });
+  var cat = existing || v;
+  if (!existing) abmExtraCats.push(cat);
+  if (abmCats.indexOf(cat) < 0) abmCats.push(cat);
+  inp.value = '';
+  _abmCatRender();
+  inp.focus();
+}
+
+function _abmCatToggle(e) {
+  if (e) e.stopPropagation();
+  var p = document.getElementById('abm-cats-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function() {
+  var p = document.getElementById('abm-cats-panel');
+  if (p) p.style.display = 'none';
+});
+
 function openAppBrandModal(id) {
   _appBrandInjectModal();
   editingAppBrandId = id;
@@ -285,7 +353,11 @@ function openAppBrandModal(id) {
   $('abm-heading').textContent = b ? 'Edit ' + b.name : 'New Brand';
   $('abm-name').value    = b ? b.name : '';
   $('abm-website').value = b ? (b.website || '') : '';
-  $('abm-cats').value    = b ? (b.categories || []).join(', ') : (appBrandFilter.cat !== 'all' ? appBrandFilter.cat : '');
+  abmCats = b ? (b.categories || []).slice() : (appBrandFilter.cat !== 'all' ? [appBrandFilter.cat] : []);
+  abmExtraCats = [];
+  $('abm-cats-panel').style.display = 'none';
+  $('abm-cat-new').value = '';
+  _abmCatRender();
   $('abm-status').value  = b ? b.status : 'live';
   $('abm-date').value    = b ? (b.dateAdded || '') : ymdLocal(new Date());
   $('abm-aff').value     = b ? (b.affiliate || '') : 'shopmy';
@@ -296,7 +368,6 @@ function openAppBrandModal(id) {
   $('abm-issues').value  = b ? (b.issues || '') : '';
   $('abm-notes').value   = b ? (b.notes || '') : '';
   document.querySelectorAll('.abm-sec').forEach(function(c) { c.checked = !!(b && (b.sections || []).indexOf(c.value) > -1); });
-  $('abm-cat-list').innerHTML = _appBrandCategories().map(function(c) { return '<option value="' + esc(c) + '">'; }).join('');
   $('abm-del').style.display = b ? 'inline-block' : 'none';
   $('abm-err').textContent = '';
   _appBrandAffChange();
@@ -317,7 +388,7 @@ function saveAppBrandModal() {
     id: editingAppBrandId || ('b' + Date.now()),
     name: name,
     website: $('abm-website').value.trim().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''),
-    categories: $('abm-cats').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+    categories: abmCats.slice(),
     status: $('abm-status').value,
     dateAdded: $('abm-date').value,
     affiliate: aff,
