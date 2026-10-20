@@ -1,5 +1,5 @@
 // ══ SEASON SNAPSHOT ══
-// Single season view, 4×3 grid, navigate with arrows
+// Single season view, 4×3 grid — quick-pick chips by family, plus arrows
 
 var ocaSnapshotCurrent = 'Light Summer';
 var ocaSnapshotPhoto   = null; // overrides ocaPhoto if set
@@ -12,14 +12,48 @@ function ocaSnapshotNav(dir) {
   renderOca();
 }
 
+function ocaSnapshotJump(name) {
+  if (!OCA_SEASONS[name]) return;
+  ocaSnapshotCurrent = name;
+  renderOca();
+}
+
+// Quick-pick grid: one row per family, click any sub-season to jump
+var OCA_SNAPSHOT_GROUPS = [
+  ['Spring', ['Light Spring', 'True Spring', 'Bright Spring']],
+  ['Summer', ['Light Summer', 'True Summer', 'Soft Summer']],
+  ['Autumn', ['Soft Autumn', 'True Autumn', 'Dark Autumn']],
+  ['Winter', ['Dark Winter', 'True Winter', 'Bright Winter']]
+];
+
+function snapshotSeasonPicker() {
+  var rows = OCA_SNAPSHOT_GROUPS.map(function(g) {
+    var chips = g[1].filter(function(n) { return OCA_SEASONS[n]; }).map(function(n) {
+      var active = n === ocaSnapshotCurrent;
+      var label  = n.split(' ')[0];
+      return '<button onclick="ocaSnapshotJump(\'' + n + '\')" title="' + n + '" style="'
+        + 'padding:7px 14px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.3px;cursor:pointer;min-width:72px;'
+        + (active
+            ? 'background:var(--deep);color:white;border:1px solid var(--deep);'
+            : 'background:white;color:var(--deep);border:1px solid var(--sand);')
+        + '">' + label + '</button>';
+    }).join('');
+    return '<div style="display:flex;align-items:center;gap:8px">'
+      + '<div style="width:64px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);text-align:right;flex-shrink:0">' + g[0] + '</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + chips + '</div>'
+      + '</div>';
+  }).join('');
+  return '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px">' + rows + '</div>';
+}
+
 function renderOcaSnapshot() {
   var photo    = ocaSnapshotPhoto || (typeof ocaPhoto !== 'undefined' ? ocaPhoto : null);
   var keys     = Object.keys(OCA_SEASONS);
   var idx      = keys.indexOf(ocaSnapshotCurrent);
   var total    = keys.length;
 
-  // Arrow navigation header
-  var nav = '<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:24px">'
+  // Quick-pick chips + arrow navigation header
+  var nav = snapshotSeasonPicker() + '<div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:24px">'
     + '<button onclick="ocaSnapshotNav(-1)" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--sand);background:white;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--deep);flex-shrink:0">&#8592;</button>'
     + '<div style="text-align:center">'
     +   '<div style="font-size:18px;font-weight:700;color:var(--deep)">' + ocaSnapshotCurrent + '</div>'
