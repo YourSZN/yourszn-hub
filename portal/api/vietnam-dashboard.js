@@ -86,7 +86,7 @@ module.exports = async function handler(req, res) {
       itinerary: itinerary,
       recommendations: recommendations,
       faqs: Array.isArray(faqs) ? faqs : [],
-      tour: { welcome_note: content.welcome_note || '', included: content.included || '', not_included: content.not_included || '' }
+      tour: { welcome_note: content.welcome_note || '', intro_video_url: content.intro_video_url || '', included: content.included || '', not_included: content.not_included || '' }
     });
   } catch (err) {
     console.error('[vietnam-dashboard] error:', err);

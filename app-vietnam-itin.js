@@ -133,7 +133,7 @@ function _vtTourTextBlock(key, label, hint, rows) {
 function renderVtItinTab() {
   if (vtTour === null) { vtTourLoad(); return '<div style="color:var(--muted);font-size:13px">Loading itinerary…</div>'; }
   var fmtHint = 'Blank line = new paragraph · start a line with - for a bullet · **double stars** for bold';
-  var html = '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">Every tour client sees this on their dashboard\'s Itinerary tab. A client with their own itinerary items (old system) sees those instead.</div>';
+  var html = '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">Every tour client sees these on their dashboard. A client with their own itinerary items (old system) sees those instead of the shared days below.</div>';
   if (vtTourError) html += '<div style="color:#B91C1C;font-size:12px;margin-bottom:12px">'+esc(vtTourError)+'</div>';
 
   html += '<div class="card" style="padding:16px;margin-bottom:16px">'
@@ -141,7 +141,13 @@ function renderVtItinTab() {
     + '<div style="display:flex;gap:8px"><input class="sm-inp" type="date" id="vttour-tour_start_date" value="'+esc((vtTour.content||{}).tour_start_date||'')+'">'
     + '<button class="btn btnp" style="font-size:11px;padding:6px 14px" id="vttour-save-start" onclick="vtTourSaveContent(\'tour_start_date\',\'vttour-save-start\')">Save</button></div>'
     + '<div style="font-size:11px;color:var(--muted);margin-top:4px">Sets the dates on each day and the client countdown. Leave blank until confirmed.</div></div>'
+    + '<div style="font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin:14px 0 8px">Introduction tab</div>'
     + _vtTourTextBlock('welcome_note', 'Welcome note', fmtHint, 8)
+    + '<div class="sm-field"><label class="sm-lbl">How-to video link</label>'
+    + '<div style="display:flex;gap:8px"><input class="sm-inp" id="vttour-intro_video_url" value="'+esc((vtTour.content||{}).intro_video_url||'')+'" placeholder="Paste a YouTube, Vimeo or Loom link">'
+    + '<button class="btn btnp" style="font-size:11px;padding:6px 14px" id="vttour-save-video" onclick="vtTourSaveContent(\'intro_video_url\',\'vttour-save-video\')">Save</button></div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:4px">Shows under your welcome note. Leave blank until the video is ready. Unlisted YouTube videos work well.</div></div>'
+    + '<div style="font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin:18px 0 8px">FAQ tab (shown above the questions)</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
     +   _vtTourTextBlock('included', 'What\'s included', fmtHint, 10)
     +   _vtTourTextBlock('not_included', 'Not included', fmtHint, 10)

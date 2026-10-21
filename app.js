@@ -4630,7 +4630,7 @@ function renderVietnamTour() {
   var tabs = [
     {id:'planning',    label:'Planning'},
     {id:'clients',     label:'Clients'},
-    {id:'itin',        label:'Itinerary'},
+    {id:'itin',        label:'Intro & Itinerary'},
     {id:'recs',        label:'Recommendations'},
     {id:'faq',         label:'FAQ'},
    {id:'documents',     label:'Documents'},

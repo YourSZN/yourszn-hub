@@ -173,7 +173,7 @@ module.exports = async function handler(req, res) {
     // ── Shared tour itinerary + trip info ──
     const TOUR_URL = SUPABASE_URL + '/rest/v1/vietnam_tour_itinerary';
     const CONTENT_URL = SUPABASE_URL + '/rest/v1/vietnam_tour_content';
-    const CONTENT_KEYS = ['welcome_note', 'included', 'not_included', 'tour_start_date', 'day_titles'];
+    const CONTENT_KEYS = ['welcome_note', 'intro_video_url', 'included', 'not_included', 'tour_start_date', 'day_titles'];
     if (action === 'list_tour') {
       const [items, content] = await Promise.all([
         fetch(TOUR_URL + '?select=*&order=day_number.asc,sort_order.asc', { headers }).then(function(r) { return r.json(); }),
@@ -214,6 +214,7 @@ module.exports = async function handler(req, res) {
       const { key, value } = req.body;
       if (CONTENT_KEYS.indexOf(key) === -1) return res.status(400).json({ error: 'Unknown field.' });
       if (key === 'tour_start_date' && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return res.status(400).json({ error: 'Pick a valid date.' });
+      if (key === 'intro_video_url' && value && !/^https:\/\//i.test(String(value).trim())) return res.status(400).json({ error: 'The video link should start with https://' });
       const r = await fetch(CONTENT_URL + '?on_conflict=key', {
         method: 'POST', headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, headers),
         body: JSON.stringify({ key: key, value: value == null ? '' : String(value), updated_at: new Date().toISOString() })
