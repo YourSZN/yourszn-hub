@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'save_rec') {
-      const { id, category, name, description, maps_url, image_url, sort_order, photos, popular, price_range, walk_time, hours, booking, tip, menu_url } = req.body;
+      const { id, category, name, description, maps_url, image_url, sort_order, photos, popular, price_range, walk_time, hours, booking, tip, menu_url, menu_photos } = req.body;
       if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name is required.' });
       if (REC_CATEGORIES.indexOf(category) === -1) return res.status(400).json({ error: 'Pick a category.' });
       const body = {
@@ -140,6 +140,7 @@ module.exports = async function handler(req, res) {
         booking: booking || null,
         tip: tip || null,
         menu_url: /^https:\/\//.test(menu_url || '') ? menu_url : null,
+        menu_photos: Array.isArray(menu_photos) ? menu_photos.filter(function(u){ return /^https:\/\//.test(u); }).slice(0, 30) : [],
         updated_at: new Date().toISOString()
       };
       if (body.photos.length) body.image_url = body.photos[0];

@@ -166,6 +166,22 @@
   .rec-btn { font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
     background: var(--charcoal); color: #F9F5F0; padding: 9px 16px; border-radius: 8px; }
   @media (max-width: 640px) { .rec-grid { grid-template-columns: 1fr; } }
+  /* ── Full-screen viewer (menus + tile photos) ── */
+  .rv { position: fixed; inset: 0; z-index: 1000; background: rgba(20,16,12,.94); display: none; flex-direction: column; }
+  .rv.open { display: flex; }
+  .rv-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; color: #F9F5F0; font-family: 'Inter', sans-serif; }
+  .rv-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; }
+  .rv-count { font-size: 12px; letter-spacing: 1.5px; opacity: .7; margin-left: 12px; }
+  .rv-close { background: none; border: none; color: #F9F5F0; font-size: 30px; line-height: 1; cursor: pointer; padding: 4px 8px; }
+  .rv-track { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
+  .rv-track::-webkit-scrollbar { display: none; }
+  .rv-slide { flex: 0 0 100%; scroll-snap-align: start; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 0 12px 20px; }
+  .rv-slide img { max-width: 100%; max-height: calc(100vh - 90px); object-fit: contain; border-radius: 6px; background: #fff; margin: auto; }
+  .rv-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,.9); color: var(--charcoal); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .rv-arrow.l { left: 16px; } .rv-arrow.r { right: 16px; }
+  @media (max-width: 640px) { .rv-arrow { display: none; } .rv-slide { padding: 0 0 16px; } }
+  .rec-track img { cursor: zoom-in; }
   .rec-subtabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
   .rec-subtab {
     padding: 9px 20px; border: 1px solid var(--sand); border-radius: 24px;
@@ -905,13 +921,71 @@ function recPhotos(r) {
   return list.map(recSafeUrl).filter(Boolean);
 }
 
+function recMenu(r) { return (Array.isArray(r.menu_photos) ? r.menu_photos : []).map(recSafeUrl).filter(Boolean); }
+
+var recVisible = [];   // places in the subtab currently shown, indexed like the tiles
+
+function recViewerEl() {
+  var el = document.getElementById('rec-viewer');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'rec-viewer'; el.className = 'rv';
+  el.innerHTML = '<div class="rv-top"><div><span class="rv-title" id="rv-title"></span><span class="rv-count" id="rv-count"></span></div>'
+    + '<button class="rv-close" aria-label="Close" onclick="recCloseViewer()">&times;</button></div>'
+    + '<div class="rv-track" id="rv-track" onscroll="recViewerSync()"></div>'
+    + '<button class="rv-arrow l" aria-label="Previous" onclick="recViewerStep(-1)">&#8249;</button>'
+    + '<button class="rv-arrow r" aria-label="Next" onclick="recViewerStep(1)">&#8250;</button>';
+  el.addEventListener('click', function(e) { if (e.target === el || e.target.classList.contains('rv-slide')) recCloseViewer(); });
+  document.body.appendChild(el);
+  document.addEventListener('keydown', function(e) {
+    if (!el.classList.contains('open')) return;
+    if (e.key === 'Escape') recCloseViewer();
+    if (e.key === 'ArrowRight') recViewerStep(1);
+    if (e.key === 'ArrowLeft') recViewerStep(-1);
+  });
+  return el;
+}
+
+function recOpenViewer(idx, kind, start) {
+  var r = recVisible[idx]; if (!r) return;
+  var imgs = kind === 'menu' ? recMenu(r) : recPhotos(r);
+  if (!imgs.length) return;
+  var el = recViewerEl();
+  document.getElementById('rv-title').textContent = r.name + (kind === 'menu' ? ' — Menu' : '');
+  document.getElementById('rv-track').innerHTML = imgs.map(function(u) { return '<div class="rv-slide"><img src="' + u + '" alt=""></div>'; }).join('');
+  var multi = imgs.length > 1;
+  el.querySelectorAll('.rv-arrow').forEach(function(b) { b.style.visibility = multi ? '' : 'hidden'; });
+  el.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  var t = document.getElementById('rv-track');
+  t.style.scrollBehavior = 'auto'; t.scrollLeft = (start || 0) * t.clientWidth; t.style.scrollBehavior = '';
+  recViewerSync();
+}
+
+function recCloseViewer() {
+  var el = document.getElementById('rec-viewer'); if (el) el.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function recViewerStep(dir) {
+  var t = document.getElementById('rv-track'); if (!t) return;
+  var n = t.children.length, i = Math.round(t.scrollLeft / t.clientWidth);
+  t.scrollTo({ left: Math.max(0, Math.min(n - 1, i + dir)) * t.clientWidth });
+}
+
+function recViewerSync() {
+  var t = document.getElementById('rv-track'); if (!t) return;
+  var n = t.children.length, i = Math.round(t.scrollLeft / t.clientWidth);
+  document.getElementById('rv-count').textContent = n > 1 ? (i + 1) + ' / ' + n : '';
+}
+
 function recTileHTML(r, cat, idx) {
   var photos = recPhotos(r);
   var gid = 'recg' + idx;
   var gal = '<div class="rec-gal">';
   if (photos.length) {
     gal += '<div class="rec-track" id="' + gid + '" onscroll="recSync(\'' + gid + '\')">'
-      + photos.map(function(u) { return '<img src="' + u + '" alt="' + recEsc(r.name) + '" loading="lazy">'; }).join('') + '</div>';
+      + photos.map(function(u, k) { return '<img src="' + u + '" alt="' + recEsc(r.name) + '" loading="lazy" onclick="recOpenViewer(' + idx + ',\'photos\',' + k + ')">'; }).join('') + '</div>';
     if (photos.length > 1) {
       gal += '<button class="rec-arrow l" aria-label="Previous photo" onclick="recSlide(\'' + gid + '\',-1)">&#8249;</button>'
         + '<button class="rec-arrow r" aria-label="Next photo" onclick="recSlide(\'' + gid + '\',1)">&#8250;</button>'
@@ -932,8 +1006,9 @@ function recTileHTML(r, cat, idx) {
     + (r.popular ? '<div class="rec-info"><b>Popular:</b> ' + recEsc(r.popular) + '</div>' : '')
     + (r.hours ? '<div class="rec-info"><b>Hours:</b> ' + recEsc(r.hours) + '</div>' : '')
     + (r.tip ? '<div class="rec-tip"><b>Latisha\'s tip:</b> ' + recEsc(r.tip) + '</div>' : '')
-    + ((map || recSafeUrl(r.menu_url)) ? '<div class="rec-actions">'
-        + (recSafeUrl(r.menu_url) ? '<a class="rec-btn" href="' + recSafeUrl(r.menu_url) + '" target="_blank" rel="noopener">View Menu</a>' : '')
+    + ((map || recSafeUrl(r.menu_url) || recMenu(r).length) ? '<div class="rec-actions">'
+        + (recMenu(r).length ? '<button type="button" class="rec-btn" style="border:none;cursor:pointer" onclick="recOpenViewer(' + idx + ',\'menu\')">View Menu</button>'
+           : recSafeUrl(r.menu_url) ? '<a class="rec-btn" href="' + recSafeUrl(r.menu_url) + '" target="_blank" rel="noopener">View Menu ↗</a>' : '')
         + (map ? '<a class="rec-map" href="' + map + '" target="_blank" rel="noopener">Open in Maps ↗</a>' : '')
         + '</div>' : '')
     + '</div></div>';
@@ -961,6 +1036,7 @@ function renderRecommendationsPanel() {
   if (!cats.some(function(c) { return c.id === recFilter; })) recFilter = cats[0].id;
   var cat = cats.filter(function(c) { return c.id === recFilter; })[0];
   var list = recsData.filter(function(r) { return r.category === recFilter; });
+  recVisible = list;
   return recSubTabsHTML(cats)
     + '<div class="rec-grid">' + list.map(function(r, i) { return recTileHTML(r, cat, i); }).join('') + '</div>';
 }

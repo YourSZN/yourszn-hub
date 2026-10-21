@@ -31,6 +31,7 @@ function vtRecsLoad() {
 
 function vtRecSetCat(cat) { vtRecCat = cat; vtRecEditing = null; renderVietnamTour(); }
 var vtRecDraftPhotos = [];   // photo URLs for the form currently open
+var vtRecDraftMenu = [];     // menu page photo URLs
 var vtRecUploading = 0;
 
 var VT_REC_PRICES = ['', '$', '$$', '$$$', '$$$$'];
@@ -39,6 +40,7 @@ var VT_REC_BOOKING = ['', 'Walk-ins welcome', 'Booking recommended', 'Booking es
 function vtRecEdit(id) {
   var r = (vtRecs || []).filter(function(x){ return x.id === id; })[0];
   vtRecDraftPhotos = r ? (Array.isArray(r.photos) && r.photos.length ? r.photos.slice() : (r.image_url ? [r.image_url] : [])) : [];
+  vtRecDraftMenu = r && Array.isArray(r.menu_photos) ? r.menu_photos.slice() : [];
   vtRecEditing = id; renderVietnamTour();
   setTimeout(function(){ var n = document.getElementById('vtrec-name'); if (n) n.focus(); }, 30);
 }
@@ -62,37 +64,49 @@ function _vtRecRerenderForm() {
   set('vtrec-booking', vals.booking); set('vtrec-tip', vals.tip); set('vtrec-menu', vals.menu_url);
 }
 
-function vtRecCancel() { vtRecEditing = null; vtRecDraftPhotos = []; renderVietnamTour(); }
+function vtRecCancel() { vtRecEditing = null; vtRecDraftPhotos = []; vtRecDraftMenu = []; renderVietnamTour(); }
 
 function _vtRecOpts(list, cur, labels) {
   return list.map(function(v, i){ return '<option value="'+esc(v)+'"'+((cur||'')===v?' selected':'')+'>'+esc(labels ? labels[i] : (v || '—'))+'</option>'; }).join('');
 }
 
-function _vtRecPhotosEditor() {
-  var thumbs = vtRecDraftPhotos.map(function(u, i) {
-    return '<div style="position:relative;width:96px;height:72px;border-radius:8px;overflow:hidden;flex-shrink:0;border:'+(i===0?'2px solid var(--charcoal)':'1px solid var(--sand)')+'">'
+// Two photo strips share this code: kind 'photos' (tile gallery) and 'menu' (menu pages).
+function _vtRecArr(kind) { return kind === 'menu' ? vtRecDraftMenu : vtRecDraftPhotos; }
+
+function _vtRecStrip(kind) {
+  var arr = _vtRecArr(kind), isMenu = kind === 'menu';
+  var thumbs = arr.map(function(u, i) {
+    return '<div style="position:relative;width:'+(isMenu?72:96)+'px;height:'+(isMenu?96:72)+'px;border-radius:8px;overflow:hidden;flex-shrink:0;border:'+(i===0&&!isMenu?'2px solid var(--charcoal)':'1px solid var(--sand)')+'">'
       + '<img src="'+esc(u)+'" style="width:100%;height:100%;object-fit:cover">'
-      + (i===0 ? '<span style="position:absolute;left:4px;top:4px;background:var(--charcoal);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px">COVER</span>' : '')
+      + (i===0 && !isMenu ? '<span style="position:absolute;left:4px;top:4px;background:var(--charcoal);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px">COVER</span>' : '')
+      + (isMenu ? '<span style="position:absolute;left:4px;top:4px;background:var(--charcoal);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px">'+(i+1)+'</span>' : '')
       + '<div style="position:absolute;right:2px;bottom:2px;display:flex;gap:2px">'
-      +   (i>0 ? '<button type="button" class="fin-row-edit" style="padding:0 5px;background:#fff" title="Move left" onclick="vtRecPhotoMove('+i+',-1)">&#8592;</button>' : '')
-      +   (i<vtRecDraftPhotos.length-1 ? '<button type="button" class="fin-row-edit" style="padding:0 5px;background:#fff" title="Move right" onclick="vtRecPhotoMove('+i+',1)">&#8594;</button>' : '')
-      +   '<button type="button" class="fin-row-edit" style="padding:0 5px;background:#fff;color:#EF4444" title="Remove" onclick="vtRecPhotoRemove('+i+')">&#10005;</button>'
+      +   (i>0 ? '<button type="button" class="fin-row-edit" style="padding:0 5px;background:#fff" title="Move left" onclick="vtRecPhotoMove(\''+kind+'\','+i+',-1)">&#8592;</button>' : '')
+      +   (i<arr.length-1 ? '<button type="button" class="fin-row-edit" style="padding:0 5px;background:#fff" title="Move right" onclick="vtRecPhotoMove(\''+kind+'\','+i+',1)">&#8594;</button>' : '')
+      +   '<button type="button" class="fin-row-edit" style="padding:0 5px;background:#fff;color:#EF4444" title="Remove" onclick="vtRecPhotoRemove(\''+kind+'\','+i+')">&#10005;</button>'
       + '</div></div>';
   }).join('');
-  if (vtRecUploading) thumbs += '<div style="width:96px;height:72px;border-radius:8px;border:1px dashed var(--sand);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)">Uploading…</div>';
-  return '<div class="sm-field"><label class="sm-lbl">Photos <span style="text-transform:none;font-weight:400">(first one is the cover; clients swipe through the rest)</span></label>'
+  var busy = vtRecUploadingKind[kind];
+  if (busy) thumbs += '<div style="width:96px;height:72px;border-radius:8px;border:1px dashed var(--sand);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center">'+esc(busy)+'</div>';
+  var label = isMenu
+    ? 'Menu pages <span style="text-transform:none;font-weight:400">(add photos of each page, or upload a PDF and each page becomes a photo)</span>'
+    : 'Photos <span style="text-transform:none;font-weight:400">(first one is the cover; clients swipe through the rest)</span>';
+  return '<div class="sm-field"><label class="sm-lbl">'+label+'</label>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + thumbs
-    + '<input type="file" id="vtrec-files" accept="image/*" multiple style="display:none" onchange="vtRecPhotoUpload(this)">'
-    + '<button type="button" class="fin-row-edit" style="height:72px;width:96px" onclick="document.getElementById(\'vtrec-files\').click()">+ Add photos</button>'
+    + '<input type="file" id="vtrec-files-'+kind+'" accept="'+(isMenu?'image/*,application/pdf':'image/*')+'" multiple style="display:none" onchange="vtRecPhotoUpload(this,\''+kind+'\')">'
+    + '<button type="button" class="fin-row-edit" style="height:72px;width:96px" onclick="document.getElementById(\'vtrec-files-'+kind+'\').click()">+ Add '+(isMenu?'menu pages':'photos')+'</button>'
     + '</div></div>';
 }
+function _vtRecPhotosEditor() { return _vtRecStrip('photos'); }
 
-function vtRecPhotoMove(i, dir) {
-  var j = i + dir; if (j < 0 || j >= vtRecDraftPhotos.length) return;
-  var t = vtRecDraftPhotos[i]; vtRecDraftPhotos[i] = vtRecDraftPhotos[j]; vtRecDraftPhotos[j] = t;
+function vtRecPhotoMove(kind, i, dir) {
+  var arr = _vtRecArr(kind), j = i + dir; if (j < 0 || j >= arr.length) return;
+  var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
   _vtRecRerenderForm();
 }
-function vtRecPhotoRemove(i) { vtRecDraftPhotos.splice(i, 1); _vtRecRerenderForm(); }
+function vtRecPhotoRemove(kind, i) { _vtRecArr(kind).splice(i, 1); _vtRecRerenderForm(); }
+
+function _vtRecCanvasB64(c) { return c.toDataURL('image/jpeg', 0.82).split(',')[1]; }
 
 // Shrinks to max 1600px JPEG before upload so tiles load quickly on phones.
 function _vtRecShrink(file) {
@@ -103,49 +117,61 @@ function _vtRecShrink(file) {
       var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       URL.revokeObjectURL(url);
-      resolve(c.toDataURL('image/jpeg', 0.82).split(',')[1]);
+      resolve(_vtRecCanvasB64(c));
     };
     img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Couldn\'t read that image (HEIC photos need converting to JPG first).')); };
     img.src = url;
   });
 }
 
-function vtRecPhotoUpload(input) {
-  var files = Array.prototype.slice.call(input.files || []); input.value = '';
-  files.forEach(function(file) {
-    vtRecUploading++; _vtRecRerenderForm();
-    _vtRecShrink(file).then(function(b64) {
-      return vtStaffApiCall('upload_rec_photo', { content_type: 'image/jpeg', file_base64: b64 });
-    }).then(function(data) {
-      if (data && data.ok && data.url) vtRecDraftPhotos.push(data.url);
-      else alert((data && data.error) || 'Photo upload failed.');
-    }).catch(function(e) { alert(e.message || 'Photo upload failed.'); })
-      .then(function() { vtRecUploading--; _vtRecRerenderForm(); });
+// Renders every page of a PDF menu to a JPEG (max 1600px tall/wide) using pdf.js,
+// which the portal already loads for the colour reports.
+function _vtRecPdfPages(file) {
+  if (typeof pdfjsLib === 'undefined') return Promise.reject(new Error('PDF reader didn\'t load — refresh and try again.'));
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  return file.arrayBuffer().then(function(buf) { return pdfjsLib.getDocument({ data: buf }).promise; }).then(function(pdf) {
+    var n = Math.min(pdf.numPages, 20), out = [], chain = Promise.resolve();
+    for (var p = 1; p <= n; p++) (function(pn) {
+      chain = chain.then(function() { return pdf.getPage(pn); }).then(function(page) {
+        var v = page.getViewport({ scale: 1 }), k = 1600 / Math.max(v.width, v.height);
+        var vp = page.getViewport({ scale: k });
+        var c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        var ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        return page.render({ canvasContext: ctx, viewport: vp }).promise.then(function() { out.push(_vtRecCanvasB64(c)); });
+      });
+    })(p);
+    return chain.then(function() { return out; });
   });
 }
 
-function vtRecMenuUpload(input) {
-  var file = input.files && input.files[0]; input.value = '';
-  if (!file) return;
-  var btn = document.getElementById('vtrec-menubtn');
-  var done = function(url, msg) {
-    if (btn) btn.textContent = 'Upload menu';
-    if (url) { var m = document.getElementById('vtrec-menu'); if (m) m.value = url; }
-    else alert(msg || 'Menu upload failed.');
-  };
-  if (btn) btn.textContent = 'Uploading…';
-  var send = function(type, b64) {
-    return vtStaffApiCall('upload_rec_photo', { content_type: type, file_base64: b64 })
-      .then(function(d) { done(d && d.ok && d.url, d && d.error); });
-  };
-  if (file.type === 'application/pdf') {
-    if (file.size > 4 * 1024 * 1024) return done(null, 'PDF must be under 4MB.');
-    var reader = new FileReader();
-    reader.onload = function() { send('application/pdf', reader.result.split(',')[1]); };
-    reader.readAsDataURL(file);
-  } else {
-    _vtRecShrink(file).then(function(b64) { return send('image/jpeg', b64); }).catch(function(e) { done(null, e.message); });
-  }
+var vtRecUploadingKind = {};   // kind -> status text while uploading
+
+function vtRecPhotoUpload(input, kind) {
+  kind = kind || 'photos';
+  var files = Array.prototype.slice.call(input.files || []); input.value = '';
+  var arr = _vtRecArr(kind);
+  var setBusy = function(t) { vtRecUploadingKind[kind] = t; vtRecUploading = Object.keys(vtRecUploadingKind).filter(function(k){ return vtRecUploadingKind[k]; }).length; _vtRecRerenderForm(); };
+  var chain = Promise.resolve();
+  files.forEach(function(file) {
+    chain = chain.then(function() {
+      var isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+      setBusy(isPdf ? 'Reading PDF…' : 'Uploading…');
+      return (isPdf ? _vtRecPdfPages(file) : _vtRecShrink(file).then(function(b){ return [b]; })).then(function(list) {
+        var c2 = Promise.resolve();
+        list.forEach(function(b64, i) {
+          c2 = c2.then(function() {
+            if (list.length > 1) setBusy('Uploading ' + (i + 1) + ' of ' + list.length + '…');
+            return vtStaffApiCall('upload_rec_photo', { content_type: 'image/jpeg', file_base64: b64 }).then(function(data) {
+              if (data && data.ok && data.url) arr.push(data.url);
+              else throw new Error((data && data.error) || 'Upload failed.');
+            });
+          });
+        });
+        return c2;
+      });
+    }).catch(function(e) { alert(e.message || 'Upload failed.'); });
+  });
+  chain.then(function() { setBusy(''); });
 }
 
 function _vtRecForm(r) {
@@ -168,10 +194,8 @@ function _vtRecForm(r) {
     + row('1fr 2fr',
         '<div class="sm-field"><label class="sm-lbl">Booking</label><select class="sm-inp" id="vtrec-booking">'+_vtRecOpts(VT_REC_BOOKING, r.booking, ['—'].concat(VT_REC_BOOKING.slice(1)))+'</select></div>'
         + inp('vtrec-map','Google Maps link',r.maps_url,'https://maps.app.goo.gl/…'))
-    + '<div class="sm-field"><label class="sm-lbl">Menu <span style="text-transform:none;font-weight:400">(paste the restaurant\'s menu link, or upload a PDF / photo of it)</span></label>'
-    +   '<div style="display:flex;gap:8px"><input class="sm-inp" id="vtrec-menu" style="flex:1" value="'+esc(r.menu_url||'')+'" placeholder="https://…">'
-    +   '<input type="file" id="vtrec-menufile" accept="application/pdf,image/*" style="display:none" onchange="vtRecMenuUpload(this)">'
-    +   '<button type="button" class="fin-row-edit" id="vtrec-menubtn" style="white-space:nowrap" onclick="document.getElementById(\'vtrec-menufile\').click()">Upload menu</button></div></div>'
+    + _vtRecStrip('menu')
+    + '<div class="sm-field"><label class="sm-lbl">Online menu link <span style="text-transform:none;font-weight:400">(optional — only if there are no menu pages above; opens in a new tab)</span></label><input class="sm-inp" id="vtrec-menu" value="'+esc(r.menu_url||'')+'" placeholder="https://…"></div>'
     + inp('vtrec-tip','Latisha\'s tip',r.tip,'e.g. Go before 6pm to skip the queue')
     + '<div id="vtrec-err" style="color:#B91C1C;font-size:12px;margin-bottom:8px;display:none"></div>'
     + '<div style="display:flex;gap:8px">'
@@ -186,7 +210,7 @@ function vtRecSave(id) {
   var bad = function(msg) { err.textContent = msg; err.style.display = 'block'; };
   f.name = (f.name || '').trim(); f.maps_url = (f.maps_url || '').trim();
   if (!f.name) return bad('Add a name.');
-  if (vtRecUploading) return bad('Wait for the photos to finish uploading.');
+  if (vtRecUploading) return bad('Wait for the uploads to finish.');
   if (f.maps_url && !/^https?:\/\//i.test(f.maps_url)) return bad('The Maps link should start with https://');
   if (f.menu_url && !/^https:\/\//i.test(f.menu_url.trim())) return bad('The menu link should start with https://');
 
@@ -194,7 +218,7 @@ function vtRecSave(id) {
     category: f.category, name: f.name, description: (f.description||'').trim(), maps_url: f.maps_url,
     photos: vtRecDraftPhotos.slice(), image_url: vtRecDraftPhotos[0] || '',
     popular: (f.popular||'').trim(), price_range: f.price_range, walk_time: (f.walk_time||'').trim(),
-    hours: (f.hours||'').trim(), booking: f.booking, tip: (f.tip||'').trim(), menu_url: (f.menu_url||'').trim()
+    hours: (f.hours||'').trim(), booking: f.booking, tip: (f.tip||'').trim(), menu_url: (f.menu_url||'').trim(), menu_photos: vtRecDraftMenu.slice()
   };
   if (id) payload.id = id;
   else payload.sort_order = (vtRecs || []).filter(function(r){ return r.category === f.category; }).length;
@@ -207,7 +231,7 @@ function vtRecSave(id) {
     if (id) vtRecs = vtRecs.map(function(r){ return r.id === id ? saved : r; });
     else vtRecs.push(saved);
     vtRecCat = saved.category;
-    vtRecEditing = null; vtRecDraftPhotos = [];
+    vtRecEditing = null; vtRecDraftPhotos = []; vtRecDraftMenu = [];
     renderVietnamTour();
   });
 }
@@ -260,7 +284,7 @@ function renderVtRecsTab() {
                      : '<div style="font-size:22px;width:56px;text-align:center;flex-shrink:0">'+cat.icon+'</div>')
       + '<div style="flex:1;min-width:0">'
       +   '<div style="font-weight:600;font-size:14px">'+esc(r.name)+'</div>'
-      +   '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+[r.price_range, r.walk_time, (r.photos||[]).length ? (r.photos.length+' photo'+(r.photos.length>1?'s':'')) : 'No photos'].filter(Boolean).map(esc).join(' · ')+'</div>'
+      +   '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+[r.price_range, r.walk_time, (r.photos||[]).length ? (r.photos.length+' photo'+(r.photos.length>1?'s':'')) : 'No photos', (r.menu_photos||[]).length ? 'Menu: '+r.menu_photos.length+' page'+(r.menu_photos.length>1?'s':'') : (r.menu_url ? 'Menu link' : '')].filter(Boolean).map(esc).join(' · ')+'</div>'
       +   (r.description ? '<div style="font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5">'+esc(r.description)+'</div>' : '')
       +   (r.maps_url ? '<a href="'+esc(r.maps_url)+'" target="_blank" rel="noopener" style="font-size:11px">Map ↗</a>' : '<div style="font-size:11px;color:#B45309;margin-top:3px">No map link</div>')
       + '</div>'
