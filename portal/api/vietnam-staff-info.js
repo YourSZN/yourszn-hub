@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'save_rec') {
-      const { id, category, name, description, maps_url, image_url, sort_order, photos, popular, price_range, walk_time, hours, booking, tip } = req.body;
+      const { id, category, name, description, maps_url, image_url, sort_order, photos, popular, price_range, walk_time, hours, booking, tip, menu_url } = req.body;
       if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name is required.' });
       if (REC_CATEGORIES.indexOf(category) === -1) return res.status(400).json({ error: 'Pick a category.' });
       const body = {
@@ -139,6 +139,7 @@ module.exports = async function handler(req, res) {
         hours: hours || null,
         booking: booking || null,
         tip: tip || null,
+        menu_url: /^https:\/\//.test(menu_url || '') ? menu_url : null,
         updated_at: new Date().toISOString()
       };
       if (body.photos.length) body.image_url = body.photos[0];
@@ -156,10 +157,10 @@ module.exports = async function handler(req, res) {
     if (action === 'upload_rec_photo') {
       const { content_type, file_base64 } = req.body;
       if (!file_base64) return res.status(400).json({ error: 'Missing photo.' });
-      const type = ['image/jpeg','image/png','image/webp'].indexOf(content_type) > -1 ? content_type : 'image/jpeg';
+      const type = ['image/jpeg','image/png','image/webp','application/pdf'].indexOf(content_type) > -1 ? content_type : 'image/jpeg';
       const buf = Buffer.from(file_base64, 'base64');
-      if (buf.length > MAX_FILE_BYTES) return res.status(400).json({ error: 'Photo is too large (max 4MB).' });
-      const ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+      if (buf.length > MAX_FILE_BYTES) return res.status(400).json({ error: 'File is too large (max 4MB).' });
+      const ext = type === 'application/pdf' ? 'pdf' : type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
       const path = 'recs/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
       const upRes = await fetch(SUPABASE_URL + '/storage/v1/object/vietnam-recommendations/' + path, {
         method: 'POST', headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY, 'Content-Type': type }, body: buf

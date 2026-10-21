@@ -161,6 +161,10 @@
   .rec-tip { font-size: 13px; line-height: 1.5; background: #F9F5F0; border-left: 3px solid var(--charcoal); padding: 8px 10px; border-radius: 0 8px 8px 0; color: var(--charcoal); }
   .rec-map { margin-top: auto; align-self: flex-start; font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
     color: var(--charcoal); text-decoration: none; border-bottom: 1px solid var(--charcoal); padding-bottom: 2px; }
+  .rec-actions { margin-top: auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 4px; }
+  .rec-actions .rec-map { margin-top: 0; align-self: center; }
+  .rec-btn { font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none;
+    background: var(--charcoal); color: #F9F5F0; padding: 9px 16px; border-radius: 8px; }
   @media (max-width: 640px) { .rec-grid { grid-template-columns: 1fr; } }
   .rec-subtabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
   .rec-subtab {
@@ -928,7 +932,10 @@ function recTileHTML(r, cat, idx) {
     + (r.popular ? '<div class="rec-info"><b>Popular:</b> ' + recEsc(r.popular) + '</div>' : '')
     + (r.hours ? '<div class="rec-info"><b>Hours:</b> ' + recEsc(r.hours) + '</div>' : '')
     + (r.tip ? '<div class="rec-tip"><b>Latisha\'s tip:</b> ' + recEsc(r.tip) + '</div>' : '')
-    + (map ? '<a class="rec-map" href="' + map + '" target="_blank" rel="noopener">Open in Maps ↗</a>' : '')
+    + ((map || recSafeUrl(r.menu_url)) ? '<div class="rec-actions">'
+        + (recSafeUrl(r.menu_url) ? '<a class="rec-btn" href="' + recSafeUrl(r.menu_url) + '" target="_blank" rel="noopener">View Menu</a>' : '')
+        + (map ? '<a class="rec-map" href="' + map + '" target="_blank" rel="noopener">Open in Maps ↗</a>' : '')
+        + '</div>' : '')
     + '</div></div>';
 }
 

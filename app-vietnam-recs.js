@@ -49,7 +49,7 @@ function _vtRecReadForm() {
   if (g('vtrec-name') === undefined) return null;
   return { category: g('vtrec-cat'), name: g('vtrec-name'), description: g('vtrec-desc'), maps_url: g('vtrec-map'),
     popular: g('vtrec-popular'), price_range: g('vtrec-price'), walk_time: g('vtrec-walk'), hours: g('vtrec-hours'),
-    booking: g('vtrec-booking'), tip: g('vtrec-tip') };
+    booking: g('vtrec-booking'), tip: g('vtrec-tip'), menu_url: g('vtrec-menu') };
 }
 
 function _vtRecRerenderForm() {
@@ -59,7 +59,7 @@ function _vtRecRerenderForm() {
   var set = function(id, v){ var el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
   set('vtrec-cat', vals.category); set('vtrec-name', vals.name); set('vtrec-desc', vals.description); set('vtrec-map', vals.maps_url);
   set('vtrec-popular', vals.popular); set('vtrec-price', vals.price_range); set('vtrec-walk', vals.walk_time); set('vtrec-hours', vals.hours);
-  set('vtrec-booking', vals.booking); set('vtrec-tip', vals.tip);
+  set('vtrec-booking', vals.booking); set('vtrec-tip', vals.tip); set('vtrec-menu', vals.menu_url);
 }
 
 function vtRecCancel() { vtRecEditing = null; vtRecDraftPhotos = []; renderVietnamTour(); }
@@ -124,6 +124,30 @@ function vtRecPhotoUpload(input) {
   });
 }
 
+function vtRecMenuUpload(input) {
+  var file = input.files && input.files[0]; input.value = '';
+  if (!file) return;
+  var btn = document.getElementById('vtrec-menubtn');
+  var done = function(url, msg) {
+    if (btn) btn.textContent = 'Upload menu';
+    if (url) { var m = document.getElementById('vtrec-menu'); if (m) m.value = url; }
+    else alert(msg || 'Menu upload failed.');
+  };
+  if (btn) btn.textContent = 'Uploading…';
+  var send = function(type, b64) {
+    return vtStaffApiCall('upload_rec_photo', { content_type: type, file_base64: b64 })
+      .then(function(d) { done(d && d.ok && d.url, d && d.error); });
+  };
+  if (file.type === 'application/pdf') {
+    if (file.size > 4 * 1024 * 1024) return done(null, 'PDF must be under 4MB.');
+    var reader = new FileReader();
+    reader.onload = function() { send('application/pdf', reader.result.split(',')[1]); };
+    reader.readAsDataURL(file);
+  } else {
+    _vtRecShrink(file).then(function(b64) { return send('image/jpeg', b64); }).catch(function(e) { done(null, e.message); });
+  }
+}
+
 function _vtRecForm(r) {
   r = r || { category: vtRecCat };
   var catOpts = VT_REC_CATS.map(function(c) {
@@ -144,6 +168,10 @@ function _vtRecForm(r) {
     + row('1fr 2fr',
         '<div class="sm-field"><label class="sm-lbl">Booking</label><select class="sm-inp" id="vtrec-booking">'+_vtRecOpts(VT_REC_BOOKING, r.booking, ['—'].concat(VT_REC_BOOKING.slice(1)))+'</select></div>'
         + inp('vtrec-map','Google Maps link',r.maps_url,'https://maps.app.goo.gl/…'))
+    + '<div class="sm-field"><label class="sm-lbl">Menu <span style="text-transform:none;font-weight:400">(paste the restaurant\'s menu link, or upload a PDF / photo of it)</span></label>'
+    +   '<div style="display:flex;gap:8px"><input class="sm-inp" id="vtrec-menu" style="flex:1" value="'+esc(r.menu_url||'')+'" placeholder="https://…">'
+    +   '<input type="file" id="vtrec-menufile" accept="application/pdf,image/*" style="display:none" onchange="vtRecMenuUpload(this)">'
+    +   '<button type="button" class="fin-row-edit" id="vtrec-menubtn" style="white-space:nowrap" onclick="document.getElementById(\'vtrec-menufile\').click()">Upload menu</button></div></div>'
     + inp('vtrec-tip','Latisha\'s tip',r.tip,'e.g. Go before 6pm to skip the queue')
     + '<div id="vtrec-err" style="color:#B91C1C;font-size:12px;margin-bottom:8px;display:none"></div>'
     + '<div style="display:flex;gap:8px">'
@@ -160,12 +188,13 @@ function vtRecSave(id) {
   if (!f.name) return bad('Add a name.');
   if (vtRecUploading) return bad('Wait for the photos to finish uploading.');
   if (f.maps_url && !/^https?:\/\//i.test(f.maps_url)) return bad('The Maps link should start with https://');
+  if (f.menu_url && !/^https:\/\//i.test(f.menu_url.trim())) return bad('The menu link should start with https://');
 
   var payload = {
     category: f.category, name: f.name, description: (f.description||'').trim(), maps_url: f.maps_url,
     photos: vtRecDraftPhotos.slice(), image_url: vtRecDraftPhotos[0] || '',
     popular: (f.popular||'').trim(), price_range: f.price_range, walk_time: (f.walk_time||'').trim(),
-    hours: (f.hours||'').trim(), booking: f.booking, tip: (f.tip||'').trim()
+    hours: (f.hours||'').trim(), booking: f.booking, tip: (f.tip||'').trim(), menu_url: (f.menu_url||'').trim()
   };
   if (id) payload.id = id;
   else payload.sort_order = (vtRecs || []).filter(function(r){ return r.category === f.category; }).length;
