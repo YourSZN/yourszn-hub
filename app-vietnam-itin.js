@@ -181,8 +181,71 @@ function renderVtItinTab() {
     });
     if (vtTourEditing === 'new-' + day) html += _vtTourForm(null, day);
     else html += '<button class="fin-row-edit" style="margin-top:6px" onclick="vtTourEdit(\'new-'+day+'\')">+ Add to Day '+day+'</button>';
+    html += _vtDayExtras(day);
     html += '</div>';
   });
   html += '<button class="btn" style="font-size:12px" onclick="vtTourAddDay()">+ Add a day</button>';
   return html;
+}
+
+
+/* ── Per-day banner photo + "Need to know today" tips ── */
+
+function _vtJsonKey(key) { try { return JSON.parse((vtTour.content || {})[key] || '{}') || {}; } catch (e) { return {}; } }
+
+function _vtSaveJsonKey(key, obj) {
+  var value = JSON.stringify(obj);
+  return vtStaffApiCall('save_tour_content', { key: key, value: value }).then(function(data) {
+    if (data && data.ok) vtTour.content[key] = value;
+    return data;
+  });
+}
+
+function _vtDayExtras(day) {
+  var photo = _vtJsonKey('day_photos')[String(day)] || '';
+  var tips = _vtJsonKey('day_tips')[String(day)] || '';
+  return '<div style="display:grid;grid-template-columns:150px 1fr;gap:14px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--sand)">'
+    + '<div><div class="sm-lbl" style="margin-bottom:6px">Day photo</div>'
+    +   (photo ? '<div style="position:relative;width:150px;height:96px;border-radius:8px;overflow:hidden"><img src="'+esc(photo)+'" style="width:100%;height:100%;object-fit:cover">'
+                 + '<button class="fin-row-edit" style="position:absolute;right:4px;bottom:4px;background:#fff;color:#EF4444;padding:0 6px" title="Remove photo" onclick="vtTourDayPhotoRemove('+day+')">&#10005;</button></div>'
+               : '<div style="width:150px;height:96px;border-radius:8px;border:1px dashed var(--sand);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;padding:6px" id="vttour-photo-status-'+day+'">No photo — clients see a plain banner</div>')
+    +   '<input type="file" accept="image/*" id="vttour-photo-'+day+'" style="display:none" onchange="vtTourDayPhotoUpload('+day+',this)">'
+    +   '<button class="fin-row-edit" style="margin-top:6px" onclick="document.getElementById(\'vttour-photo-'+day+'\').click()">'+(photo?'Change photo':'+ Add photo')+'</button></div>'
+    + '<div><div class="sm-lbl" style="margin-bottom:6px">Need to know today</div>'
+    +   '<textarea class="sm-inp" rows="4" id="vttour-tips-'+day+'" style="resize:vertical;line-height:1.5" placeholder="- What to wear or bring\n- Timings to remember">'+esc(tips)+'</textarea>'
+    +   '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:10px"><span style="font-size:11px;color:var(--muted)">Start lines with - for bullets · **double stars** for bold</span>'
+    +   '<button class="btn btnp" style="font-size:11px;padding:6px 14px" id="vttour-tips-save-'+day+'" onclick="vtTourSaveTips('+day+')">Save tips</button></div></div>'
+    + '</div>';
+}
+
+function vtTourSaveTips(day) {
+  var btn = document.getElementById('vttour-tips-save-' + day);
+  var map = _vtJsonKey('day_tips');
+  var v = document.getElementById('vttour-tips-' + day).value.trim();
+  if (v) map[String(day)] = v; else delete map[String(day)];
+  btn.disabled = true; btn.textContent = 'Saving…';
+  _vtSaveJsonKey('day_tips', map).then(function(data) {
+    btn.disabled = false; btn.textContent = data && data.ok ? 'Saved ✓' : 'Failed — retry';
+    setTimeout(function() { btn.textContent = 'Save tips'; }, 1500);
+  });
+}
+
+function vtTourDayPhotoUpload(day, input) {
+  var file = input.files && input.files[0]; input.value = '';
+  if (!file) return;
+  var status = document.getElementById('vttour-photo-status-' + day);
+  if (status) status.textContent = 'Uploading…';
+  _vtRecShrink(file).then(function(b64) {
+    return vtStaffApiCall('upload_rec_photo', { content_type: 'image/jpeg', file_base64: b64 });
+  }).then(function(data) {
+    if (!data || !data.ok || !data.url) throw new Error((data && data.error) || 'Upload failed.');
+    var map = _vtJsonKey('day_photos'); map[String(day)] = data.url;
+    return _vtSaveJsonKey('day_photos', map);
+  }).then(function() { renderVietnamTour(); })
+    .catch(function(e) { alert(e.message || 'Upload failed.'); renderVietnamTour(); });
+}
+
+function vtTourDayPhotoRemove(day) {
+  var map = _vtJsonKey('day_photos'); delete map[String(day)];
+  _vtSaveJsonKey('day_photos', map).then(function() { renderVietnamTour(); });
 }

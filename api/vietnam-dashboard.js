@@ -22,6 +22,8 @@ function cors(req, res) {
   return true;
 }
 
+function safeJson(v) { try { const o = JSON.parse(v || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+
 module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
@@ -86,7 +88,7 @@ module.exports = async function handler(req, res) {
       itinerary: itinerary,
       recommendations: recommendations,
       faqs: Array.isArray(faqs) ? faqs : [],
-      tour: { welcome_note: content.welcome_note || '', intro_video_url: content.intro_video_url || '', included: content.included || '', not_included: content.not_included || '' }
+      tour: { day_photos: safeJson(content.day_photos), day_tips: safeJson(content.day_tips), welcome_note: content.welcome_note || '', intro_video_url: content.intro_video_url || '', included: content.included || '', not_included: content.not_included || '' }
     });
   } catch (err) {
     console.error('[vietnam-dashboard] error:', err);

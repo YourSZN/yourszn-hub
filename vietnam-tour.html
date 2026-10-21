@@ -291,6 +291,44 @@
   .pay-pill.overdue { background:#F5DDD8; color:#8E3B2E; }
   .pay-total { display:flex; justify-content:space-between; padding-top:12px; font-size:13px; font-weight:600; }
 
+  /* Visual itinerary */
+  .itin-strip { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 10px; margin-bottom:12px; scrollbar-width:thin; }
+  .itin-pill { flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:118px; padding:10px 14px; border-radius:12px;
+    border:1px solid var(--sand); background:white; cursor:pointer; text-align:left; font-family:'Montserrat',sans-serif; color:var(--charcoal); }
+  .itin-pill:hover { border-color:var(--charcoal); }
+  .itin-pill.on { background:var(--charcoal); border-color:var(--charcoal); color:#F9F5F0; }
+  .ip-day { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; opacity:.75; }
+  .ip-title { font-family:'Playfair Display',serif; font-size:16px; line-height:1.2; }
+  .ip-date { font-size:11px; opacity:.75; }
+  .itin-day { background:white; border:1px solid var(--sand); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+  .itin-banner { position:relative; min-height:150px; display:flex; align-items:flex-end;
+    background:linear-gradient(135deg, #3A2E25 0%, #6B5444 55%, #A8836A 100%); background-size:cover; background-position:center; }
+  .itin-banner.has-photo { min-height:220px; }
+  .itin-banner.has-photo::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(20,15,10,0) 35%, rgba(20,15,10,.7) 100%); }
+  .ib-inner { position:relative; padding:20px 24px; color:#fff; }
+  .ib-day { font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; opacity:.9; }
+  .ib-title { font-family:'Playfair Display',serif; font-size:32px; line-height:1.1; margin-top:4px; }
+  .itin-day-body { padding:22px 24px 24px; }
+  .itin-tl { position:relative; }
+  .tl-row { display:grid; grid-template-columns:92px 34px 1fr; gap:12px; position:relative; padding-bottom:18px; }
+  .tl-row:last-child { padding-bottom:4px; }
+  .tl-row::before { content:''; position:absolute; left:calc(92px + 12px + 16px); top:34px; bottom:0; width:2px; background:var(--warm); }
+  .tl-row:last-child::before { display:none; }
+  .tl-time { font-size:11px; font-weight:700; color:var(--rose); text-transform:uppercase; letter-spacing:.5px; padding-top:8px; text-align:right; }
+  .tl-dot { width:34px; height:34px; border-radius:50%; background:var(--warm); display:flex; align-items:center; justify-content:center; font-size:16px; position:relative; z-index:1; }
+  .tl-body { padding-top:6px; min-width:0; }
+  .itin-tips { margin-top:18px; background:#F6EFE6; border-radius:12px; padding:16px 18px; }
+  .it-head { font-family:'Playfair Display',serif; font-size:18px; color:var(--charcoal); margin-bottom:8px; }
+  .itin-nav { display:flex; justify-content:space-between; margin-top:14px; }
+  @media (max-width:640px) {
+    .ib-title { font-size:26px; } .itin-day-body { padding:18px 16px; } .ib-inner { padding:16px; }
+    .tl-row { grid-template-columns:30px 1fr; gap:12px; }
+    .tl-row::before { left:14px; top:30px; }
+    .tl-time { grid-column:2; grid-row:1; text-align:left; padding-top:0; }
+    .tl-dot { grid-column:1; grid-row:1 / span 2; width:30px; height:30px; font-size:14px; }
+    .tl-body { grid-column:2; grid-row:2; padding-top:0; }
+  }
+
   /* FAQ */
   .faq-item { background:white; border:1px solid var(--sand); border-radius:14px; margin-bottom:12px; box-shadow:0 2px 10px rgba(28,23,18,.07); overflow:hidden; }
   .faq-q { width:100%; display:flex; align-items:center; gap:12px; padding:18px 22px; background:none; border:none; cursor:pointer; text-align:left;
@@ -539,34 +577,91 @@ function renderInclusions(tour) {
 
 var tourInfo = {};
 
+var itinItems = [];
+var itinDay = null;
+
+// Picks an icon from the activity's wording so the timeline scans at a glance.
+function itinIcon(it) {
+  var t = ((it.title || '') + ' ' + (it.time_label || '')).toLowerCase();
+  var rules = [
+    [/breakfast|coffee/, '☕'], [/lunch|dinner|meal/, '🍽️'], [/fitting|tailor|measure/, '✂️'],
+    [/airport|arriv|flight|transfer/, '✈️'], [/check ?out|depart|luggage/, '🧳'], [/silk/, '🧵'],
+    [/beach|pool/, '🏖️'], [/tour|village|market|temple/, '🏮'], [/free|relax|leisure|own/, '🌿']
+  ];
+  for (var i = 0; i < rules.length; i++) if (rules[i][0].test(t)) return rules[i][1];
+  return '•';
+}
+
+function itinDays() {
+  var byDay = {};
+  itinItems.forEach(function(it) { var d = it.day_number || 0; (byDay[d] = byDay[d] || []).push(it); });
+  return Object.keys(byDay).map(Number).sort(function(a, b) { return a - b; }).map(function(d) { return { day: d, items: byDay[d] }; });
+}
+
+function itinDefaultDay(days) {
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  for (var i = 0; i < days.length; i++) {
+    var dt = days[i].items[0].item_date;
+    if (dt && new Date(dt + 'T00:00:00').getTime() === today.getTime()) return days[i].day;
+  }
+  return days.length ? days[0].day : null;
+}
+
 function renderItinerary(items) {
-  if (!items || items.length === 0) {
+  if (items) itinItems = items;
+  if (!itinItems.length) {
     return '<div class="empty"><div class="em-icon">🗓️</div>Your itinerary hasn\'t been added yet.<br>Check back soon.</div>';
   }
-  var byDay = {};
-  items.forEach(function(it) {
-    var d = it.day_number || 0;
-    if (!byDay[d]) byDay[d] = [];
-    byDay[d].push(it);
-  });
-  var days = Object.keys(byDay).sort(function(a,b){ return a-b; });
-  var html = '';
-  days.forEach(function(d) {
-    var dayItems = byDay[d];
-    var dateLabel = fmtDate(dayItems[0].item_date);
-    var title = dayItems[0].day_title;
-    html += '<div class="day-heading">Day ' + d + (title ? ' <span class="day-sub">· ' + recEsc(title) + '</span>' : '') + (dateLabel ? ' — ' + dateLabel : '') + '</div><div class="card">';
-    dayItems.forEach(function(it) {
-      html += '<div class="itin-item">'
-        + '<div class="itin-time">' + recEsc(it.time_label || '') + '</div>'
-        + '<div><div class="itin-title">' + recEsc(it.title) + '</div>'
-        + (it.description ? '<div class="itin-desc">' + recEsc(it.description) + '</div>' : '')
-        + (it.location ? '<div class="itin-loc">' + recEsc(it.location) + '</div>' : '')
-        + '</div></div>';
-    });
-    html += '</div>';
-  });
-  return html;
+  var days = itinDays();
+  if (itinDay === null || !days.some(function(d) { return d.day === itinDay; })) itinDay = itinDefaultDay(days);
+  var photos = (tourInfo && tourInfo.day_photos) || {}, tips = (tourInfo && tourInfo.day_tips) || {};
+
+  var strip = '<div class="itin-strip" role="tablist">' + days.map(function(d) {
+    var first = d.items[0], dt = first.item_date ? new Date(first.item_date + 'T00:00:00') : null;
+    return '<button role="tab" aria-selected="' + (d.day === itinDay) + '" class="itin-pill' + (d.day === itinDay ? ' on' : '') + '" onclick="setItinDay(' + d.day + ')">'
+      + '<span class="ip-day">Day ' + d.day + '</span>'
+      + '<span class="ip-title">' + recEsc(first.day_title || '') + '</span>'
+      + (dt ? '<span class="ip-date">' + dt.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }) + '</span>' : '')
+      + '</button>';
+  }).join('') + '</div>';
+
+  var cur = days.filter(function(d) { return d.day === itinDay; })[0];
+  var first = cur.items[0];
+  var photo = recSafeUrl(photos[String(cur.day)]);
+  var dateLabel = fmtDate(first.item_date);
+  var idx = days.indexOf(cur);
+  var banner = '<div class="itin-banner' + (photo ? ' has-photo' : '') + '"' + (photo ? ' style="background-image:url(\'' + photo + '\')"' : '') + '>'
+    + '<div class="ib-inner"><div class="ib-day">Day ' + cur.day + (dateLabel ? ' · ' + dateLabel : '') + '</div>'
+    + '<div class="ib-title">' + recEsc(first.day_title || 'Your day') + '</div></div></div>';
+
+  var timeline = '<div class="itin-tl">' + cur.items.map(function(it) {
+    return '<div class="tl-row"><div class="tl-time">' + recEsc(it.time_label || '') + '</div>'
+      + '<div class="tl-dot" aria-hidden="true">' + itinIcon(it) + '</div>'
+      + '<div class="tl-body"><div class="itin-title">' + recEsc(it.title) + '</div>'
+      + (it.description ? '<div class="itin-desc">' + recEsc(it.description) + '</div>' : '')
+      + (it.location ? '<div class="itin-loc">' + recEsc(it.location) + '</div>' : '')
+      + '</div></div>';
+  }).join('') + '</div>';
+
+  var tip = tips[String(cur.day)];
+  var tipBox = tip ? '<div class="itin-tips"><div class="it-head">💡 Need to know today</div><div class="faq-a" style="display:block;padding:0">' + faqFormat(tip) + '</div></div>' : '';
+
+  var nav = '<div class="itin-nav">'
+    + (idx > 0 ? '<button class="rec-subtab" onclick="setItinDay(' + days[idx - 1].day + ')">‹ Day ' + days[idx - 1].day + '</button>' : '<span></span>')
+    + (idx < days.length - 1 ? '<button class="rec-subtab" onclick="setItinDay(' + days[idx + 1].day + ')">Day ' + days[idx + 1].day + ' ›</button>' : '<span></span>')
+    + '</div>';
+
+  return strip + '<div class="itin-day">' + banner + '<div class="itin-day-body">' + timeline + tipBox + '</div></div>' + nav;
+}
+
+function setItinDay(d) {
+  itinDay = d;
+  var panel = document.getElementById('panel-itinerary');
+  if (panel) {
+    panel.innerHTML = renderItinerary();
+    var pill = panel.querySelector('.itin-pill.on');
+    if (pill && pill.scrollIntoView) pill.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
 }
 
 /* ═══════════ Packing (synced, editable) ═══════════ */

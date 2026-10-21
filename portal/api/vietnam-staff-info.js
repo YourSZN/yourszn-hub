@@ -173,7 +173,7 @@ module.exports = async function handler(req, res) {
     // ── Shared tour itinerary + trip info ──
     const TOUR_URL = SUPABASE_URL + '/rest/v1/vietnam_tour_itinerary';
     const CONTENT_URL = SUPABASE_URL + '/rest/v1/vietnam_tour_content';
-    const CONTENT_KEYS = ['welcome_note', 'intro_video_url', 'included', 'not_included', 'tour_start_date', 'day_titles'];
+    const CONTENT_KEYS = ['welcome_note', 'intro_video_url', 'included', 'not_included', 'tour_start_date', 'day_titles', 'day_photos', 'day_tips'];
     if (action === 'list_tour') {
       const [items, content] = await Promise.all([
         fetch(TOUR_URL + '?select=*&order=day_number.asc,sort_order.asc', { headers }).then(function(r) { return r.json(); }),
