@@ -330,28 +330,25 @@
   }
 
   /* Inclusions / exclusions */
-  .incl { margin-bottom:34px; }
-  .incl-head { margin-bottom:14px; }
-  .incl-eyebrow { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--rose); }
-  .incl-title { font-family:'Playfair Display',serif; font-weight:400; font-size:28px; color:var(--charcoal); margin-top:2px; }
-  .incl-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
-  @media (min-width:1100px) { .incl-grid { grid-template-columns:repeat(5, 1fr); } }
-  @media (min-width:769px) and (max-width:1099px) { .incl-grid { grid-template-columns:repeat(2, 1fr); } }
-  .incl-tile { background:white; border:1px solid var(--sand); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:12px; }
-  .incl-ic { width:44px; height:44px; border-radius:50%; background:var(--warm); color:var(--charcoal); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .incl-txt { font-size:13.5px; line-height:1.5; color:var(--charcoal); }
+  .incl { margin-bottom:30px; }
+  .incl-card { background:white; border:1px solid var(--sand); border-radius:16px; padding:26px 28px; box-shadow:var(--shadow); }
+  .incl-title { font-family:'Playfair Display',serif; font-weight:400; font-size:24px; color:var(--charcoal); margin-bottom:16px; }
+  .incl-list { display:grid; grid-template-columns:1fr; gap:4px 36px; }
+  @media (min-width:900px) { .incl-list { grid-template-columns:1fr 1fr; } }
+  .incl-row { display:flex; align-items:center; gap:14px; padding:9px 0; border-bottom:1px solid var(--warm); }
+  .incl-row:last-child { border-bottom:none; }
+  @media (min-width:900px) { .incl-row:nth-last-child(2):nth-child(odd) { border-bottom:none; } }
+  .incl-ic { width:34px; height:34px; border-radius:50%; background:var(--warm); color:var(--charcoal); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .incl-txt { font-size:13.5px; line-height:1.45; color:var(--charcoal); min-width:0; }
   .incl-txt strong, .incl-ex strong { font-weight:600; }
-  .incl-bonus { margin-top:12px; display:flex; align-items:center; gap:16px; background:var(--charcoal); color:#F4EEE7; border-radius:14px; padding:18px 22px; }
-  .incl-bonus .incl-ic { background:rgba(255,255,255,.1); color:#F4EEE7; }
-  .incl-bonus-txt { font-family:'Playfair Display',serif; font-size:19px; line-height:1.35; margin-top:2px; }
-  .incl-ex { margin-top:22px; border-top:1px solid var(--sand); padding-top:18px; }
-  .incl-ex-head { font-family:'Playfair Display',serif; font-size:20px; color:var(--charcoal); margin-bottom:12px; }
+  .incl-ex { margin-top:20px; padding:0 4px; }
+  .incl-ex-head { font-family:'Playfair Display',serif; font-size:20px; color:var(--charcoal); margin-bottom:10px; }
   .incl-ex-head span { font-family:'Montserrat',sans-serif; font-size:12px; color:var(--muted); }
-  .incl-ex-list { display:grid; grid-template-columns:1fr; gap:10px 22px; }
+  .incl-ex-list { display:grid; grid-template-columns:1fr; gap:10px 28px; }
   @media (min-width:900px) { .incl-ex-list { grid-template-columns:repeat(3, 1fr); } }
   .incl-ex-item { display:flex; align-items:center; gap:10px; font-size:13px; line-height:1.45; color:var(--muted); }
-  .incl-ex-ic { width:32px; height:32px; border-radius:50%; border:1px solid var(--sand); color:var(--muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  @media (max-width:560px) { .incl-grid { grid-template-columns:1fr 1fr; gap:10px; } .incl-tile { padding:14px; gap:10px; } .incl-txt { font-size:12.5px; } .incl-title { font-size:24px; } }
+  .incl-ex-ic { width:30px; height:30px; border-radius:50%; border:1px solid var(--sand); color:var(--muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  @media (max-width:560px) { .incl-card { padding:20px 18px; } .incl-title { font-size:22px; } }
 
   /* FAQ */
   .faq-item { background:white; border:1px solid var(--sand); border-radius:14px; margin-bottom:12px; box-shadow:0 2px 10px rgba(28,23,18,.07); overflow:hidden; }
@@ -639,25 +636,17 @@ function renderInclusions(tour) {
   tour = tour || {};
   var inc = inclItems(tour.included), exc = inclItems(tour.not_included);
   if (!inc.length && !exc.length) return '';
-  var bonus = inc.filter(function(t) { return /^\*\*bonus/i.test(t); });
-  var main = inc.filter(function(t) { return bonus.indexOf(t) === -1; });
-
   var html = '<section class="incl">';
-  if (main.length) {
-    html += '<div class="incl-head"><span class="incl-eyebrow">Your trip</span><h2 class="incl-title">What’s included</h2></div>'
-      + '<div class="incl-grid">' + main.map(function(t) {
-        return '<div class="incl-tile"><span class="incl-ic">' + inclSvg(inclIcon(t), 22) + '</span><span class="incl-txt">' + inclInline(t) + '</span></div>';
-      }).join('') + '</div>';
+  if (inc.length) {
+    html += '<div class="incl-card"><h2 class="incl-title">What’s included</h2><div class="incl-list">'
+      + inc.map(function(t) {
+        return '<div class="incl-row"><span class="incl-ic">' + inclSvg(inclIcon(t), 18) + '</span><span class="incl-txt">' + inclInline(t) + '</span></div>';
+      }).join('') + '</div></div>';
   }
-  bonus.forEach(function(t) {
-    var body = t.replace(/^\*\*bonus:?\*\*:?\s*/i, '');
-    html += '<div class="incl-bonus"><span class="incl-ic">' + inclSvg(INCL_ICONS.palette, 24) + '</span>'
-      + '<div><div class="incl-eyebrow" style="color:inherit;opacity:.7">Bonus</div><div class="incl-bonus-txt">' + inclInline(body.charAt(0).toUpperCase() + body.slice(1)) + '</div></div></div>';
-  });
   if (exc.length) {
     html += '<div class="incl-ex"><div class="incl-ex-head">Not included <span>· budget for these separately</span></div>'
       + '<div class="incl-ex-list">' + exc.map(function(t) {
-        return '<div class="incl-ex-item"><span class="incl-ex-ic">' + inclSvg(inclIcon(t, 'wallet'), 18) + '</span><span>' + inclInline(t) + '</span></div>';
+        return '<div class="incl-ex-item"><span class="incl-ex-ic">' + inclSvg(inclIcon(t, 'wallet'), 16) + '</span><span>' + inclInline(t) + '</span></div>';
       }).join('') + '</div></div>';
   }
   return html + '</section>';
