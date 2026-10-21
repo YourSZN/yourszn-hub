@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'save_rec') {
-      const { id, category, name, description, maps_url, image_url, sort_order, photos, popular, price_range, walk_time, hours, booking, tip, menu_url, menu_photos } = req.body;
+      const { id, category, name, description, maps_url, image_url, sort_order, photos, popular, price_range, walk_time, hours, booking, tip, menu_url, menu_photos, lat, lng } = req.body;
       if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name is required.' });
       if (REC_CATEGORIES.indexOf(category) === -1) return res.status(400).json({ error: 'Pick a category.' });
       const body = {
@@ -141,8 +141,13 @@ module.exports = async function handler(req, res) {
         tip: tip || null,
         menu_url: /^https:\/\//.test(menu_url || '') ? menu_url : null,
         menu_photos: Array.isArray(menu_photos) ? menu_photos.filter(function(u){ return /^https:\/\//.test(u); }).slice(0, 30) : [],
+        lat: null,
+        lng: null,
         updated_at: new Date().toISOString()
       };
+      // Map pin: both numbers, inside Vietnam-ish bounds, or no pin at all.
+      const la = parseFloat(lat), ln = parseFloat(lng);
+      if (isFinite(la) && isFinite(ln) && la > 8 && la < 24 && ln > 102 && ln < 110) { body.lat = la; body.lng = ln; }
       if (body.photos.length) body.image_url = body.photos[0];
       if (typeof sort_order === 'number') body.sort_order = sort_order;
       const url = id ? REC_URL + '?id=eq.' + encodeURIComponent(id) : REC_URL;

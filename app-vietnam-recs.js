@@ -51,7 +51,7 @@ function _vtRecReadForm() {
   if (g('vtrec-name') === undefined) return null;
   return { category: g('vtrec-cat'), name: g('vtrec-name'), description: g('vtrec-desc'), maps_url: g('vtrec-map'),
     popular: g('vtrec-popular'), price_range: g('vtrec-price'), walk_time: g('vtrec-walk'), hours: g('vtrec-hours'),
-    booking: g('vtrec-booking'), tip: g('vtrec-tip'), menu_url: g('vtrec-menu') };
+    booking: g('vtrec-booking'), tip: g('vtrec-tip'), menu_url: g('vtrec-menu'), pin: g('vtrec-pin') };
 }
 
 function _vtRecRerenderForm() {
@@ -61,7 +61,7 @@ function _vtRecRerenderForm() {
   var set = function(id, v){ var el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
   set('vtrec-cat', vals.category); set('vtrec-name', vals.name); set('vtrec-desc', vals.description); set('vtrec-map', vals.maps_url);
   set('vtrec-popular', vals.popular); set('vtrec-price', vals.price_range); set('vtrec-walk', vals.walk_time); set('vtrec-hours', vals.hours);
-  set('vtrec-booking', vals.booking); set('vtrec-tip', vals.tip); set('vtrec-menu', vals.menu_url);
+  set('vtrec-booking', vals.booking); set('vtrec-tip', vals.tip); set('vtrec-menu', vals.menu_url); set('vtrec-pin', vals.pin);
 }
 
 function vtRecCancel() { vtRecEditing = null; vtRecDraftPhotos = []; vtRecDraftMenu = []; renderVietnamTour(); }
@@ -194,6 +194,9 @@ function _vtRecForm(r) {
     + row('1fr 2fr',
         '<div class="sm-field"><label class="sm-lbl">Booking</label><select class="sm-inp" id="vtrec-booking">'+_vtRecOpts(VT_REC_BOOKING, r.booking, ['—'].concat(VT_REC_BOOKING.slice(1)))+'</select></div>'
         + inp('vtrec-map','Google Maps link',r.maps_url,'https://maps.app.goo.gl/…'))
+    + '<div class="sm-field"><label class="sm-lbl">Map pin <span style="text-transform:none;font-weight:400">(latitude, longitude — puts this place on the clients\' Map tab)</span></label>'
+    +   '<input class="sm-inp" id="vtrec-pin" value="'+esc(r.lat!=null&&r.lng!=null ? r.lat+', '+r.lng : '')+'" placeholder="e.g. 15.87704, 108.32604">'
+    +   '<div style="font-size:11px;color:var(--muted);margin-top:4px">In Google Maps, right-click the spot and click the numbers at the top of the menu to copy them, then paste here. Leave blank to keep it off the map.</div></div>'
     + _vtRecStrip('menu')
     + '<div class="sm-field"><label class="sm-lbl">Online menu link <span style="text-transform:none;font-weight:400">(optional — only if there are no menu pages above; opens in a new tab)</span></label><input class="sm-inp" id="vtrec-menu" value="'+esc(r.menu_url||'')+'" placeholder="https://…"></div>'
     + inp('vtrec-tip','Latisha\'s tip',r.tip,'e.g. Go before 6pm to skip the queue')
@@ -202,6 +205,16 @@ function _vtRecForm(r) {
     +   '<button class="btn btnp" style="font-size:12px" id="vtrec-save" onclick="vtRecSave(\''+(r.id||'')+'\')">'+(r.id?'Save Changes':'Add Recommendation')+'</button>'
     +   '<button class="btn" style="font-size:12px" onclick="vtRecCancel()">Cancel</button>'
     + '</div></div>';
+}
+
+// Accepts "15.877, 108.326", or a full Google Maps link that has the coordinates in it.
+function vtRecParsePin(txt) {
+  txt = String(txt || '').trim(); if (!txt) return null;
+  var m = txt.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || txt.match(/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/)
+       || txt.match(/(?:^|[=\s(])(-?\d{1,2}\.\d{3,})\s*[,\s]\s*(-?\d{2,3}\.\d{3,})/);
+  if (!m) return null;
+  var la = parseFloat(m[1]), ln = parseFloat(m[2]);
+  return (la > 8 && la < 24 && ln > 102 && ln < 110) ? [Math.round(la*1e6)/1e6, Math.round(ln*1e6)/1e6] : null;
 }
 
 function vtRecSave(id) {
@@ -213,12 +226,15 @@ function vtRecSave(id) {
   if (vtRecUploading) return bad('Wait for the uploads to finish.');
   if (f.maps_url && !/^https?:\/\//i.test(f.maps_url)) return bad('The Maps link should start with https://');
   if (f.menu_url && !/^https:\/\//i.test(f.menu_url.trim())) return bad('The menu link should start with https://');
+  var pin = vtRecParsePin(f.pin) || (!(f.pin||'').trim() ? vtRecParsePin(f.maps_url) : null);
+  if ((f.pin||'').trim() && !pin) return bad('The map pin should look like 15.87704, 108.32604');
 
   var payload = {
     category: f.category, name: f.name, description: (f.description||'').trim(), maps_url: f.maps_url,
     photos: vtRecDraftPhotos.slice(), image_url: vtRecDraftPhotos[0] || '',
     popular: (f.popular||'').trim(), price_range: f.price_range, walk_time: (f.walk_time||'').trim(),
-    hours: (f.hours||'').trim(), booking: f.booking, tip: (f.tip||'').trim(), menu_url: (f.menu_url||'').trim(), menu_photos: vtRecDraftMenu.slice()
+    hours: (f.hours||'').trim(), booking: f.booking, tip: (f.tip||'').trim(), menu_url: (f.menu_url||'').trim(), menu_photos: vtRecDraftMenu.slice(),
+    lat: pin ? pin[0] : null, lng: pin ? pin[1] : null
   };
   if (id) payload.id = id;
   else payload.sort_order = (vtRecs || []).filter(function(r){ return r.category === f.category; }).length;
@@ -287,6 +303,7 @@ function renderVtRecsTab() {
       +   '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+[r.price_range, r.walk_time, (r.photos||[]).length ? (r.photos.length+' photo'+(r.photos.length>1?'s':'')) : 'No photos', (r.menu_photos||[]).length ? 'Menu: '+r.menu_photos.length+' page'+(r.menu_photos.length>1?'s':'') : (r.menu_url ? 'Menu link' : '')].filter(Boolean).map(esc).join(' · ')+'</div>'
       +   (r.description ? '<div style="font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5">'+esc(r.description)+'</div>' : '')
       +   (r.maps_url ? '<a href="'+esc(r.maps_url)+'" target="_blank" rel="noopener" style="font-size:11px">Map ↗</a>' : '<div style="font-size:11px;color:#B45309;margin-top:3px">No map link</div>')
+      +   (r.lat!=null && r.lng!=null ? '' : '<div style="font-size:11px;color:#B45309;margin-top:3px">Not on map</div>')
       + '</div>'
       + '<div style="display:flex;gap:4px;flex-shrink:0">'
       +   '<button class="fin-row-edit" title="Move up" '+(i===0?'disabled style="opacity:.3"':'')+' onclick="vtRecMove(\''+r.id+'\',-1)">&#8593;</button>'

@@ -509,6 +509,84 @@
     .tile-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   }
   /* ══════════════ End ported styles ══════════════ */
+
+  /* ── Map tab ── */
+  .vm-head { margin-bottom: 14px; }
+  .vm-title { font-family: 'Playfair Display', serif; font-size: 24px; font-style: italic; color: var(--charcoal); }
+  .vm-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.55; max-width: 560px; }
+  .vm-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .vm-filters .rec-subtab { display: inline-flex; align-items: center; gap: 6px; }
+  .vm-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .vm-wrap { position: relative; height: min(70vh, 640px); min-height: 400px; overflow: hidden; border-radius: 14px;
+    border: 1px solid var(--sand); background: #F4EDE3; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
+    box-shadow: inset 0 0 60px rgba(140,117,80,.12); }
+  .vm-wrap:active { cursor: grabbing; }
+  .vm-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .vm-overlay { position: absolute; inset: 0; pointer-events: none; }
+  .vm-lbl { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-family: 'Cormorant Garamond', serif;
+    font-style: italic; color: #5E5248; text-shadow: 0 0 3px #F4EDE3, 0 0 6px #F4EDE3; font-size: 15px; }
+  .vm-lbl-big { font-family: 'Playfair Display', serif; font-size: 17px; color: #7A4E3A; letter-spacing: .5px; }
+  .vm-lbl-water { color: #5C7B7A; font-size: 15px; letter-spacing: 2px; }
+  .vm-lbl-sea { color: #5C7B7A; font-size: 22px; letter-spacing: 6px; text-shadow: none; }
+  .vm-lbl-sm { font-size: 14px; }
+  .vm-lbl-xs { font-size: 12px; opacity: .8; }
+  .vm-pin, .vm-home { position: absolute; pointer-events: auto; border: none; background: none; padding: 0; cursor: pointer; transform: translate(-50%, -100%); }
+  .vm-pin-head { display: block; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #fff;
+    border: 2.5px solid var(--c); box-shadow: 0 3px 8px rgba(28,23,18,.22); transition: transform .15s; }
+  .vm-pin-head span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; transform: rotate(45deg); font-size: 14px; }
+  .vm-pin:hover .vm-pin-head, .vm-pin.on .vm-pin-head { transform: rotate(-45deg) scale(1.18); background: var(--c); }
+  .vm-pin-name, .vm-home-name { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 4px; white-space: nowrap;
+    font-family: 'Montserrat', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--charcoal); background: rgba(255,255,255,.92);
+    padding: 2px 7px; border-radius: 10px; box-shadow: 0 1px 4px rgba(28,23,18,.12); }
+  .vm-home { transform: translate(-50%, -50%); z-index: 2; }
+  .vm-home-ico { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--charcoal);
+    color: #F4EDE3; font-size: 17px; border: 3px solid #F4EDE3; box-shadow: 0 0 0 1.5px var(--charcoal), 0 4px 10px rgba(28,23,18,.3); }
+  .vm-home-name { margin-top: 3px; background: var(--charcoal); color: #F4EDE3; }
+  .vm-ctrls { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(28,23,18,.15); }
+  .vm-ctrls button { width: 36px; height: 36px; border: none; background: #fff; font-size: 19px; color: var(--charcoal); cursor: pointer; }
+  .vm-ctrls button + button { border-top: 1px solid var(--warm); }
+  .vm-views { position: absolute; left: 12px; top: 12px; display: flex; background: #fff; border-radius: 20px; padding: 3px; box-shadow: 0 2px 8px rgba(28,23,18,.15); }
+  .vm-views button { border: none; background: none; font-family: 'Montserrat', sans-serif; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 6px 11px; border-radius: 16px; color: var(--muted); cursor: pointer; }
+  .vm-views button.on { background: var(--charcoal); color: #fff; }
+  .vm-compass { position: absolute; right: 16px; top: 100px; display: flex; flex-direction: column; align-items: center; pointer-events: none;
+    font-family: 'Cormorant Garamond', serif; font-size: 13px; color: #5E5248; }
+  .vm-scale { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: center; gap: 6px; pointer-events: none;
+    font-family: 'Montserrat', sans-serif; font-size: 10px; color: #5E5248; }
+  .vm-scale-bar { height: 5px; border: 1.5px solid #5E5248; border-top: none; }
+  .vm-card { position: absolute; left: 12px; right: 12px; bottom: 12px; max-width: 420px; margin: 0 auto; background: #fff; border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(28,23,18,.22); display: none; overflow: hidden; cursor: default; touch-action: auto; }
+  .vm-card.open { display: flex; }
+  .vm-card-img { width: 110px; flex-shrink: 0; background: #F4EEE7 center/cover no-repeat; }
+  .vm-card-noimg { display: flex; align-items: center; justify-content: center; font-size: 30px; }
+  .vm-card-body { padding: 13px 34px 13px 14px; min-width: 0; }
+  .vm-card-cat { font-size: 9.5px; letter-spacing: 1.8px; text-transform: uppercase; font-weight: 600; color: var(--muted); }
+  .vm-card-name { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--charcoal); margin-top: 2px; }
+  .vm-card-info { font-size: 12px; color: var(--text-mid); line-height: 1.5; margin-top: 4px; }
+  .vm-card-acts { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .vm-card-acts .rec-map { margin-top: 0; }
+  .vm-more { border: none; background: none; padding: 0; font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  .vm-card-x { position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; border: none; background: none; font-size: 20px; color: var(--muted); cursor: pointer; }
+  .vm-far-title { font-family: 'Playfair Display', serif; font-size: 17px; margin: 22px 0 10px; color: var(--charcoal); }
+  .vm-far-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .vm-far-item { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--sand); border-radius: 12px; padding: 10px 14px;
+    text-decoration: none; color: var(--charcoal); }
+  .vm-far-ico { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .vm-far-txt { display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 0; flex: 1; }
+  .vm-far-txt span { font-size: 11.5px; color: var(--muted); }
+  .vm-far-go { font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); }
+  .rec-tile.vm-flash { box-shadow: 0 0 0 3px var(--tan); transition: box-shadow .3s; }
+  @media (max-width: 640px) {
+    .vm-title { font-size: 21px; }
+    .vm-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 12px; padding: 0 16px; }
+    .vm-filters::-webkit-scrollbar { display: none; }
+    .vm-filters .rec-subtab { flex-shrink: 0; }
+    .vm-wrap { height: calc(100svh - 300px); min-height: 380px; margin: 0 -16px; border-radius: 0; border-left: none; border-right: none; }
+    .vm-card-img { width: 88px; }
+    .vm-compass { top: 92px; }
+  }
 </style>
 </head>
 <body>
@@ -518,6 +596,7 @@
 <div class="save-indicator" id="saveIndicator">✓ Saved</div>
 <div class="toast" id="toast"></div>
 
+<script src="vietnam-map.js?v=1"></script>
 <script>
 var SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
@@ -1894,6 +1973,7 @@ var VT_NAV = [
   { id: 'itinerary', lbl: 'Itinerary', shortLbl: 'Itinerary', icon: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>' },
   { id: 'packing', lbl: 'Packing', shortLbl: 'Packing', icon: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
+  { id: 'map', lbl: 'Map', shortLbl: 'Map', icon: '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>' },
   { id: 'budget', lbl: 'Budget', shortLbl: 'Budget', icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id: 'faq', lbl: 'FAQ', shortLbl: 'FAQ', icon: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
   { id: 'needtoknow', lbl: 'About Vietnam', shortLbl: 'Vietnam', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
@@ -1938,6 +2018,7 @@ function setTab(tab) {
   if (tab === 'packing') loadPackingPanel();
   if (tab === 'budget') loadBudgetPanel();
   if (tab === 'yourinfo') loadYourInfoPanel();
+  if (tab === 'map') vtMapShow();
 }
 
 function showLoginRequired() {
@@ -1994,6 +2075,7 @@ function init() {
         + '<div class="tab-panel" id="panel-itinerary">' + renderItinerary(res.data.itinerary) + '</div>'
         + '<div class="tab-panel" id="panel-packing">' + renderPackingPanel() + '</div>'
         + '<div class="tab-panel" id="panel-recs">' + renderRecommendationsPanel() + '</div>'
+        + '<div class="tab-panel" id="panel-map">' + vtMapPanelHTML() + '</div>'
         + '<div class="tab-panel" id="panel-budget">' + renderBudgetPanel() + '</div>'
         + '<div class="tab-panel" id="panel-faq">' + renderFaqPanel() + '</div>'
         + '<div class="tab-panel" id="panel-needtoknow">' + renderNeedToKnowPanel() + '</div>'
