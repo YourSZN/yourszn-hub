@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'save_rec') {
-      const { id, category, name, description, maps_url, image_url, sort_order } = req.body;
+      const { id, category, name, description, maps_url, image_url, sort_order, photos, popular, price_range, walk_time, hours, booking, tip } = req.body;
       if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name is required.' });
       if (REC_CATEGORIES.indexOf(category) === -1) return res.status(400).json({ error: 'Pick a category.' });
       const body = {
@@ -132,8 +132,16 @@ module.exports = async function handler(req, res) {
         description: description || null,
         maps_url: maps_url || null,
         image_url: image_url || null,
+        photos: Array.isArray(photos) ? photos.filter(function(u){ return /^https:\/\//.test(u); }).slice(0, 10) : [],
+        popular: popular || null,
+        price_range: price_range || null,
+        walk_time: walk_time || null,
+        hours: hours || null,
+        booking: booking || null,
+        tip: tip || null,
         updated_at: new Date().toISOString()
       };
+      if (body.photos.length) body.image_url = body.photos[0];
       if (typeof sort_order === 'number') body.sort_order = sort_order;
       const url = id ? REC_URL + '?id=eq.' + encodeURIComponent(id) : REC_URL;
       if (!id) body.client_id = null;
@@ -143,6 +151,21 @@ module.exports = async function handler(req, res) {
       const out = await r.json();
       if (!r.ok) return res.status(400).json({ error: (out && out.message) || 'Could not save.' });
       return res.status(200).json({ ok: true, rec: Array.isArray(out) ? out[0] : out });
+    }
+
+    if (action === 'upload_rec_photo') {
+      const { content_type, file_base64 } = req.body;
+      if (!file_base64) return res.status(400).json({ error: 'Missing photo.' });
+      const type = ['image/jpeg','image/png','image/webp'].indexOf(content_type) > -1 ? content_type : 'image/jpeg';
+      const buf = Buffer.from(file_base64, 'base64');
+      if (buf.length > MAX_FILE_BYTES) return res.status(400).json({ error: 'Photo is too large (max 4MB).' });
+      const ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+      const path = 'recs/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const upRes = await fetch(SUPABASE_URL + '/storage/v1/object/vietnam-recommendations/' + path, {
+        method: 'POST', headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY, 'Content-Type': type }, body: buf
+      });
+      if (!upRes.ok) return res.status(502).json({ error: 'Upload failed. Please try again.' });
+      return res.status(200).json({ ok: true, url: SUPABASE_URL + '/storage/v1/object/public/vietnam-recommendations/' + path });
     }
 
     if (action === 'delete_rec') {

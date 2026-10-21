@@ -136,6 +136,32 @@
   .itin-loc { font-size: 12px; color: var(--tan); margin-top: 4px; }
   .itin-loc::before { content: '📍 '; }
 
+
+  /* ── Recommendation tiles ── */
+  .rec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+  .rec-tile { background: #fff; border: 1px solid var(--sand); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+  .rec-gal { position: relative; aspect-ratio: 4 / 3; background: #EFE8DF; }
+  .rec-track { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
+  .rec-track::-webkit-scrollbar { display: none; }
+  .rec-track img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; }
+  .rec-noimg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 44px; }
+  .rec-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,.88); color: var(--charcoal); font-size: 16px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.18);
+    display: flex; align-items: center; justify-content: center; }
+  .rec-arrow.l { left: 10px; } .rec-arrow.r { right: 10px; }
+  .rec-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+  .rec-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); }
+  .rec-dots span.on { background: #fff; }
+  .rec-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .rec-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; line-height: 1.15; color: var(--charcoal); }
+  .rec-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rec-chip { font-family: 'Inter', sans-serif; font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #F4EEE7; color: var(--charcoal); }
+  .rec-info { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .rec-info b { color: var(--charcoal); font-weight: 600; }
+  .rec-tip { font-size: 13px; line-height: 1.5; background: #F9F5F0; border-left: 3px solid var(--charcoal); padding: 8px 10px; border-radius: 0 8px 8px 0; color: var(--charcoal); }
+  .rec-map { margin-top: auto; align-self: flex-start; font-family: 'Inter', sans-serif; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--charcoal); text-decoration: none; border-bottom: 1px solid var(--charcoal); padding-bottom: 2px; }
+  @media (max-width: 640px) { .rec-grid { grid-template-columns: 1fr; } }
   .rec-subtabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
   .rec-subtab {
     padding: 9px 20px; border: 1px solid var(--sand); border-radius: 24px;
@@ -870,6 +896,56 @@ function recSubTabsHTML(cats) {
   }).join('') + '</div>';
 }
 
+function recPhotos(r) {
+  var list = Array.isArray(r.photos) && r.photos.length ? r.photos : (r.image_url ? [r.image_url] : []);
+  return list.map(recSafeUrl).filter(Boolean);
+}
+
+function recTileHTML(r, cat, idx) {
+  var photos = recPhotos(r);
+  var gid = 'recg' + idx;
+  var gal = '<div class="rec-gal">';
+  if (photos.length) {
+    gal += '<div class="rec-track" id="' + gid + '" onscroll="recSync(\'' + gid + '\')">'
+      + photos.map(function(u) { return '<img src="' + u + '" alt="' + recEsc(r.name) + '" loading="lazy">'; }).join('') + '</div>';
+    if (photos.length > 1) {
+      gal += '<button class="rec-arrow l" aria-label="Previous photo" onclick="recSlide(\'' + gid + '\',-1)">&#8249;</button>'
+        + '<button class="rec-arrow r" aria-label="Next photo" onclick="recSlide(\'' + gid + '\',1)">&#8250;</button>'
+        + '<div class="rec-dots" id="' + gid + '-dots">' + photos.map(function(_, i) { return '<span' + (i === 0 ? ' class="on"' : '') + '></span>'; }).join('') + '</div>';
+    }
+  } else {
+    gal += '<div class="rec-noimg">' + cat.icon + '</div>';
+  }
+  gal += '</div>';
+
+  var chips = [r.price_range, r.walk_time ? '🚶 ' + r.walk_time : '', r.booking].filter(Boolean)
+    .map(function(c) { return '<span class="rec-chip">' + recEsc(c) + '</span>'; }).join('');
+  var map = recSafeUrl(r.maps_url);
+  return '<div class="rec-tile">' + gal + '<div class="rec-body">'
+    + '<div class="rec-title">' + recEsc(r.name) + '</div>'
+    + (chips ? '<div class="rec-chips">' + chips + '</div>' : '')
+    + (r.description ? '<div class="rec-info">' + recEsc(r.description).replace(/\n/g, '<br>') + '</div>' : '')
+    + (r.popular ? '<div class="rec-info"><b>Popular:</b> ' + recEsc(r.popular) + '</div>' : '')
+    + (r.hours ? '<div class="rec-info"><b>Hours:</b> ' + recEsc(r.hours) + '</div>' : '')
+    + (r.tip ? '<div class="rec-tip"><b>Latisha\'s tip:</b> ' + recEsc(r.tip) + '</div>' : '')
+    + (map ? '<a class="rec-map" href="' + map + '" target="_blank" rel="noopener">Open in Maps ↗</a>' : '')
+    + '</div></div>';
+}
+
+function recSlide(gid, dir) {
+  var t = document.getElementById(gid); if (!t) return;
+  var n = t.children.length, i = Math.round(t.scrollLeft / t.clientWidth);
+  var j = (i + dir + n) % n;   // wraps around at the ends
+  t.scrollTo({ left: j * t.clientWidth });
+}
+
+function recSync(gid) {
+  var t = document.getElementById(gid), d = document.getElementById(gid + '-dots');
+  if (!t || !d) return;
+  var i = Math.round(t.scrollLeft / t.clientWidth);
+  Array.prototype.forEach.call(d.children, function(s, k) { s.className = k === i ? 'on' : ''; });
+}
+
 function renderRecommendationsPanel() {
   var cats = recCatsWithItems();
   if (!recsData || recsData.length === 0 || cats.length === 0) {
@@ -878,20 +954,8 @@ function renderRecommendationsPanel() {
   if (!cats.some(function(c) { return c.id === recFilter; })) recFilter = cats[0].id;
   var cat = cats.filter(function(c) { return c.id === recFilter; })[0];
   var list = recsData.filter(function(r) { return r.category === recFilter; });
-  var html = recSubTabsHTML(cats);
-  list.forEach(function(r) {
-    var img = recSafeUrl(r.image_url);
-    var map = recSafeUrl(r.maps_url);
-    html += '<div class="rec-card">'
-      + (img ? '<img src="' + img + '" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0">'
-             : '<div class="rec-pin">' + cat.icon + '</div>')
-      + '<div style="flex:1;min-width:0">'
-      + '<div class="rec-name">' + recEsc(r.name) + '</div>'
-      + (r.description ? '<div class="rec-desc">' + recEsc(r.description).replace(/\n/g, '<br>') + '</div>' : '')
-      + (map ? '<a class="rec-link" href="' + map + '" target="_blank" rel="noopener">View on Map ↗</a>' : '')
-      + '</div></div>';
-  });
-  return html;
+  return recSubTabsHTML(cats)
+    + '<div class="rec-grid">' + list.map(function(r, i) { return recTileHTML(r, cat, i); }).join('') + '</div>';
 }
 
 function setRecFilter(cat) {
