@@ -823,49 +823,133 @@ function infoBody(action, extra) {
 
 function fmtFileSize() { return ''; }
 
-function renderYourInfoPanel() {
-  if (!yourInfoLoaded) return '<div class="empty">Loading your info…</div>';
-  var info = yourInfoData.info || {};
-  var docs = yourInfoData.documents || [];
-  var contract = docs.filter(function(d){ return d.doc_type === 'contract'; })[0];
-  var uploads = docs.filter(function(d){ return d.doc_type === 'client_upload'; });
+var infoSub = 'personal';
+var infoStatus = {};   // doc type -> upload status text
 
-  var html = '<div class="card"><div class="info-title">Your Contract</div>';
-  if (contract) {
-    html += '<div class="doc-row"><span class="doc-name">📄 ' + contract.file_name + '</span>'
-      + (contract.url ? '<a class="rec-link" href="' + contract.url + '" target="_blank" rel="noopener">Download ↗</a>' : '<span class="info-sub">Link expired — reload to refresh</span>')
-      + '</div>';
-  } else {
-    html += '<div class="info-sub">Your tour coordinator hasn’t uploaded a contract yet.</div>';
-  }
-  html += '</div>';
+var INFO_TABS = [
+  { id: 'personal',  lbl: 'Personal Info' },
+  { id: 'flights',   lbl: 'Flights' },
+  { id: 'accom',     lbl: 'Accommodation' },
+  { id: 'contract',  lbl: 'Contract' },
+  { id: 'visa',      lbl: 'Visa' },
+  { id: 'insurance', lbl: 'Insurance' }
+];
 
-  html += '<div class="card"><div class="info-title">Personal Details</div><div class="info-sub" style="margin-bottom:16px">Only visible to you and the YourSZN team.</div>'
-    + '<div class="prompts-section">'
-    + '<div class="form-group"><label>Passport Number</label><input id="info-passport-number" value="' + (info.passport_number || '') + '"></div>'
-    + '<div class="form-group"><label>Passport Expiry</label><input type="date" id="info-passport-expiry" value="' + (info.passport_expiry || '') + '"></div>'
-    + '<div class="form-group"><label>Emergency Contact Name</label><input id="info-ec-name" value="' + (info.emergency_contact_name || '') + '"></div>'
-    + '<div class="form-group"><label>Emergency Contact Phone</label><input id="info-ec-phone" value="' + (info.emergency_contact_phone || '') + '"></div>'
-    + '<div class="form-group full"><label>Dietary Needs</label><textarea id="info-dietary">' + (info.dietary_needs || '') + '</textarea></div>'
-    + '<div class="form-group full"><label>Allergies</label><textarea id="info-allergies">' + (info.allergies || '') + '</textarea></div>'
-    + '<div class="form-group full"><label>Anything Else We Should Know?</label><textarea id="info-notes">' + (info.notes || '') + '</textarea></div>'
-    + '</div>'
-    + '<button class="btn btn-primary btn-sm" onclick="saveYourInfo()">Save Details</button>'
-    + '</div>';
+function infoEsc(v) { return recEsc(v); }
 
-  html += '<div class="card"><div class="info-title">Your Documents</div><div class="info-sub" style="margin-bottom:14px">Upload your passport scan, travel insurance, or anything else you want kept on hand — just for you.</div>';
-  uploads.forEach(function(d) {
-    html += '<div class="doc-row"><span class="doc-name">📎 ' + d.file_name + '</span>'
-      + (d.url ? '<a class="rec-link" href="' + d.url + '" target="_blank" rel="noopener" style="margin-right:10px">View ↗</a>' : '')
-      + '<button class="pack-icon-btn" onclick="deleteYourInfoDoc(\'' + d.id + '\')" title="Remove">✕</button>'
+function infoDocs(type) { return (yourInfoData.documents || []).filter(function(d) { return d.doc_type === type; }); }
+
+// One upload box per document type: lists what's there and lets the client add or remove their own files.
+function infoUploadBox(type, title, hint, emptyText) {
+  var docs = infoDocs(type);
+  var html = (title ? '<div class="info-title" style="font-size:19px;margin-top:18px">' + title + '</div>' : '')
+    + (hint ? '<div class="info-sub" style="margin-bottom:12px">' + hint + '</div>' : '');
+  if (!docs.length) html += '<div class="info-sub" style="margin-bottom:6px;font-style:italic">' + (emptyText || 'Nothing uploaded yet.') + '</div>';
+  docs.forEach(function(d) {
+    html += '<div class="doc-row"><span class="doc-name">📎 ' + infoEsc(d.file_name) + '</span>'
+      + (d.url ? '<a class="rec-link" href="' + infoEsc(d.url) + '" target="_blank" rel="noopener" style="margin-right:10px">View ↗</a>' : '<span class="info-sub" style="margin-right:10px">Reload to view</span>')
+      + (d.uploaded_by === 'client' ? '<button class="pack-icon-btn" onclick="deleteYourInfoDoc(\'' + d.id + '\')" title="Remove">✕</button>' : '')
       + '</div>';
   });
-  html += '<input type="file" id="info-upload-input" style="display:none" onchange="uploadYourInfoDoc(this)">'
-    + '<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="document.getElementById(\'info-upload-input\').click()">+ Upload Document</button>'
-    + '<div class="info-sub" style="margin-top:8px" id="info-upload-status"></div>'
-    + '</div>';
-
+  html += '<input type="file" id="info-up-' + type + '" accept="image/*,application/pdf" style="display:none" onchange="uploadYourInfoDoc(this,\'' + type + '\')">'
+    + '<button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="document.getElementById(\'info-up-' + type + '\').click()">+ Upload' + (docs.length ? ' another' : '') + '</button>'
+    + '<div class="info-sub" style="margin-top:8px">' + infoEsc(infoStatus[type] || 'PDF or photo, up to 4MB.') + '</div>';
   return html;
+}
+
+function infoField(id, label, value, opts) {
+  opts = opts || {};
+  var v = infoEsc(value || '');
+  var input = opts.textarea
+    ? '<textarea id="' + id + '" placeholder="' + infoEsc(opts.ph || '') + '">' + v + '</textarea>'
+    : '<input id="' + id + '" type="' + (opts.type || 'text') + '" value="' + v + '" placeholder="' + infoEsc(opts.ph || '') + '">';
+  return '<div class="form-group' + (opts.full ? ' full' : '') + '"><label for="' + id + '">' + label + '</label>' + input + '</div>';
+}
+
+function infoSection(title, sub, inner) {
+  return '<div class="card"><div class="info-title">' + title + '</div>' + (sub ? '<div class="info-sub" style="margin-bottom:16px">' + sub + '</div>' : '') + inner + '</div>';
+}
+
+function renderInfoSub() {
+  var info = yourInfoData.info || {};
+  if (infoSub === 'personal') {
+    return infoSection('Passport', 'Your passport must be valid for 6 months from the date you arrive in Vietnam.',
+        '<div class="prompts-section">'
+        + infoField('info-passport-number', 'Passport Number', info.passport_number)
+        + infoField('info-passport-expiry', 'Passport Expiry', info.passport_expiry, { type: 'date' })
+        + '</div>' + infoUploadBox('passport', 'Passport copy', 'Upload a clear photo or scan of your passport photo page.'))
+      + infoSection('Emergency Contact', 'Someone we can call if anything happens while you’re away.',
+        '<div class="prompts-section">'
+        + infoField('info-ec-name', 'Name', info.emergency_contact_name)
+        + infoField('info-ec-rel', 'Relationship to you', info.emergency_contact_relationship, { ph: 'e.g. Partner, Mum' })
+        + infoField('info-ec-phone', 'Phone (with country code)', info.emergency_contact_phone, { type: 'tel', ph: '+61 …' })
+        + '</div>')
+      + infoSection('Food & Health', 'So we can plan meals and let restaurants know.',
+        '<div class="prompts-section">'
+        + infoField('info-allergies', 'Allergies', info.allergies, { textarea: true, full: true, ph: 'e.g. Peanuts (severe), shellfish' })
+        + infoField('info-dietary', 'Dietary requirements', info.dietary_needs, { textarea: true, full: true, ph: 'e.g. Vegetarian, no pork, gluten free' })
+        + infoField('info-notes', 'Anything else we should know?', info.notes, { textarea: true, full: true })
+        + '</div>')
+      + '<button class="btn btn-primary btn-sm" id="info-save-personal" onclick="saveYourInfo(\'personal\')">Save Personal Info</button>';
+  }
+  if (infoSub === 'flights') {
+    return infoSection('Flight Details', 'Times are local time at the airport.',
+        '<div class="prompts-section">'
+        + '<div class="form-group full" style="margin-bottom:4px"><label style="color:var(--charcoal)">Arriving into Da Nang</label></div>'
+        + infoField('info-arr-flight', 'Flight number', info.arrival_flight, { ph: 'e.g. SQ 184' })
+        + infoField('info-arr-from', 'Flying in from', info.arrival_from, { ph: 'e.g. Singapore' })
+        + infoField('info-arr-dt', 'Arrival date & time', info.arrival_datetime, { type: 'datetime-local' })
+        + '<div class="form-group full" style="margin:6px 0 4px"><label style="color:var(--charcoal)">Departing Da Nang</label></div>'
+        + infoField('info-dep-flight', 'Flight number', info.departure_flight, { ph: 'e.g. CX 760' })
+        + infoField('info-dep-to', 'Flying to', info.departure_to, { ph: 'e.g. Hong Kong' })
+        + infoField('info-dep-dt', 'Departure date & time', info.departure_datetime, { type: 'datetime-local' })
+        + infoField('info-flight-notes', 'Anything else about your flights?', info.flight_notes, { textarea: true, full: true, ph: 'e.g. Staying a night in Singapore on the way' })
+        + '</div>'
+        + '<button class="btn btn-primary btn-sm" id="info-save-flights" onclick="saveYourInfo(\'flights\')">Save Flight Details</button>')
+      + infoSection('Flight Itinerary', '', infoUploadBox('flights', '', 'Upload your booking confirmation or e-ticket.'));
+  }
+  if (infoSub === 'accom') {
+    var room = yourInfoData.room_type, partner = yourInfoData.partner_name;
+    var rows = '<div class="doc-row"><span class="doc-name" style="color:var(--muted)">Room type</span><span style="font-weight:600">' + infoEsc(room || 'To be confirmed') + '</span></div>';
+    if (partner) rows += '<div class="doc-row"><span class="doc-name" style="color:var(--muted)">Sharing with</span><span style="font-weight:600">' + infoEsc(partner) + '</span></div>';
+    return infoSection('Your Accommodation', 'Set by your tour coordinator. Email us if anything here looks wrong.', rows);
+  }
+  if (infoSub === 'contract') {
+    var c = infoDocs('contract')[0];
+    var top = c
+      ? '<div class="doc-row"><span class="doc-name">📄 ' + infoEsc(c.file_name) + '</span>'
+        + (c.url ? '<a class="rec-link" href="' + infoEsc(c.url) + '" target="_blank" rel="noopener">Download ↗</a>' : '<span class="info-sub">Reload to view</span>') + '</div>'
+      : '<div class="info-sub" style="font-style:italic">Your tour coordinator hasn’t added your contract yet.</div>';
+    return infoSection('Your Contract', 'Download, sign and upload your signed copy below.', top)
+      + infoSection('Signed Contract', '', infoUploadBox('signed_contract', '', 'Upload your signed contract.'));
+  }
+  if (infoSub === 'visa') {
+    return infoSection('Visa', 'Apply at least 2 weeks before you travel. See the FAQ for how.', infoUploadBox('visa', '', 'Upload your approved e-visa.'));
+  }
+  if (infoSub === 'insurance') {
+    return infoSection('Travel Insurance', 'Make sure your policy covers everything you plan to do, including scooters if you’ll ride one.', infoUploadBox('insurance', '', 'Upload your policy certificate.'));
+  }
+  return '';
+}
+
+function renderYourInfoPanel() {
+  if (!yourInfoLoaded) return '<div class="empty">Loading your info…</div>';
+  var done = {
+    personal: !!((yourInfoData.info || {}).passport_number && infoDocs('passport').length),
+    flights: infoDocs('flights').length > 0, accom: !!yourInfoData.room_type,
+    contract: infoDocs('signed_contract').length > 0, visa: infoDocs('visa').length > 0, insurance: infoDocs('insurance').length > 0
+  };
+  var tabs = '<div class="rec-subtabs">' + INFO_TABS.map(function(t) {
+    return '<button class="rec-subtab' + (infoSub === t.id ? ' on' : '') + '" onclick="setInfoSub(\'' + t.id + '\')">'
+      + t.lbl + (done[t.id] ? ' <span aria-label="done" style="opacity:.75">✓</span>' : '') + '</button>';
+  }).join('') + '</div>';
+  return tabs + '<div id="info-sub-body">' + renderInfoSub() + '</div>';
+}
+
+function setInfoSub(id) {
+  infoSub = id;
+  var panel = document.getElementById('panel-yourinfo');
+  if (panel) panel.innerHTML = renderYourInfoPanel();
 }
 
 function loadYourInfoPanel() {
@@ -876,7 +960,7 @@ function loadYourInfoPanel() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       yourInfoLoaded = true;
-      yourInfoData = { info: data.info, documents: data.documents || [] };
+      yourInfoData = { info: data.info, documents: data.documents || [], room_type: data.room_type, partner_name: data.partner_name };
       panel.innerHTML = renderYourInfoPanel();
     })
     .catch(function() {
@@ -885,54 +969,71 @@ function loadYourInfoPanel() {
     });
 }
 
-function saveYourInfo() {
-  var payload = {
-    passport_number: document.getElementById('info-passport-number').value.trim(),
-    passport_expiry: document.getElementById('info-passport-expiry').value || null,
-    emergency_contact_name: document.getElementById('info-ec-name').value.trim(),
-    emergency_contact_phone: document.getElementById('info-ec-phone').value.trim(),
-    dietary_needs: document.getElementById('info-dietary').value.trim(),
-    allergies: document.getElementById('info-allergies').value.trim(),
-    notes: document.getElementById('info-notes').value.trim()
+function saveYourInfo(which) {
+  var v = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var payload = which === 'flights' ? {
+    arrival_flight: v('info-arr-flight'), arrival_from: v('info-arr-from'), arrival_datetime: v('info-arr-dt'),
+    departure_flight: v('info-dep-flight'), departure_to: v('info-dep-to'), departure_datetime: v('info-dep-dt'),
+    flight_notes: v('info-flight-notes')
+  } : {
+    passport_number: v('info-passport-number'), passport_expiry: v('info-passport-expiry'),
+    emergency_contact_name: v('info-ec-name'), emergency_contact_relationship: v('info-ec-rel'), emergency_contact_phone: v('info-ec-phone'),
+    allergies: v('info-allergies'), dietary_needs: v('info-dietary'), notes: v('info-notes')
   };
+  var btn = document.getElementById('info-save-' + which);
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('save_info', payload) })
-    .then(function() { showToast('Details saved'); })
-    .catch(function() { showToast('Failed to save — please try again', true); });
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data || !data.ok) throw new Error((data && data.error) || 'Failed to save');
+      yourInfoData.info = data.info || Object.assign({}, yourInfoData.info, payload);
+      showToast('Saved');
+      setInfoSub(infoSub);
+    })
+    .catch(function(e) {
+      showToast(e.message || 'Failed to save — please try again', true);
+      if (btn) { btn.disabled = false; btn.textContent = which === 'flights' ? 'Save Flight Details' : 'Save Personal Info'; }
+    });
 }
 
-function uploadYourInfoDoc(input) {
+// Typed fields aren't lost when an upload re-renders the tab.
+function infoKeepTyped() {
+  var keep = {};
+  document.querySelectorAll('#info-sub-body input[id], #info-sub-body textarea[id]').forEach(function(el) { if (el.type !== 'file') keep[el.id] = el.value; });
+  return function() { Object.keys(keep).forEach(function(id) { var el = document.getElementById(id); if (el) el.value = keep[id]; }); };
+}
+
+function uploadYourInfoDoc(input, type) {
   var file = input.files[0];
+  input.value = '';
   if (!file) return;
-  if (file.size > 4 * 1024 * 1024) { showToast('File must be under 4MB', true); input.value = ''; return; }
-  var statusEl = document.getElementById('info-upload-status');
-  statusEl.textContent = 'Uploading…';
+  if (file.size > 4 * 1024 * 1024) { showToast('File must be under 4MB', true); return; }
+  var restore = infoKeepTyped();
+  infoStatus[type] = 'Uploading ' + file.name + '…'; setInfoSub(infoSub); restore();
   var reader = new FileReader();
   reader.onload = function() {
-    var base64 = reader.result.split(',')[1];
     fetch('/api/vietnam-info', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: infoBody('upload', { file_name: file.name, content_type: file.type, file_base64: base64 })
+      body: infoBody('upload', { doc_type: type, file_name: file.name, content_type: file.type, file_base64: reader.result.split(',')[1] })
     })
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data && data.ok) {
-          yourInfoData.documents = data.documents;
-          document.getElementById('panel-yourinfo').innerHTML = renderYourInfoPanel();
-        } else {
-          statusEl.textContent = (data && data.error) || 'Upload failed.';
-        }
+        if (data && data.ok) { yourInfoData.documents = data.documents; infoStatus[type] = 'Uploaded ✓'; }
+        else infoStatus[type] = (data && data.error) || 'Upload failed.';
       })
-      .catch(function() { statusEl.textContent = 'Upload failed. Please try again.'; });
+      .catch(function() { infoStatus[type] = 'Upload failed. Please try again.'; })
+      .then(function() { var r2 = infoKeepTyped(); setInfoSub(infoSub); r2(); });
   };
   reader.readAsDataURL(file);
-  input.value = '';
 }
 
 function deleteYourInfoDoc(id) {
+  var restore = infoKeepTyped();
   fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('delete_document', { id: id }) })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data && data.documents) { yourInfoData.documents = data.documents; document.getElementById('panel-yourinfo').innerHTML = renderYourInfoPanel(); }
+      if (data && data.documents) { yourInfoData.documents = data.documents; setInfoSub(infoSub); restore(); }
+      else showToast((data && data.error) || 'Failed to remove', true);
     })
     .catch(function() { showToast('Failed to remove — please try again', true); });
 }

@@ -73,36 +73,41 @@ module.exports = async function handler(req, res) {
     if (!ok) return res.status(403).json({ error: 'Email does not match this dashboard.' });
 
     if (action === 'get' || !action) {
-      const [info, docs] = await Promise.all([getPersonalInfo(cid, headers), getDocuments(cid, headers)]);
-      return res.status(200).json({ ok: true, info: info, documents: docs });
+      const roomUrl = SUPABASE_URL + '/rest/v1/vietnam_clients?id=eq.' + encodeURIComponent(cid) + '&select=room_type,partner_name&limit=1';
+      const [info, docs, room] = await Promise.all([
+        getPersonalInfo(cid, headers), getDocuments(cid, headers),
+        fetch(roomUrl, { headers }).then(function(r) { return r.json(); }).catch(function() { return []; })
+      ]);
+      const acc = (Array.isArray(room) && room[0]) || {};
+      return res.status(200).json({ ok: true, info: info, documents: docs, room_type: acc.room_type || null, partner_name: acc.partner_name || null });
     }
 
     if (action === 'save_info') {
-      const { passport_number, passport_expiry, emergency_contact_name, emergency_contact_phone, dietary_needs, allergies, notes } = req.body;
-      const body = {
-        client_id: cid,
-        passport_number: passport_number || null,
-        passport_expiry: passport_expiry || null,
-        emergency_contact_name: emergency_contact_name || null,
-        emergency_contact_phone: emergency_contact_phone || null,
-        dietary_needs: dietary_needs || null,
-        allergies: allergies || null,
-        notes: notes || null,
-        updated_at: new Date().toISOString()
-      };
-      await fetch(SUPABASE_URL + '/rest/v1/vietnam_client_personal_info?on_conflict=client_id', {
+      const FIELDS = ['passport_number','passport_expiry','emergency_contact_name','emergency_contact_relationship','emergency_contact_phone',
+        'dietary_needs','allergies','notes','arrival_flight','arrival_from','arrival_datetime','departure_flight','departure_to','departure_datetime','flight_notes'];
+      const body = { client_id: cid, updated_at: new Date().toISOString() };
+      FIELDS.forEach(function(f) {
+        if (Object.prototype.hasOwnProperty.call(req.body, f)) {
+          const v = req.body[f];
+          body[f] = (v === undefined || v === null || String(v).trim() === '') ? null : String(v).trim().slice(0, 2000);
+        }
+      });
+      const r = await fetch(SUPABASE_URL + '/rest/v1/vietnam_client_personal_info?on_conflict=client_id', {
         method: 'POST', headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, headers), body: JSON.stringify(body)
       });
-      return res.status(200).json({ ok: true });
+      if (!r.ok) return res.status(400).json({ error: 'Couldn’t save — please check the dates and try again.' });
+      return res.status(200).json({ ok: true, info: await getPersonalInfo(cid, headers) });
     }
 
     if (action === 'upload') {
       const { file_name, content_type, file_base64 } = req.body;
+      const CLIENT_DOC_TYPES = ['passport','flights','visa','insurance','signed_contract','client_upload'];
+      const docType = CLIENT_DOC_TYPES.indexOf(req.body.doc_type) > -1 ? req.body.doc_type : 'client_upload';
       if (!file_name || !file_base64) return res.status(400).json({ error: 'Missing file.' });
       const buf = Buffer.from(file_base64, 'base64');
       if (buf.length > MAX_FILE_BYTES) return res.status(400).json({ error: 'File is too large (max 4MB).' });
       const safeName = String(file_name).replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = cid + '/client_' + Date.now() + '_' + safeName;
+      const path = cid + '/' + docType + '_' + Date.now() + '_' + safeName;
       const upRes = await fetch(SUPABASE_URL + '/storage/v1/object/' + BUCKET + '/' + path, {
         method: 'POST',
         headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY, 'Content-Type': content_type || 'application/octet-stream' },
@@ -111,7 +116,7 @@ module.exports = async function handler(req, res) {
       if (!upRes.ok) return res.status(502).json({ error: 'Upload failed. Please try again.' });
       await fetch(SUPABASE_URL + '/rest/v1/vietnam_client_documents', {
         method: 'POST', headers: Object.assign({ Prefer: 'return=minimal' }, headers),
-        body: JSON.stringify({ client_id: cid, doc_type: 'client_upload', file_name: file_name, storage_path: path, content_type: content_type || null, uploaded_by: 'client' })
+        body: JSON.stringify({ client_id: cid, doc_type: docType, file_name: file_name, storage_path: path, content_type: content_type || null, uploaded_by: 'client' })
       });
       return res.status(200).json({ ok: true, documents: await getDocuments(cid, headers) });
     }

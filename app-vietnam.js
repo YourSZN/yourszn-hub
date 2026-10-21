@@ -193,7 +193,7 @@ function vtRenderClientInfoTab(c, key) {
   var info = cache.info || {};
   var docs = cache.documents || [];
   var contract = docs.filter(function(d){ return d.doc_type === 'contract'; })[0];
-  var uploads = docs.filter(function(d){ return d.doc_type === 'client_upload'; });
+  var DOC_LABELS = { passport:'Passport', flights:'Flights', visa:'Visa', insurance:'Travel Insurance', signed_contract:'Signed Contract', client_upload:'Other' };
 
   var html = '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Uploaded Contract</div>';
   if (contract) {
@@ -218,12 +218,27 @@ function vtRenderClientInfoTab(c, key) {
     + '<div class="sm-field" onclick="event.stopPropagation()"><label class="sm-lbl">Notes</label><textarea class="sm-inp" rows="2" id="vtinfo-notes-'+key+'" style="resize:vertical">'+esc(info.notes||'')+'</textarea></div>'
     + '<button class="btn btnp" style="font-size:12px" id="vtinfo-save-'+key+'" onclick="event.stopPropagation();vtSaveClientInfo(\''+c.portalId+'\',\''+key+'\')">Save Details</button>';
 
-  html += '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:16px 0 8px">Client-Uploaded Documents</div>';
-  if (uploads.length === 0) html += '<div style="font-size:12px;color:var(--muted)">None yet.</div>';
-  uploads.forEach(function(d) {
-    html += '<div class="tour-doc-row"><span style="font-size:12px">&#128206; '+esc(d.file_name)+'</span>'
-      + (d.url ? ' <a href="'+d.url+'" target="_blank" style="font-size:11px" onclick="event.stopPropagation()">View</a>' : '')
-      + ' <button class="fin-row-edit" onclick="event.stopPropagation();vtDeleteClientDoc(\''+c.portalId+'\',\''+d.id+'\')">Remove</button></div>';
+  var lbl = function(t){ return '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:16px 0 8px">'+t+'</div>'; };
+  var row = function(k, v){ return v ? '<div style="font-size:12px;margin-bottom:3px"><span style="color:var(--muted)">'+k+':</span> '+esc(v)+'</div>' : ''; };
+  var fmtDt = function(v){ return v ? String(v).replace('T',' ') : ''; };
+
+  if (info.emergency_contact_relationship) html = html.replace('Emergency Contact Name</label>', 'Emergency Contact Name ('+esc(info.emergency_contact_relationship)+')</label>');
+
+  var flights = row('Arriving', [info.arrival_flight, info.arrival_from && ('from '+info.arrival_from), fmtDt(info.arrival_datetime)].filter(Boolean).join(' · '))
+    + row('Departing', [info.departure_flight, info.departure_to && ('to '+info.departure_to), fmtDt(info.departure_datetime)].filter(Boolean).join(' · '))
+    + row('Notes', info.flight_notes);
+  html += lbl('Flight Details (entered by client)') + (flights || '<div style="font-size:12px;color:var(--muted)">Not entered yet.</div>');
+
+  html += lbl('Client Documents');
+  ['passport','flights','visa','insurance','signed_contract','client_upload'].forEach(function(type) {
+    var list = docs.filter(function(d){ return d.doc_type === type; });
+    if (type === 'client_upload' && !list.length) return;
+    html += '<div style="font-size:12px;font-weight:600;margin:8px 0 4px">'+DOC_LABELS[type]+(list.length?'':' <span style="font-weight:400;color:#B45309">— missing</span>')+'</div>';
+    list.forEach(function(d) {
+      html += '<div class="tour-doc-row"><span style="font-size:12px">&#128206; '+esc(d.file_name)+'</span>'
+        + (d.url ? ' <a href="'+d.url+'" target="_blank" style="font-size:11px" onclick="event.stopPropagation()">View</a>' : '')
+        + ' <button class="fin-row-edit" onclick="event.stopPropagation();vtDeleteClientDoc(\''+c.portalId+'\',\''+d.id+'\')">Remove</button></div>';
+    });
   });
 
   return html;
