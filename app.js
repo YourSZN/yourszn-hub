@@ -4630,6 +4630,7 @@ function renderVietnamTour() {
   var tabs = [
     {id:'planning',    label:'Planning'},
     {id:'clients',     label:'Clients'},
+    {id:'recs',        label:'Recommendations'},
    {id:'documents',     label:'Documents'},
     {id:'lookbook',      label:'Client Look Book'}
 ];
@@ -4679,6 +4680,11 @@ function renderVietnamTour() {
   // ════════════════════════════════
   if (vtTab === 'clients') {
     panelHtml = renderVtClientsTab();
+  }
+
+  // RECOMMENDATIONS TAB (shared list shown on every client's trip dashboard)
+  if (vtTab === 'recs') {
+    panelHtml = renderVtRecsTab();
   }
 
   // ════════════════════════════════

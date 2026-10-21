@@ -833,31 +833,62 @@ function deleteYourInfoDoc(id) {
 /* ═══════════ Recommendations ═══════════ */
 
 var recsData = [];
-var recFilter = 'food';
+var recFilter = null;
 
-function recSubTabsHTML() {
-  return '<div class="rec-subtabs">'
-    + '<button class="rec-subtab' + (recFilter === 'food' ? ' on' : '') + '" onclick="setRecFilter(\'food\')">Restaurants</button>'
-    + '<button class="rec-subtab' + (recFilter === 'activity' ? ' on' : '') + '" onclick="setRecFilter(\'activity\')">Activities</button>'
-    + '</div>';
+// Order here = order of the subtabs. Only categories with at least one place show.
+var REC_CATS = [
+  { id: 'food',        lbl: 'Restaurants', icon: '🍜' },
+  { id: 'cafe',        lbl: 'Cafes',       icon: '☕' },
+  { id: 'bar',         lbl: 'Bars',        icon: '🍸' },
+  { id: 'activity',    lbl: 'Activities',  icon: '🎡' },
+  { id: 'sightseeing', lbl: 'Sightseeing', icon: '🏯' },
+  { id: 'spa',         lbl: 'Spas',        icon: '💆' },
+  { id: 'shopping',    lbl: 'Shopping',    icon: '🛍️' },
+  { id: 'beach',       lbl: 'Beaches',     icon: '🏖️' },
+  { id: 'daytrip',     lbl: 'Day Trips',   icon: '🚐' }
+];
+
+function recEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function recSafeUrl(u) { return /^https?:\/\//i.test(u || '') ? recEsc(u) : ''; }
+
+function recCatsWithItems() {
+  return REC_CATS.filter(function(c) {
+    return recsData.some(function(r) { return r.category === c.id; });
+  });
+}
+
+function recSubTabsHTML(cats) {
+  return '<div class="rec-subtabs">' + cats.map(function(c) {
+    var n = recsData.filter(function(r) { return r.category === c.id; }).length;
+    return '<button class="rec-subtab' + (recFilter === c.id ? ' on' : '') + '" onclick="setRecFilter(\'' + c.id + '\')">'
+      + c.lbl + ' <span style="opacity:.55">' + n + '</span></button>';
+  }).join('') + '</div>';
 }
 
 function renderRecommendationsPanel() {
-  if (!recsData || recsData.length === 0) {
+  var cats = recCatsWithItems();
+  if (!recsData || recsData.length === 0 || cats.length === 0) {
     return '<div class="empty"><div class="em-icon">📍</div>Recommendations are coming soon for your trip.</div>';
   }
-  var icon = recFilter === 'food' ? '🍜' : '🎡';
-  var list = recsData.filter(function(r){ return r.category === recFilter; });
-  var html = recSubTabsHTML();
-  if (list.length === 0) {
-    html += '<div class="empty" style="padding:30px 0">Nothing here yet.</div>';
-    return html;
-  }
+  if (!cats.some(function(c) { return c.id === recFilter; })) recFilter = cats[0].id;
+  var cat = cats.filter(function(c) { return c.id === recFilter; })[0];
+  var list = recsData.filter(function(r) { return r.category === recFilter; });
+  var html = recSubTabsHTML(cats);
   list.forEach(function(r) {
-    html += '<div class="rec-card"><div class="rec-pin">' + icon + '</div><div style="flex:1;min-width:0">'
-      + '<div class="rec-name">' + r.name + '</div>'
-      + (r.description ? '<div class="rec-desc">' + r.description + '</div>' : '')
-      + (r.maps_url ? '<a class="rec-link" href="' + r.maps_url + '" target="_blank" rel="noopener">View on Map ↗</a>' : '')
+    var img = recSafeUrl(r.image_url);
+    var map = recSafeUrl(r.maps_url);
+    html += '<div class="rec-card">'
+      + (img ? '<img src="' + img + '" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0">'
+             : '<div class="rec-pin">' + cat.icon + '</div>')
+      + '<div style="flex:1;min-width:0">'
+      + '<div class="rec-name">' + recEsc(r.name) + '</div>'
+      + (r.description ? '<div class="rec-desc">' + recEsc(r.description).replace(/\n/g, '<br>') + '</div>' : '')
+      + (map ? '<a class="rec-link" href="' + map + '" target="_blank" rel="noopener">View on Map ↗</a>' : '')
       + '</div></div>';
   });
   return html;

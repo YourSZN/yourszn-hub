@@ -113,6 +113,56 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, id: Array.isArray(created) && created[0] && created[0].id });
     }
 
+    // ── Shared tour recommendations (shown to every client) ──
+    const REC_CATEGORIES = ['food','cafe','bar','activity','sightseeing','spa','shopping','beach','daytrip'];
+    const REC_URL = SUPABASE_URL + '/rest/v1/vietnam_recommendations';
+
+    if (action === 'list_recs') {
+      const r = await fetch(REC_URL + '?client_id=is.null&select=*&order=sort_order.asc,created_at.asc', { headers });
+      return res.status(200).json({ ok: true, recs: await r.json() });
+    }
+
+    if (action === 'save_rec') {
+      const { id, category, name, description, maps_url, image_url, sort_order } = req.body;
+      if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name is required.' });
+      if (REC_CATEGORIES.indexOf(category) === -1) return res.status(400).json({ error: 'Pick a category.' });
+      const body = {
+        category: category,
+        name: String(name).trim(),
+        description: description || null,
+        maps_url: maps_url || null,
+        image_url: image_url || null,
+        updated_at: new Date().toISOString()
+      };
+      if (typeof sort_order === 'number') body.sort_order = sort_order;
+      const url = id ? REC_URL + '?id=eq.' + encodeURIComponent(id) : REC_URL;
+      if (!id) body.client_id = null;
+      const r = await fetch(url, {
+        method: id ? 'PATCH' : 'POST', headers: Object.assign({ Prefer: 'return=representation' }, headers), body: JSON.stringify(body)
+      });
+      const out = await r.json();
+      if (!r.ok) return res.status(400).json({ error: (out && out.message) || 'Could not save.' });
+      return res.status(200).json({ ok: true, rec: Array.isArray(out) ? out[0] : out });
+    }
+
+    if (action === 'delete_rec') {
+      const { id } = req.body;
+      if (!id) return res.status(400).json({ error: 'Missing id.' });
+      await fetch(REC_URL + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE', headers });
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'reorder_recs') {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) return res.status(400).json({ error: 'Missing ids.' });
+      await Promise.all(ids.map(function(rid, i) {
+        return fetch(REC_URL + '?id=eq.' + encodeURIComponent(rid), {
+          method: 'PATCH', headers: Object.assign({ Prefer: 'return=minimal' }, headers), body: JSON.stringify({ sort_order: i })
+        });
+      }));
+      return res.status(200).json({ ok: true });
+    }
+
     const { client_id } = req.body;
     if (!client_id) return res.status(400).json({ error: 'Missing client_id.' });
 

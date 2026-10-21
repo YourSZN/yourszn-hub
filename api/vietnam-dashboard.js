@@ -51,7 +51,8 @@ module.exports = async function handler(req, res) {
     }
 
     const itinUrl = SUPABASE_URL + '/rest/v1/vietnam_itinerary_items?client_id=eq.' + encodeURIComponent(cid) + '&select=*&order=sort_order.asc';
-    const recUrl = SUPABASE_URL + '/rest/v1/vietnam_recommendations?client_id=eq.' + encodeURIComponent(cid) + '&select=*&order=sort_order.asc';
+    // Shared recommendations (client_id null) plus any added just for this client.
+    const recUrl = SUPABASE_URL + '/rest/v1/vietnam_recommendations?or=(client_id.is.null,client_id.eq.' + encodeURIComponent(cid) + ')&select=*&order=sort_order.asc,created_at.asc';
     const [itinRes, recRes] = await Promise.all([fetch(itinUrl, { headers }), fetch(recUrl, { headers })]);
     const [itinerary, recommendations] = await Promise.all([itinRes.json(), recRes.json()]);
 
