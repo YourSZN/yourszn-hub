@@ -105,6 +105,8 @@
   }
   .bt-item svg { width: 18px; height: 18px; stroke: currentColor; }
   .bt-item.on { color: var(--charcoal); }
+  .bt-item span { white-space: nowrap; }
+  @media (max-width: 400px) { .bt-item { font-size: 9px; letter-spacing: 0; padding: 6px 0; } }
 
   @media (max-width: 768px) {
     .sidebar { display: none; }
@@ -254,6 +256,22 @@
   .budget-row-desc { font-size:14px; color:var(--charcoal); }
   .budget-row-cat { font-size:11px; color:var(--muted); margin-top:1px; }
   .budget-row-amount { font-family:'Cormorant Garamond',serif; font-size:17px; color:var(--charcoal); flex-shrink:0; }
+
+  /* FAQ */
+  .faq-item { background:white; border:1px solid var(--sand); border-radius:14px; margin-bottom:12px; box-shadow:0 2px 10px rgba(28,23,18,.04); overflow:hidden; }
+  .faq-q { width:100%; display:flex; align-items:center; gap:12px; padding:18px 22px; background:none; border:none; cursor:pointer; text-align:left;
+    font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--charcoal); }
+  .faq-q .faq-ic { font-size:20px; flex-shrink:0; }
+  .faq-q .faq-chev { margin-left:auto; flex-shrink:0; font-family:'Inter',sans-serif; font-size:18px; color:var(--muted); transition:transform .2s; }
+  .faq-item.open .faq-chev { transform:rotate(45deg); }
+  .faq-a { display:none; padding:0 22px 20px 54px; font-size:14px; color:var(--muted); line-height:1.65; }
+  .faq-item.open .faq-a { display:block; }
+  .faq-a p { margin:0 0 10px; } .faq-a p:last-child { margin-bottom:0; }
+  .faq-a ul, .faq-a ol { margin:0 0 10px; padding-left:20px; } .faq-a li { margin-bottom:6px; }
+  .faq-a strong { color:var(--charcoal); font-weight:600; }
+  .faq-tools { display:flex; justify-content:flex-end; margin-bottom:10px; }
+  .faq-tools button { background:none; border:none; font-family:'Inter',sans-serif; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); cursor:pointer; text-decoration:underline; }
+  @media (max-width:640px) { .faq-q { padding:16px; font-size:18px; } .faq-a { padding:0 16px 18px 16px; } }
 
   /* Need to Know */
   .ntk-card { background:white; border:1px solid var(--sand); border-radius:14px; padding:20px 24px; margin-bottom:14px; box-shadow:0 2px 10px rgba(28,23,18,.04); }
@@ -727,6 +745,53 @@ function deleteBudgetItem(id) {
   document.getElementById('panel-budget').innerHTML = renderBudgetPanel();
   fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('delete', { id: id }) })
     .catch(function() { showToast('Failed to remove — please try again', true); });
+}
+
+/* ═══════════ FAQ (edited in the staff portal → Vietnam → FAQ) ═══════════ */
+
+var faqData = [];
+
+// Tiny formatter for FAQ answers: blank line = new paragraph, "- " = bullet,
+// "1. " = numbered list, **text** = bold. Everything is escaped first.
+function faqFormat(text) {
+  var esc = function(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var inline = function(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); };
+  var out = '', list = null;
+  var close = function() { if (list) { out += '</' + list + '>'; list = null; } };
+  String(text || '').split(/\r?\n/).forEach(function(line) {
+    var t = line.trim(), m;
+    if (!t) { close(); return; }
+    if ((m = t.match(/^[-•]\s+(.*)$/))) { if (list !== 'ul') { close(); out += '<ul>'; list = 'ul'; } out += '<li>' + inline(m[1]) + '</li>'; return; }
+    if ((m = t.match(/^\d+[.)]\s+(.*)$/))) { if (list !== 'ol') { close(); out += '<ol>'; list = 'ol'; } out += '<li>' + inline(m[1]) + '</li>'; return; }
+    close(); out += '<p>' + inline(t) + '</p>';
+  });
+  close();
+  return out;
+}
+
+function renderFaqPanel() {
+  if (!faqData.length) return '<div class="empty"><div class="em-icon">❓</div>FAQs are coming soon.</div>';
+  return '<div class="faq-tools"><button type="button" onclick="faqToggleAll()">Expand all</button></div>'
+    + faqData.map(function(f, i) {
+      return '<div class="faq-item" id="faq-' + i + '">'
+        + '<button type="button" class="faq-q" aria-expanded="false" onclick="faqToggle(' + i + ')">'
+        + (f.icon ? '<span class="faq-ic">' + recEsc(f.icon) + '</span>' : '')
+        + '<span>' + recEsc(f.question) + '</span><span class="faq-chev">+</span></button>'
+        + '<div class="faq-a">' + faqFormat(f.answer) + '</div></div>';
+    }).join('');
+}
+
+function faqToggle(i) {
+  var el = document.getElementById('faq-' + i); if (!el) return;
+  var open = el.classList.toggle('open');
+  el.querySelector('.faq-q').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function faqToggleAll() {
+  var items = document.querySelectorAll('.faq-item');
+  var anyClosed = Array.prototype.some.call(items, function(el) { return !el.classList.contains('open'); });
+  items.forEach(function(el) { el.classList.toggle('open', anyClosed); el.querySelector('.faq-q').setAttribute('aria-expanded', anyClosed ? 'true' : 'false'); });
+  var btn = document.querySelector('.faq-tools button'); if (btn) btn.textContent = anyClosed ? 'Collapse all' : 'Expand all';
 }
 
 /* ═══════════ Need to Know (static content) ═══════════ */
@@ -1447,6 +1512,7 @@ var VT_NAV = [
   { id: 'packing', lbl: 'Packing', shortLbl: 'Packing', icon: '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
   { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
   { id: 'budget', lbl: 'Budget', shortLbl: 'Budget', icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+  { id: 'faq', lbl: 'FAQ', shortLbl: 'FAQ', icon: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
   { id: 'needtoknow', lbl: 'Need to Know', shortLbl: 'Tips', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
   { id: 'yourinfo', lbl: 'Your Info', shortLbl: 'My Info', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
   { id: 'tailoring', lbl: 'Tailoring', shortLbl: 'Tailoring', icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>' }
@@ -1533,6 +1599,7 @@ function init() {
       if (!res.data || !res.data.ok) { showNotFound(); return; }
       dashClient = Object.assign({}, res.data.client, { email: email });
       recsData = res.data.recommendations || [];
+      faqData = res.data.faqs || [];
       var displayName = nameParam || dashClient.name;
       document.getElementById('app-root').innerHTML =
         sidebarHTML(displayName)
@@ -1543,6 +1610,7 @@ function init() {
         + '<div class="tab-panel" id="panel-packing">' + renderPackingPanel() + '</div>'
         + '<div class="tab-panel" id="panel-recs">' + renderRecommendationsPanel() + '</div>'
         + '<div class="tab-panel" id="panel-budget">' + renderBudgetPanel() + '</div>'
+        + '<div class="tab-panel" id="panel-faq">' + renderFaqPanel() + '</div>'
         + '<div class="tab-panel" id="panel-needtoknow">' + renderNeedToKnowPanel() + '</div>'
         + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
         + '<div class="tab-panel" id="panel-yourinfo">' + '<div class="empty">Loading your info…</div>' + '</div>'

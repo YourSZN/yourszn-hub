@@ -4631,6 +4631,7 @@ function renderVietnamTour() {
     {id:'planning',    label:'Planning'},
     {id:'clients',     label:'Clients'},
     {id:'recs',        label:'Recommendations'},
+    {id:'faq',         label:'FAQ'},
    {id:'documents',     label:'Documents'},
     {id:'lookbook',      label:'Client Look Book'}
 ];
@@ -4685,6 +4686,11 @@ function renderVietnamTour() {
   // RECOMMENDATIONS TAB (shared list shown on every client's trip dashboard)
   if (vtTab === 'recs') {
     panelHtml = renderVtRecsTab();
+  }
+
+  // FAQ TAB (shared FAQ shown on every client's trip dashboard)
+  if (vtTab === 'faq') {
+    panelHtml = renderVtFaqTab();
   }
 
   // ════════════════════════════════

@@ -170,6 +170,40 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, url: SUPABASE_URL + '/storage/v1/object/public/vietnam-recommendations/' + path });
     }
 
+    // ── Tour FAQ (shared, shown on every client's dashboard) ──
+    const FAQ_URL = SUPABASE_URL + '/rest/v1/vietnam_faqs';
+    if (action === 'list_faqs') {
+      const r = await fetch(FAQ_URL + '?select=*&order=sort_order.asc,created_at.asc', { headers });
+      return res.status(200).json({ ok: true, faqs: await r.json() });
+    }
+    if (action === 'save_faq') {
+      const { id, icon, question, answer, sort_order } = req.body;
+      if (!question || !String(question).trim()) return res.status(400).json({ error: 'Question is required.' });
+      const body = { icon: icon || null, question: String(question).trim(), answer: answer || '', updated_at: new Date().toISOString() };
+      if (typeof sort_order === 'number') body.sort_order = sort_order;
+      const r = await fetch(id ? FAQ_URL + '?id=eq.' + encodeURIComponent(id) : FAQ_URL, {
+        method: id ? 'PATCH' : 'POST', headers: Object.assign({ Prefer: 'return=representation' }, headers), body: JSON.stringify(body)
+      });
+      const out = await r.json();
+      if (!r.ok) return res.status(400).json({ error: (out && out.message) || 'Could not save.' });
+      return res.status(200).json({ ok: true, faq: Array.isArray(out) ? out[0] : out });
+    }
+    if (action === 'delete_faq') {
+      if (!req.body.id) return res.status(400).json({ error: 'Missing id.' });
+      await fetch(FAQ_URL + '?id=eq.' + encodeURIComponent(req.body.id), { method: 'DELETE', headers });
+      return res.status(200).json({ ok: true });
+    }
+    if (action === 'reorder_faqs') {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) return res.status(400).json({ error: 'Missing ids.' });
+      await Promise.all(ids.map(function(fid, i) {
+        return fetch(FAQ_URL + '?id=eq.' + encodeURIComponent(fid), {
+          method: 'PATCH', headers: Object.assign({ Prefer: 'return=minimal' }, headers), body: JSON.stringify({ sort_order: i })
+        });
+      }));
+      return res.status(200).json({ ok: true });
+    }
+
     if (action === 'delete_rec') {
       const { id } = req.body;
       if (!id) return res.status(400).json({ error: 'Missing id.' });
