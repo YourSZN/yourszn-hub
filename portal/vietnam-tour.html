@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your SZN — Vietnam Tailoring Tour</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Instrument+Serif:ital@0;1&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     /* contrast pass: deeper ground so white cards separate; secondary text >= 6:1 */
@@ -78,14 +78,14 @@
   /* ── Main content ── */
   .main { margin-left: 220px; min-height: 100vh; padding: 32px 44px 40px; transition: margin-left .22s cubic-bezier(.4,0,.2,1); }
   .ph { margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--sand); }
-  .ptitle { font-family: 'Instrument Serif', serif; font-size: 32px; font-weight: 400; color: var(--charcoal); }
+  .ptitle { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 400; color: var(--charcoal); }
   .psub { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .countdown-banner {
     background: var(--charcoal); border-radius: 14px;
     padding: 22px 28px; margin-bottom: 22px;
     display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
   }
-  .countdown-num { font-family: 'Instrument Serif', serif; font-size: 46px; color: #fff; line-height: 1; }
+  .countdown-num { font-family: 'Playfair Display', serif; font-size: 40px; color: #fff; line-height: 1; }
   .countdown-label { font-family: 'Montserrat', sans-serif; font-size: 14px; color: #F2EDE6; }
   @media (max-width: 480px) { .countdown-banner { padding: 18px 20px; } .countdown-num { font-size: 32px; } }
   .tab-panel { display: none; }
@@ -122,8 +122,8 @@
     box-shadow: 0 2px 10px rgba(28,23,18,.04);
   }
   .day-heading {
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-size: 26px; color: var(--charcoal);
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 22px; color: var(--charcoal);
     margin: 26px 0 10px;
   }
   .day-heading:first-child { margin-top: 0; }
@@ -156,7 +156,7 @@
   .rec-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); }
   .rec-dots span.on { background: #fff; }
   .rec-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-  .rec-title { font-family: 'Instrument Serif', serif; font-size: 26px; line-height: 1.15; color: var(--charcoal); }
+  .rec-title { font-family: 'Playfair Display', serif; font-size: 22px; line-height: 1.15; color: var(--charcoal); }
   .rec-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .rec-chip { font-family: 'Montserrat', sans-serif; font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #F4EEE7; color: var(--charcoal); }
   .rec-info { font-size: 13px; color: var(--muted); line-height: 1.5; }
@@ -173,7 +173,7 @@
   .rv { position: fixed; inset: 0; z-index: 1000; background: rgba(20,16,12,.94); display: none; flex-direction: column; }
   .rv.open { display: flex; }
   .rv-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; color: #F9F5F0; font-family: 'Montserrat', sans-serif; }
-  .rv-title { font-family: 'Instrument Serif', serif; font-size: 26px; }
+  .rv-title { font-family: 'Playfair Display', serif; font-size: 22px; }
   .rv-count { font-size: 12px; letter-spacing: 1.5px; opacity: .7; margin-left: 12px; }
   .rv-close { background: none; border: none; color: #F9F5F0; font-size: 30px; line-height: 1; cursor: pointer; padding: 4px 8px; }
   .rv-track { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
@@ -214,8 +214,8 @@
   }
 
   .pack-title {
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-size: 26px; color: var(--charcoal);
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 22px; color: var(--charcoal);
     margin-bottom: 4px;
   }
   .pack-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
@@ -241,7 +241,7 @@
   .budget-summary-card { background:white; border:1px solid var(--sand); border-radius:14px; padding:22px 24px; margin-bottom:20px; box-shadow:0 2px 10px rgba(28,23,18,.07); }
   .budget-stat { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
   .budget-stat-label { font-family:'Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:6px; }
-  .budget-stat-value { font-family:'Instrument Serif',serif; font-size:28px; color:var(--charcoal); }
+  .budget-stat-value { font-family:'Playfair Display',serif; font-size:20px; color:var(--charcoal); }
   .budget-progress-track { width:100%; height:8px; border-radius:6px; background:var(--warm); overflow:hidden; margin:12px 0 8px; }
   .budget-progress-fill { height:100%; background:var(--green); border-radius:6px; transition:width .3s ease; }
   .budget-progress-fill.over { background:var(--rose); }
@@ -256,12 +256,12 @@
   .budget-row-main { flex:1; min-width:0; }
   .budget-row-desc { font-size:14px; color:var(--charcoal); }
   .budget-row-cat { font-size:11px; color:var(--muted); margin-top:1px; }
-  .budget-row-amount { font-family:'Instrument Serif',serif; font-size:20px; color:var(--charcoal); flex-shrink:0; }
+  .budget-row-amount { font-family:'Playfair Display',serif; font-size:17px; color:var(--charcoal); flex-shrink:0; }
 
   /* FAQ */
   .faq-item { background:white; border:1px solid var(--sand); border-radius:14px; margin-bottom:12px; box-shadow:0 2px 10px rgba(28,23,18,.07); overflow:hidden; }
   .faq-q { width:100%; display:flex; align-items:center; gap:12px; padding:18px 22px; background:none; border:none; cursor:pointer; text-align:left;
-    font-family:'Instrument Serif',serif; font-size:24px; color:var(--charcoal); }
+    font-family:'Playfair Display',serif; font-size:20px; color:var(--charcoal); }
   .faq-q .faq-ic { font-size:20px; flex-shrink:0; }
   .faq-q .faq-chev { margin-left:auto; flex-shrink:0; font-family:'Montserrat',sans-serif; font-size:18px; color:var(--muted); transition:transform .2s; }
   .faq-item.open .faq-chev { transform:rotate(45deg); }
@@ -272,16 +272,16 @@
   .faq-a strong { color:var(--charcoal); font-weight:600; }
   .faq-tools { display:flex; justify-content:flex-end; margin-bottom:10px; }
   .faq-tools button { background:none; border:none; font-family:'Montserrat',sans-serif; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); cursor:pointer; text-decoration:underline; }
-  @media (max-width:640px) { .faq-q { padding:16px; font-size:21px; } .faq-a { padding:0 16px 18px 16px; } }
+  @media (max-width:640px) { .faq-q { padding:16px; font-size:18px; } .faq-a { padding:0 16px 18px 16px; } }
 
   /* Need to Know */
   .ntk-card { background:white; border:1px solid var(--sand); border-radius:14px; padding:20px 24px; margin-bottom:14px; box-shadow:0 2px 10px rgba(28,23,18,.07); }
-  .ntk-title { font-family:'Instrument Serif',serif; font-size:23px; color:var(--charcoal); display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .ntk-title { font-family:'Playfair Display',serif; font-size:20px; color:var(--charcoal); display:flex; align-items:center; gap:10px; margin-bottom:8px; }
   .ntk-icon { font-size:20px; }
   .ntk-body { font-size:13px; color:var(--muted); line-height:1.6; }
 
   /* Your Info */
-  .info-title { font-family:'Instrument Serif',serif; font-size:24px; color:var(--charcoal); margin-bottom:6px; }
+  .info-title { font-family:'Playfair Display',serif; font-size:21px; color:var(--charcoal); margin-bottom:6px; }
   .info-sub { font-size:12px; color:var(--muted); }
   .doc-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--warm); }
   .doc-row:last-of-type { border-bottom:none; }
@@ -296,7 +296,7 @@
     border-radius:14px; padding: 36px 30px; text-align:center;
     box-shadow: 0 2px 10px rgba(28,23,18,.04);
   }
-  .msg-title { font-family:'Instrument Serif',Georgia,serif; font-size:28px; color:var(--charcoal); margin-bottom:8px; }
+  .msg-title { font-family:'Playfair Display',Georgia,serif; font-size:24px; color:var(--charcoal); margin-bottom:8px; }
   .msg-desc { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom: 20px; }
   .msg-link {
     font-family:'Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
@@ -306,7 +306,7 @@
 
   /* ══════════════ Ported: Tailoring / Inspiration Board ══════════════ */
   .board-header { margin-bottom: 24px; }
-  .board-header h1 { font-family: 'Instrument Serif', serif; font-size: 32px; font-weight: 500; margin-bottom: 4px; color: var(--charcoal); }
+  .board-header h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 500; margin-bottom: 4px; color: var(--charcoal); }
   .board-header p { font-size: 13px; color: var(--text-light); }
 
   .form-group { text-align: left; margin-bottom: 18px; }
@@ -1137,7 +1137,7 @@ function tailoringPanelHTML() {
     + '</div>'
     + '<div id="filterTabs" class="filter-tabs" style="display:none"></div>'
     + '<div id="itemsList"></div>'
-    + '<div id="emptyState" class="empty-state" style="display:none"><div class="icon" style="font-size:40px;margin-bottom:12px;opacity:.4">✦</div><h3 style="font-family:\'Instrument Serif\',serif;font-size:19px;color:var(--text-mid);margin-bottom:6px">No items yet</h3><p style="font-size:13px;color:var(--text-light)">Select a category above and add your first inspiration piece</p></div>';
+    + '<div id="emptyState" class="empty-state" style="display:none"><div class="icon" style="font-size:40px;margin-bottom:12px;opacity:.4">✦</div><h3 style="font-family:\'Playfair Display\',serif;font-size:19px;color:var(--text-mid);margin-bottom:6px">No items yet</h3><p style="font-size:13px;color:var(--text-light)">Select a category above and add your first inspiration piece</p></div>';
 }
 
 async function sb(path, opts) {
