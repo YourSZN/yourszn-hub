@@ -170,6 +170,58 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, url: SUPABASE_URL + '/storage/v1/object/public/vietnam-recommendations/' + path });
     }
 
+    // ── Shared tour itinerary + trip info ──
+    const TOUR_URL = SUPABASE_URL + '/rest/v1/vietnam_tour_itinerary';
+    const CONTENT_URL = SUPABASE_URL + '/rest/v1/vietnam_tour_content';
+    const CONTENT_KEYS = ['welcome_note', 'included', 'not_included', 'tour_start_date', 'day_titles'];
+    if (action === 'list_tour') {
+      const [items, content] = await Promise.all([
+        fetch(TOUR_URL + '?select=*&order=day_number.asc,sort_order.asc', { headers }).then(function(r) { return r.json(); }),
+        fetch(CONTENT_URL + '?select=key,value', { headers }).then(function(r) { return r.json(); })
+      ]);
+      const map = {};
+      (Array.isArray(content) ? content : []).forEach(function(row) { map[row.key] = row.value || ''; });
+      return res.status(200).json({ ok: true, items: Array.isArray(items) ? items : [], content: map });
+    }
+    if (action === 'save_tour_item') {
+      const { id, day_number, time_label, title, description, location, sort_order } = req.body;
+      const day = parseInt(day_number, 10);
+      if (!title || !String(title).trim()) return res.status(400).json({ error: 'Title is required.' });
+      if (!(day >= 1 && day <= 30)) return res.status(400).json({ error: 'Pick a day.' });
+      const body = { day_number: day, time_label: time_label || null, title: String(title).trim(), description: description || null, location: location || null, updated_at: new Date().toISOString() };
+      if (typeof sort_order === 'number') body.sort_order = sort_order;
+      const r = await fetch(id ? TOUR_URL + '?id=eq.' + encodeURIComponent(id) : TOUR_URL, {
+        method: id ? 'PATCH' : 'POST', headers: Object.assign({ Prefer: 'return=representation' }, headers), body: JSON.stringify(body)
+      });
+      const out = await r.json();
+      if (!r.ok) return res.status(400).json({ error: (out && out.message) || 'Could not save.' });
+      return res.status(200).json({ ok: true, item: Array.isArray(out) ? out[0] : out });
+    }
+    if (action === 'delete_tour_item') {
+      if (!req.body.id) return res.status(400).json({ error: 'Missing id.' });
+      await fetch(TOUR_URL + '?id=eq.' + encodeURIComponent(req.body.id), { method: 'DELETE', headers });
+      return res.status(200).json({ ok: true });
+    }
+    if (action === 'reorder_tour_items') {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) return res.status(400).json({ error: 'Missing ids.' });
+      await Promise.all(ids.map(function(tid, i) {
+        return fetch(TOUR_URL + '?id=eq.' + encodeURIComponent(tid), { method: 'PATCH', headers: Object.assign({ Prefer: 'return=minimal' }, headers), body: JSON.stringify({ sort_order: i }) });
+      }));
+      return res.status(200).json({ ok: true });
+    }
+    if (action === 'save_tour_content') {
+      const { key, value } = req.body;
+      if (CONTENT_KEYS.indexOf(key) === -1) return res.status(400).json({ error: 'Unknown field.' });
+      if (key === 'tour_start_date' && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return res.status(400).json({ error: 'Pick a valid date.' });
+      const r = await fetch(CONTENT_URL + '?on_conflict=key', {
+        method: 'POST', headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, headers),
+        body: JSON.stringify({ key: key, value: value == null ? '' : String(value), updated_at: new Date().toISOString() })
+      });
+      if (!r.ok) return res.status(400).json({ error: 'Could not save.' });
+      return res.status(200).json({ ok: true });
+    }
+
     // ── Tour FAQ (shared, shown on every client's dashboard) ──
     const FAQ_URL = SUPABASE_URL + '/rest/v1/vietnam_faqs';
     if (action === 'list_faqs') {
@@ -224,6 +276,32 @@ module.exports = async function handler(req, res) {
 
     const { client_id } = req.body;
     if (!client_id) return res.status(400).json({ error: 'Missing client_id.' });
+
+    // ── Per-client payment schedule ──
+    const PAY_URL = SUPABASE_URL + '/rest/v1/vietnam_client_payments';
+    const listPayments = function() {
+      return fetch(PAY_URL + '?client_id=eq.' + encodeURIComponent(client_id) + '&select=*&order=sort_order.asc,due_date.asc', { headers }).then(function(r) { return r.json(); });
+    };
+    if (action === 'list_payments') return res.status(200).json({ ok: true, payments: await listPayments() });
+    if (action === 'save_payment') {
+      const { id, label, amount, due_date, status, note, sort_order } = req.body;
+      if (!label || !String(label).trim()) return res.status(400).json({ error: 'Add a name, e.g. Deposit.' });
+      const amt = amount === '' || amount == null ? null : Number(amount);
+      if (amt !== null && !(amt >= 0)) return res.status(400).json({ error: 'Amount should be a number.' });
+      if (due_date && !/^\d{4}-\d{2}-\d{2}$/.test(due_date)) return res.status(400).json({ error: 'Pick a valid due date.' });
+      const body = { client_id: client_id, label: String(label).trim(), amount: amt, due_date: due_date || null, status: status === 'paid' ? 'paid' : 'due', note: note || null, updated_at: new Date().toISOString() };
+      if (typeof sort_order === 'number') body.sort_order = sort_order;
+      const r = await fetch(id ? PAY_URL + '?id=eq.' + encodeURIComponent(id) + '&client_id=eq.' + encodeURIComponent(client_id) : PAY_URL, {
+        method: id ? 'PATCH' : 'POST', headers: Object.assign({ Prefer: 'return=minimal' }, headers), body: JSON.stringify(body)
+      });
+      if (!r.ok) return res.status(400).json({ error: 'Could not save.' });
+      return res.status(200).json({ ok: true, payments: await listPayments() });
+    }
+    if (action === 'delete_payment') {
+      if (!req.body.id) return res.status(400).json({ error: 'Missing id.' });
+      await fetch(PAY_URL + '?id=eq.' + encodeURIComponent(req.body.id) + '&client_id=eq.' + encodeURIComponent(client_id), { method: 'DELETE', headers });
+      return res.status(200).json({ ok: true, payments: await listPayments() });
+    }
 
     if (action === 'get_client_info') {
       const infoUrl = SUPABASE_URL + '/rest/v1/vietnam_client_personal_info?client_id=eq.' + encodeURIComponent(client_id) + '&select=*&limit=1';

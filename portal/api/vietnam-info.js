@@ -79,7 +79,9 @@ module.exports = async function handler(req, res) {
         fetch(roomUrl, { headers }).then(function(r) { return r.json(); }).catch(function() { return []; })
       ]);
       const acc = (Array.isArray(room) && room[0]) || {};
-      return res.status(200).json({ ok: true, info: info, documents: docs, room_type: acc.room_type || null, partner_name: acc.partner_name || null });
+      const payRes = await fetch(SUPABASE_URL + '/rest/v1/vietnam_client_payments?client_id=eq.' + encodeURIComponent(cid) + '&select=id,label,amount,due_date,status,note&order=sort_order.asc,due_date.asc', { headers }).catch(function() { return null; });
+      const payments = payRes && payRes.ok ? await payRes.json() : [];
+      return res.status(200).json({ ok: true, info: info, documents: docs, room_type: acc.room_type || null, partner_name: acc.partner_name || null, payments: Array.isArray(payments) ? payments : [] });
     }
 
     if (action === 'save_info') {

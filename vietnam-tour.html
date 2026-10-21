@@ -258,6 +258,34 @@
   .budget-row-cat { font-size:11px; color:var(--muted); margin-top:1px; }
   .budget-row-amount { font-family:'Playfair Display',serif; font-size:17px; color:var(--charcoal); flex-shrink:0; }
 
+  /* Trip intro (welcome note + inclusions) */
+  .trip-note { background:white; border:1px solid var(--sand); border-radius:14px; padding:24px 26px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .trip-note-title { font-family:'Playfair Display',serif; font-size:22px; color:var(--charcoal); margin-bottom:10px; }
+  .trip-note-body { font-size:14px; line-height:1.7; color:var(--muted); max-width:70ch; }
+  .trip-note-body p { margin:0 0 10px; } .trip-note-body p:last-child { margin:0; }
+  .trip-note-body strong { color:var(--charcoal); font-weight:600; }
+  .trip-incl { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+  .trip-incl .trip-note { margin-bottom:0; }
+  .trip-incl ul { list-style:none; padding:0; margin:0; }
+  .trip-incl li { position:relative; padding-left:22px; margin-bottom:8px; font-size:13px; line-height:1.55; color:var(--charcoal); }
+  .trip-incl li::before { position:absolute; left:0; top:0; font-weight:700; }
+  .trip-incl .yes li::before { content:'✓'; color:var(--green); }
+  .trip-incl .no li::before { content:'✕'; color:var(--rose); font-size:12px; top:1px; }
+  .trip-incl strong { font-weight:600; }
+  .day-sub { font-family:'Playfair Display',serif; font-style:italic; }
+  @media (max-width:700px) { .trip-incl { grid-template-columns:1fr; } .trip-note { padding:20px; } }
+  /* Payment schedule */
+  .pay-row { display:grid; grid-template-columns:1fr auto auto; gap:14px; align-items:center; padding:12px 0; border-bottom:1px solid var(--warm); font-size:13px; }
+  .pay-row:last-of-type { border-bottom:none; }
+  .pay-label { font-weight:600; color:var(--charcoal); }
+  .pay-due { color:var(--muted); font-size:12px; margin-top:2px; }
+  .pay-amt { font-variant-numeric:tabular-nums; font-weight:600; color:var(--charcoal); text-align:right; }
+  .pay-pill { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:4px 9px; border-radius:20px; white-space:nowrap; }
+  .pay-pill.paid { background:#E3EBDD; color:#3F5233; }
+  .pay-pill.due { background:var(--warm); color:var(--charcoal); }
+  .pay-pill.overdue { background:#F5DDD8; color:#8E3B2E; }
+  .pay-total { display:flex; justify-content:space-between; padding-top:12px; font-size:13px; font-weight:600; }
+
   /* FAQ */
   .faq-item { background:white; border:1px solid var(--sand); border-radius:14px; margin-bottom:12px; box-shadow:0 2px 10px rgba(28,23,18,.07); overflow:hidden; }
   .faq-q { width:100%; display:flex; align-items:center; gap:12px; padding:18px 22px; background:none; border:none; cursor:pointer; text-align:left;
@@ -280,6 +308,12 @@
   .ntk-icon { font-size:20px; }
   .ntk-body { font-size:13px; color:var(--muted); line-height:1.6; }
 
+  .ntk-seasons { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:4px 0 12px; }
+  .ntk-seasons div { background:var(--warm); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; }
+  .ntk-seasons b { font-family:'Playfair Display',serif; font-weight:400; font-size:17px; color:var(--charcoal); }
+  .ntk-seasons span { font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+  .ntk-seasons em { font-style:normal; font-weight:600; color:var(--charcoal); font-variant-numeric:tabular-nums; }
+  @media (max-width:560px) { .ntk-seasons { grid-template-columns:1fr 1fr; } }
   /* Your Info */
   .info-title { font-family:'Playfair Display',serif; font-size:21px; color:var(--charcoal); margin-bottom:6px; }
   .info-sub { font-size:12px; color:var(--muted); }
@@ -466,6 +500,19 @@ function renderCountdownBanner(items) {
   return '<div class="countdown-banner"><div class="countdown-num">' + big + '</div><div class="countdown-label">' + small + '</div></div>';
 }
 
+function renderTripIntro(tour) {
+  tour = tour || {};
+  var html = '';
+  if (tour.welcome_note) html += '<div class="trip-note"><div class="trip-note-title">Made for you: a journey in Hoi An</div><div class="trip-note-body">' + faqFormat(tour.welcome_note) + '</div></div>';
+  if (tour.included || tour.not_included) {
+    html += '<div class="trip-incl">'
+      + (tour.included ? '<div class="trip-note yes"><div class="trip-note-title" style="font-size:19px">What’s included</div>' + faqFormat(tour.included) + '</div>' : '')
+      + (tour.not_included ? '<div class="trip-note no"><div class="trip-note-title" style="font-size:19px">Not included</div>' + faqFormat(tour.not_included) + '</div>' : '')
+      + '</div>';
+  }
+  return html;
+}
+
 function renderItinerary(items) {
   if (!items || items.length === 0) {
     return '<div class="empty"><div class="em-icon">🗓️</div>Your itinerary hasn\'t been added yet.<br>Check back soon.</div>';
@@ -481,13 +528,14 @@ function renderItinerary(items) {
   days.forEach(function(d) {
     var dayItems = byDay[d];
     var dateLabel = fmtDate(dayItems[0].item_date);
-    html += '<div class="day-heading">Day ' + d + (dateLabel ? ' — ' + dateLabel : '') + '</div><div class="card">';
+    var title = dayItems[0].day_title;
+    html += '<div class="day-heading">Day ' + d + (title ? ' <span class="day-sub">· ' + recEsc(title) + '</span>' : '') + (dateLabel ? ' — ' + dateLabel : '') + '</div><div class="card">';
     dayItems.forEach(function(it) {
       html += '<div class="itin-item">'
-        + '<div class="itin-time">' + (it.time_label || '') + '</div>'
-        + '<div><div class="itin-title">' + it.title + '</div>'
-        + (it.description ? '<div class="itin-desc">' + it.description + '</div>' : '')
-        + (it.location ? '<div class="itin-loc">' + it.location + '</div>' : '')
+        + '<div class="itin-time">' + recEsc(it.time_label || '') + '</div>'
+        + '<div><div class="itin-title">' + recEsc(it.title) + '</div>'
+        + (it.description ? '<div class="itin-desc">' + recEsc(it.description) + '</div>' : '')
+        + (it.location ? '<div class="itin-loc">' + recEsc(it.location) + '</div>' : '')
         + '</div></div>';
     });
     html += '</div>';
@@ -798,8 +846,15 @@ function faqToggleAll() {
 /* ═══════════ About Vietnam (static content; tab id stays 'needtoknow') ═══════════ */
 
 var NEED_TO_KNOW = [
-  { icon: '💵', title: 'Money & Currency', body: 'The local currency is Vietnamese Dong (VND). Cash is king for markets, street food and small shops — cards are fine at hotels and larger restaurants. ATMs are everywhere in Hoi An and Da Nang; let your bank know you\'re travelling so your card isn\'t blocked.' },
-  { icon: '☀️', title: 'Weather', body: 'Late October sits in Hoi An\'s shoulder/wet season — expect warm, humid days (around 27–30°C) with a chance of afternoon showers. Pack light, breathable layers and a compact rain jacket.' },
+  { icon: '🏮', title: 'About Hoi An', body: 'Hoi An is one of Vietnam\'s most charming and culturally rich destinations, known for its lantern-lit streets, riverside cafés and beautifully preserved Ancient Town. A UNESCO World Heritage site, it blends Japanese, Chinese and French influences, giving it a warm, romantic character that feels worlds away from the busy cities. Its slower pace makes it the perfect place to unwind while exploring incredible food, markets and culture, and it\'s renowned for its talented tailors.' },
+  { icon: '🕒', title: 'Time Difference', body: 'Vietnam is UTC+7, which is <strong>3 hours behind Brisbane</strong> (AEST). When Sydney and Melbourne are on daylight saving (October to April), they\'re 4 hours ahead of Vietnam. Vietnam doesn\'t use daylight saving.' },
+  { icon: '💵', title: 'Money & Currency', body: 'The local currency is Vietnamese đồng (VND). Notes come in 1,000, 2,000, 5,000, 10,000, 20,000, 50,000, 100,000, 200,000 and 500,000. Cash is king for markets, street food and small shops, and cards are fine at hotels and larger restaurants. ATMs are everywhere in Hoi An and Da Nang. Let your bank know you\'re travelling so your card isn\'t blocked.' },
+  { icon: '☀️', title: 'Weather', body: '<div class="ntk-seasons">'
+      + '<div><b>Spring</b><span>Feb–Apr</span><em>20–28°C</em></div>'
+      + '<div><b>Summer</b><span>May–Aug</span><em>24–32°C</em></div>'
+      + '<div><b>Autumn</b><span>Sep–Oct</span><em>28–35°C</em></div>'
+      + '<div><b>Winter</b><span>Nov–Jan</span><em>18–24°C</em></div>'
+      + '</div>Average temperatures in Hoi An. Pack light, breathable layers, and a compact rain jacket from September to December, which is the rainy season.' },
   { icon: '🧧', title: 'Customs & Etiquette', body: 'A friendly smile and a little effort with "xin chào" (hello) goes a long way. Dress modestly when visiting temples (shoulders/knees covered). Tipping isn\'t mandatory but is appreciated for good service — round up or leave 10%.' }
 ];
 
@@ -921,7 +976,8 @@ function renderInfoSub() {
         + (c.url ? '<a class="rec-link" href="' + infoEsc(c.url) + '" target="_blank" rel="noopener">Download ↗</a>' : '<span class="info-sub">Reload to view</span>') + '</div>'
       : '<div class="info-sub" style="font-style:italic">Your tour coordinator hasn’t added your contract yet.</div>';
     return infoSection('Your Contract', 'Download, sign and upload your signed copy below.', top)
-      + infoSection('Signed Contract', '', infoUploadBox('signed_contract', '', 'Upload your signed contract.'));
+      + infoSection('Signed Contract', '', infoUploadBox('signed_contract', '', 'Upload your signed contract.'))
+      + renderPayments();
   }
   if (infoSub === 'visa') {
     return infoSection('Visa', 'Apply at least 2 weeks before you travel. See the FAQ for how.', infoUploadBox('visa', '', 'Upload your approved e-visa.'));
@@ -930,6 +986,36 @@ function renderInfoSub() {
     return infoSection('Travel Insurance', 'Make sure your policy covers everything you plan to do, including scooters if you’ll ride one.', infoUploadBox('insurance', '', 'Upload your policy certificate.'));
   }
   return '';
+}
+
+function fmtAud(n) {
+  if (n === null || n === undefined || n === '') return '';
+  var v = Number(n);
+  return '$' + v.toLocaleString('en-AU', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 });
+}
+
+function renderPayments() {
+  var list = yourInfoData.payments || [];
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var body;
+  if (!list.length) {
+    body = '<div class="info-sub" style="font-style:italic">Your payment schedule will appear here once your booking is confirmed.</div>';
+  } else {
+    var total = 0, paid = 0;
+    body = list.map(function(p) {
+      var amt = p.amount != null ? Number(p.amount) : 0;
+      total += amt; if (p.status === 'paid') paid += amt;
+      var due = p.due_date ? new Date(p.due_date + 'T00:00:00') : null;
+      var state = p.status === 'paid' ? 'paid' : (due && due < today ? 'overdue' : 'due');
+      var stateLbl = { paid: 'Paid', due: 'Due', overdue: 'Overdue' }[state];
+      return '<div class="pay-row"><div><div class="pay-label">' + infoEsc(p.label) + '</div>'
+        + '<div class="pay-due">' + (due ? 'Due ' + due.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '') + (p.note ? (due ? ' · ' : '') + infoEsc(p.note) : '') + '</div></div>'
+        + '<div class="pay-amt">' + fmtAud(p.amount) + '</div>'
+        + '<span class="pay-pill ' + state + '">' + stateLbl + '</span></div>';
+    }).join('');
+    if (total) body += '<div class="pay-total"><span>Paid ' + fmtAud(paid) + ' of ' + fmtAud(total) + '</span><span>Remaining ' + fmtAud(total - paid) + '</span></div>';
+  }
+  return infoSection('Payment Schedule', 'All amounts in AUD. Credit card payments incur a 1.9% fee; bank transfer is also available.', body);
 }
 
 function renderYourInfoPanel() {
@@ -960,7 +1046,7 @@ function loadYourInfoPanel() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       yourInfoLoaded = true;
-      yourInfoData = { info: data.info, documents: data.documents || [], room_type: data.room_type, partner_name: data.partner_name };
+      yourInfoData = { info: data.info, documents: data.documents || [], room_type: data.room_type, partner_name: data.partner_name, payments: data.payments || [] };
       panel.innerHTML = renderYourInfoPanel();
     })
     .catch(function() {
@@ -1158,7 +1244,7 @@ function recTileHTML(r, cat, idx) {
   }
   gal += '</div>';
 
-  var chips = [r.price_range, r.walk_time ? '🚶 ' + r.walk_time : '', r.booking].filter(Boolean)
+  var chips = [r.price_range, r.walk_time ? (/walk/i.test(r.walk_time) ? '🚶 ' : '📍 ') + r.walk_time : '', r.booking].filter(Boolean)
     .map(function(c) { return '<span class="rec-chip">' + recEsc(c) + '</span>'; }).join('');
   var map = recSafeUrl(r.maps_url);
   return '<div class="rec-tile">' + gal + '<div class="rec-body">'
@@ -1703,7 +1789,7 @@ function init() {
         + '<div class="main">'
         + '<div class="ph"><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Your personal trip dashboard</div></div>'
         + renderCountdownBanner(res.data.itinerary)
-        + '<div class="tab-panel on" id="panel-itinerary">' + renderItinerary(res.data.itinerary) + '</div>'
+        + '<div class="tab-panel on" id="panel-itinerary">' + renderTripIntro(res.data.tour) + renderItinerary(res.data.itinerary) + '</div>'
         + '<div class="tab-panel" id="panel-packing">' + renderPackingPanel() + '</div>'
         + '<div class="tab-panel" id="panel-recs">' + renderRecommendationsPanel() + '</div>'
         + '<div class="tab-panel" id="panel-budget">' + renderBudgetPanel() + '</div>'

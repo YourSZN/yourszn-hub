@@ -56,14 +56,37 @@ module.exports = async function handler(req, res) {
     const [itinRes, recRes] = await Promise.all([fetch(itinUrl, { headers }), fetch(recUrl, { headers })]);
     const faqRes = await fetch(SUPABASE_URL + '/rest/v1/vietnam_faqs?select=id,icon,question,answer,sort_order&order=sort_order.asc,created_at.asc', { headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } }).catch(function() { return null; });
     const faqs = faqRes && faqRes.ok ? await faqRes.json() : [];
-    const [itinerary, recommendations] = await Promise.all([itinRes.json(), recRes.json()]);
+    const [ownItinerary, recommendations] = await Promise.all([itinRes.json(), recRes.json()]);
+
+    // Shared tour itinerary + trip info (edited in the staff portal). A client's own
+    // itinerary items, if any exist, take priority over the shared plan.
+    const svc = { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY };
+    const [tourItems, tourContent] = await Promise.all([
+      fetch(SUPABASE_URL + '/rest/v1/vietnam_tour_itinerary?select=*&order=day_number.asc,sort_order.asc', { headers: svc }).then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; }),
+      fetch(SUPABASE_URL + '/rest/v1/vietnam_tour_content?select=key,value', { headers: svc }).then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; })
+    ]);
+    const content = {};
+    (Array.isArray(tourContent) ? tourContent : []).forEach(function(row) { content[row.key] = row.value || ''; });
+    let dayTitles = {};
+    try { dayTitles = JSON.parse(content.day_titles || '{}'); } catch (e) { dayTitles = {}; }
+    const start = /^\d{4}-\d{2}-\d{2}$/.test(content.tour_start_date || '') ? new Date(content.tour_start_date + 'T00:00:00Z') : null;
+    const dateFor = function(day) {
+      if (!start) return null;
+      const d = new Date(start.getTime() + (day - 1) * 86400000);
+      return d.toISOString().slice(0, 10);
+    };
+    const sharedItinerary = (Array.isArray(tourItems) ? tourItems : []).map(function(it) {
+      return Object.assign({}, it, { item_date: dateFor(it.day_number), day_title: dayTitles[String(it.day_number)] || '' });
+    });
+    const itinerary = Array.isArray(ownItinerary) && ownItinerary.length ? ownItinerary : sharedItinerary;
 
     return res.status(200).json({
       ok: true,
       client: { id: client.id, name: client.name },
       itinerary: itinerary,
       recommendations: recommendations,
-      faqs: Array.isArray(faqs) ? faqs : []
+      faqs: Array.isArray(faqs) ? faqs : [],
+      tour: { welcome_note: content.welcome_note || '', included: content.included || '', not_included: content.not_included || '' }
     });
   } catch (err) {
     console.error('[vietnam-dashboard] error:', err);

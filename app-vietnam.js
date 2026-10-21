@@ -104,10 +104,11 @@ function _vtClientCard(list, c, idx) {
       return '<button class="vt-tab'+(activeDetailTab===tabId?' on':'')+'" style="padding:5px 12px;font-size:11px" onclick="event.stopPropagation();vtSetClientDetailTab(\''+key+'\',\''+tabId+'\')">'+label+'</button>';
     };
     var tabsBar = '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      + tabBtn('checklist','Checklist') + tabBtn('info','Contract & Info') + tabBtn('lookbook','Lookbook')
+      + tabBtn('checklist','Checklist') + tabBtn('info','Contract & Info') + tabBtn('payments','Payments') + tabBtn('lookbook','Lookbook')
       + '</div>';
     var body = activeDetailTab === 'checklist' ? vtStepsHtml(list, idx, c)
       : activeDetailTab === 'info' ? vtRenderClientInfoTab(c, key)
+      : activeDetailTab === 'payments' ? vtRenderClientPaymentsTab(c, key)
       : vtRenderClientLookbookTab(c, key);
     detailHtml = '<div style="width:100%;margin-top:10px">' + tabsBar + '<div style="margin-top:10px">' + body + '</div></div>';
   }
@@ -410,4 +411,103 @@ function deleteVtObStep(id) {
   var template = vtData[_vtObTemplateKey] || [];
   vtData[_vtObTemplateKey] = template.filter(function(x){return x.id!==id;});
   closeVtObModal(); vtSave(); renderVietnamTour();
+}
+
+
+/* ── Payments (per-client schedule shown in the client's Your Info → Contract tab) ── */
+
+var vtClientPayCache = {};   // portalId -> payments[]
+var vtPayEditing = null;     // payment id or 'new'
+
+// The brochure's standard schedule, as a starting point. Edit amounts/dates after adding.
+var VT_PAY_TEMPLATE = [
+  { label: 'Deposit (non-refundable)', amount: 650 },
+  { label: 'Second instalment', amount: 2500 },
+  { label: 'Final payment', amount: null }
+];
+
+function vtFetchPayments(portalId) {
+  vtStaffApiCall('list_payments', { client_id: portalId }).then(function(data) {
+    vtClientPayCache[portalId] = (data && data.ok && Array.isArray(data.payments)) ? data.payments : [];
+    renderVietnamTour();
+  });
+}
+
+function _vtPayForm(portalId, key, p) {
+  p = p || { status: 'due' };
+  return '<div onclick="event.stopPropagation()" style="padding:12px;margin:8px 0;border:1.5px solid var(--charcoal);border-radius:10px">'
+    + '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px">'
+    +   '<div class="sm-field"><label class="sm-lbl">Payment</label><input class="sm-inp" id="vtpay-label" value="'+esc(p.label||'')+'" placeholder="e.g. Deposit"></div>'
+    +   '<div class="sm-field"><label class="sm-lbl">Amount (AUD)</label><input class="sm-inp" id="vtpay-amount" type="number" min="0" step="0.01" value="'+esc(p.amount==null?'':p.amount)+'"></div>'
+    +   '<div class="sm-field"><label class="sm-lbl">Due date</label><input class="sm-inp" id="vtpay-due" type="date" value="'+esc(p.due_date||'')+'"></div>'
+    +   '<div class="sm-field"><label class="sm-lbl">Status</label><select class="sm-inp" id="vtpay-status"><option value="due"'+(p.status!=='paid'?' selected':'')+'>Due</option><option value="paid"'+(p.status==='paid'?' selected':'')+'>Paid</option></select></div>'
+    + '</div>'
+    + '<div class="sm-field"><label class="sm-lbl">Note for client (optional)</label><input class="sm-inp" id="vtpay-note" value="'+esc(p.note||'')+'" placeholder="e.g. Invoice sent 3 Nov"></div>'
+    + '<div style="display:flex;gap:8px"><button class="btn btnp" style="font-size:12px" id="vtpay-save" onclick="vtSavePayment(\''+portalId+'\',\''+(p.id||'')+'\')">'+(p.id?'Save':'Add Payment')+'</button>'
+    + '<button class="btn" style="font-size:12px" onclick="vtPayEditing=null;renderVietnamTour()">Cancel</button></div></div>';
+}
+
+function vtRenderClientPaymentsTab(c, key) {
+  if (!c.portalId) return '<div style="color:var(--muted);font-size:12px;padding:6px 0">This client hasn\'t synced to the portal yet — edit and save them again to enable this.</div>';
+  var list = vtClientPayCache[c.portalId];
+  if (!list) { vtFetchPayments(c.portalId); return '<div style="color:var(--muted);font-size:12px;padding:6px 0">Loading…</div>'; }
+  var today = new Date(); today.setHours(0,0,0,0);
+  var total = 0, paid = 0;
+  var html = '<div style="font-size:12px;color:var(--muted);margin-bottom:8px" onclick="event.stopPropagation()">The client sees this in Your Info → Contract.</div>';
+  list.forEach(function(p) {
+    if (vtPayEditing === p.id) { html += _vtPayForm(c.portalId, key, p); return; }
+    var amt = p.amount != null ? Number(p.amount) : 0; total += amt; if (p.status === 'paid') paid += amt;
+    var overdue = p.status !== 'paid' && p.due_date && new Date(p.due_date + 'T00:00:00') < today;
+    var pill = p.status === 'paid' ? '<span style="background:#D1FAE5;color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">PAID</span>'
+      : overdue ? '<span style="background:#FEE2E2;color:#991B1B;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">OVERDUE</span>'
+      : '<span style="background:var(--warm);font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">DUE</span>';
+    html += '<div class="tour-doc-row" onclick="event.stopPropagation()" style="gap:10px">'
+      + '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+esc(p.label)+'</div>'
+      + '<div style="font-size:11px;color:var(--muted)">'+(p.due_date?'Due '+esc(p.due_date):'No due date')+(p.note?' · '+esc(p.note):'')+'</div></div>'
+      + '<div style="font-size:12px;font-weight:600;white-space:nowrap">'+(p.amount!=null?'$'+Number(p.amount).toLocaleString('en-AU'):'—')+'</div>' + pill
+      + (p.status !== 'paid' ? '<button class="fin-row-edit" onclick="vtMarkPaid(\''+c.portalId+'\',\''+p.id+'\')">Mark paid</button>' : '')
+      + '<button class="fin-row-edit" onclick="vtPayEditing=\''+p.id+'\';renderVietnamTour()">&#9998;</button>'
+      + '<button class="fin-row-edit" style="color:#EF4444" onclick="vtDeletePayment(\''+c.portalId+'\',\''+p.id+'\')">&#10005;</button></div>';
+  });
+  if (total) html += '<div style="font-size:12px;font-weight:600;margin:8px 0">Paid $'+paid.toLocaleString('en-AU')+' of $'+total.toLocaleString('en-AU')+' · Remaining $'+(total-paid).toLocaleString('en-AU')+'</div>';
+  if (vtPayEditing === 'new') html += _vtPayForm(c.portalId, key, null);
+  else {
+    html += '<div style="display:flex;gap:6px;margin-top:8px" onclick="event.stopPropagation()"><button class="fin-row-edit" onclick="vtPayEditing=\'new\';renderVietnamTour()">+ Add payment</button>';
+    if (!list.length) html += '<button class="fin-row-edit" onclick="vtAddPayTemplate(\''+c.portalId+'\')">+ Add standard schedule (deposit, 2nd instalment, final)</button>';
+    html += '</div>';
+  }
+  return html;
+}
+
+function vtSavePayment(portalId, id) {
+  var g = function(x) { return document.getElementById(x).value; };
+  var payload = { client_id: portalId, label: g('vtpay-label').trim(), amount: g('vtpay-amount'), due_date: g('vtpay-due') || null, status: g('vtpay-status'), note: g('vtpay-note').trim() };
+  if (id) payload.id = id; else payload.sort_order = (vtClientPayCache[portalId] || []).length;
+  var btn = document.getElementById('vtpay-save'); btn.disabled = true; btn.textContent = 'Saving…';
+  vtStaffApiCall('save_payment', payload).then(function(data) {
+    if (!data || !data.ok) { btn.disabled = false; btn.textContent = id ? 'Save' : 'Add Payment'; alert((data && data.error) || 'Couldn\'t save — try again.'); return; }
+    vtClientPayCache[portalId] = data.payments; vtPayEditing = null; renderVietnamTour();
+  });
+}
+
+function vtMarkPaid(portalId, id) {
+  var p = (vtClientPayCache[portalId] || []).filter(function(x) { return x.id === id; })[0]; if (!p) return;
+  vtStaffApiCall('save_payment', Object.assign({}, p, { client_id: portalId, status: 'paid' })).then(function(data) {
+    if (data && data.ok) { vtClientPayCache[portalId] = data.payments; renderVietnamTour(); }
+  });
+}
+
+function vtDeletePayment(portalId, id) {
+  if (!confirm('Delete this payment?')) return;
+  vtStaffApiCall('delete_payment', { client_id: portalId, id: id }).then(function(data) {
+    if (data && data.ok) { vtClientPayCache[portalId] = data.payments; renderVietnamTour(); }
+  });
+}
+
+function vtAddPayTemplate(portalId) {
+  var chain = Promise.resolve();
+  VT_PAY_TEMPLATE.forEach(function(t, i) {
+    chain = chain.then(function() { return vtStaffApiCall('save_payment', { client_id: portalId, label: t.label, amount: t.amount, status: 'due', sort_order: i }); });
+  });
+  chain.then(function() { vtFetchPayments(portalId); });
 }
