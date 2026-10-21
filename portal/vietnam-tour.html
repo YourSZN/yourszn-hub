@@ -795,17 +795,12 @@ function faqToggleAll() {
   var btn = document.querySelector('.faq-tools button'); if (btn) btn.textContent = anyClosed ? 'Collapse all' : 'Expand all';
 }
 
-/* ═══════════ Need to Know (static content) ═══════════ */
+/* ═══════════ About Vietnam (static content; tab id stays 'needtoknow') ═══════════ */
 
 var NEED_TO_KNOW = [
-  { icon: '🛂', title: 'Visa & Entry', body: 'Australian passport holders can enter Vietnam visa-free for stays up to 45 days — just make sure your passport is valid for 6+ months from your entry date. No visa application needed for this trip length.' },
   { icon: '💵', title: 'Money & Currency', body: 'The local currency is Vietnamese Dong (VND). Cash is king for markets, street food and small shops — cards are fine at hotels and larger restaurants. ATMs are everywhere in Hoi An and Da Nang; let your bank know you\'re travelling so your card isn\'t blocked.' },
   { icon: '☀️', title: 'Weather', body: 'Late October sits in Hoi An\'s shoulder/wet season — expect warm, humid days (around 27–30°C) with a chance of afternoon showers. Pack light, breathable layers and a compact rain jacket.' },
-  { icon: '🧧', title: 'Customs & Etiquette', body: 'A friendly smile and a little effort with "xin chào" (hello) goes a long way. Dress modestly when visiting temples (shoulders/knees covered). Tipping isn\'t mandatory but is appreciated for good service — round up or leave 10%.' },
-  { icon: '🩺', title: 'Health & Safety', body: 'Tap water isn\'t safe to drink — stick to bottled or filtered water (including for brushing teeth). Sunscreen and mosquito repellent are worth packing. Vietnam is generally very safe for tourists; usual city-travel common sense applies.' },
-  { icon: '🛵', title: 'Getting Around', body: 'Hoi An\'s Old Town is best explored on foot or by bicycle (many hotels offer free bikes). Grab (the local ride-hailing app) is the easiest way to book cars/motorbike taxis between towns.' },
-  { icon: '📶', title: 'Staying Connected', body: 'Free wifi is widely available at cafes and hotels. For a local SIM or eSIM, options are available at the airport on arrival — handy for maps and Grab while you\'re out and about.' },
-  { icon: '📞', title: 'Need Help While Away?', body: 'If anything comes up during your trip, email hello@yourszn.com.au and we\'ll get back to you as soon as we can.' }
+  { icon: '🧧', title: 'Customs & Etiquette', body: 'A friendly smile and a little effort with "xin chào" (hello) goes a long way. Dress modestly when visiting temples (shoulders/knees covered). Tipping isn\'t mandatory but is appreciated for good service — round up or leave 10%.' }
 ];
 
 function renderNeedToKnowPanel() {
@@ -1514,7 +1509,7 @@ var VT_NAV = [
   { id: 'recs', lbl: 'Recommendations', shortLbl: 'Recs', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
   { id: 'budget', lbl: 'Budget', shortLbl: 'Budget', icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
   { id: 'faq', lbl: 'FAQ', shortLbl: 'FAQ', icon: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
-  { id: 'needtoknow', lbl: 'Need to Know', shortLbl: 'Tips', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
+  { id: 'needtoknow', lbl: 'About Vietnam', shortLbl: 'Vietnam', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
   { id: 'yourinfo', lbl: 'Your Info', shortLbl: 'My Info', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
   { id: 'tailoring', lbl: 'Tailoring', shortLbl: 'Tailoring', icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>' }
 ];
