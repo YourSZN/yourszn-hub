@@ -35,6 +35,7 @@ function _vtFaqForm(f) {
     +   '<textarea class="sm-inp" id="vtfaq-a" rows="12" style="resize:vertical;line-height:1.5">'+esc(f.answer||'')+'</textarea>'
     +   '<div style="font-size:11px;color:var(--muted);margin-top:4px">Formatting: leave a blank line for a new paragraph · start a line with <b>- </b> for a bullet or <b>1. </b> for a numbered list · wrap words in <b>**double stars**</b> to make them bold.</div>'
     + '</div>'
+    + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 12px;cursor:pointer"><input type="checkbox" id="vtfaq-pub"'+(f.published===false?'':' checked')+'> Visible to clients <span style="color:var(--muted);font-size:11px">(untick to keep it as a draft)</span></label>'
     + '<div id="vtfaq-err" style="color:#B91C1C;font-size:12px;margin-bottom:8px;display:none"></div>'
     + '<div style="display:flex;gap:8px">'
     +   '<button class="btn btnp" style="font-size:12px" id="vtfaq-save" onclick="vtFaqSave(\''+(f.id||'')+'\')">'+(f.id?'Save Changes':'Add Question')+'</button>'
@@ -46,7 +47,7 @@ function vtFaqSave(id) {
   var q = document.getElementById('vtfaq-q').value.trim();
   var err = document.getElementById('vtfaq-err');
   if (!q) { err.textContent = 'Add a question.'; err.style.display = 'block'; return; }
-  var payload = { icon: document.getElementById('vtfaq-icon').value.trim(), question: q, answer: document.getElementById('vtfaq-a').value };
+  var payload = { icon: document.getElementById('vtfaq-icon').value.trim(), question: q, answer: document.getElementById('vtfaq-a').value, published: document.getElementById('vtfaq-pub').checked };
   if (id) payload.id = id; else payload.sort_order = (vtFaqs || []).length;
   var btn = document.getElementById('vtfaq-save');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -82,7 +83,9 @@ function vtFaqMove(id, dir) {
 
 function renderVtFaqTab() {
   if (vtFaqs === null) { vtFaqLoad(); return '<div style="color:var(--muted);font-size:13px">Loading FAQ…</div>'; }
-  var html = '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">Every tour client sees these on their dashboard under FAQ, in this order.</div>';
+  var drafts = vtFaqs.filter(function(f) { return f.published === false; }).length;
+  var html = '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">Every tour client sees these on their dashboard under FAQ, in this order. Drafts are hidden from clients until you publish them.'
+    + (drafts ? ' <b style="color:#92400E">'+drafts+' draft'+(drafts>1?'s':'')+' waiting for review.</b>' : '') + '</div>';
   if (vtFaqError) html += '<div style="color:#B91C1C;font-size:12px;margin-bottom:12px">'+esc(vtFaqError)+' <button class="fin-row-edit" onclick="vtFaqs=null;renderVietnamTour()">Retry</button></div>';
   if (vtFaqEditing === 'new') html += _vtFaqForm(null);
   else html += '<button class="btn btnp" style="font-size:12px;margin-bottom:14px" onclick="vtFaqEdit(\'new\')">+ Add Question</button>';
@@ -95,10 +98,11 @@ function renderVtFaqTab() {
     html += '<div class="card" style="padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start">'
       + '<div style="font-size:20px;width:28px;text-align:center;flex-shrink:0">'+esc(f.icon||'❓')+'</div>'
       + '<div style="flex:1;min-width:0;cursor:pointer" onclick="vtFaqEdit(\''+f.id+'\')">'
-      +   '<div style="font-weight:600;font-size:14px">'+esc(f.question)+'</div>'
+      +   '<div style="font-weight:600;font-size:14px">'+esc(f.question)+(f.published===false?' <span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:10px;vertical-align:middle">DRAFT</span>':'')+'</div>'
       +   '<div style="font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5">'+esc(preview)+'</div>'
       + '</div>'
       + '<div style="display:flex;gap:4px;flex-shrink:0">'
+      +   (f.published===false ? '<button class="fin-row-edit" onclick="vtFaqPublish(\''+f.id+'\')">Publish</button>' : '')
       +   '<button class="fin-row-edit" title="Move up" '+(i===0?'disabled style="opacity:.3"':'')+' onclick="vtFaqMove(\''+f.id+'\',-1)">&#8593;</button>'
       +   '<button class="fin-row-edit" title="Move down" '+(i===vtFaqs.length-1?'disabled style="opacity:.3"':'')+' onclick="vtFaqMove(\''+f.id+'\',1)">&#8595;</button>'
       +   '<button class="fin-row-edit" title="Edit" onclick="vtFaqEdit(\''+f.id+'\')">&#9998;</button>'
@@ -106,4 +110,13 @@ function renderVtFaqTab() {
       + '</div></div>';
   });
   return html;
+}
+
+function vtFaqPublish(id) {
+  var f = (vtFaqs || []).filter(function(x) { return x.id === id; })[0]; if (!f) return;
+  if (/\[[^\]]*(add|confirm)[^\]]*\]/i.test(f.answer || '') && !confirm('This answer still has [placeholders] to fill in. Publish anyway?')) return;
+  vtStaffApiCall('save_faq', { id: f.id, icon: f.icon, question: f.question, answer: f.answer, published: true }).then(function(data) {
+    if (data && data.ok) { vtFaqs = vtFaqs.map(function(x) { return x.id === id ? data.faq : x; }); renderVietnamTour(); }
+    else alert('Couldn\'t publish — try again.');
+  });
 }

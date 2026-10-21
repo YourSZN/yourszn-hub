@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
     // Shared recommendations (client_id null) plus any added just for this client.
     const recUrl = SUPABASE_URL + '/rest/v1/vietnam_recommendations?or=(client_id.is.null,client_id.eq.' + encodeURIComponent(cid) + ')&select=*&order=sort_order.asc,created_at.asc';
     const [itinRes, recRes] = await Promise.all([fetch(itinUrl, { headers }), fetch(recUrl, { headers })]);
-    const faqRes = await fetch(SUPABASE_URL + '/rest/v1/vietnam_faqs?select=id,icon,question,answer,sort_order&order=sort_order.asc,created_at.asc', { headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } }).catch(function() { return null; });
+    const faqRes = await fetch(SUPABASE_URL + '/rest/v1/vietnam_faqs?published=eq.true&select=id,icon,question,answer,sort_order&order=sort_order.asc,created_at.asc', { headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } }).catch(function() { return null; });
     const faqs = faqRes && faqRes.ok ? await faqRes.json() : [];
     const [ownItinerary, recommendations] = await Promise.all([itinRes.json(), recRes.json()]);
 

@@ -230,9 +230,10 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, faqs: await r.json() });
     }
     if (action === 'save_faq') {
-      const { id, icon, question, answer, sort_order } = req.body;
+      const { id, icon, question, answer, sort_order, published } = req.body;
       if (!question || !String(question).trim()) return res.status(400).json({ error: 'Question is required.' });
       const body = { icon: icon || null, question: String(question).trim(), answer: answer || '', updated_at: new Date().toISOString() };
+      if (typeof published === 'boolean') body.published = published;
       if (typeof sort_order === 'number') body.sort_order = sort_order;
       const r = await fetch(id ? FAQ_URL + '?id=eq.' + encodeURIComponent(id) : FAQ_URL, {
         method: id ? 'PATCH' : 'POST', headers: Object.assign({ Prefer: 'return=representation' }, headers), body: JSON.stringify(body)
