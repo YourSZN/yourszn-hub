@@ -154,6 +154,8 @@ function ipGetInPersonBanner() {
    ========================================================== */
 
 function showClientsTab(tab) {
+  // Appointment Slots is hidden for now — send anything that asks for it to In-Person Clients.
+  if (tab !== 'inperson' && tab !== 'profiles') tab = 'inperson';
   var btnSlots    = document.getElementById('cst-slots');
   var btnInperson = document.getElementById('cst-inperson');
   var btnProfiles = document.getElementById('cst-profiles');
@@ -170,7 +172,7 @@ function showClientsTab(tab) {
   if (tab === 'inperson') {
     if (btnInperson)   btnInperson.classList.add('on');
     if (panelInperson) panelInperson.style.display = 'block';
-    if (psub) psub.textContent = 'Manage in-person client bookings and contrast analysis';
+    if (psub) psub.textContent = 'Manage in-person client bookings';
     if (headerActions) headerActions.innerHTML =
       '<button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button>';
     renderInPersonList();

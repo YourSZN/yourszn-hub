@@ -283,15 +283,16 @@
     </div>
     <div class="page" id="pg-clients">
       <div class="ph">
-        <div><div class="ptitle">Clients</div><div class="psub" id="clients-psub">30 slots · drag to reorder · track appointments and invoices</div></div>
-        <div id="clients-header-actions"><button class="btn btnp" onclick="clearClients()">Clear All</button></div>
+        <div><div class="ptitle">Clients</div><div class="psub" id="clients-psub">Manage in-person client bookings</div></div>
+        <div id="clients-header-actions"><button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button></div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn clients-subtab on" id="cst-slots"    onclick="showClientsTab('slots')">Appointment Slots</button>
-        <button class="btn clients-subtab"    id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
+        <!-- Appointment Slots hidden for now (Oct 2026). Data is kept; remove style="display:none" to bring it back. -->
+        <button class="btn clients-subtab" id="cst-slots" style="display:none" onclick="showClientsTab('slots')">Appointment Slots</button>
+        <button class="btn clients-subtab on" id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
         <button class="btn clients-subtab"    id="cst-profiles" onclick="showClientsTab('profiles')">Client Profiles</button>
       </div>
-      <div id="clients-slots-panel">
+      <div id="clients-slots-panel" style="display:none">
       <div class="csumrow">
         <div class="csum"><strong id="cs-tot">0</strong>Total</div>
         <div class="csum"><strong id="cs-inv">0</strong>Invoiced</div>
@@ -348,7 +349,7 @@
         </div>
       </div>
       </div><!-- /clients-slots-panel -->
-      <div id="clients-inperson-panel" style="display:none"></div>
+      <div id="clients-inperson-panel"></div>
       <div id="clients-profiles-panel" style="display:none"></div>
   </div>
 
@@ -2024,7 +2025,7 @@
     </div>
   </div>
 <script src="https://cdn.jsdelivr.net/npm/heic-to@1.4.2/dist/iife/heic-to.js"></script>
-<script src="app-in-person.js"></script>
+<script src="app-in-person.js?v=2"></script>
 <script src="comms-fix-v39.js"></script>
 <script src="unified-calendar.js"></script>
 <script src="comms-fix-daily.js"></script>
