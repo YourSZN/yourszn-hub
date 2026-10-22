@@ -198,7 +198,7 @@ function renderInPersonTab() {
 }
 
 /* ==========================================================
-   LIST VIEW  (searchable, monthly-grouped table)
+   LIST VIEW  (month tiles + slim weekly list, auto status)
    ========================================================== */
 
 var _ipAllBookings = [];
@@ -229,164 +229,197 @@ async function renderInPersonList() {
   ipRenderFilteredList('');
 }
 
+/* ── Month tiles + slim weekly list ─────────────────────────
+   Status is automatic: appointment date before today = Done,
+   today or later = Upcoming. */
+var ipSelMonth = null;       // 'YYYY-MM'
+var ipStatusFilt = 'all';    // all | upcoming | done
+var ipSearchQ = '';
+
+function ipBookingDate(b) {
+  var s = b.appointment_date || b.created_at;
+  if (!s) return new Date();
+  // appointment_date is a plain date — parse as local, not UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  return new Date(s);
+}
+function ipMonthKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function ipAutoStatus(b) {
+  var t = new Date(); t.setHours(0, 0, 0, 0);
+  return ipBookingDate(b) < t ? 'done' : 'upcoming';
+}
+function ipPersons(b) { return b.in_person_persons ? b.in_person_persons.length : 0; }
+
+function ipSetMonth(k) { ipSelMonth = k; ipRenderFilteredList(ipSearchQ); }
+function ipSetStatusFilt(f) { ipStatusFilt = f; ipRenderFilteredList(ipSearchQ); }
+
+function ipInjectStyles() {
+  if (document.getElementById('ip-list-styles')) return;
+  var st = document.createElement('style'); st.id = 'ip-list-styles';
+  st.textContent =
+    '.ip-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:0 0 22px}' +
+    '.ip-tile{background:white;border:1px solid var(--sand);border-radius:12px;padding:12px 14px;cursor:pointer;transition:border-color .15s}' +
+    '.ip-tile:hover{border-color:var(--brown)}' +
+    '.ip-tile .y{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:700}' +
+    '.ip-tile .m{font-family:Fraunces,serif;font-size:20px;color:var(--deep);margin:2px 0 6px}' +
+    '.ip-tile .n{font-size:12px;color:var(--deep);font-weight:600}.ip-tile .p{font-size:11px;color:var(--muted)}' +
+    '.ip-tile.on{background:var(--deep);border-color:var(--deep)}.ip-tile.on .y,.ip-tile.on .m,.ip-tile.on .n,.ip-tile.on .p{color:white}' +
+    '.ip-tile.empty{opacity:.45;cursor:default}.ip-tile.empty:hover{border-color:var(--sand)}' +
+    '.ip-tile.now .y:after{content:" · now";color:var(--rose)}' +
+    '.ip-seg{display:flex;background:white;border:1px solid var(--sand);border-radius:999px;padding:3px}' +
+    '.ip-seg button{border:none;background:none;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}' +
+    '.ip-seg button.on{background:var(--deep);color:white}' +
+    '.ip-list{background:white;border:1px solid var(--sand);border-radius:12px;overflow:hidden;margin-bottom:18px}' +
+    '.ip-wk{padding:9px 18px;background:var(--cream);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:var(--muted);border-top:1px solid var(--sand)}' +
+    '.ip-wk:first-child{border-top:none}' +
+    '.ip-row{display:grid;grid-template-columns:56px 34px minmax(0,1fr) 130px 90px 96px 14px;gap:12px;align-items:center;padding:11px 18px;border-top:1px solid #EFE9E2;font-size:13px;cursor:pointer}' +
+    '.ip-wk + .ip-row{border-top:none}.ip-row:hover{background:#FBF8F5}' +
+    '.ip-d{font-weight:700;color:var(--deep);line-height:1.1;font-size:15px}.ip-d small{display:block;font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.8px;text-transform:uppercase}' +
+    '.ip-av{width:30px;height:30px;border-radius:50%;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}' +
+    '.ip-nm{font-weight:600;color:var(--deep);min-width:0}.ip-nm div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ip-nm small{display:block;font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.ip-mut{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.ip-pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;justify-self:start}' +
+    '.ip-pill.done{background:#E3F1EA;color:#2F7D5B}.ip-pill.upcoming{background:#FBF0D9;color:#9A6B12}' +
+    '.ip-mh{font-family:Fraunces,serif;font-size:18px;color:var(--deep);margin:4px 0 10px}' +
+    '@media (max-width:760px){.ip-tiles{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}.ip-tile{flex:0 0 112px;scroll-snap-align:start}.ip-row{grid-template-columns:44px 30px minmax(0,1fr) 80px}.ip-row .ip-type,.ip-row .ip-ppl,.ip-row .ip-chev{display:none}}';
+  document.head.appendChild(st);
+}
+
 function ipRenderFilteredList(query) {
   var panel = document.getElementById('clients-inperson-panel');
   if (!panel) return;
+  ipInjectStyles();
+  ipSearchQ = query || '';
+  var q = ipSearchQ.toLowerCase().trim();
 
-  var q = (query || '').toLowerCase().trim();
-  var filtered = _ipAllBookings.filter(function(b) {
-    if (!q) return true;
-    var hay = ((b.client_name || '') + ' ' + (b.client_email || '') + ' ' + (b.status || '') + ' ' + (b.notes || '')).toLowerCase();
-    return hay.indexOf(q) !== -1;
+  // ── Month summary (all bookings) ──
+  var byMonth = {};
+  _ipAllBookings.forEach(function(b) {
+    var k = ipMonthKey(ipBookingDate(b));
+    if (!byMonth[k]) byMonth[k] = { n: 0, ppl: 0 };
+    byMonth[k].n++; byMonth[k].ppl += ipPersons(b);
   });
+  var nowKey = ipMonthKey(new Date());
+  var keys = Object.keys(byMonth).sort();
+  var tiles = [];
+  if (keys.length) {
+    // Every month from the earliest booking to the later of (latest booking, this month), newest first
+    var last = keys[keys.length - 1] > nowKey ? keys[keys.length - 1] : nowKey;
+    var cur = keys[0].split('-').map(Number);
+    while (true) {
+      var k = cur[0] + '-' + String(cur[1]).padStart(2, '0');
+      tiles.unshift(k);
+      if (k >= last) break;
+      cur[1]++; if (cur[1] > 12) { cur[1] = 1; cur[0]++; }
+    }
+  }
+  if (!ipSelMonth || !byMonth[ipSelMonth]) {
+    // Default: this month if it has bookings, else the latest month that does
+    ipSelMonth = byMonth[nowKey] ? nowKey : (keys[keys.length - 1] || null);
+  }
 
-  /* Search bar */
-  var html = ipGetInPersonBanner() +
-    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">' +
-      '<div style="position:relative;flex:1;min-width:220px;max-width:400px;">' +
-        '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;">&#128269;</span>' +
-        '<input type="text" id="ip-search-input" placeholder="Search clients..." value="' + (q || '') + '"' +
-        ' oninput="ipRenderFilteredList(this.value)"' +
-        ' style="width:100%;padding:10px 12px 10px 36px;border-radius:8px;border:1px solid var(--sand);font-size:13px;background:white;box-sizing:border-box;" />' +
-      '</div>' +
-      '<div style="font-size:12px;color:var(--muted);">' + filtered.length + ' booking' + (filtered.length !== 1 ? 's' : '') + '</div>' +
-    '</div>';
+  var html = ipGetInPersonBanner();
 
-  if (filtered.length === 0) {
-    html +=
-      '<div style="padding:40px;text-align:center;">' +
-        '<div style="color:var(--muted);font-size:14px;margin-bottom:12px;">' + (q ? 'No results for "' + q + '"' : 'No in-person bookings yet') + '</div>' +
-        (!q ? '<button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button>' : '') +
-      '</div>';
-    panel.innerHTML = html;
+  if (!_ipAllBookings.length) {
+    panel.innerHTML = html + '<div style="padding:40px;text-align:center;"><div style="color:var(--muted);font-size:14px;margin-bottom:12px;">No in-person bookings yet</div>' +
+      '<button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button></div>';
     return;
   }
 
-  /* Group by month */
-  var months = {};
-  var monthOrder = [];
-  for (var i = 0; i < filtered.length; i++) {
-    var b = filtered[i];
-    var d = b.appointment_date ? new Date(b.appointment_date) : new Date(b.created_at);
-    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    var label = d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
-    if (!months[key]) {
-      months[key] = { label: label, items: [] };
-      monthOrder.push(key);
-    }
-    months[key].items.push(b);
+  // ── Month tiles ──
+  html += '<div class="ip-tiles">';
+  tiles.forEach(function(k) {
+    var p = k.split('-'), d = new Date(+p[0], +p[1] - 1, 1);
+    var info = byMonth[k];
+    var cls = 'ip-tile' + (info ? '' : ' empty') + (k === ipSelMonth && !q ? ' on' : '') + (k === nowKey ? ' now' : '');
+    html += '<div class="' + cls + '"' + (info ? ' onclick="ipSearchQ=\'\';ipSetMonth(\'' + k + '\')"' : '') + '>'
+      + '<div class="y">' + p[0] + '</div>'
+      + '<div class="m">' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + '</div>'
+      + '<div class="n">' + (info ? info.n + ' booking' + (info.n !== 1 ? 's' : '') : 'No bookings') + '</div>'
+      + '<div class="p">' + (info ? info.ppl + ' ' + (info.ppl === 1 ? 'person' : 'people') : '&nbsp;') + '</div>'
+      + '</div>';
+  });
+  html += '</div>';
+
+  // ── Which bookings to show ──
+  var list = _ipAllBookings.filter(function(b) {
+    if (q) {
+      var hay = ((b.client_name || '') + ' ' + (b.client_email || '') + ' ' + (b.appointment_type || '') + ' ' + (b.notes || '')).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    } else if (ipMonthKey(ipBookingDate(b)) !== ipSelMonth) return false;
+    if (ipStatusFilt !== 'all' && ipAutoStatus(b) !== ipStatusFilt) return false;
+    return true;
+  }).sort(function(a, b) { return ipBookingDate(b) - ipBookingDate(a); });
+
+  // ── Header: title, search, status filter ──
+  var title;
+  if (q) title = list.length + ' result' + (list.length !== 1 ? 's' : '') + ' for “' + esc(ipSearchQ.trim()) + '”';
+  else { var sp = ipSelMonth.split('-'); title = new Date(+sp[0], +sp[1] - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }); }
+  var segBtn = function(v, l) { return '<button class="' + (ipStatusFilt === v ? 'on' : '') + '" onclick="ipSetStatusFilt(\'' + v + '\')">' + l + '</button>'; };
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+    + '<div style="font-family:Fraunces,serif;font-size:20px;color:var(--deep);flex:1;min-width:160px">' + title + '</div>'
+    + '<input type="text" id="ip-search-input" placeholder="Search all clients…" value="' + esc(ipSearchQ) + '" oninput="ipRenderFilteredList(this.value)"'
+    +   ' style="padding:8px 12px;border:1px solid var(--sand);border-radius:8px;width:240px;max-width:100%;font-size:13px;background:white;font-family:inherit">'
+    + '<div class="ip-seg">' + segBtn('all', 'All') + segBtn('upcoming', 'Upcoming') + segBtn('done', 'Done') + '</div>'
+    + '</div>';
+
+  if (!list.length) {
+    html += '<div style="padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--sand);border-radius:12px">'
+      + (q ? 'No clients match your search.' : 'No ' + (ipStatusFilt === 'all' ? '' : ipStatusFilt + ' ') + 'bookings this month.') + '</div>';
+    panel.innerHTML = html;
+    ipRestoreSearchFocus(q);
+    return;
   }
 
-  /* Render monthly groups — collapsible, with weekly sub-groups */
-  for (var m = 0; m < monthOrder.length; m++) {
-    var grp = months[monthOrder[m]];
-    var mKey = monthOrder[m];
-
-    html +=
-      '<div style="margin-bottom:20px;">' +
-        /* Collapsible month header */
-        '<div onclick="ipToggleSection(\'' + mKey + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--warm);border:1px solid var(--sand);border-radius:10px;cursor:pointer;user-select:none;transition:background 0.1s;"' +
-        ' onmouseover="this.style.background=\'var(--sand)\'" onmouseout="this.style.background=\'var(--warm)\'">' +
-          '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<span id="ip-chev-' + mKey + '" style="font-size:12px;color:var(--muted);transition:transform 0.2s;display:inline-block;">▼</span>' +
-            '<span style="font-size:14px;font-weight:700;color:var(--charcoal);">' + grp.label + '</span>' +
-            '<span style="font-size:12px;color:var(--muted);font-weight:400;">' + grp.items.length + ' booking' + (grp.items.length !== 1 ? 's' : '') + '</span>' +
-          '</div>' +
-          '<div style="display:flex;gap:6px;">';
-
-    /* Mini status summary */
-    var statusCounts = {};
-    for (var sc2 = 0; sc2 < grp.items.length; sc2++) {
-      var st = grp.items[sc2].status || 'pending';
-      statusCounts[st] = (statusCounts[st] || 0) + 1;
-    }
-    var stKeys = Object.keys(statusCounts);
-    for (var sk = 0; sk < stKeys.length; sk++) {
-      html += '<span style="font-size:10px;padding:2px 8px;border-radius:12px;background:' + ipStatusColor(stKeys[sk]) + ';color:white;text-transform:capitalize;">' + statusCounts[stKeys[sk]] + ' ' + stKeys[sk] + '</span>';
-    }
-
-    html +=
-          '</div>' +
-        '</div>' +
-        /* Month body (collapsible) */
-        '<div id="ip-sec-' + mKey + '" style="padding:4px 0 0 0;">';
-
-    /* ── Group items into weeks (Monday-start) ── */
-    var weeks = {};
-    var weekOrder = [];
-    for (var wi = 0; wi < grp.items.length; wi++) {
-      var bk = grp.items[wi];
-      var bd = bk.appointment_date ? new Date(bk.appointment_date) : new Date(bk.created_at);
-      var mon = ipWeekStart(bd);
+  // ── Rows grouped by (month when searching) → week ──
+  var groups = [], gIdx = {};
+  list.forEach(function(b) {
+    var d = ipBookingDate(b);
+    var mk = ipMonthKey(d);
+    var mon = ipWeekStart(d);
+    var wk = mon.getFullYear() + '-' + (mon.getMonth() + 1) + '-' + mon.getDate();
+    var gk = (q ? mk + '|' : '') + wk;
+    if (!gIdx[gk]) {
       var sun = new Date(mon); sun.setDate(sun.getDate() + 6);
-      var wKey = mKey + '-w' + mon.toISOString().split('T')[0];
-      if (!weeks[wKey]) {
-        weeks[wKey] = {
-          label: ipShortDate(mon) + ' – ' + ipShortDate(sun),
-          items: []
-        };
-        weekOrder.push(wKey);
-      }
-      weeks[wKey].items.push(bk);
+      gIdx[gk] = { mk: mk, label: ipShortDate(mon) + ' – ' + ipShortDate(sun), items: [] };
+      groups.push(gIdx[gk]);
     }
+    gIdx[gk].items.push(b);
+  });
 
-    for (var wk = 0; wk < weekOrder.length; wk++) {
-      var wGrp = weeks[weekOrder[wk]];
-      var wId = weekOrder[wk];
-
-      html +=
-        '<div style="margin-bottom:8px;">' +
-          /* Week sub-header */
-          '<div onclick="ipToggleSection(\'' + wId + '\')" style="display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;user-select:none;">' +
-            '<span id="ip-chev-' + wId + '" style="font-size:10px;color:var(--muted);transition:transform 0.2s;display:inline-block;">▼</span>' +
-            '<span style="font-size:12px;font-weight:600;color:var(--brown);">Week of ' + wGrp.label + '</span>' +
-            '<span style="font-size:11px;color:var(--muted);">(' + wGrp.items.length + ')</span>' +
-          '</div>' +
-          /* Week tile grid */
-          '<div id="ip-sec-' + wId + '" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:4px 12px 8px 12px;">';
-
-      /* Card tiles */
-      for (var r = 0; r < wGrp.items.length; r++) {
-        var bk2 = wGrp.items[r];
-        var personCount = bk2.in_person_persons ? bk2.in_person_persons.length : 0;
-        var sc = ipStatusColor(bk2.status);
-        var initials = ipInitials(bk2.client_name);
-        var initialsCol = ipInitialsColor(bk2.client_name);
-
-        html +=
-          '<div onclick="showBookingDetail(\'' + bk2.id + '\')" style="background:white;border:1px solid var(--sand);border-radius:10px;padding:16px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"' +
-          ' onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.08)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'none\'">' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
-              '<div style="width:36px;height:36px;border-radius:50%;background:' + initialsCol + ';color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + initials + '</div>' +
-              '<div style="flex:1;min-width:0;">' +
-                '<div style="font-weight:600;font-size:14px;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk2.client_name || 'Unnamed') + '</div>' +
-                '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bk2.client_email || '—') + '</div>' +
-              '</div>' +
-              '<span style="font-size:10px;padding:3px 10px;border-radius:20px;background:' + sc + ';color:white;text-transform:capitalize;flex-shrink:0;">' + (bk2.status || 'pending') + '</span>' +
-            '</div>' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--brown);">' +
-              '<span>' + ipFormatDate(bk2.appointment_date) + '</span>' +
-              '<span>' + personCount + ' person' + (personCount !== 1 ? 's' : '') + '</span>' +
-            '</div>' +
-          '</div>';
-      }
-
-      html += '</div></div>';
-    }
-
-    html += '</div></div>';
-  }
+  var curMonth = null, open = false;
+  groups.forEach(function(g) {
+    if (q && g.mk !== curMonth) {
+      if (open) html += '</div>';
+      var mp = g.mk.split('-');
+      html += '<div class="ip-mh">' + new Date(+mp[0], +mp[1] - 1, 1).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' }) + '</div><div class="ip-list">';
+      curMonth = g.mk; open = true;
+    } else if (!open) { html += '<div class="ip-list">'; open = true; }
+    html += '<div class="ip-wk">Week of ' + g.label + ' · ' + g.items.length + '</div>';
+    g.items.forEach(function(b) {
+      var d = ipBookingDate(b), st = ipAutoStatus(b), n = ipPersons(b);
+      html += '<div class="ip-row" onclick="showBookingDetail(\'' + b.id + '\')">'
+        + '<div class="ip-d">' + d.getDate() + '<small>' + d.toLocaleDateString('en-AU', { weekday: 'short' }) + '</small></div>'
+        + '<div class="ip-av" style="background:' + ipInitialsColor(b.client_name) + '">' + ipInitials(b.client_name) + '</div>'
+        + '<div class="ip-nm"><div>' + esc(b.client_name || 'Unnamed') + '</div>' + (b.client_email ? '<small>' + esc(b.client_email) + '</small>' : '') + '</div>'
+        + '<div class="ip-mut ip-type">' + esc(b.appointment_type || '—') + '</div>'
+        + '<div class="ip-mut ip-ppl">' + n + ' ' + (n === 1 ? 'person' : 'people') + '</div>'
+        + '<span class="ip-pill ' + st + '">' + (st === 'done' ? 'Done' : 'Upcoming') + '</span>'
+        + '<div class="ip-mut ip-chev">›</div>'
+        + '</div>';
+    });
+  });
+  if (open) html += '</div>';
 
   panel.innerHTML = html;
-  // Fix HEIC thumbnails on person cards
-    var thumbImgs = panel.querySelectorAll('img');
-    thumbImgs.forEach(function(img) { ipFixHeicImg(img); });
+  panel.querySelectorAll('img').forEach(function(img) { ipFixHeicImg(img); });
+  ipRestoreSearchFocus(q);
+}
 
-  /* Restore focus to search if typing */
-  if (q) {
-    var inp = document.getElementById('ip-search-input');
-    if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
-  }
+function ipRestoreSearchFocus(q) {
+  if (!q) return;
+  var inp = document.getElementById('ip-search-input');
+  if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
 }
 
 /* Get Monday of the week for a given date */
@@ -401,7 +434,7 @@ function ipWeekStart(d) {
 
 /* Short date like "30 Mar" */
 function ipShortDate(d) {
-  return d.getDate() + ' ' + d.toLocaleDateString('en-AU', { month: 'short' });
+  return d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
 }
 
 /* Toggle any collapsible section (month or week) */
