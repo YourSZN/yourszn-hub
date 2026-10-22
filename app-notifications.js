@@ -145,7 +145,9 @@ async function notifPollSubmissions() {
 // ── Load all notifications ─────────────────────────────────
 async function notifLoadList() {
   try {
-    var data = await notifFetch('notifications?order=created_at.desc');
+    // Cleared notifications stay in the table (so they aren't re-created from
+    // the submission/booking they belong to) but are hidden everywhere.
+    var data = await notifFetch('notifications?status=neq.Cleared&order=created_at.desc');
     if (data) notifList = data;
     notifUpdateBellBadge();
     notifUpdateSidebarBadge();
@@ -293,6 +295,27 @@ function notifStatusColor(status) {
   return { color: '#E07020', bg: '#FFF3EB' }; // Not Addressed
 }
 
+// ── Clear notifications (marks them Cleared so they're hidden, not re-created) ──
+async function notifClear(which) {
+  var targets = notifList.filter(function(n){ return which === 'all' || n.status === 'Completed'; });
+  if (!targets.length) return;
+  var msg = which === 'all'
+    ? 'Clear all ' + targets.length + ' notifications? This includes any that are not addressed yet.'
+    : 'Clear ' + targets.length + ' completed notifications?';
+  if (!confirm(msg)) return;
+  var uname = (curUser && USERS[curUser]) ? USERS[curUser].name : '';
+  var ids = targets.map(function(n){ return n.id; });
+  for (var i = 0; i < ids.length; i += 100) {
+    var chunk = ids.slice(i, i + 100);
+    await notifFetch('notifications?id=in.(' + chunk.join(',') + ')', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'Cleared', addressed_by: uname, addressed_at: new Date().toISOString() })
+    });
+  }
+  await notifLoadList();
+  renderNotifCentre();
+}
+
 // ── Set filter and re-render ───────────────────────────────
 function setNotifFilter(f) {
   notifFilter = f;
@@ -331,6 +354,11 @@ function renderNotifCentre() {
   } else {
     html += '<div></div>';
   }
+  var clearable = notifList.filter(function(n){ return n.status === 'Completed'; }).length;
+  html += '<div style="display:flex;gap:8px">'
+    + (clearable ? '<button onclick="notifClear(\'completed\')" style="background:white;border:1px solid var(--sand);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;color:var(--charcoal)">Clear Completed (' + clearable + ')</button>' : '')
+    + (notifList.length ? '<button onclick="notifClear(\'all\')" style="background:white;border:1px solid var(--sand);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;color:#B4412F">Clear All (' + notifList.length + ')</button>' : '')
+    + '</div>';
   html += '</div>';
 
   // ── Filter the list ──
