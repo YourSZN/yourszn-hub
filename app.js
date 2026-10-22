@@ -1904,7 +1904,12 @@ function renderStaffPage() {
 function renderOwnerCards() {
   var grid=document.getElementById('staff-member-cards'); if(!grid) return;
   grid.innerHTML='';
-  ['salma','lemari'].forEach(function(uid){ grid.appendChild(makeStaffCard(uid,true)); });
+  // Only Salma on the Staff page, with her tasks always open (no clicking in to add tasks)
+  ['salma'].forEach(function(uid){
+    grid.appendChild(makeStaffCard(uid,false));
+    if (!staffViewWeekOff[uid]) staffViewWeekOff[uid] = 0;
+    renderStaffTaskView(uid);
+  });
 }
 
 function makeStaffCard(uid, showTaskBtn) {
@@ -1995,6 +2000,7 @@ function renderStaffTaskView(uid) {
     + '<span style="font-size:12px;color:var(--muted);white-space:nowrap">' + weekLabel(off) + '</span>'
     + '<button onclick="changeStaffViewWeek(\''+uid+'\',1)" style="padding:5px 12px;border:1px solid var(--sand);border-radius:8px;background:white;cursor:pointer;font-size:12px;color:var(--deep)">Next ›</button>'
     + (off !== 0 ? '<button onclick="changeStaffViewWeek(\''+uid+'\',0,true)" style="padding:5px 12px;border:1px solid var(--sand);border-radius:8px;background:var(--warm);cursor:pointer;font-size:12px;color:var(--muted)">Today</button>' : '')
+    + '<button class="btn btnp" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="openNewTaskModal(\''+uid+'\')">+ New Task</button>'
     + '</div>'
     + buildTaskTablesHTML(uid, off, false);
 
