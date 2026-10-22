@@ -521,7 +521,8 @@
     border: 1px solid var(--sand); background: #F4EDE3; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
     box-shadow: inset 0 0 60px rgba(140,117,80,.12); }
   .vm-wrap:active { cursor: grabbing; }
-  .vm-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .vm-world { position: absolute; inset: 0; }
+  .vm-lbl.vm-lbl-st { font-family: 'Montserrat', sans-serif; font-style: normal; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase; color: #8C6E58; }
   .vm-overlay { position: absolute; inset: 0; pointer-events: none; }
   .vm-lbl { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-family: 'Cormorant Garamond', serif;
     font-style: italic; color: #5E5248; text-shadow: 0 0 3px #F4EDE3, 0 0 6px #F4EDE3; font-size: 15px; }
@@ -596,7 +597,7 @@
 <div class="save-indicator" id="saveIndicator">✓ Saved</div>
 <div class="toast" id="toast"></div>
 
-<script src="vietnam-map.js?v=1"></script>
+<script src="vietnam-map.js?v=2"></script>
 <script>
 var SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';

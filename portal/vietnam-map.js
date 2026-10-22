@@ -72,7 +72,7 @@ function vmSVG() {
     [[15.8770, 108.3640], [15.8795, 108.3700], [15.8815, 108.3760], [15.8812, 108.3830]],
     [[15.8762, 108.3720], [15.8790, 108.3745], [15.8830, 108.3735], [15.8850, 108.3770]],
     [[15.8745, 108.3500], [15.8775, 108.3530], [15.8795, 108.3580]]
-  ].map(function(c) { return '<path d="' + vmCurve(vmPts(c), false) + '" fill="none" stroke="#A9C1C2" stroke-width="2.4" stroke-linecap="round"/>'; }).join('');
+  ].map(function(c) { return '<path d="' + vmCurve(vmPts(c), false) + '" fill="none" stroke="#A9C1C2" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'; }).join('');
 
   var blob = function(list) { return vmCurve(vmPts(list), true); };
   var oldTown = blob([[15.8805, 108.3238], [15.8812, 108.3290], [15.8808, 108.3345], [15.8786, 108.3352], [15.8768, 108.3335], [15.8763, 108.3280], [15.8766, 108.3240]]);
@@ -88,20 +88,22 @@ function vmSVG() {
     [[15.8640, 108.2850], [15.8650, 108.3000], [15.8580, 108.3020], [15.8560, 108.2880]],
     [[15.8600, 108.3650], [15.8610, 108.3850], [15.8540, 108.3870], [15.8530, 108.3680]],
     [[15.8580, 108.3200], [15.8590, 108.3360], [15.8520, 108.3380], [15.8510, 108.3220]]
-  ].map(function(f) { return '<path d="' + blob(f) + '" fill="url(#vm-field)" stroke="#9AAB88" stroke-width="1.4" stroke-dasharray="5 4"/>'; }).join('');
+  ].map(function(f) { return '<path d="' + blob(f) + '" fill="url(#vm-field)" stroke="#9AAB88" stroke-width="1.2" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>'; }).join('');
   var palms = blob([[15.8800, 108.3665], [15.8848, 108.3712], [15.8858, 108.3800], [15.8820, 108.3840], [15.8780, 108.3800], [15.8768, 108.3720]]);
 
   var road = function(list, w) {
     var d = vmCurve(vmPts(list), false);
-    return '<path d="' + d + '" fill="none" stroke="#E9DDCB" stroke-width="' + (w + 3) + '" stroke-linecap="round"/>'
-      + '<path d="' + d + '" fill="none" stroke="#B9A385" stroke-width="' + w + '" stroke-linecap="round" stroke-dasharray="1 0"/>';
+    return '<path d="' + d + '" fill="none" stroke="#C9B497" stroke-width="' + (w * 2.4 + 3) + '" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+      + '<path d="' + d + '" fill="none" stroke="#FBF7F1" stroke-width="' + (w * 2.4) + '" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
   };
   var roads = road([[15.9240, 108.3268], [15.9135, 108.3368], [15.9060, 108.3355], [15.8960, 108.3328], [15.8860, 108.3305], [15.8795, 108.3285]], 2.6)
     + road([[15.8795, 108.3335], [15.8806, 108.3420], [15.8830, 108.3550], [15.8868, 108.3700], [15.8902, 108.3830]], 2.6)
     + road([[15.9135, 108.3390], [15.9040, 108.3490], [15.8945, 108.3660], [15.8890, 108.3800], [15.8840, 108.3920]], 2)
     + road([[15.8795, 108.3080], [15.8800, 108.3170], [15.8805, 108.3240]], 2);
 
-  var street = function(list) { return '<path d="' + vmCurve(vmPts(list), false) + '" fill="none" stroke="#B48A66" stroke-width="1.3" stroke-linecap="round" opacity=".75"/>'; };
+  var street = function(list) { var d = vmCurve(vmPts(list), false);
+    return '<path d="' + d + '" fill="none" stroke="#D2B596" stroke-width="7" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+      + '<path d="' + d + '" fill="none" stroke="#FBF7F1" stroke-width="4.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'; };
   var streets = street([[15.8775, 108.3250], [15.8778, 108.3290], [15.8776, 108.3340]])          // Trần Phú
     + street([[15.8769, 108.3255], [15.8770, 108.3295], [15.8768, 108.3335]])                     // Nguyễn Thái Học
     + street([[15.8788, 108.3245], [15.8792, 108.3300], [15.8790, 108.3345]])                     // Phan Châu Trinh
@@ -111,28 +113,27 @@ function vmSVG() {
   var b1 = vmProj(15.8760, 108.3283), b2 = vmProj(15.8745, 108.3283);
 
   var P = VM.PAD, vw = VM.W + 2 * P, vh = VM.H + 2 * P;
-  return '<svg viewBox="' + (-P) + ' ' + (-P) + ' ' + vw + ' ' + vh + '" width="' + vw + '" height="' + vh + '" xmlns="http://www.w3.org/2000/svg" style="display:block;position:absolute;left:' + (-P) + 'px;top:' + (-P) + 'px">'
+  return '<svg id="vm-svg" viewBox="0 0 ' + VM.W + ' ' + VM.H + '" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="display:block;position:absolute;inset:0">'
     + '<defs>'
-    +   '<filter id="vm-rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="4"/></filter>'
     +   '<pattern id="vm-field" width="14" height="10" patternUnits="userSpaceOnUse"><path d="M1 8 l3 -4 M6 8 l3 -4 M11 8 l2 -3" stroke="#93A47F" stroke-width="1" fill="none" stroke-linecap="round"/></pattern>'
     +   '<pattern id="vm-waves" width="46" height="26" patternUnits="userSpaceOnUse"><path d="M4 13 q5 -6 10 0 t10 0" stroke="#9FB6B5" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M27 24 q4 -5 8 0" stroke="#9FB6B5" stroke-width="1" fill="none" stroke-linecap="round"/></pattern>'
     +   '<pattern id="vm-town" width="11" height="9" patternUnits="userSpaceOnUse"><rect x="1.5" y="1.5" width="4" height="3" rx=".8" fill="#C99A72" opacity=".35"/></pattern>'
     +   '<pattern id="vm-palm" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M8 9 l-4 -3 M8 9 l4 -3 M8 9 l-3 3 M8 9 l3 3 M8 9 v-5" stroke="#6F8A5E" stroke-width="1.1" fill="none" stroke-linecap="round"/></pattern>'
     + '</defs>'
     + '<rect x="' + (-P) + '" y="' + (-P) + '" width="' + vw + '" height="' + vh + '" fill="#F4EDE3"/>'
-    + '<g filter="url(#vm-rough)">'
+    + '<g>'
     +   fields
-    +   '<path d="' + palms + '" fill="#DCE3CF" stroke="#8FA67F" stroke-width="1.4"/><path d="' + palms + '" fill="url(#vm-palm)"/>'
+    +   '<path d="' + palms + '" fill="#DCE3CF" stroke="#8FA67F" stroke-width="1.2" vector-effect="non-scaling-stroke"/><path d="' + palms + '" fill="url(#vm-palm)"/>'
     +   roads
     +   '<path d="' + sea + '" fill="#D2DEDC"/><path d="' + sea + '" fill="url(#vm-waves)"/>'
-    +   '<path d="' + beachLine + '" fill="none" stroke="#E7D5B4" stroke-width="9" stroke-linecap="round" opacity=".9"/>'
-    +   '<path d="' + vmCurve(cp, false) + '" fill="none" stroke="#7E9A99" stroke-width="1.6"/>'
-    +   '<path d="' + river + '" fill="#C3D4D3" stroke="#7E9A99" stroke-width="1.4"/>'
-    +   '<path d="' + channelAnHoi + '" fill="#C3D4D3" stroke="#7E9A99" stroke-width="1"/>'
+    +   '<path d="' + beachLine + '" fill="none" stroke="#E7D5B4" stroke-width="7" stroke-linecap="round" opacity=".9" vector-effect="non-scaling-stroke"/>'
+    +   '<path d="' + vmCurve(cp, false) + '" fill="none" stroke="#7E9A99" stroke-width="1.4" vector-effect="non-scaling-stroke"/>'
+    +   '<path d="' + river + '" fill="#C3D4D3" stroke="#7E9A99" stroke-width="1.3" vector-effect="non-scaling-stroke"/>'
+    +   '<path d="' + channelAnHoi + '" fill="#C3D4D3" stroke="#7E9A99" stroke-width="1" vector-effect="non-scaling-stroke"/>'
     +   creeks
-    +   '<path d="' + anHoi + '" fill="#EDE2D2" stroke="#B9A385" stroke-width="1"/><path d="' + anHoi + '" fill="url(#vm-town)" opacity=".7"/>'
-    +   '<path d="' + oldTown + '" fill="#EFDCC6" stroke="#B48A66" stroke-width="1.6"/><path d="' + oldTown + '" fill="url(#vm-town)"/>' + streets
-    +   '<line x1="' + b1.x + '" y1="' + b1.y + '" x2="' + b2.x + '" y2="' + b2.y + '" stroke="#8C7550" stroke-width="2.4"/>'
+    +   '<path d="' + anHoi + '" fill="#EEE3D3" stroke="#C4AE90" stroke-width="1.2" vector-effect="non-scaling-stroke"/>'
+    +   '<path d="' + oldTown + '" fill="#EED9C2" stroke="#B48A66" stroke-width="1.5" stroke-dasharray="6 3" vector-effect="non-scaling-stroke"/>' + streets
+    +   '<line x1="' + b1.x + '" y1="' + b1.y + '" x2="' + b2.x + '" y2="' + b2.y + '" stroke="#8C7550" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
     + '</g>'
     + '</svg>';
 }
@@ -140,6 +141,12 @@ function vmSVG() {
 var VM_LABELS = [
   { lat: 15.8826, lng: 108.3292, t: 'Old Town', c: 'big' },
   { lat: 15.8722, lng: 108.3262, t: 'An Hội', c: 'sm', z: 1.8 },
+  { lat: 15.8737, lng: 108.3262, t: 'Night Market', c: 'st', z: 2.4 },
+  { lat: 15.8779, lng: 108.3345, t: 'Central Market', c: 'st', z: 2.4 },
+  { lat: 15.8778, lng: 108.3307, t: 'Trần Phú', c: 'st', z: 3.2 },
+  { lat: 15.8767, lng: 108.3290, t: 'Nguyễn Thái Học', c: 'st', z: 3.2 },
+  { lat: 15.8792, lng: 108.3315, t: 'Phan Châu Trinh', c: 'st', z: 3.2 },
+  { lat: 15.8757, lng: 108.3318, t: 'Bạch Đằng riverside', c: 'water', z: 2.6 },
   { lat: 15.8712, lng: 108.3500, t: 'Thu Bồn River', c: 'water' },
   { lat: 15.9045, lng: 108.3280, t: 'Trà Quế veggie village', c: 'sm' },
   { lat: 15.8870, lng: 108.3770, t: 'Cẩm Thanh coconut forest', c: 'sm' },
@@ -226,14 +233,14 @@ function vmDeclutter(ov) {
   var placed = [], hit = function(r) {
     return placed.some(function(p) { return !(r.right < p.left || r.left > p.right || r.bottom < p.top || r.top > p.bottom); });
   };
-  var add = function(el) { var r = el.getBoundingClientRect(); placed.push({ left: r.left - 3, right: r.right + 3, top: r.top - 2, bottom: r.bottom + 2 }); };
+  var add = function(el) { var r = el.getBoundingClientRect(); placed.push({ left: r.left - 2, right: r.right + 2, top: r.top - 1, bottom: r.bottom + 1 }); };
   var tryShow = function(el) { var r = el.getBoundingClientRect(); if (hit(r)) el.style.visibility = 'hidden'; else add(el); };
-  ov.querySelectorAll('.vm-home-ico, .vm-pin-head').forEach(add);
+  ov.querySelectorAll('.vm-home-ico, .vm-pin').forEach(add);
   var home = ov.querySelector('.vm-home-name'); if (home) add(home);
   var sel = ov.querySelector('.vm-pin.on .vm-pin-name'); if (sel) add(sel);
   ov.querySelectorAll('.vm-pin:not(.on) .vm-pin-name').forEach(tryShow);
   ov.querySelectorAll('.vm-lbl-big, .vm-lbl-sea, .vm-lbl-water').forEach(tryShow);
-  ov.querySelectorAll('.vm-lbl-sm, .vm-lbl-xs').forEach(tryShow);
+  ov.querySelectorAll('.vm-lbl-sm, .vm-lbl-xs, .vm-lbl-st').forEach(tryShow);
 }
 
 function vmRenderScale() {
@@ -314,8 +321,8 @@ function vmApply() {
   var sz = vmSize(), sw = VM.W * VM.s, sh = VM.H * VM.s;
   VM.tx = sw <= sz.w ? (sz.w - sw) / 2 : Math.min(0, Math.max(sz.w - sw, VM.tx));
   VM.ty = sh <= sz.h ? (sz.h - sh) / 2 : Math.min(0, Math.max(sz.h - sh, VM.ty));
-  var wd = document.getElementById('vm-world');
-  if (wd) wd.style.transform = 'translate(' + VM.tx + 'px,' + VM.ty + 'px) scale(' + VM.s + ')';
+  var svg = document.getElementById('vm-svg');
+  if (svg && sz.w) svg.setAttribute('viewBox', (-VM.tx / VM.s).toFixed(2) + ' ' + (-VM.ty / VM.s).toFixed(2) + ' ' + (sz.w / VM.s).toFixed(2) + ' ' + (sz.h / VM.s).toFixed(2));
   vmRenderOverlay();
 }
 
@@ -329,7 +336,10 @@ function vmFitBox(lat0, lat1, lng0, lng1) {
 
 function vmView(v) {
   VM.view = v;
-  if (v === 'town') vmFitBox(15.8730, 15.8865, 108.3215, 108.3455);
+  if (v === 'town') {
+    if (vmSize().w < 600) vmFitBox(15.8735, 15.8820, 108.3225, 108.3360);   // phones: fill the width with the Old Town
+    else vmFitBox(15.8730, 15.8865, 108.3215, 108.3455);
+  }
   else vmFitBox(VM.LAT0, VM.LAT1, VM.LNG0, VM.LNG1);
 }
 
