@@ -244,8 +244,9 @@ function vtPinInit() {
   if (vtPin.map) { try { vtPin.map.remove(); } catch (e) {} }
   vtPin.marker = null;
   vtPin.map = L.map(el, { maxZoom: 19 });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, className: 'vm-tiles',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
   }).addTo(vtPin.map);
   L.marker(VT_HOME_PIN, { interactive: false, icon: L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12],
     html: '<div style="width:24px;height:24px;border-radius:50%;background:#1C1712;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff">★</div>' }) }).addTo(vtPin.map);

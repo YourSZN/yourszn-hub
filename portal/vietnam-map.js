@@ -196,9 +196,9 @@ function vmInitMap() {
   VM.map = L.map(el, { zoomControl: false, attributionControl: true, minZoom: 11, maxZoom: 19, scrollWheelZoom: true });
   L.control.zoom({ position: 'topright' }).addTo(VM.map);
   L.control.scale({ position: 'bottomleft', imperial: false }).addTo(VM.map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd', maxZoom: 20,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, className: 'vm-tiles',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
   }).addTo(VM.map);
   VM.layer = L.layerGroup().addTo(VM.map);
   VM.homeMarker = L.marker([VM.HOME.lat, VM.HOME.lng], {
