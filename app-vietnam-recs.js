@@ -195,8 +195,16 @@ function _vtRecForm(r) {
         '<div class="sm-field"><label class="sm-lbl">Booking</label><select class="sm-inp" id="vtrec-booking">'+_vtRecOpts(VT_REC_BOOKING, r.booking, ['—'].concat(VT_REC_BOOKING.slice(1)))+'</select></div>'
         + inp('vtrec-map','Google Maps link',r.maps_url,'https://maps.app.goo.gl/…'))
     + '<div class="sm-field"><label class="sm-lbl">Map pin <span style="text-transform:none;font-weight:400">(latitude, longitude — puts this place on the clients\' Map tab)</span></label>'
-    +   '<input class="sm-inp" id="vtrec-pin" value="'+esc(r.lat!=null&&r.lng!=null ? r.lat+', '+r.lng : '')+'" placeholder="e.g. 15.87704, 108.32604">'
-    +   '<div style="font-size:11px;color:var(--muted);margin-top:4px">In Google Maps, right-click the spot and click the numbers at the top of the menu to copy them, then paste here. Leave blank to keep it off the map.</div></div>'
+    +   '<div style="display:flex;gap:8px"><input class="sm-inp" style="flex:1" id="vtrec-pin" value="'+esc(r.lat!=null&&r.lng!=null ? r.lat+', '+r.lng : '')+'" placeholder="e.g. 15.87704, 108.32604" onchange="vtPinSyncFromInput()">'
+    +   '<button type="button" class="btn" style="font-size:12px;white-space:nowrap" onclick="vtPinToggle()" id="vtpin-btn">📍 Pick on map</button></div>'
+    +   '<div id="vtpin-box" style="display:none;margin-top:8px">'
+    +     '<div style="display:flex;gap:8px;margin-bottom:6px"><input class="sm-inp" style="flex:1" id="vtpin-q" placeholder="Search a place or address in Hội An…" onkeydown="if(event.key===\'Enter\'){event.preventDefault();vtPinSearch();}">'
+    +     '<button type="button" class="btn" style="font-size:12px" onclick="vtPinSearch()">Search</button></div>'
+    +     '<div id="vtpin-results" style="font-size:12px"></div>'
+    +     '<div id="vtpin-map" style="height:340px;border-radius:10px;border:1px solid var(--sand,#ddd);overflow:hidden"></div>'
+    +     '<div style="font-size:11px;color:var(--muted);margin-top:4px">Click the exact spot on the map (or drag the pin) — the numbers above fill in automatically. ★ is SIP Boutique. Then Save.</div>'
+    +   '</div>'
+    +   '<div style="font-size:11px;color:var(--muted);margin-top:4px">Or in Google Maps, right-click the spot and click the numbers at the top of the menu to copy them, then paste here. Leave blank to keep it off the map.</div></div>'
     + _vtRecStrip('menu')
     + '<div class="sm-field"><label class="sm-lbl">Online menu link <span style="text-transform:none;font-weight:400">(optional — only if there are no menu pages above; opens in a new tab)</span></label><input class="sm-inp" id="vtrec-menu" value="'+esc(r.menu_url||'')+'" placeholder="https://…"></div>'
     + inp('vtrec-tip','Latisha\'s tip',r.tip,'e.g. Go before 6pm to skip the queue')
@@ -215,6 +223,75 @@ function vtRecParsePin(txt) {
   if (!m) return null;
   var la = parseFloat(m[1]), ln = parseFloat(m[2]);
   return (la > 8 && la < 24 && ln > 102 && ln < 110) ? [Math.round(la*1e6)/1e6, Math.round(ln*1e6)/1e6] : null;
+}
+
+/* ── Pin picker: small real map inside the editor ── */
+var vtPin = { map: null, marker: null };
+var VT_HOME_PIN = [15.8820, 108.3410];   // SIP Boutique — keep in step with vietnam-map.js
+
+function vtPinToggle() {
+  var box = document.getElementById('vtpin-box'); if (!box) return;
+  var open = box.style.display === 'none';
+  box.style.display = open ? 'block' : 'none';
+  document.getElementById('vtpin-btn').textContent = open ? 'Hide map' : '📍 Pick on map';
+  if (open) vtPinInit();
+}
+
+function vtPinInit() {
+  var el = document.getElementById('vtpin-map');
+  if (!el || typeof L === 'undefined') { if (el) el.innerHTML = '<div style="padding:20px;font-size:12px">Map couldn\'t load — refresh and try again.</div>'; return; }
+  if (vtPin.map && vtPin.map.getContainer() === el) { vtPin.map.invalidateSize(); return; }
+  if (vtPin.map) { try { vtPin.map.remove(); } catch (e) {} }
+  vtPin.marker = null;
+  vtPin.map = L.map(el, { maxZoom: 19 });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd', maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+  }).addTo(vtPin.map);
+  L.marker(VT_HOME_PIN, { interactive: false, icon: L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12],
+    html: '<div style="width:24px;height:24px;border-radius:50%;background:#1C1712;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff">★</div>' }) }).addTo(vtPin.map);
+  vtPin.map.on('click', function(e) { vtPinSet(e.latlng.lat, e.latlng.lng); });
+  var cur = vtRecParsePin((document.getElementById('vtrec-pin') || {}).value);
+  if (cur) { vtPinSet(cur[0], cur[1], true); vtPin.map.setView(cur, 17); }
+  else vtPin.map.setView([15.8775, 108.3300], 15);
+  var q = document.getElementById('vtpin-q'), nm = document.getElementById('vtrec-name');
+  if (q && !q.value && nm && nm.value) q.value = nm.value;
+}
+
+function vtPinSet(lat, lng, quiet) {
+  lat = Math.round(lat * 1e6) / 1e6; lng = Math.round(lng * 1e6) / 1e6;
+  if (!vtPin.marker) {
+    vtPin.marker = L.marker([lat, lng], { draggable: true }).addTo(vtPin.map);
+    vtPin.marker.on('dragend', function() { var p = vtPin.marker.getLatLng(); vtPinSet(p.lat, p.lng); });
+  } else vtPin.marker.setLatLng([lat, lng]);
+  if (!quiet) { var inp = document.getElementById('vtrec-pin'); if (inp) inp.value = lat + ', ' + lng; }
+}
+
+function vtPinSyncFromInput() {
+  if (!vtPin.map) return;
+  var cur = vtRecParsePin((document.getElementById('vtrec-pin') || {}).value);
+  if (cur) { vtPinSet(cur[0], cur[1], true); vtPin.map.setView(cur, Math.max(vtPin.map.getZoom(), 16)); }
+}
+
+// Address/place search via OpenStreetMap's free geocoder, biased to the Hội An area.
+function vtPinSearch() {
+  var q = (document.getElementById('vtpin-q').value || '').trim(), out = document.getElementById('vtpin-results');
+  if (!q) return;
+  out.innerHTML = '<div style="padding:4px 0;color:var(--muted)">Searching…</div>';
+  var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=vn&viewbox=108.24,15.97,108.45,15.80&bounded=1&q=' + encodeURIComponent(q);
+  fetch(url, { headers: { 'Accept-Language': 'en' } }).then(function(r) { return r.json(); }).then(function(list) {
+    if (!list || !list.length) { out.innerHTML = '<div style="padding:4px 0;color:var(--muted)">No match in Hội An — try the street address, or just click the spot on the map.</div>'; return; }
+    window._vtPinHits = list;
+    out.innerHTML = list.map(function(h, i) {
+      return '<div onclick="vtPinPick(' + i + ')" style="padding:6px 8px;margin-bottom:4px;border:1px solid var(--sand,#ddd);border-radius:8px;cursor:pointer;background:#fff">' + esc(h.display_name) + '</div>';
+    }).join('');
+  }).catch(function() { out.innerHTML = '<div style="padding:4px 0;color:#B91C1C">Search didn\'t work — click the spot on the map instead.</div>'; });
+}
+
+function vtPinPick(i) {
+  var h = (window._vtPinHits || [])[i]; if (!h) return;
+  var lat = parseFloat(h.lat), lng = parseFloat(h.lon);
+  vtPinSet(lat, lng); vtPin.map.setView([lat, lng], 18);
+  document.getElementById('vtpin-results').innerHTML = '<div style="padding:4px 0;color:var(--muted)">Pinned. Zoom in and drag the pin if it\'s not quite on the door.</div>';
 }
 
 function vtRecSave(id) {

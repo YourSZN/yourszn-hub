@@ -517,47 +517,32 @@
   .vm-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
   .vm-filters .rec-subtab { display: inline-flex; align-items: center; gap: 6px; }
   .vm-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .vm-wrap { position: relative; height: min(70vh, 640px); min-height: 400px; overflow: hidden; border-radius: 14px;
-    border: 1px solid var(--sand); background: #F4EDE3; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
-    box-shadow: inset 0 0 60px rgba(140,117,80,.12); }
-  .vm-wrap:active { cursor: grabbing; }
-  .vm-world { position: absolute; inset: 0; }
-  .vm-lbl.vm-lbl-st { font-family: 'Montserrat', sans-serif; font-style: normal; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase; color: #8C6E58; }
-  .vm-overlay { position: absolute; inset: 0; pointer-events: none; }
-  .vm-lbl { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-family: 'Cormorant Garamond', serif;
-    font-style: italic; color: #5E5248; text-shadow: 0 0 3px #F4EDE3, 0 0 6px #F4EDE3; font-size: 15px; }
-  .vm-lbl-big { font-family: 'Playfair Display', serif; font-size: 17px; color: #7A4E3A; letter-spacing: .5px; }
-  .vm-lbl-water { color: #5C7B7A; font-size: 15px; letter-spacing: 2px; }
-  .vm-lbl-sea { color: #5C7B7A; font-size: 22px; letter-spacing: 6px; text-shadow: none; }
-  .vm-lbl-sm { font-size: 14px; }
-  .vm-lbl-xs { font-size: 12px; opacity: .8; }
-  .vm-pin, .vm-home { position: absolute; pointer-events: auto; border: none; background: none; padding: 0; cursor: pointer; transform: translate(-50%, -100%); }
+  .vm-wrap { position: relative; height: min(72vh, 680px); min-height: 400px; overflow: hidden; border-radius: 14px;
+    border: 1px solid var(--sand); background: #F2EEE8; }
+  .vm-leaflet { position: absolute; inset: 0; background: #F2EEE8; font-family: 'Montserrat', sans-serif; }
+  .vm-leaflet .leaflet-tile-pane { filter: sepia(.16) saturate(.9); }
+  .vm-leaflet .leaflet-control-zoom a { color: var(--charcoal); }
+  .vm-leaflet .leaflet-control-attribution { font-size: 9px; background: rgba(255,255,255,.75); }
+  .vm-leaflet .leaflet-control-scale { margin-bottom: 8px; }
+  .vm-pin-wrap { background: none; border: none; }
+  .vm-pin { position: relative; width: 30px; height: 30px; cursor: pointer; }
   .vm-pin-head { display: block; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #fff;
-    border: 2.5px solid var(--c); box-shadow: 0 3px 8px rgba(28,23,18,.22); transition: transform .15s; }
+    border: 2.5px solid var(--c); box-shadow: 0 3px 8px rgba(28,23,18,.25); transition: transform .15s; box-sizing: border-box; }
   .vm-pin-head span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; transform: rotate(45deg); font-size: 14px; }
   .vm-pin:hover .vm-pin-head, .vm-pin.on .vm-pin-head { transform: rotate(-45deg) scale(1.18); background: var(--c); }
-  .vm-pin-name, .vm-home-name { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 4px; white-space: nowrap;
-    font-family: 'Montserrat', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--charcoal); background: rgba(255,255,255,.92);
-    padding: 2px 7px; border-radius: 10px; box-shadow: 0 1px 4px rgba(28,23,18,.12); }
-  .vm-home { transform: translate(-50%, -50%); z-index: 2; }
+  .vm-pin-name, .vm-home-name { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 8px; white-space: nowrap;
+    font-family: 'Montserrat', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--charcoal); background: rgba(255,255,255,.95);
+    padding: 2px 7px; border-radius: 10px; box-shadow: 0 1px 4px rgba(28,23,18,.15); pointer-events: none; }
+  .vm-home { position: relative; width: 34px; height: 34px; cursor: pointer; }
   .vm-home-ico { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--charcoal);
-    color: #F4EDE3; font-size: 17px; border: 3px solid #F4EDE3; box-shadow: 0 0 0 1.5px var(--charcoal), 0 4px 10px rgba(28,23,18,.3); }
-  .vm-home-name { margin-top: 3px; background: var(--charcoal); color: #F4EDE3; }
-  .vm-ctrls { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden;
-    box-shadow: 0 2px 8px rgba(28,23,18,.15); }
-  .vm-ctrls button { width: 36px; height: 36px; border: none; background: #fff; font-size: 19px; color: var(--charcoal); cursor: pointer; }
-  .vm-ctrls button + button { border-top: 1px solid var(--warm); }
-  .vm-views { position: absolute; left: 12px; top: 12px; display: flex; background: #fff; border-radius: 20px; padding: 3px; box-shadow: 0 2px 8px rgba(28,23,18,.15); }
+    color: #F4EDE3; font-size: 17px; border: 3px solid #F4EDE3; box-shadow: 0 0 0 1.5px var(--charcoal), 0 4px 10px rgba(28,23,18,.3); box-sizing: border-box; }
+  .vm-home-name { margin-top: 4px; background: var(--charcoal); color: #F4EDE3; }
+  .vm-views { position: absolute; left: 12px; top: 12px; z-index: 500; display: flex; background: #fff; border-radius: 20px; padding: 3px; box-shadow: 0 2px 8px rgba(28,23,18,.15); }
   .vm-views button { border: none; background: none; font-family: 'Montserrat', sans-serif; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase;
     padding: 6px 11px; border-radius: 16px; color: var(--muted); cursor: pointer; }
   .vm-views button.on { background: var(--charcoal); color: #fff; }
-  .vm-compass { position: absolute; right: 16px; top: 100px; display: flex; flex-direction: column; align-items: center; pointer-events: none;
-    font-family: 'Cormorant Garamond', serif; font-size: 13px; color: #5E5248; }
-  .vm-scale { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: center; gap: 6px; pointer-events: none;
-    font-family: 'Montserrat', sans-serif; font-size: 10px; color: #5E5248; }
-  .vm-scale-bar { height: 5px; border: 1.5px solid #5E5248; border-top: none; }
-  .vm-card { position: absolute; left: 12px; right: 12px; bottom: 12px; max-width: 420px; margin: 0 auto; background: #fff; border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(28,23,18,.22); display: none; overflow: hidden; cursor: default; touch-action: auto; }
+  .vm-card { position: absolute; left: 12px; right: 12px; bottom: 26px; z-index: 600; max-width: 420px; margin: 0 auto; background: #fff; border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(28,23,18,.22); display: none; overflow: hidden; }
   .vm-card.open { display: flex; }
   .vm-card-img { width: 110px; flex-shrink: 0; background: #F4EEE7 center/cover no-repeat; }
   .vm-card-noimg { display: flex; align-items: center; justify-content: center; font-size: 30px; }
@@ -586,9 +571,9 @@
     .vm-filters .rec-subtab { flex-shrink: 0; }
     .vm-wrap { height: calc(100svh - 300px); min-height: 380px; margin: 0 -16px; border-radius: 0; border-left: none; border-right: none; }
     .vm-card-img { width: 88px; }
-    .vm-compass { top: 92px; }
   }
 </style>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 </head>
 <body>
 
@@ -597,7 +582,8 @@
 <div class="save-indicator" id="saveIndicator">✓ Saved</div>
 <div class="toast" id="toast"></div>
 
-<script src="vietnam-map.js?v=2"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vietnam-map.js?v=3"></script>
 <script>
 var SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
