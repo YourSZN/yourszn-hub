@@ -227,7 +227,7 @@ function vtRecParsePin(txt) {
 
 /* ── Pin picker: small real map inside the editor ── */
 var vtPin = { map: null, marker: null };
-var VT_HOME_PIN = [15.8820, 108.3410];   // SIP Boutique — keep in step with vietnam-map.js
+var VT_HOME_PIN = [15.887945, 108.328487];   // SIP Boutique — keep in step with vietnam-map.js
 
 function vtPinToggle() {
   var box = document.getElementById('vtpin-box'); if (!box) return;

@@ -8,11 +8,11 @@
 var VM = {
   // Anything inside this box is drawn on the map; further out goes to "Further afield".
   NEAR: { lat0: 15.80, lat1: 15.97, lng0: 108.24, lng1: 108.45 },
-  HOME: { lat: 15.8820, lng: 108.3410, name: 'SIP Boutique Hoi An',
-          addr: '14 Tuệ Tĩnh, Cẩm Châu', maps: 'https://www.google.com/maps/search/?api=1&query=SIP+Boutique+Villa+%26+Apartment+Hoi+An' },
+  HOME: { lat: 15.887945, lng: 108.328487, name: 'SIP Boutique Hoi An',
+          addr: '14 Tuệ Tĩnh, Hội An Tây', maps: 'https://www.google.com/maps/search/?api=1&query=Sip+Boutique+Villa+%26+Apartment&query_place_id=ChIJ24AZ2r4PQjER28v162Dm9RE' },
   COLORS: { food: '#9A6250', cafe: '#8C7550', bar: '#1C1712', activity: '#5F7253', sightseeing: '#8C6E38',
             spa: '#6F8A86', shopping: '#A0707E', beach: '#4F7A8C', daytrip: '#6B5B4F' },
-  VIEWS: { town: [[15.8745, 108.3225], [15.8815, 108.3440]], area: [[15.865, 108.318], [15.918, 108.392]] },
+  VIEWS: { town: [[15.8735, 108.3210], [15.8905, 108.3420]], area: [[15.865, 108.318], [15.918, 108.392]] },
   map: null, layer: null, homeMarker: null, filter: 'all', sel: null, view: 'town'
 };
 
