@@ -141,7 +141,7 @@ function _checkGroupNotify() {
 function renderDmList() {
   var el = document.getElementById('dm-list'); if (!el) return;
   el.innerHTML = '';
-  var others = Object.keys(USERS).filter(function(u){ return u !== curUser; });
+  var others = Object.keys(USERS).filter(function(u){ return u !== curUser && !USERS[u].inactive; });
   var avatarColors = {latisha:'#C4956A', salma:'#C49A8A', lemari:'#7A8C6E'};
   others.forEach(function(uid) {
     var u      = USERS[uid];

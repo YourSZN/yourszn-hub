@@ -4,7 +4,7 @@
 var USERS = {
 latisha: { name:'Latisha', role:'Owner', email:'sykes_96@hotmail.com', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','plan','staff','finances','vietnam','app','sops','social','marketing','online','comms'] },
   salma:   { name:'Salma',   role:'Admin Support', email:'azzahrasalma0@gmail.com', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','marketing','online','comms'] },
-  lemari:  { name:'Lemari',  role:'Content · Video', email:null, pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','social','marketing','online','comms'] }
+  lemari:  { name:'Lemari',  role:'Content · Video', inactive:true, email:null, pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','vietnam','app','sops','social','marketing','online','comms'] }
 };
 var NAV = [
   { id:'comms',     lbl:'Comms',        sec:'Team',        icon:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
@@ -1224,6 +1224,8 @@ var editingTaskId = null;
 var editingStaffTaskId = null;
 
 var UCOLORS = {latisha:'#C4956A',salma:'#C49A8A',lemari:'#7A8C6E'};
+// Staff shown in team widgets. Former team members stay in USERS (marked inactive) so old tasks and messages still show their name.
+function activeStaff() { return Object.keys(USERS).filter(function(id) { return id !== 'latisha' && !USERS[id].inactive; }); }
 var UINIT = {latisha:'L',salma:'S',lemari:'L'};
 
 function getWeekStart(off) {
@@ -2212,7 +2214,7 @@ function redrawDash(uid){
 function renderTeamSection(){
   var grid=document.getElementById('staff-team-cards'); if(!grid) return;
   grid.innerHTML='';
-  ['salma','lemari'].forEach(function(uid){
+  activeStaff().forEach(function(uid){
     if(uid===curUser) return;
     var u=USERS[uid];
     if(grantedAccess[curUser]){
@@ -2278,7 +2280,7 @@ function denyAccess(id){
 function renderDashTaskProgress(){
   var el=document.getElementById('dash-task-progress'); if(!el) return;
   var wt=tasksForWeek(0); var html=''; var staffOpen={};
-  ['salma','lemari'].forEach(function(uid){
+  activeStaff().forEach(function(uid){
     var u=USERS[uid]; var mt=wt.filter(function(t){return t.assignedTo===uid;});
     var tot=mt.length;
     if(!tot){html+='<div class="tp-row"><div class="tp-label"><span class="tp-name">'+u.name+'</span><span class="tp-counts">No tasks this week</span></div><div class="tp-track"></div></div>';staffOpen[uid]={open:0,tot:0};return;}
@@ -2292,14 +2294,14 @@ function renderDashTaskProgress(){
       (ip>0?'<div class="tp-seg-orange" style="width:'+pw(ip)+'"></div>':'')+
       (ns>0?'<div class="tp-seg-red" style="width:'+pw(ns)+'"></div>':'')+'</div></div>';
   });
-  var hiUid = staffOpen.salma.open >= staffOpen.lemari.open ? 'salma' : 'lemari';
-  var loUid = hiUid === 'salma' ? 'lemari' : 'salma';
-  var hiOpen = staffOpen[hiUid].open, loOpen = staffOpen[loUid].open;
-  var imbalanced = (hiOpen - loOpen >= 3) && (loOpen === 0 || hiOpen >= loOpen * 2);
+  var staffIds = Object.keys(staffOpen).sort(function(a, b) { return staffOpen[b].open - staffOpen[a].open; });
+  var hiUid = staffIds[0], loUid = staffIds[staffIds.length - 1];
+  var hiOpen = hiUid ? staffOpen[hiUid].open : 0, loOpen = loUid ? staffOpen[loUid].open : 0;
+  var imbalanced = staffIds.length > 1 && (hiOpen - loOpen >= 3) && (loOpen === 0 || hiOpen >= loOpen * 2);
   if (imbalanced) {
     html += '<div class="tp-imbalance">&#9878; ' + USERS[hiUid].name + ' has ' + hiOpen + ' open task' + (hiOpen===1?'':'s') + ' this week vs ' + USERS[loUid].name + '&rsquo;s ' + loOpen + ' &mdash; consider rebalancing.</div>';
   }
-  var all=wt.filter(function(t){return t.assignedTo!=='latisha';}); var tot2=all.length;
+  var team=activeStaff(); var all=wt.filter(function(t){return team.indexOf(t.assignedTo)>-1;}); var tot2=all.length;
   if(tot2>0){
     var dn2=all.filter(function(t){return taskStat(t)==='done';}).length;
     var ip2=all.filter(function(t){var s=taskStat(t);return s==='in-progress'||s==='waiting';}).length;
@@ -2619,7 +2621,7 @@ function renderMyhubTeam() {
   var uid = curUser;
   var el = document.getElementById('myhub-team'); if(!el) return;
   el.innerHTML = '';
-  var others = ['salma','lemari'].filter(function(id){ return id!==uid; });
+  var others = activeStaff().filter(function(id){ return id!==uid; });
   others.forEach(function(oid){
     var u = USERS[oid]; var col = UCOLORS[oid]||'#9E8B7A';
     var hasAccess = grantedAccess[uid];
@@ -2964,7 +2966,7 @@ function sopToggleStep(sopId, stepIdx) {
 // ══════════════════════════════════════
 // WORKFLOWS — Checklist Templates + Kanban Board
 // ══════════════════════════════════════
-var STAFF_LIST = Object.keys(USERS).map(function(id){ return { id:id, name:USERS[id].name }; });
+var STAFF_LIST = Object.keys(USERS).filter(function(id){ return !USERS[id].inactive; }).map(function(id){ return { id:id, name:USERS[id].name }; });
 
 function setWorkflowsTab(tab) {
   workflowsTab = tab;
@@ -5554,7 +5556,7 @@ function openCelebVidModal(cid, vid) {
   document.getElementById('cvm-client').value    = v ? (v.client || '') : c.name;
   document.getElementById('cvm-type').value      = v ? (v.type   || 'Reel') : 'Reel';
   document.getElementById('cvm-part').value      = v ? (v.part   || '') : '';
-  document.getElementById('cvm-editor').value    = v ? (v.editor || 'lemari') : 'lemari';
+  document.getElementById('cvm-editor').value    = v ? (v.editor || 'salma') : 'salma';
   document.getElementById('cvm-caption').value   = v ? (v.caption|| '') : '';
   document.getElementById('cvm-cta').value       = v ? (v.cta    || '') : '';
   document.getElementById('cvm-hashtags').value  = v ? (v.hashtags||'#colouranalysis #yourszn') : '#colouranalysis #yourszn';
