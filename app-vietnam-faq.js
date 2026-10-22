@@ -2,6 +2,15 @@
 // Shared FAQ shown on every client's trip dashboard (clients.yourszn.com.au → FAQ).
 // Stored in vietnam_faqs; read/written only via /api/vietnam-staff-info.
 
+var VT_FAQ_CATS = [
+  { id: 'trip',     lbl: 'Your trip' },
+  { id: 'before',   lbl: 'Before you go' },
+  { id: 'around',   lbl: 'Getting around' },
+  { id: 'money',    lbl: 'Money' },
+  { id: 'safety',   lbl: 'Health & safety' },
+  { id: 'everyday', lbl: 'Everyday life' }
+];
+
 var vtFaqs = null;          // null = not loaded yet
 var vtFaqError = '';
 var vtFaqEditing = null;    // faq id, or 'new'
@@ -31,6 +40,8 @@ function _vtFaqForm(f) {
     +   '<div class="sm-field"><label class="sm-lbl">Emoji</label><input class="sm-inp" id="vtfaq-icon" value="'+esc(f.icon||'')+'" style="text-align:center;font-size:18px"></div>'
     +   '<div class="sm-field"><label class="sm-lbl">Question</label><input class="sm-inp" id="vtfaq-q" value="'+esc(f.question||'')+'" placeholder="e.g. What should I wear to fittings?"></div>'
     + '</div>'
+    + '<div class="sm-field"><label class="sm-lbl">Heading</label><select class="sm-inp" id="vtfaq-cat"><option value="">More questions</option>'
+    +   VT_FAQ_CATS.map(function(c) { return '<option value="'+c.id+'"'+(f.category===c.id?' selected':'')+'>'+esc(c.lbl)+'</option>'; }).join('') + '</select></div>'
     + '<div class="sm-field"><label class="sm-lbl">Answer</label>'
     +   '<textarea class="sm-inp" id="vtfaq-a" rows="12" style="resize:vertical;line-height:1.5">'+esc(f.answer||'')+'</textarea>'
     +   '<div style="font-size:11px;color:var(--muted);margin-top:4px">Formatting: leave a blank line for a new paragraph · start a line with <b>- </b> for a bullet or <b>1. </b> for a numbered list · wrap words in <b>**double stars**</b> to make them bold.</div>'
@@ -47,7 +58,7 @@ function vtFaqSave(id) {
   var q = document.getElementById('vtfaq-q').value.trim();
   var err = document.getElementById('vtfaq-err');
   if (!q) { err.textContent = 'Add a question.'; err.style.display = 'block'; return; }
-  var payload = { icon: document.getElementById('vtfaq-icon').value.trim(), question: q, answer: document.getElementById('vtfaq-a').value, published: document.getElementById('vtfaq-pub').checked };
+  var payload = { icon: document.getElementById('vtfaq-icon').value.trim(), question: q, answer: document.getElementById('vtfaq-a').value, published: document.getElementById('vtfaq-pub').checked, category: document.getElementById('vtfaq-cat').value };
   if (id) payload.id = id; else payload.sort_order = (vtFaqs || []).length;
   var btn = document.getElementById('vtfaq-save');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -99,6 +110,7 @@ function renderVtFaqTab() {
       + '<div style="font-size:20px;width:28px;text-align:center;flex-shrink:0">'+esc(f.icon||'❓')+'</div>'
       + '<div style="flex:1;min-width:0;cursor:pointer" onclick="vtFaqEdit(\''+f.id+'\')">'
       +   '<div style="font-weight:600;font-size:14px">'+esc(f.question)+(f.published===false?' <span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:10px;vertical-align:middle">DRAFT</span>':'')+'</div>'
+      +   '<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-top:2px">'+esc((VT_FAQ_CATS.filter(function(c){return c.id===f.category;})[0]||{lbl:'More questions'}).lbl)+'</div>'
       +   '<div style="font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5">'+esc(preview)+'</div>'
       + '</div>'
       + '<div style="display:flex;gap:4px;flex-shrink:0">'
@@ -115,7 +127,7 @@ function renderVtFaqTab() {
 function vtFaqPublish(id) {
   var f = (vtFaqs || []).filter(function(x) { return x.id === id; })[0]; if (!f) return;
   if (/\[[^\]]*(add|confirm)[^\]]*\]/i.test(f.answer || '') && !confirm('This answer still has [placeholders] to fill in. Publish anyway?')) return;
-  vtStaffApiCall('save_faq', { id: f.id, icon: f.icon, question: f.question, answer: f.answer, published: true }).then(function(data) {
+  vtStaffApiCall('save_faq', { id: f.id, icon: f.icon, question: f.question, answer: f.answer, published: true, category: f.category }).then(function(data) {
     if (data && data.ok) { vtFaqs = vtFaqs.map(function(x) { return x.id === id ? data.faq : x; }); renderVietnamTour(); }
     else alert('Couldn\'t publish — try again.');
   });

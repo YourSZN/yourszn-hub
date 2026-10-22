@@ -101,6 +101,19 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, info: await getPersonalInfo(cid, headers) });
     }
 
+    if (action === 'save_checklist') {
+      const list = req.body.checklist;
+      if (!list || typeof list !== 'object' || Array.isArray(list)) return res.status(400).json({ error: 'Nothing to save.' });
+      const json = JSON.stringify(list);
+      if (json.length > 20000) return res.status(400).json({ error: 'Your notes are too long to save — please shorten them.' });
+      const r = await fetch(SUPABASE_URL + '/rest/v1/vietnam_client_personal_info?on_conflict=client_id', {
+        method: 'POST', headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, headers),
+        body: JSON.stringify({ client_id: cid, style_checklist: list, updated_at: new Date().toISOString() })
+      });
+      if (!r.ok) return res.status(400).json({ error: 'Couldn’t save — please try again.' });
+      return res.status(200).json({ ok: true });
+    }
+
     if (action === 'upload') {
       const { file_name, content_type, file_base64 } = req.body;
       const CLIENT_DOC_TYPES = ['passport','flights','visa','insurance','signed_contract','client_upload'];
