@@ -196,10 +196,7 @@ function vmInitMap() {
   VM.map = L.map(el, { zoomControl: false, attributionControl: true, minZoom: 11, maxZoom: 19, scrollWheelZoom: true });
   L.control.zoom({ position: 'topright' }).addTo(VM.map);
   L.control.scale({ position: 'bottomleft', imperial: false }).addTo(VM.map);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, className: 'vm-tiles',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-  }).addTo(VM.map);
+  ysAddTiles(VM.map);
   VM.layer = L.layerGroup().addTo(VM.map);
   VM.homeMarker = L.marker([VM.HOME.lat, VM.HOME.lng], {
     zIndexOffset: 2000, title: VM.HOME.name,
@@ -224,4 +221,28 @@ function vtMapShow() {
     VM.map.invalidateSize();
     vmRenderPins();
   }
+}
+
+// Free, key-less street tiles. If a provider fails to load (blocked, down or rate
+// limited), the map quietly switches to the next one so it never sits blank.
+var YS_TILE_PROVIDERS = [
+  { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors' } },
+  { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' } },
+  { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 19, attribution: '&copy; OpenStreetMap contributors, tiles by OSM France' } }
+];
+function ysAddTiles(map, i) {
+  i = i || 0;
+  var p = YS_TILE_PROVIDERS[i]; if (!p) return null;
+  var ok = 0, bad = 0, switched = false;
+  var layer = L.tileLayer(p.url, Object.assign({ className: 'vm-tiles' }, p.opts));
+  layer.on('tileload', function() { ok++; });
+  layer.on('tileerror', function() {
+    bad++;
+    if (!switched && ok === 0 && bad >= 3 && YS_TILE_PROVIDERS[i + 1]) {
+      switched = true; map.removeLayer(layer); ysAddTiles(map, i + 1);
+    }
+  });
+  layer.addTo(map);
+  if (layer.bringToBack) layer.bringToBack();
+  return layer;
 }

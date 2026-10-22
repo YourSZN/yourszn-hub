@@ -244,10 +244,7 @@ function vtPinInit() {
   if (vtPin.map) { try { vtPin.map.remove(); } catch (e) {} }
   vtPin.marker = null;
   vtPin.map = L.map(el, { maxZoom: 19 });
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, className: 'vm-tiles',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-  }).addTo(vtPin.map);
+  ysAddTiles(vtPin.map);
   L.marker(VT_HOME_PIN, { interactive: false, icon: L.divIcon({ className: '', iconSize: [24, 24], iconAnchor: [12, 12],
     html: '<div style="width:24px;height:24px;border-radius:50%;background:#1C1712;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid #fff">★</div>' }) }).addTo(vtPin.map);
   vtPin.map.on('click', function(e) { vtPinSet(e.latlng.lat, e.latlng.lng); });
@@ -392,4 +389,28 @@ function renderVtRecsTab() {
   });
 
   return intro + subtabs + html;
+}
+
+// Free, key-less street tiles. If a provider fails to load (blocked, down or rate
+// limited), the map quietly switches to the next one so it never sits blank.
+var YS_TILE_PROVIDERS = [
+  { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors' } },
+  { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' } },
+  { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', opts: { subdomains: 'abc', maxZoom: 19, attribution: '&copy; OpenStreetMap contributors, tiles by OSM France' } }
+];
+function ysAddTiles(map, i) {
+  i = i || 0;
+  var p = YS_TILE_PROVIDERS[i]; if (!p) return null;
+  var ok = 0, bad = 0, switched = false;
+  var layer = L.tileLayer(p.url, Object.assign({ className: 'vm-tiles' }, p.opts));
+  layer.on('tileload', function() { ok++; });
+  layer.on('tileerror', function() {
+    bad++;
+    if (!switched && ok === 0 && bad >= 3 && YS_TILE_PROVIDERS[i + 1]) {
+      switched = true; map.removeLayer(layer); ysAddTiles(map, i + 1);
+    }
+  });
+  layer.addTo(map);
+  if (layer.bringToBack) layer.bringToBack();
+  return layer;
 }
