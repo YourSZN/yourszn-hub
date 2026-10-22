@@ -1210,7 +1210,6 @@ function updCSummary(){
 var tasks = [
   {id:1,title:'Finalise corporate pricing structure',assignedTo:'latisha',category:'Admin',freq:'one-off',due:'',priority:'red',hrsAllowed:2,hrsTaken:0,status:'not-started',desc:'Research competitor rates and set final corporate package pricing.',videoUrl:'',fileUrl:'',notes:''},
   {id:2,title:'Build ManyChat COLOUR funnel',assignedTo:'latisha',category:'Marketing',freq:'one-off',due:'',priority:'orange',hrsAllowed:4,hrsTaken:0,status:'in-progress',desc:'Set up the comment trigger, DM sequence and booking link.',videoUrl:'',fileUrl:'',notes:''},
-  {id:3,title:'Edit and schedule reels — 2 weeks',assignedTo:'lemari',category:'Content',freq:'weekly',due:'Friday',priority:'orange',hrsAllowed:8,hrsTaken:0,status:'not-started',desc:'Edit all raw footage from filming days. Schedule 3-5 reels per week across IG and TikTok.',videoUrl:'',fileUrl:'',notes:''},
   {id:4,title:'Client inbox — respond to all enquiries',assignedTo:'salma',category:'Customer Support',freq:'daily',due:'',priority:'red',hrsAllowed:1,hrsTaken:0,status:'not-started',desc:'Check and reply to all new enquiries in the client inbox. Escalate anything urgent to Latisha.',videoUrl:'',fileUrl:'',notes:''},
   {id:5,title:'Collect Vietnam client deposit data',assignedTo:'salma',category:'Admin',freq:'one-off',due:'',priority:'orange',hrsAllowed:3,hrsTaken:0,status:'not-started',desc:'Follow up all clients who have expressed interest and log deposit status.',videoUrl:'',fileUrl:'',notes:''},
   {id:6,title:'Check and update social media links',assignedTo:'salma',category:'Links',freq:'weekly',due:'Monday',priority:'green',hrsAllowed:0.5,hrsTaken:0,status:'not-started',desc:'Verify all bio links, Linktree and website buttons are working and pointing to current offers.',videoUrl:'',fileUrl:'',notes:''}
@@ -1867,8 +1866,7 @@ var openCards = {};       // uid -> bool, accordion state
 // DATA STORE  (per staff member, persists in memory)
 // ──────────────────────────────────────────────
 var staffData = {
-  salma:  { todos:[], goals:[], diary:'', recurDays:{} },
-  lemari: { todos:[], goals:[], diary:'', recurDays:{} }
+  salma:  { todos:[], goals:[], diary:'', recurDays:{} }
 };
 function getData(uid) {
   if (!staffData[uid]) staffData[uid]={todos:[],goals:[],diary:'',recurDays:{}};
@@ -2249,6 +2247,7 @@ function renderAccessRequests(){
   pending.forEach(function(r){
     var row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--warm);font-size:13px;';
+    if(!USERS[r.from]) return;
     row.innerHTML='<div style="flex:1"><strong>'+USERS[r.from].name+'</strong> has requested team access.<br>'+
       '<span style="font-size:11px;color:var(--muted)">'+r.ts+'</span></div>'+
       '<button class="btn btnp" style="font-size:11px;padding:5px 12px" onclick="approveAccess('+r.id+',\''+r.from+'\')">Approve</button>'+
@@ -2381,7 +2380,7 @@ function requestTaskDeletion() {
 
 
 // ══════════════════════════════════════════════════════════════
-// MY HUB  — staff personal dashboard page (Salma & Lemari)
+// MY HUB  — staff personal dashboard page (Salma)
 // ══════════════════════════════════════════════════════════════
 var myhubDiaryTimer = null;
 
@@ -5434,8 +5433,8 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
 // ── META Rotation Schedule cell editing ──
 var metaSchedData = {};
 var currentMrcKey = null;
-var MRC_STAFF_COLORS = {L:'#7A8C6E', S:'#C49A8A', T:'#C4956A', '':'#C9B99A'};
-var MRC_STAFF_LABELS = {L:'Lemari', S:'Salma', T:'Latisha', '':'Unassigned'};
+var MRC_STAFF_COLORS = {S:'#C49A8A', T:'#C4956A', '':'#C9B99A'};
+var MRC_STAFF_LABELS = {S:'Salma', T:'Latisha', '':'Unassigned'};
 
 function openMrcModal(key) {
   currentMrcKey = key;
@@ -5445,7 +5444,7 @@ function openMrcModal(key) {
   var lbl = parts[1] + ' \u2014 ' + (days[parseInt(parts[2])] || parts[2]);
   document.getElementById('mrc-slot-lbl').textContent = lbl;
   var badge = document.getElementById('mrc-badge-view');
-  var staffColors = {Lemari:'#7A8C6E', Salma:'#C49A8A', Latisha:'#C4956A'};
+  var staffColors = {Salma:'#C49A8A', Latisha:'#C4956A'};
   if (slot.staff) { badge.textContent = slot.staff; badge.style.background = staffColors[slot.staff]||'#C9B99A'; badge.style.display='flex'; }
   else            { badge.style.display='none'; }
   var linksHtml = '';

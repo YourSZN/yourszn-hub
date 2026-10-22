@@ -112,7 +112,7 @@ var smPipelineStage    = {}; // pillar → active stage key
 var _smEditId        = null;
 var _smDraftComments = [];
 var _smPlanLinkCtx   = null; // {wk, dayKey} set when opening modal from plan
-var smMentions       = {latisha:[], lemari:[]};
+var smMentions       = {latisha:[]};
 var smStrategyNotes  = '';
 var smAnalyticsLog   = []; // [{id, weekEnding, tt:{views,followers,likes,bestPost}, ig:{reach,followers,likes,bestPost}, notes}]
 
@@ -1278,7 +1278,7 @@ function smPostModal() {
           }).join('')
     +     '</div></div>'
     +   '<div>' + smLbl('Assigned To') + SM_SEL('sm-f-assign') + '<option value="">— Unassigned —</option>'
-    +     ['Latisha','Lemari'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
+    +     ['Latisha'].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')
     +   '</select></div>'
 
     + '</div>';
@@ -1755,8 +1755,8 @@ function smScriptIcon() {
     + 'Script</span>';
 }
 
-var SM_STAFF = ['Latisha', 'Lemari'];
-var SM_STAFF_COLORS = {Latisha:'#C4956A', Lemari:'#7A8C6E'};
+var SM_STAFF = ['Latisha'];
+var SM_STAFF_COLORS = {Latisha:'#C4956A'};
 
 function smRenderComments(postId) {
   var listEl = document.getElementById('sm-comments-list'); if (!listEl) return;
@@ -1796,7 +1796,7 @@ function smCurrentUser() {
 }
 
 function smFormatMentions(html) {
-  return html.replace(/@(Latisha|Lemari)/g, function(match, name) {
+  return html.replace(/@(Latisha)/g, function(match, name) {
     var col = SM_STAFF_COLORS[name] || '#9CA3AF';
     return '<span style="font-weight:700;color:' + col + ';background:' + col + '18;border-radius:4px;padding:1px 4px">@' + name + '</span>';
   });

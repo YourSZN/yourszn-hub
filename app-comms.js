@@ -86,7 +86,7 @@ function renderGroupThread() {
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px">No messages yet. Say hello! 👋</div>';
     return;
   }
-  var avatarColors = {latisha:'#C4956A', salma:'#C49A8A', lemari:'#7A8C6E'};
+  var avatarColors = {latisha:'#C4956A', salma:'#C49A8A'};
   groupMsgs.forEach(function(m) {
     var mine = m.from === curUser;
     var row  = document.createElement('div');
@@ -176,7 +176,7 @@ function openDm(uid) {
   commsNavBadge();
   var hd = document.getElementById('dm-header');
   if (hd) {
-    var avatarColors = {latisha:'#C4956A', salma:'#C49A8A', lemari:'#7A8C6E'};
+    var avatarColors = {latisha:'#C4956A', salma:'#C49A8A'};
     hd.innerHTML = '<div class="dm-av" style="background:' + (avatarColors[uid]||'#999') + ';width:28px;height:28px;font-size:13px">' + USERS[uid].name.charAt(0) + '</div>'
       + '<div><div style="font-size:14px;font-weight:600">' + USERS[uid].name + '</div>'
       + '<div style="font-size:11px;color:var(--muted)">' + USERS[uid].role + '</div></div>';
@@ -198,7 +198,7 @@ function renderDmThread() {
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px">No messages yet.</div>';
     return;
   }
-  var avatarColors = {latisha:'#C4956A', salma:'#C49A8A', lemari:'#7A8C6E'};
+  var avatarColors = {latisha:'#C4956A', salma:'#C49A8A'};
   msgs.forEach(function(m) {
     var mine = m.from === curUser;
     var row  = document.createElement('div');

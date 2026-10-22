@@ -33,7 +33,6 @@ var bizIncome = [
 
 var bizExpenses = [
   { id:10, name:'Salma ($5.5/hr)', cat:'Staff', amount:137.50, freq:'weekly', notes:'25hrs', gstIncluded:false },
-  { id:11, name:'Lemari ($16/hr)', cat:'Staff', amount:240, freq:'weekly', notes:'15hrs', gstIncluded:false },
   { id:20, name:'Xero', cat:'Subscriptions', amount:22.50, freq:'weekly', notes:'Monthly', gstIncluded:true },
   { id:21, name:'Hue & Stripe', cat:'Subscriptions', amount:29, freq:'weekly', notes:'3 months · $377', gstIncluded:true },
   { id:22, name:'Image Innovators', cat:'Subscriptions', amount:12.50, freq:'weekly', notes:'Monthly', gstIncluded:true },
