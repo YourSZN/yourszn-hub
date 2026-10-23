@@ -253,7 +253,7 @@ var SUPA_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 var PHOTO_BUCKET = 'in-person-photos';
 var MAX_SLOTS   = 4;
 
-// ── Supabase client (lazy init) ──────────────────────────────
+// ── Supabase client (lazy init) — used ONLY to upload photo files ──
 var _cuDb = null;
 function cuDb() {
   if (!_cuDb) _cuDb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -291,83 +291,40 @@ async function cuStart() {
   btn.innerHTML = '<span class="cu-spinner"></span> Checking...';
   errEl.innerHTML = '';
 
-  var db = cuDb();
-
-  /* Check for existing booking by name + email */
-  var { data: existing, error: lookupErr } = await db
-    .from('in_person_bookings')
-    .select('*')
-    .ilike('client_name', name)
-    .ilike('client_email', email)
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  if (existing && existing.length > 0) {
-    /* ── Returning client: load existing booking for photo editing ── */
-    cuBooking = existing[0];
-    cuIsReturning = true;
-
-    /* Fetch existing persons */
-    var { data: persons } = await db
-      .from('in_person_persons')
-      .select('*')
-      .eq('booking_id', cuBooking.id)
-      .order('sort_order', { ascending: true });
-
-    cuPersons = (persons || []).map(function(p) {
-      return {
-        id: p.id,
-        name: p.name || '',
-        is_primary: p.is_primary,
-        photo_url: p.photo_url || '',
-        photo_path: p.photo_path || '',
-        _file: null,
-        _preview: p.photo_url || '',
-        _isNew: false
-      };
+  /* Find (or create) this client's booking via the secure server endpoint —
+     the browser has no direct access to the bookings tables. */
+  var out = null;
+  try {
+    var r = await fetch('/api/client-booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start', name: name, email: email, date: date, type: type })
     });
-
-    /* Ensure at least 1 slot */
-    if (cuPersons.length === 0) {
-      cuPersons.push({
-        id: null, name: cuBooking.client_name || '', is_primary: true,
-        photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
-      });
-    }
-
-  } else {
-    /* ── New client: create booking ── */
-    cuIsReturning = false;
-
-    var { data: newBooking, error: createErr } = await db
-      .from('in_person_bookings')
-      .insert({
-        client_name: name,
-        client_email: email,
-        appointment_date: date,
-        appointment_type: type,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (createErr || !newBooking) {
-      errEl.innerHTML = '<div class="cu-error">Something went wrong creating your booking. Please try again.</div>';
-      btn.disabled = false;
-      btn.textContent = 'Continue';
-      return;
-    }
-
-    cuBooking = newBooking;
-
-    /* Create primary person slot pre-filled with client name */
-    cuPersons = [{
-      id: null, name: name, is_primary: true,
-      photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
-    }];
+    out = await r.json();
+    if (!r.ok || !out.ok) throw new Error(out && out.error);
+  } catch (e) {
+    errEl.innerHTML = '<div class="cu-error">' + ((e && e.message) || 'Something went wrong. Please try again.') + '</div>';
+    btn.disabled = false;
+    btn.textContent = 'Continue';
+    return;
   }
+
+  cuBooking = out.booking;
+  cuIsReturning = !!out.returning;
+  cuPersons = (out.persons || []).map(function(p) {
+    return {
+      id: p.id, name: p.name || '', is_primary: p.is_primary,
+      photo_url: p.photo_path ? 'existing' : '', photo_path: p.photo_path || '',
+      _file: null, _preview: p.preview || '', _isNew: false
+    };
+  });
+  if (cuPersons.length === 0) {
+    cuPersons.push({
+      id: null, name: cuIsReturning ? (cuBooking.client_name || '') : name, is_primary: true,
+      photo_url: '', photo_path: '', _file: null, _preview: '', _isNew: true
+    });
+  }
+  window._cuIdentity = { name: name, email: email };
 
   btn.disabled = false;
   btn.textContent = 'Continue';
@@ -534,89 +491,39 @@ async function cuSubmitAll() {
   var db = cuDb();
 
   try {
-    /* Update booking timestamps */
-    await db.from('in_person_bookings').update({
-      updated_at: new Date().toISOString()
-    }).eq('id', cuBooking.id);
-
-    /* Process each person */
+    /* Upload any new photos straight into the private bucket (upload-only for
+       the public — nothing can be read back without a signed link). */
+    var personsOut = [];
     for (var i = 0; i < cuPersons.length; i++) {
       var p = cuPersons[i];
       if (!p.name.trim() && !p._file) continue; /* Skip empty optional slots */
-
-      /* Upload photo if new file selected */
-      var photoUrl = p.photo_url;
       var photoPath = p.photo_path;
-
       if (p._file) {
         var path = 'booking_' + cuBooking.id + '/person_' + (p.id || 'new' + i) + '_' + Date.now() + '.jpg';
-        var { data: upData, error: upErr } = await db.storage.from(PHOTO_BUCKET).upload(path, p._file, {
-          cacheControl: '3600', upsert: false
-        });
-
+        var { error: upErr } = await db.storage.from(PHOTO_BUCKET).upload(path, p._file, { cacheControl: '3600', upsert: false });
         if (upErr) {
           msgEl.innerHTML = '<div class="cu-error">Failed to upload photo for ' + (p.name || 'Person ' + (i+1)) + ': ' + upErr.message + '</div>';
           btn.disabled = false;
           btn.textContent = 'Submit Photos';
           return;
         }
-
-        var { data: urlData } = db.storage.from(PHOTO_BUCKET).getPublicUrl(path);
-        photoUrl = urlData ? urlData.publicUrl : '';
         photoPath = path;
+        cuPersons[i]._file = null;
+        cuPersons[i].photo_path = path;
+        cuPersons[i].photo_url = 'existing';
       }
-
-      if (p._isNew || !p.id) {
-        /* Insert new person */
-        var { data: newPerson, error: insErr } = await db.from('in_person_persons').insert({
-          booking_id: cuBooking.id,
-          name: p.name.trim(),
-          is_primary: p.is_primary,
-          photo_url: photoUrl,
-          photo_path: photoPath,
-          sort_order: i,
-          created_at: new Date().toISOString()
-        }).select().single();
-
-        if (!insErr && newPerson) {
-          cuPersons[i].id = newPerson.id;
-          cuPersons[i]._isNew = false;
-        }
-      } else {
-        /* Update existing person */
-        var updates = { name: p.name.trim(), sort_order: i };
-        if (p._file) {
-          updates.photo_url = photoUrl;
-          updates.photo_path = photoPath;
-        }
-        await db.from('in_person_persons').update(updates).eq('id', p.id);
-      }
-
-      /* Clear file ref after upload */
-      cuPersons[i]._file = null;
-      cuPersons[i].photo_url = photoUrl;
-      cuPersons[i].photo_path = photoPath;
+      personsOut.push({ id: p.id || null, name: p.name.trim(), is_primary: p.is_primary, photo_path: photoPath || '' });
     }
 
-    /* Remove any persons from DB that were removed from the list */
-    var { data: existingPersons } = await db.from('in_person_persons').select('id').eq('booking_id', cuBooking.id);
-    if (existingPersons) {
-      var currentIds = cuPersons.filter(function(p){ return p.id; }).map(function(p){ return p.id; });
-      for (var e = 0; e < existingPersons.length; e++) {
-        if (currentIds.indexOf(existingPersons[e].id) === -1) {
-          await db.from('in_person_persons').delete().eq('id', existingPersons[e].id);
-        }
-      }
-    }
-
-    /* Mark photos as submitted + set status to uploaded + save consent */
-    var consentVal = document.getElementById('cu-consent-sel').value;
-    await db.from('in_person_bookings').update({
-      status: 'uploaded',
-      media_consent: consentVal,
-      photos_submitted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }).eq('id', cuBooking.id);
+    /* Save people + consent via the secure endpoint */
+    var id = window._cuIdentity || {};
+    var r = await fetch('/api/client-booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', name: id.name, email: id.email, bookingId: cuBooking.id, consent: document.getElementById('cu-consent-sel').value, persons: personsOut })
+    });
+    var out = await r.json().catch(function(){ return null; });
+    if (!r.ok || !out || !out.ok) throw new Error((out && out.error) || 'Could not save your photos.');
 
     /* Show confirmation screen */
     document.getElementById('cu-upload').style.display = 'none';

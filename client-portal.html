@@ -461,6 +461,16 @@ function vtLookup() {
 }
 
 /* ── Revised-photo helpers ── */
+/* Submission lookups go through /api/client-submission — the browser can't
+   search the submissions table directly. */
+function subApi(payload) {
+  return fetch('/api/client-submission', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); });
+}
+
 function sbHeaders() {
   return { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 }
@@ -505,16 +515,12 @@ function verifyNewSub() {
   btn.disabled = true;
   btn.innerHTML = '<span class="portal-spinner"></span>';
 
-  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,full_name,email,created_at&limit=1';
-  /* Also check email-only to detect mismatched name */
-  var urlEmailOnly = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&select=id&limit=1';
-  Promise.all([
-    fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) }).then(function(r) { return r.json(); }),
-    fetch(urlEmailOnly, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) }).then(function(r) { return r.json(); })
-  ])
-    .then(function(results) {
-      var matchedBoth = results[0];
-      var matchedEmail = results[1];
+  subApi({ action: 'check', name: name, email: email })
+    .then(function(res) {
+      if (!res.ok) throw new Error();
+      var st = res.data.status;
+      var matchedBoth = st === 'match' ? [{ full_name: res.data.full_name, created_at: res.data.created_at }] : [];
+      var matchedEmail = st === 'mismatch' ? [{}] : [];
       btn.disabled = false;
       btn.textContent = 'CONTINUE';
       if (matchedBoth && matchedBoth.length > 0) {
@@ -557,10 +563,9 @@ function lookupSubmission() {
   if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
   if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
 
-  var url = SUPABASE_URL + '/rest/v1/szn_submissions?email=eq.' + encodeURIComponent(email) + '&full_name=ilike.' + encodeURIComponent(name) + '&select=id,full_name,email,created_at&limit=1';
-  fetch(url, { headers: Object.assign({ 'Content-Type': 'application/json' }, sbHeaders()) })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+  subApi({ action: 'lookup', name: name, email: email })
+    .then(function(res) {
+      var data = res.ok && res.data && res.data.submission ? [res.data.submission] : [];
       if (!data || data.length === 0) {
         errEl.textContent = 'No submission found. Please check your name and email and try again.';
         errEl.style.display = 'block';
@@ -568,6 +573,7 @@ function lookupSubmission() {
       }
       var sub = data[0];
       window._revisedSubId = sub.id;
+      window._revisedIdentity = { name: name, email: email };
       matchEl.innerHTML =
         '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:var(--warm);border:1px solid var(--sand)">'
         + '<div style="width:40px;height:40px;border-radius:50%;background:var(--rose);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">'
@@ -632,36 +638,22 @@ function handleRevisedFiles(files) {
           var uploadUrl = SUPABASE_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + uploadPath;
           return fetch(uploadUrl, {
             method: 'POST',
-            headers: Object.assign({ 'Content-Type': convFile.type, 'x-upsert': 'true' }, sbHeaders()),
+            headers: Object.assign({ 'Content-Type': convFile.type }, sbHeaders()),
             body: convFile
-          }).then(function() {
-            var publicUrl = SUPABASE_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + uploadPath;
-            return fetch(SUPABASE_URL + '/rest/v1/szn_photos', {
-              method: 'POST',
-              headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
-              body: JSON.stringify({
-                submission_id: subId,
-                file_url: publicUrl,
-                file_name: convFile.name,
-                file_type: convFile.type,
-                is_revised: true,
-                slot_number: null,
-                slot_label: null
-              })
-            });
+          }).then(function(up) {
+            if (!up.ok) throw new Error('upload');
+            return { path: uploadPath, name: convFile.name, type: convFile.type };
           });
         })
       );
     })(files[i], i);
   }
 
-  Promise.all(uploads).then(function() {
-    /* PATCH revised_photos_at */
-    return fetch(SUPABASE_URL + '/rest/v1/szn_submissions?id=eq.' + subId, {
-      method: 'PATCH',
-      headers: Object.assign({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, sbHeaders()),
-      body: JSON.stringify({ revised_photos_at: new Date().toISOString() })
-    });
+  Promise.all(uploads).then(function(photos) {
+    /* Record the photos + stamp revised_photos_at (server checks it's this client's submission) */
+    var who = window._revisedIdentity || {};
+    return subApi({ action: 'revised', name: who.name, email: who.email, id: subId, photos: photos })
+      .then(function(res) { if (!res.ok) throw new Error(); });
   }).then(function() {
     statusEl.innerHTML =
       '<div style="text-align:center;padding:24px">'

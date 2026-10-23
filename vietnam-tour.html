@@ -1727,19 +1727,30 @@ function tailoringPanelHTML() {
     + '<div id="emptyState" class="empty-state" style="display:none"><div class="icon" style="font-size:40px;margin-bottom:12px;opacity:.4">✦</div><h3 style="font-family:\'Playfair Display\',serif;font-size:19px;color:var(--text-mid);margin-bottom:6px">No items yet</h3><p style="font-size:13px;color:var(--text-light)">Select a category above and add your first inspiration piece</p></div>';
 }
 
+/* Board data goes through /api/vietnam-board, which re-checks this client's
+   dashboard login (cid + email) and only allows their own board. Photos are
+   private; the API returns short-lived links with each load. */
+var vtSignedPhotos = {};
 async function sb(path, opts) {
   opts = opts || {};
-  var res = await fetch(SB_URL + '/rest/v1/' + path, Object.assign({
-    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: opts.prefer || '' }
-  }, opts));
-  if (!res.ok) { var e = await res.text(); throw new Error(e); }
-  var text = await res.text();
-  return text ? JSON.parse(text) : null;
+  var res = await fetch('/api/vietnam-board', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cid: qs('cid'), email: dashClient && dashClient.email, path: path, method: opts.method || 'GET', body: opts.body, prefer: opts.prefer || undefined })
+  });
+  var out = null; try { out = await res.json(); } catch (e) {}
+  if (!res.ok || !out || !out.ok) throw new Error((out && out.error) || ('Request failed (' + res.status + ')'));
+  var data = out.data;
+  if (Array.isArray(data)) data.forEach(function(it) {
+    (it && it.inspiration_photos || []).forEach(function(p) { if (p.signed_url) vtSignedPhotos[p.storage_path] = p.signed_url; });
+  });
+  return data;
 }
 
 async function uploadPhoto(file, clientId, itemId, slot) {
   var ext = file.name.split('.').pop().toLowerCase();
   var path = clientId + '/' + itemId + '/' + slot + '_' + Date.now() + '.' + ext;
+  // Upload-only access: the public can add files to this private bucket but never read them back.
   var res = await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, {
     method: 'POST',
     headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': file.type },
@@ -1750,13 +1761,14 @@ async function uploadPhoto(file, clientId, itemId, slot) {
 }
 
 async function deletePhoto(path) {
-  await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, {
-    method: 'DELETE',
-    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+  await fetch('/api/vietnam-board', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cid: qs('cid'), email: dashClient && dashClient.email, op: 'deletePhoto', storagePath: path })
   });
 }
 
-function photoUrl(path) { return SB_URL + '/storage/v1/object/public/' + STORAGE_BUCKET + '/' + path; }
+function photoUrl(path) { return vtSignedPhotos[path] || ''; }
 
 function showToast(msg, isError) {
   var t = document.getElementById('toast');

@@ -620,7 +620,11 @@ function initPhotoGrid(){
 function renderSlotFilled(div,slot){
   div.classList.add('filled');
   div.onclick=null;
-  div.innerHTML='<img class="ps-thumb" src="'+photoState[slot.key].url+'" alt="'+slot.label+'">'
+  // Photos go into a private bucket, so preview from the local file (or show a tick after a reload).
+  var ps=photoState[slot.key];
+  div.innerHTML=(ps.preview
+      ?'<img class="ps-thumb" src="'+ps.preview+'" alt="'+slot.label+'">'
+      :'<div class="ps-icon" style="color:#5A8A5E">&#10003;</div><div class="ps-label">'+slot.label+'<br><span style="color:#5A8A5E;font-weight:600">uploaded</span></div>')
     +'<button class="ps-remove" onclick="event.stopPropagation();removePhoto(\''+slot.key+'\')">&times;</button>';
 }
 
@@ -652,16 +656,16 @@ function handlePhotoSelect(slotKey){
     div.classList.add('photo-uploading');
     try{
       var ext=file.name.split('.').pop()||'jpg';
-      var path=submissionUUID+'/'+slotKey+'.'+ext;
+      var path=submissionUUID+'/'+slotKey+'_'+Date.now()+'.'+ext;
       // Upload to Supabase Storage
       var upRes=await fetch(SUPA_URL+'/storage/v1/object/online-clients-photos/'+path,{
         method:'POST',
-        headers:{'Authorization':'Bearer '+ANON_KEY,'apikey':ANON_KEY,'Content-Type':file.type,'x-upsert':'true'},
+        headers:{'Authorization':'Bearer '+ANON_KEY,'apikey':ANON_KEY,'Content-Type':file.type},
         body:file
       });
       if(!upRes.ok){var err=await upRes.text();throw new Error(err);}
       var publicUrl=SUPA_URL+'/storage/v1/object/public/online-clients-photos/'+path;
-      photoState[slotKey]={url:publicUrl,path:path,name:file.name,type:file.type,size:file.size};
+      photoState[slotKey]={url:publicUrl,path:path,name:file.name,type:file.type,size:file.size,preview:URL.createObjectURL(file)};
       div.classList.remove('photo-uploading');
       renderSlotFilled(div,slot);
       updatePhotoStatus();
@@ -677,12 +681,8 @@ function handlePhotoSelect(slotKey){
 
 async function removePhoto(slotKey){
   if(!photoState[slotKey])return;
-  var info=photoState[slotKey];
-  try{
-    await fetch(SUPA_URL+'/storage/v1/object/online-clients-photos/'+info.path,{
-      method:'DELETE',headers:{'Authorization':'Bearer '+ANON_KEY,'apikey':ANON_KEY}
-    });
-  }catch(e){console.warn('Delete failed:',e);}
+  // The file stays in the private bucket (the public can't delete from it); it's
+  // simply not attached to the submission.
   delete photoState[slotKey];
   var slot=PHOTO_SLOTS.find(function(s){return s.key===slotKey;});
   var div=document.getElementById('slot-'+slotKey);
@@ -736,7 +736,7 @@ function applyState(s){
   selCols=new Set(s.cols||[]);
   selCols.forEach(function(n){var el=document.getElementById('col'+n);if(el)el.checked=true;});
   document.getElementById('cCount').textContent=selCols.size;
-  if(s.photoState)photoState=s.photoState;
+  if(s.photoState){photoState=s.photoState;Object.keys(photoState).forEach(function(k){delete photoState[k].preview;});}
   if(s.submissionUUID)submissionUUID=s.submissionUUID;
 }
 

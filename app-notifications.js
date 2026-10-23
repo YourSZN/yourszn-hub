@@ -10,13 +10,16 @@ var notifPollTimer = null;
 var notifFilter = 'All';
 
 // ── Supabase REST helpers ──────────────────────────────────
-function notifHeaders() {
-  return { 'apikey': SB_ANON, 'Authorization': 'Bearer ' + SB_ANON, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+// Requests go out as the logged-in staff member (session token), not the
+// public key — client tables are no longer readable without logging in.
+async function notifHeaders() {
+  var auth = window.yszAuthHeaders ? await window.yszAuthHeaders() : { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON };
+  return Object.assign(auth, { 'Content-Type': 'application/json', 'Prefer': 'return=representation' });
 }
 
 async function notifFetch(path, opts) {
   var url = SB_URL + '/rest/v1/' + path;
-  var r = await fetch(url, Object.assign({ headers: notifHeaders() }, opts || {}));
+  var r = await fetch(url, Object.assign({ headers: await notifHeaders() }, opts || {}));
   if (!r.ok) { console.error('notif fetch error', r.status, await r.text()); return null; }
   var txt = await r.text();
   return txt ? JSON.parse(txt) : [];

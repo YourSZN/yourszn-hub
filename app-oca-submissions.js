@@ -677,13 +677,9 @@ function ocaSubCloseLightbox() {
 
 // ── Revised-photos badge on nav ─────────────────────────
 function updateOcaRevisedBadge() {
-  var SB_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
-  var url = SB_URL + '/rest/v1/szn_submissions?revised_photos_at=not.is.null&status=in.(pending,in_progress)&select=id';
-  fetch(url, {
-    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-  })
-  .then(function(r) { return r.json(); })
+  var db = getSupa(); if (!db) return;
+  db.from('szn_submissions').select('id').not('revised_photos_at', 'is', null).in('status', ['pending', 'in_progress'])
+  .then(function(res) { return res.data || []; })
   .then(function(data) {
     var navEl = document.getElementById('n-online');
     if (!navEl) return;

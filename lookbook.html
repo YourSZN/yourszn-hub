@@ -605,6 +605,7 @@ body {
 <script>
 (async function () {
   var authClient = supabase.createClient('https://ntqemlkwsymdxhaonfdv.supabase.co', 'sb_publishable_H4rfsOyYOd8A3OQr0ckmfQ_D_JVaGNJ');
+  window._yszMediaClient = authClient; // staff session used for data + private photo links
   var gate = document.getElementById('__authGate');
   var msg = document.getElementById('__authGateMsg');
   try {
@@ -624,6 +625,7 @@ body {
   window.dispatchEvent(new Event('__authGateDone'));
 })();
 </script>
+<script src="ysz-private-media.js"></script>
 <script>if (window.self !== window.top) document.body.classList.add('in-iframe');</script>
 <style>
   body.in-iframe .site-header { display: none; }
@@ -686,7 +688,10 @@ body {
 
 <script>
 const SB_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cWVtbGt3c3ltZHhoYW9uZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzM4MDUsImV4cCI6MjA4ODYwOTgwNX0.6F34kwmrXpiLKnd2d_oyQubn5QpodO2iHR6O47W9gA4';
+const SB_KEY = 'sb_publishable_H4rfsOyYOd8A3OQr0ckmfQ_D_JVaGNJ';
+// Every request goes out as the logged-in staff member — client boards are not
+// readable with the public key.
+async function lbAuth() { return window.yszAuthHeaders(SB_KEY); }
 const STORAGE_BUCKET = 'inspiration-photos';
 
 let allClients = [];
@@ -700,7 +705,7 @@ let openedAdminItem = null;
 async function sb(path, opts = {}) {
   const prefer = opts.prefer || '';
   delete opts.prefer;
-  const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+  const headers = Object.assign(await lbAuth(), { 'Content-Type': 'application/json' });
   if (prefer) headers['Prefer'] = prefer;
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
     headers,
@@ -711,7 +716,21 @@ async function sb(path, opts = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+// Photos are private: links are signed per load (lbSignPhotos) and reused here.
+const lbSigned = {};
+async function lbSignPhotos(items) {
+  const paths = [];
+  (items || []).forEach(it => (it.inspiration_photos || []).forEach(p => { if (p.storage_path && !lbSigned[p.storage_path]) paths.push(p.storage_path); }));
+  for (let i = 0; i < paths.length; i += 100) {
+    const chunk = paths.slice(i, i + 100);
+    try {
+      const r = await window._yszMediaClient.storage.from(STORAGE_BUCKET).createSignedUrls(chunk, 3600);
+      (r.data || []).forEach((d, idx) => { if (d.signedUrl) lbSigned[d.path || chunk[idx]] = d.signedUrl; });
+    } catch (e) { console.warn('photo signing failed', e); }
+  }
+}
 function photoUrl(path) {
+  if (lbSigned[path]) return lbSigned[path];
   return `${SB_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
 }
 
@@ -803,6 +822,7 @@ async function openClient(clientId) {
 
   // Load items with photos and admin notes
   currentItems = await sb(`inspiration_items?client_id=eq.${clientId}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)`);
+  await lbSignPhotos(currentItems);
 
   // Load measurements
   const meas = await sb(`inspiration_measurements?client_id=eq.${clientId}&select=*`);
@@ -872,7 +892,7 @@ async function deleteInspItem(itemId) {
     const photos = item ? (item.inspiration_photos || []) : [];
     for (const p of photos) {
       if (p.storage_path) {
-        await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + p.storage_path, { method: 'DELETE', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }).catch(() => {});
+        await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + p.storage_path, { method: 'DELETE', headers: await lbAuth() }).catch(() => {});
       }
     }
     await sb('inspiration_item_colours?item_id=eq.' + itemId, { method: 'DELETE' });
@@ -1022,6 +1042,7 @@ async function updateAdminNote(itemId, noteId, field, value) {
     // Reload items to get fresh admin note IDs, but preserve shelf state
     if (!noteId) {
       currentItems = await sb(`inspiration_items?client_id=eq.${currentClient.id}&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)`);
+      await lbSignPhotos(currentItems);
       renderDetail();
     }
   } catch (e) {
@@ -1470,15 +1491,16 @@ async function adminHandlePhoto(e, itemId, slot) {
   const existing = (item.inspiration_photos || []).find(p => p.slot === slot);
   try {
     if (existing) {
-      await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + existing.storage_path, { method: 'DELETE', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }).catch(() => {});
+      await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + existing.storage_path, { method: 'DELETE', headers: await lbAuth() }).catch(() => {});
       await sb('inspiration_photos?id=eq.' + existing.id, { method: 'DELETE' });
     }
     const ext = file.name.split('.').pop().toLowerCase();
     const path = currentClient.id + '/' + itemId + '/' + slot + '_' + Date.now() + '.' + ext;
-    const upRes = await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': file.type }, body: file });
+    const upRes = await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, { method: 'POST', headers: Object.assign(await lbAuth(), { 'Content-Type': file.type }), body: file });
     if (!upRes.ok) throw new Error('Upload failed');
     await sb('inspiration_photos', { method: 'POST', body: JSON.stringify({ item_id: itemId, slot: slot, storage_path: path }) });
     currentItems = await sb('inspiration_items?client_id=eq.' + currentClient.id + '&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)');
+    await lbSignPhotos(currentItems);
     renderDetail();
     flashSaved();
   } catch (err) {
@@ -1490,9 +1512,10 @@ async function adminHandlePhoto(e, itemId, slot) {
 async function adminRemovePhoto(itemId, photoId, path) {
   if (!confirm('Remove this photo?')) return;
   try {
-    await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, { method: 'DELETE', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }).catch(() => {});
+    await fetch(SB_URL + '/storage/v1/object/' + STORAGE_BUCKET + '/' + path, { method: 'DELETE', headers: await lbAuth() }).catch(() => {});
     await sb('inspiration_photos?id=eq.' + photoId, { method: 'DELETE' });
     currentItems = await sb('inspiration_items?client_id=eq.' + currentClient.id + '&order=sort_order.asc,created_at.asc&select=*,inspiration_photos(*),inspiration_admin_notes(*),inspiration_item_colours(*)');
+    await lbSignPhotos(currentItems);
     renderDetail();
     flashSaved();
   } catch (err) {

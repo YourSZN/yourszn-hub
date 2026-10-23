@@ -286,14 +286,13 @@ function vtDeleteClientDoc(portalId, docId) {
   });
 }
 
-/* ── Lookbook (read-only inline view of inspiration_* — those tables are still
-   openly readable with the anon/publishable key, same as the client-facing
-   moodboard, so no staff API round-trip needed here). Matched by email; does
+/* ── Lookbook (read-only inline view of inspiration_* — read as the logged-in
+   staff member; clients reach their own board via /api/vietnam-board). Matched by email; does
    NOT auto-create an inspiration_clients row just from staff looking. ── */
 
-function vtFetchClientLookbook(email) {
+async function vtFetchClientLookbook(email) {
   var key = email.toLowerCase();
-  var headers = { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY };
+  var headers = await window.yszAuthHeaders();
   fetch(SUPA_URL + '/rest/v1/inspiration_clients?email=eq.' + encodeURIComponent(key) + '&select=*', { headers: headers })
     .then(function(r) { return r.json(); })
     .then(function(clients) {
