@@ -208,9 +208,13 @@ textarea{min-height:70px;resize:vertical}
 .modes{display:inline-flex;background:var(--warm);border-radius:24px;padding:3px}
 .modes button{border:0;background:none;border-radius:20px;padding:7px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
 .modes button[aria-pressed="true"]{background:#fff;color:var(--charcoal);box-shadow:var(--shadow)}
-.stage{display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr));gap:12px;max-width:calc(var(--n,1) * 380px)}
+.stage{display:grid;max-width:420px}
 .drape{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/5;background:var(--warm);border:2px solid transparent;padding:0;max-width:100%}
-.drape[aria-pressed="true"]{border-color:var(--charcoal)}
+.drape .half{position:absolute;top:0;bottom:0;width:50%;border:0;background:none;padding:0;cursor:pointer}
+.drape .half.l{left:0}.drape .half.r{right:0}
+.drape .half[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--charcoal)}
+.drape .half.l[aria-pressed="true"]{border-radius:12px 0 0 12px}.drape .half.r[aria-pressed="true"]{border-radius:0 12px 12px 0}
+.drape .half.r .tag{left:auto;right:8px}
 .drape canvas{width:100%;height:100%;display:block}
 .drape .tag{position:absolute;left:8px;bottom:8px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(255,255,255,.88);color:var(--charcoal);border-radius:20px;padding:3px 9px}
 .drape .ph-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;font-size:13px;color:var(--muted)}
@@ -806,7 +810,7 @@ function finishQ(){
 
 /* ================= TRY ON VIEW ================= */
 const T={mode:1,slots:["#85a3e0","#e185a3"],active:0,avoid:false,cut:null,busy:false,msg:"",saved:false};
-(function(){const d=store("selfie");if(!d)return;const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);T.cut=c;T.saved=true;if(!$("#v-tryon").hidden)renderTryOn()};im.src=d})();
+(function(){const d=store("selfie");if(!d)return;const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);T.cut=c;T.cx=faceCentre(c);T.saved=true;if(!$("#v-tryon").hidden)renderTryOn()};im.src=d})();
 function savePhoto(on){
   if(!on){try{localStorage.removeItem(PFX+"selfie")}catch(e){}T.saved=false;return true}
   const k=Math.min(1,720/Math.max(T.cut.width,T.cut.height));const c=document.createElement("canvas");c.width=Math.round(T.cut.width*k);c.height=Math.round(T.cut.height*k);c.getContext("2d").drawImage(T.cut,0,0,c.width,c.height);
@@ -825,8 +829,9 @@ function renderTryOn(){
     </div>
     ${T.cut?`<label class="check" for="savePic"><input type="checkbox" id="savePic" ${T.saved?"checked":""}><span><b>Save my photo for next time</b><br><span class="small muted">If you choose to save it, it's saved on this device only, in this browser. It isn't uploaded to YourSZN or anywhere else. Untick this box to delete it.</span></span></label>`:""}
     <p class="status-line" id="tStatus">${esc(T.msg||"Best results: face a window in natural daylight, no filter, hair off your face, shoulders in frame.")}</p>
-    <div class="stage" style="--n:${T.mode}">${Array.from({length:T.mode},(_, i)=>`<button class="drape" data-slot="${i}" aria-pressed="${T.mode===2&&T.active===i}" aria-label="Colour ${i+1}"><canvas id="cv${i}" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?"Removing your background…":"Add a selfie to start"}</span>`}<span class="tag">${nm(T.slots[i])}</span></button>`).join("")}</div>
-    ${T.mode===2?`<p class="small muted">Tap a picture to choose which side changes, then tap a colour below.</p>`:""}
+    <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?"Removing your background…":"Add a selfie to start"}</span>`}
+      ${T.mode===2?[0,1].map(i=>`<button class="half ${i?"r":"l"}" data-slot="${i}" aria-pressed="${T.active===i}" aria-label="${i?"Right":"Left"} side: ${nm(T.slots[i])}. Tap to change this side"><span class="tag">${nm(T.slots[i])}</span></button>`).join(""):`<span class="tag">${nm(T.slots[0])}</span>`}</div></div>
+    ${T.mode===2?`<p class="small muted">Tap the left or right side of your photo to choose which side changes, then tap a colour below.</p>`:""}
   </div>
   <div class="card picker">
     <div class="row" style="justify-content:space-between"><h3>Pick a colour</h3><button class="toggle" id="tAvoid" aria-pressed="${T.avoid}">Show colours to avoid</button></div>
@@ -836,24 +841,38 @@ function renderTryOn(){
   </div>
   <div class="card stack desktop-only"><h3>Colour camera</h3><p class="small muted">On your phone, the colour camera puts your whole palette over your camera view, so you can hold it up to clothes while you shop. Open this dashboard on your phone to use it.</p></div>
   <div class="card stack mobile-only"><h3>Colour camera</h3><p class="small muted">Hold your palette up to clothes while you shop. Your colours sit over your camera view.</p><div class="row"><button class="btn" id="camBtn">Open colour camera</button></div></div>`;
-  for(let i=0;i<T.mode;i++)drawDrape(i);
+  drawDrape();
   const v=$("#v-tryon");
   ["selfieCam","selfieUp"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)loadSelfie(f)}});
-  v.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>{T.mode=+b.dataset.m;T.active=0;renderTryOn()});
-  v.querySelectorAll(".drape").forEach(b=>b.onclick=()=>{T.active=+b.dataset.slot;renderTryOn()});
+  v.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>{T.mode=+b.dataset.m;T.active=T.mode===2?1:0;renderTryOn()});
+  v.querySelectorAll(".half").forEach(b=>b.onclick=()=>{T.active=+b.dataset.slot;renderTryOn()});
   v.querySelectorAll(".picker .sw").forEach(b=>b.onclick=()=>{T.slots[T.active]=b.dataset.c;renderTryOn()});
   $("#tAvoid").onclick=()=>{T.avoid=!T.avoid;renderTryOn()};
   const cb=$("#camBtn");if(cb)cb.onclick=openCamera;
   const sp=$("#savePic");if(sp)sp.onchange=()=>{const ok=savePhoto(sp.checked);if(sp.checked&&!ok){sp.checked=false;setStatus("This browser couldn't save your photo. It may be in private mode.")}else setStatus(sp.checked?"Saved on this device.":"Your saved photo has been deleted.")};
 }
-function drawDrape(i){
-  const cv=$("#cv"+i);if(!cv)return;const ctx=cv.getContext("2d");const W=cv.width,H=cv.height,c=T.slots[i];
-  ctx.fillStyle=c;ctx.fillRect(0,0,W,H);
+function drawDrape(){
+  const cv=$("#cv0");if(!cv)return;const ctx=cv.getContext("2d");const W=cv.width,H=cv.height;
+  const L=T.slots[0],R=T.mode===2?T.slots[1]:T.slots[0];
+  const paint=(shape)=>{ctx.save();ctx.beginPath();ctx.rect(0,0,W/2,H);ctx.clip();ctx.fillStyle=L;shape();ctx.restore();
+    ctx.save();ctx.beginPath();ctx.rect(W/2,0,W/2,H);ctx.clip();ctx.fillStyle=R;shape();ctx.restore()};
+  paint(()=>ctx.fillRect(0,0,W,H));
   if(!T.cut)return;
+  // Centre the face on the split line
   const im=T.cut,sc=Math.max(W/im.width,H/im.height)*0.98,w=im.width*sc,h=im.height*sc;
-  ctx.drawImage(im,(W-w)/2,H-h,w,h);
+  const cx=(T.cx==null?.5:T.cx)*w;
+  ctx.drawImage(im,W/2-cx,H-h,w,h);
   // drape band across the shoulders, like a fabric drape
-  ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(0,H*.86);ctx.quadraticCurveTo(W/2,H*.78,W,H*.86);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+  paint(()=>{ctx.beginPath();ctx.moveTo(0,H*.86);ctx.quadraticCurveTo(W/2,H*.78,W,H*.86);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill()});
+  if(T.mode===2){ctx.fillStyle="rgba(255,255,255,.55)";ctx.fillRect(W/2-1,H*.8,2,H*.2)}
+}
+// Horizontal centre of the head (top part of the cut-out), 0..1, so the split runs down the middle of the face
+function faceCentre(cut){
+  try{const k=120/cut.width,w=120,h=Math.max(1,Math.round(cut.height*k));const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(cut,0,0,w,h);
+    const d=x.getImageData(0,0,w,h).data;let top=-1;for(let y=0;y<h&&top<0;y++)for(let i=0;i<w;i++)if(d[(y*w+i)*4+3]>128){top=y;break}
+    if(top<0)return .5;let sum=0,n=0;const bottom=Math.min(h,top+Math.round(h*.3));
+    for(let y=top;y<bottom;y++)for(let i=0;i<w;i++)if(d[(y*w+i)*4+3]>128){sum+=i;n++}
+    return n?sum/n/w:.5}catch(e){return .5}
 }
 let segP=null;
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.appendChild(s)})}
@@ -874,7 +893,7 @@ async function loadSelfie(file){
     const out=document.createElement("canvas");out.width=src.width;out.height=src.height;const o=out.getContext("2d");
     o.filter="blur(2px)";o.drawImage(mask,0,0,out.width,out.height);o.filter="none";
     o.globalCompositeOperation="source-in";o.drawImage(src,0,0);
-    T.cut=out;T.busy=false;store("tried",true);if(T.saved)savePhoto(true);T.msg="Tap colours below to compare them next to your face.";
+    T.cut=out;T.cx=faceCentre(out);T.busy=false;store("tried",true);if(T.saved)savePhoto(true);T.msg="Tap colours below to compare them next to your face.";
   }catch(e){T.busy=false;T.cut=null;T.msg="We couldn't remove the background from that photo. Try a clear, well-lit photo with your face and shoulders in frame."}
   renderTryOn();
 }
