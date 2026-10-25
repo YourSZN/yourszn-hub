@@ -4,12 +4,15 @@
 //   { action: "pages" }                -> fresh guide page links (they expire after PAGE_LINK_SECONDS)
 //   { action: "save", state: {...} }   -> saves favourites, quiz scores, closet and checklist
 //   { action: "logout" }               -> records the sign-out
+//   { action: "set_password", password } -> sets/changes the password, signs out other devices, returns a new token
+//   { action: "logout_all" }           -> signs this client out on every device
 //
 // Guide pages live in the PRIVATE storage bucket "season-guides" at
 // <season-slug>/pNNN.webp. Clients only ever get short-lived signed links, and
 // only for their own season.
 
-const { cors, sb, readToken, clientIp } = require('./_colour');
+const { cors, sb, readToken, clientIp, hashPassword, passwordProblem, sessionStillValid, newSession } = require('./_colour');
+const SESSION_DAYS = 30;
 
 const PAGE_LINK_SECONDS = 15 * 60;
 const STATE_KEYS = ['favourites', 'quiz', 'closet', 'checklist'];
@@ -46,9 +49,9 @@ module.exports = async function handler(req, res) {
   if (!session) return res.status(401).json({ error: 'Please sign in again.', signin: true });
 
   try {
-    const rows = await sb('/rest/v1/colour_clients?id=eq.' + session.cid + '&active=eq.true&select=id,name,email,season,tier,analysis&limit=1');
+    const rows = await sb('/rest/v1/colour_clients?id=eq.' + session.cid + '&active=eq.true&select=id,name,email,season,tier,analysis,password_hash,sessions_valid_after&limit=1');
     const client = rows[0];
-    if (!client) return res.status(401).json({ error: 'Please sign in again.', signin: true });
+    if (!client || !sessionStillValid(session, client)) return res.status(401).json({ error: 'Please sign in again.', signin: true });
     const { action, state } = req.body || {};
 
     if (action === 'load') {
@@ -62,7 +65,7 @@ module.exports = async function handler(req, res) {
       });
       return res.status(200).json({
         ok: true,
-        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {} },
+        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {}, hasPassword: !!client.password_hash },
         state: saved[0] || {},
         pages,
         pagesExpireIn: PAGE_LINK_SECONDS,
@@ -82,6 +85,27 @@ module.exports = async function handler(req, res) {
         headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: Object.assign({ client_id: client.id, updated_at: new Date().toISOString() }, clean),
       });
+      return res.status(200).json({ ok: true });
+    }
+
+    if (action === 'set_password') {
+      const password = String((req.body || {}).password || '');
+      const problem = passwordProblem(password);
+      if (problem) return res.status(400).json({ error: problem });
+      const now = new Date().toISOString();
+      await sb('/rest/v1/colour_clients?id=eq.' + client.id, {
+        method: 'PATCH',
+        body: { password_hash: hashPassword(password), password_set_at: now, failed_logins: 0, locked_until: null, sessions_valid_after: now },
+      });
+      await sb('/rest/v1/colour_access_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: { client_id: client.id, event: client.password_hash ? 'password-changed' : 'password-set', ip: clientIp(req) } });
+      // Every other device is now signed out; give this device a fresh session.
+      const fresh = newSession(client.id, SESSION_DAYS);
+      return res.status(200).json(Object.assign({ ok: true }, fresh));
+    }
+
+    if (action === 'logout_all') {
+      await sb('/rest/v1/colour_clients?id=eq.' + client.id, { method: 'PATCH', body: { sessions_valid_after: new Date().toISOString() } });
+      await sb('/rest/v1/colour_access_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: { client_id: client.id, event: 'logout-all', ip: clientIp(req) } });
       return res.status(200).json({ ok: true });
     }
 

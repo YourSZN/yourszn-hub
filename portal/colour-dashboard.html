@@ -282,6 +282,11 @@ body.signed-out .sidebar,body.signed-out .main,body.signed-out .bottom-tabs{disp
 .signin-card .btn{width:100%;padding:13px 16px}
 .signin-card .err{color:var(--bad);font-size:13px;text-align:center;min-height:1em}
 .linkbtn{border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;justify-self:center}
+.silinks{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.pwrow{position:relative}
+.pwrow input{padding-right:64px}
+.pwshow{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px}
+.signin-card p.small{font-size:12px}
 .footer{font-size:12px;color:var(--muted);padding-top:28px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -291,20 +296,33 @@ body.signed-out .sidebar,body.signed-out .main,body.signed-out .bottom-tabs{disp
 <div class="signin" id="signin" hidden>
   <form class="signin-card" id="signinForm" novalidate>
     <div class="slogo">Your <span>SZN</span></div>
-    <h1>Your colour dashboard</h1>
-    <div id="stepEmail" class="stack">
-      <p>Enter the email you used for your colour analysis. We'll email you a 6-digit code. No password needed.</p>
+    <h1 id="siTitle">Your colour dashboard</h1>
+    <div id="stepMain" class="stack">
+      <p>Sign in with the email you used for your colour analysis.</p>
       <label for="email">Email</label>
-      <input type="email" id="email" autocomplete="email" inputmode="email" required>
-      <button class="btn" type="submit" id="sendBtn">Email me a code</button>
+      <input type="email" id="email" autocomplete="username" inputmode="email" required>
+      <label for="password">Password</label>
+      <div class="pwrow"><input type="password" id="password" autocomplete="current-password"><button class="pwshow" type="button" data-for="password">Show</button></div>
+      <button class="btn" type="submit" id="loginBtn">Sign in</button>
+      <div class="silinks"><button class="linkbtn" type="button" id="forgot">Forgot password?</button><button class="linkbtn" type="button" id="useCode">Email me a code instead</button></div>
+      <p class="small muted">First time here? Tap <b>Email me a code instead</b>. You can create a password once you're in.</p>
     </div>
     <div id="stepCode" class="stack" hidden>
       <p id="codeMsg">Check your email for your code. It works for 10 minutes.</p>
       <label for="code">6-digit code</label>
       <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">
-      <button class="btn" type="submit" id="verifyBtn">Open my dashboard</button>
+      <button class="btn" type="submit" id="verifyBtn">Continue</button>
+      <p class="small muted">Can't find the email? Check your junk or spam folder.</p>
       <button class="linkbtn" type="button" id="resend">Send a new code</button>
-      <button class="linkbtn" type="button" id="changeEmail">Use a different email</button>
+      <button class="linkbtn" type="button" id="backMain">Back to sign in</button>
+    </div>
+    <div id="stepSetPw" class="stack" hidden>
+      <p id="setPwMsg">Create a password so you can sign in without waiting for an email next time.</p>
+      <label for="newPw">New password</label>
+      <div class="pwrow"><input type="password" id="newPw" autocomplete="new-password" minlength="8"><button class="pwshow" type="button" data-for="newPw">Show</button></div>
+      <p class="small muted">At least 8 characters.</p>
+      <button class="btn" type="submit" id="savePwBtn">Save password</button>
+      <button class="linkbtn" type="button" id="skipPw">Skip for now</button>
     </div>
     <div class="err" id="signinErr" role="alert"></div>
   </form>
@@ -380,21 +398,47 @@ function boot(){
   });
 }
 (function(){
-  var f=document.getElementById("signinForm"),err=document.getElementById("signinErr"),em=document.getElementById("email"),cd=document.getElementById("code");
-  var stage="email";
+  var f=document.getElementById("signinForm"),err=document.getElementById("signinErr"),em=document.getElementById("email"),pw=document.getElementById("password"),cd=document.getElementById("code"),np=document.getElementById("newPw");
+  var stage="main",codeMode="signin",pendingToken=null;
+  function $i(id){return document.getElementById(id)}
+  function show(st){stage=st;["Main","Code","SetPw"].forEach(function(n){$i("step"+n).hidden=("step"+n)!==("step"+st.charAt(0).toUpperCase()+st.slice(1))});err.textContent=""}
   function busy(b,on,label){b.disabled=on;b.textContent=label}
-  function send(){var b=document.getElementById("sendBtn");err.textContent="";busy(b,true,"Sending…");
-    return api("colour-auth",{action:"send",email:em.value}).then(function(){stage="code";document.getElementById("stepEmail").hidden=true;document.getElementById("stepCode").hidden=false;document.getElementById("codeMsg").textContent="If "+em.value.trim()+" has a YourSZN dashboard, we've emailed you a code. It works for 10 minutes.";cd.focus()})
-      .catch(function(e){err.textContent=e.message}).then(function(){busy(b,false,"Email me a code")})}
+  function keep(tok,exp){try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:tok,expires:exp}))}catch(e){}TOKEN=tok}
+  function needEmail(){if(!em.value.trim()){err.textContent="Please enter your email first.";em.focus();return true}return false}
+  function sendCode(mode){if(needEmail())return;codeMode=mode;err.textContent="";
+    return api("colour-auth",{action:"send",email:em.value}).then(function(){
+      $i("siTitle").textContent=mode==="reset"?"Reset your password":"Check your email";
+      $i("codeMsg").textContent="If "+em.value.trim()+" has a YourSZN dashboard, we've emailed you a 6-digit code. It works for 10 minutes.";
+      show("code");cd.value="";cd.focus()}).catch(function(e){err.textContent=e.message})}
   f.addEventListener("submit",function(ev){ev.preventDefault();
-    if(stage==="email"){send();return}
-    var b=document.getElementById("verifyBtn");err.textContent="";busy(b,true,"Checking…");
-    api("colour-auth",{action:"verify",email:em.value,code:cd.value}).then(function(d){try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(e){}TOKEN=d.token;location.reload()})
-      .catch(function(e){err.textContent=e.message;busy(b,false,"Open my dashboard")})});
+    if(stage==="main"){if(needEmail())return;if(!pw.value){err.textContent="Please enter your password, or tap \"Email me a code instead\".";pw.focus();return}
+      var b=$i("loginBtn");busy(b,true,"Signing in…");
+      api("colour-auth",{action:"login",email:em.value,password:pw.value}).then(function(d){keep(d.token,d.expires);location.reload()})
+        .catch(function(e){err.textContent=e.message;busy(b,false,"Sign in")});return}
+    if(stage==="code"){var b2=$i("verifyBtn");busy(b2,true,"Checking…");
+      api("colour-auth",{action:"verify",email:em.value,code:cd.value}).then(function(d){
+        keep(d.token,d.expires);
+        var skipped=false;try{skipped=localStorage.getItem("szn_pw_skip_"+em.value.trim().toLowerCase())==="1"}catch(e){}
+        if(codeMode==="reset"||(!d.hasPassword&&!skipped)){
+          $i("siTitle").textContent=codeMode==="reset"?"Choose a new password":"Create a password";
+          $i("setPwMsg").textContent=codeMode==="reset"?"Choose a new password. Any other devices will be signed out.":"Create a password so you can sign in without waiting for an email next time.";
+          $i("skipPw").hidden=codeMode==="reset";$i("skipPw").textContent=codeMode==="reset"?"":"Skip for now";
+          show("setPw");np.focus();
+        }else location.reload();
+      }).catch(function(e){err.textContent=e.message;busy(b2,false,"Continue")});return}
+    if(stage==="setPw"){if(np.value.length<8){err.textContent="Please use at least 8 characters.";np.focus();return}
+      var b3=$i("savePwBtn");busy(b3,true,"Saving…");
+      api("colour-dashboard",{action:"set_password",password:np.value}).then(function(d){keep(d.token,d.expires);location.reload()})
+        .catch(function(e){err.textContent=e.message;busy(b3,false,"Save password")})}
+  });
   cd.addEventListener("input",function(){cd.value=cd.value.replace(/\D/g,"").slice(0,6);if(cd.value.length===6)f.requestSubmit()});
-  document.getElementById("resend").onclick=function(){stage="email";send()};
-  document.getElementById("changeEmail").onclick=function(){stage="email";document.getElementById("stepEmail").hidden=false;document.getElementById("stepCode").hidden=true;err.textContent="";em.focus()};
-  document.getElementById("signOut").onclick=function(){signOut(false)};
+  $i("forgot").onclick=function(){sendCode("reset")};
+  $i("useCode").onclick=function(){sendCode("signin")};
+  $i("resend").onclick=function(){sendCode(codeMode)};
+  $i("backMain").onclick=function(){$i("siTitle").textContent="Your colour dashboard";show("main");pw.focus()};
+  $i("skipPw").onclick=function(){try{localStorage.setItem("szn_pw_skip_"+em.value.trim().toLowerCase(),"1")}catch(e){}location.reload()};
+  document.querySelectorAll(".pwshow").forEach(function(b){b.onclick=function(){var t=$i(b.dataset.for);t.type=t.type==="password"?"text":"password";b.textContent=t.type==="password"?"Show":"Hide"}});
+  $i("signOut").onclick=function(){signOut(false)};
 })();
 </script>
 <script>
@@ -469,9 +513,46 @@ function renderSeason(){
     </ul>
     <div class="row"><button class="btn ghost" data-go="practise">Start practising</button><a class="btn ghost" href="https://www.instagram.com/yourszn.online" target="_blank" rel="noopener">Follow @yourszn.online</a></div>
     <p class="small muted">Loved your analysis? A Google review helps others find Your SZN.</p>
-  </div>`;
+  </div>
+  ${accountHTML()}`;
+  wireAccount();
 }
 
+
+
+/* ================= ACCOUNT ================= */
+function accountHTML(){
+  return `<div class="card stack" id="account"><span class="eyebrow">Your account</span>
+    <p class="small">Signed in as <b>${esc(CLIENT.email)}</b></p>
+    <div class="row">
+      <button class="btn ghost" id="accPwBtn">${CLIENT.hasPassword?"Change password":"Create a password"}</button>
+      <button class="btn ghost" id="accOut">Sign out</button>
+      <button class="btn ghost" id="accOutAll">Sign out of all devices</button>
+    </div>
+    <form class="stack" id="accPwForm" hidden novalidate>
+      <label class="small" for="accNewPw"><b>${CLIENT.hasPassword?"New password":"Password"}</b></label>
+      <input type="password" id="accNewPw" autocomplete="new-password" minlength="8" style="max-width:360px">
+      <p class="small muted">At least 8 characters. Saving signs you out on your other devices.</p>
+      <div class="row"><button class="btn" type="submit" id="accSave">Save password</button><button class="btn ghost" type="button" id="accCancel">Cancel</button></div>
+    </form>
+    <p class="small" id="accMsg" role="status"></p>
+    <div class="stack" id="accConfirm" hidden><p class="small"><b>Sign out on every phone and computer?</b> You'll need your password or an email code to sign back in.</p>
+      <div class="row"><button class="btn" id="accOutAllYes">Yes, sign out everywhere</button><button class="btn ghost" id="accOutAllNo">Cancel</button></div></div>
+  </div>`}
+function wireAccount(){
+  const msg=t=>{$("#accMsg").textContent=t};
+  $("#accPwBtn").onclick=()=>{$("#accPwForm").hidden=false;$("#accNewPw").focus()};
+  $("#accCancel").onclick=()=>{$("#accPwForm").hidden=true;msg("")};
+  $("#accPwForm").onsubmit=e=>{e.preventDefault();const v=$("#accNewPw").value;if(v.length<8){msg("Please use at least 8 characters.");return}
+    const b=$("#accSave");b.disabled=true;b.textContent="Saving…";
+    api("colour-dashboard",{action:"set_password",password:v}).then(d=>{try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(x){}TOKEN=d.token;CLIENT.hasPassword=true;
+      renderSeason();setTimeout(()=>{$("#accMsg").textContent="Password saved. Use it with your email next time you sign in.";$("#account").scrollIntoView({block:"center"})},0)})
+      .catch(err=>{msg(err.message);b.disabled=false;b.textContent="Save password"})};
+  $("#accOut").onclick=()=>signOut(false);
+  $("#accOutAll").onclick=()=>{$("#accConfirm").hidden=false};
+  $("#accOutAllNo").onclick=()=>{$("#accConfirm").hidden=true};
+  $("#accOutAllYes").onclick=()=>{api("colour-dashboard",{action:"logout_all"}).catch(()=>{}).then(()=>signOut(true))};
+}
 
 /* ================= WELCOME VIDEO + FIRST WEEK ================= */
 function welcomeVideoHTML(){

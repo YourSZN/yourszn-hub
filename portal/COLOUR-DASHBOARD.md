@@ -3,9 +3,13 @@
 Page: `colour-dashboard.html` (clients.yourszn.com.au/colour-dashboard.html), linked from the client portal.
 
 ## How sign-in works
-1. Client enters their email. `/api/colour-auth` checks `colour_clients` and emails a 6-digit code via Resend (10 minutes, max 5 codes an hour, 5 tries per code).
-2. Client enters the code and gets a signed session (30 days) stored on their device.
-3. `/api/colour-dashboard` checks that session on every request.
+- **First time:** client taps "Email me a code instead", gets a 6-digit code by email (Resend; 10 minutes, max 5 codes an hour, 5 tries per code), then is asked to create a password (optional, "Skip for now").
+- **After that:** email + password. No email is sent.
+- **Forgot password:** emailed code, then choose a new password. This signs out their other devices.
+- Wrong passwords: locked for 15 minutes after 10 tries (a correct email code also unlocks).
+- Passwords are stored as scrypt hashes in `colour_clients.password_hash`, never as plain text.
+- Sessions last 30 days per device. "Sign out of all devices" (Your account card on My Season) and any password change sign out every other device (`sessions_valid_after`).
+- `/api/colour-dashboard` checks the session on every request.
 
 Clients never get a Supabase login. Every staff table allows any "authenticated" Supabase user, so client logins are kept completely separate.
 

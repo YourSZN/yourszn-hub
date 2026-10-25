@@ -50,8 +50,44 @@ function readToken(req) {
   } catch (e) { return null; }
 }
 
+// ---- Passwords (scrypt, never stored in plain text) ----
+const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync(String(password), salt, SCRYPT.keylen, { N: SCRYPT.N, r: SCRYPT.r, p: SCRYPT.p });
+  return ['scrypt', SCRYPT.N, SCRYPT.r, SCRYPT.p, salt.toString('base64'), hash.toString('base64')].join('$');
+}
+function checkPassword(password, stored) {
+  try {
+    const [algo, N, r, p, salt, hash] = String(stored || '').split('$');
+    if (algo !== 'scrypt') return false;
+    const expected = Buffer.from(hash, 'base64');
+    const got = crypto.scryptSync(String(password), Buffer.from(salt, 'base64'), expected.length, { N: +N, r: +r, p: +p });
+    return crypto.timingSafeEqual(got, expected);
+  } catch (e) { return false; }
+}
+function passwordProblem(password) {
+  const pw = String(password || '');
+  if (pw.length < 8) return 'Please use at least 8 characters.';
+  if (pw.length > 200) return 'That password is too long.';
+  return null;
+}
+
+// A session is only valid if it was issued after the client's last
+// "sign out of all devices" or password change.
+function sessionStillValid(session, client) {
+  const after = client && client.sessions_valid_after ? Date.parse(client.sessions_valid_after) : 0;
+  return !!(session && session.iat && session.iat >= after);
+}
+
+function newSession(cid, days) {
+  const now = Date.now();
+  const exp = now + days * 864e5;
+  return { token: signToken({ cid, iat: now, exp }), expires: exp };
+}
+
 function clientIp(req) {
   return String(req.headers['x-forwarded-for'] || '').split(',')[0].trim().slice(0, 64) || null;
 }
 
-module.exports = { SUPABASE_URL, cors, sb, signToken, readToken, clientIp };
+module.exports = { SUPABASE_URL, cors, sb, signToken, readToken, clientIp, hashPassword, checkPassword, passwordProblem, sessionStillValid, newSession };
