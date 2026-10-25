@@ -257,8 +257,6 @@ textarea{min-height:70px;resize:vertical}
 .favitem{display:grid;justify-items:center;gap:6px;text-align:center;font-size:12px;line-height:1.3}
 .favitem .sw{width:52px}
 .pg{position:relative}
-.wm{position:absolute;inset:0;background-image:var(--wm);background-size:300px 183px;pointer-events:none}
-.pg .wm{background-size:170px 104px}
 .wmwrap{position:relative;display:inline-block;max-width:100%;max-height:calc(100vh - 90px)}
 .wmwrap img{display:block}
 .wvideo{width:100%;aspect-ratio:16/9;border-radius:12px;background:var(--charcoal);border:0;display:grid;place-items:center;align-content:center;gap:10px;color:#D9CFC3}
@@ -552,7 +550,7 @@ let guideIdx=store("ch")||0;
 const GP=SEASON.guidePages;
 const pgSrc=n=>PAGES[n]||"";
 function ch(title,sub,body){const pages=GP[title]||[];const locked=body.includes('class="locked"');
-  return `<article class="card chapter" data-t="${title.replace(/&amp;/g,"&")}"><div class="head"><span class="eyebrow">${sub}</span><h2>${title}</h2></div><div class="ch-body">${body}</div>${pages.length&&!locked?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} page${pages.length>1?"s":""}, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" src="${pgSrc(n)}" data-n="${n}" alt="${esc(CLIENT.season)} guide page" width="874" height="1241"><span class="wm" aria-hidden="true"></span></button>`).join("")}</div></div>`:""}</article>`}
+  return `<article class="card chapter" data-t="${title.replace(/&amp;/g,"&")}"><div class="head"><span class="eyebrow">${sub}</span><h2>${title}</h2></div><div class="ch-body">${body}</div>${pages.length&&!locked?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} page${pages.length>1?"s":""}, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" src="${pgSrc(n)}" data-n="${n}" alt="${esc(CLIENT.season)} guide page" width="874" height="1241"></button>`).join("")}</div></div>`:""}</article>`}
 function premium(title,body){return CLIENT.tier==="premium"?body:`<div class="locked"><b>${title} is part of the Premium Colour Analysis</b><p class="small muted">Premium clients get hair colour, makeup, nail and perfume recommendations for their season.</p><a class="btn" href="https://www.yourszn.com.au" target="_blank" rel="noopener">Upgrade to Premium</a></div>`}
 function renderGuide(){
   const hair=[["7.1","Medium Ash Blonde"],["8.1","Light Ash Blonde"],["9.1","Very Light Ash Blonde"],["10.1","Extra Light Ash Blonde"],["6.01","Dark Ash Blonde"],["7.01","Medium Ash Blonde"],["8.01","Light Ash Blonde"],["9.01","Very Light Ash Blonde"],["9.2","Very Light Violet Blonde"],["10.7","Extra Light Cool Beige Blonde"],["10.32","Extra Light Cool Chocolate Blonde"],["5.0","Light Brown"]];
@@ -880,7 +878,7 @@ function go(k,scroll){
 document.querySelectorAll(".nitem,.bt-item").forEach(b=>b.onclick=()=>go(b.dataset.k,true));
 document.addEventListener("click",e=>{const pg=e.target.closest(".pg");if(pg){openViewer(pg.dataset.pages.split(",").map(Number),+pg.dataset.i);return}});
 function openViewer(pages,i){const rv=$("#rv");rv.hidden=false;document.body.style.overflow="hidden";
-  rv.innerHTML=`<div class="rv-top"><span class="rv-count" id="rvCount"></span><button class="rv-close" id="rvX" aria-label="Close">×</button></div><div class="rv-track" id="rvTrack">${pages.map(n=>`<div class="rv-slide"><div class="wmwrap"><img src="${pgSrc(n)}" data-n="${n}" alt="Light Summer guide page"><span class="wm" aria-hidden="true"></span></div></div>`).join("")}</div><button class="rv-arrow l" aria-label="Previous page">‹</button><button class="rv-arrow r" aria-label="Next page">›</button>`;
+  rv.innerHTML=`<div class="rv-top"><span class="rv-count" id="rvCount"></span><button class="rv-close" id="rvX" aria-label="Close">×</button></div><div class="rv-track" id="rvTrack">${pages.map(n=>`<div class="rv-slide"><div class="wmwrap"><img src="${pgSrc(n)}" data-n="${n}" alt="Light Summer guide page"></div></div>`).join("")}</div><button class="rv-arrow l" aria-label="Previous page">‹</button><button class="rv-arrow r" aria-label="Next page">›</button>`;
   const tr=$("#rvTrack"),cnt=()=>{$("#rvCount").textContent=`PAGE ${Math.round(tr.scrollLeft/tr.clientWidth)+1} OF ${pages.length}`};
   requestAnimationFrame(()=>{tr.scrollLeft=i*tr.clientWidth;cnt()});tr.onscroll=cnt;
   const close=()=>{rv.hidden=true;rv.innerHTML="";document.body.style.overflow="";document.removeEventListener("keydown",key)};
@@ -893,9 +891,6 @@ if(store("sb")){document.body.classList.add("sb-collapsed");$("#sbToggle").inner
 $("#suname").textContent=CLIENT.name||CLIENT.first;
 $("#bnum").textContent=CLIENT.season;
 $("#blab").textContent=SEASON.bannerSub||SEASON.traits;
-(function(){const t=(CLIENT.name||CLIENT.first)+" · "+(CLIENT.email||"")+" · YourSZN";
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="220"><text x="0" y="120" transform="rotate(-28 180 110)" font-family="Montserrat,Arial,sans-serif" font-size="15" font-weight="600" fill="#1C1712" fill-opacity="0.13">${t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</text></svg>`;
-  document.documentElement.style.setProperty("--wm",`url("data:image/svg+xml,${encodeURIComponent(svg)}")`)})();
 showAvoid=!!store("avoid");
 const start=(location.hash||"").slice(1);
 go(TABS.some(t=>t[0]===start)?start:(store("tab")||"season"));
