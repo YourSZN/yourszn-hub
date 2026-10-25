@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Your SZN · Colour Dashboard</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1C1712">
+<link rel="manifest" href="colour-dashboard.webmanifest">
+<link rel="apple-touch-icon" href="icons/colour-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Your SZN">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: same shell as the Vietnam Tailoring Tour dashboard. Fixed 220px sidebar on desktop (collapsible to 56px), bottom tab bar under 768px. Single warm light theme to match the client portal. */
+:root{
+  --cream:#EFE8DF; --warm:#E7DED3; --sand:#D3C6B6; --tan:#8C7550; --charcoal:#1C1712; --rose:#9A6250; --muted:#5E5248; --side:#F9F5F0; --card:#FFFFFF; --soft:#F6EFE6;
+  --good:#5F7253; --good-bg:#EEF2EA; --bad:#C4685A; --bad-bg:#FDF0EE;
+  --display:"Playfair Display",Georgia,serif; --logo:"Cormorant Garamond",Georgia,serif; --body:"Montserrat",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --r:14px; --shadow:0 2px 10px rgba(28,23,18,.06);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--cream)}
+body{color:var(--charcoal);font-family:var(--body);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.15;text-wrap:balance;margin:0;color:var(--charcoal)}
+h2{font-size:30px} h3{font-size:21px}
+p{margin:0;max-width:72ch}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--charcoal);outline-offset:2px;border-radius:6px}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--rose)}
+.muted{color:var(--muted)} .small{font-size:13px}
+
+/* sidebar */
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--side);border-right:1px solid var(--sand);display:flex;flex-direction:column;padding:32px 0 24px;padding-left:env(safe-area-inset-left,0px);z-index:100;transition:width .22s cubic-bezier(.4,0,.2,1)}
+#sbToggle{position:absolute;top:16px;right:-12px;width:24px;height:24px;border-radius:50%;background:var(--side);border:1px solid var(--sand);color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(28,23,18,.1);padding:0}
+.slogo{font-family:var(--logo);font-size:22px;font-weight:300;letter-spacing:3px;text-transform:uppercase;padding:0 28px 24px;border-bottom:1px solid var(--sand);white-space:nowrap;overflow:hidden}
+.slogo span{font-style:italic;opacity:.6}
+.suser{padding:14px 28px;border-bottom:1px solid var(--sand);margin-bottom:8px;white-space:nowrap;overflow:hidden}
+.sulab{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.suname{font-size:13px;margin-top:3px;font-weight:500}
+.snav{flex:1;padding:8px 0;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.nitem{display:flex;align-items:center;gap:12px;padding:9px 16px;margin:1px 12px;border-radius:8px;border:0;background:none;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);transition:background .2s,color .2s;white-space:nowrap;text-align:left}
+.nitem svg{width:14px;height:14px;flex-shrink:0}
+.nitem:hover{background:var(--sand);color:var(--charcoal)}
+.nitem[aria-current="page"]{background:var(--charcoal);color:var(--side)}
+.sout{display:block;margin:8px 20px 0;padding:10px;border-radius:8px;border:1px solid var(--sand);color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;text-align:center;text-decoration:none;white-space:nowrap}
+.sout:hover{background:var(--sand);color:var(--charcoal)}
+body.sb-collapsed .sidebar{width:56px}
+body.sb-collapsed .slogo,body.sb-collapsed .suser,body.sb-collapsed .nitem span,body.sb-collapsed .sout{display:none}
+body.sb-collapsed .nitem{justify-content:center;margin:1px 8px;padding:11px 0}
+body.sb-collapsed .main{margin-left:56px}
+
+/* main */
+.main{margin-left:220px;min-height:100vh;padding-block:32px 48px;padding-left:max(44px,env(safe-area-inset-left,0px));padding-right:max(44px,env(safe-area-inset-right,0px));transition:margin-left .22s cubic-bezier(.4,0,.2,1)}
+.inner{max-width:980px}
+.ph{margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--sand);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:end}
+.ptitle{font-family:var(--display);font-size:28px}
+.psub{font-size:12px;color:var(--muted);margin-top:4px}
+.preview{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.preview select{font:inherit;font-size:11px;border:1px solid var(--sand);border-radius:8px;padding:5px 8px;background:var(--card);color:var(--charcoal)}
+.banner{background:var(--charcoal);border-radius:var(--r);padding:22px 28px;margin-bottom:26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.banner .star{width:52px;height:52px;border-radius:12px;background:#93b4ec;display:grid;place-items:center;flex-shrink:0}
+.banner .star svg{width:38px;height:38px}
+.banner .bt{display:grid;gap:4px;min-width:0}
+.banner .bnum{font-family:var(--display);font-size:34px;color:#fff;line-height:1}
+.banner .blab{font-size:13px;color:#F2EDE6}
+
+/* bottom tabs (mobile) */
+.bottom-tabs{display:none;position:fixed;bottom:0;left:0;right:0;z-index:60;background:#fff;border-top:1px solid var(--sand);padding:6px max(4px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px));overflow-x:auto;scrollbar-width:none}
+.bottom-tabs::-webkit-scrollbar{display:none}
+.bt-item{flex:1 0 auto;min-width:54px;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;font-size:10px;font-weight:600;letter-spacing:.3px;color:var(--muted);padding:6px 2px}
+.bt-item svg{width:18px;height:18px}
+.bt-item[aria-current="page"]{color:var(--charcoal)}
+.bt-item[aria-current="page"] svg{stroke-width:2.4}
+@media (max-width:768px){
+  .sidebar{display:none}
+  .main{margin-left:0!important;padding-block:20px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .bottom-tabs{display:flex}
+  .banner{padding:18px 20px}.banner .bnum{font-size:28px}
+  h2{font-size:26px}
+}
+
+/* views */
+section.view{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+section.view>*{min-width:0}
+.card{background:var(--card);border:1px solid var(--sand);border-radius:var(--r);padding:22px 24px;box-shadow:var(--shadow)}
+.stack{display:grid;gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.grid2>*{min-width:0}
+.head{display:grid;gap:8px}
+.scale{display:grid;gap:6px}
+.scale .bar{position:relative;height:12px;border-radius:999px}
+.scale .range{position:absolute;top:-4px;height:20px;border:2px solid var(--charcoal);border-radius:999px}
+.scale .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.scale .lbl{font-weight:600;font-size:13px}
+ol.steps{list-style:none;margin:0;padding:0;display:grid}
+ol.steps li{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--warm)}
+ol.steps li:first-child{border-top:0}
+.n{width:30px;height:30px;border-radius:50%;background:var(--warm);display:grid;place-items:center;font-size:12px;font-weight:700}
+.result{font-weight:600;font-size:13px;text-align:right}
+@media (max-width:520px){ol.steps li{grid-template-columns:34px 1fr}.result{grid-column:2;text-align:left;color:var(--rose)}}
+.note{font-size:14px;line-height:1.65;background:var(--side);border-left:3px solid var(--charcoal);padding:12px 14px;border-radius:0 8px 8px 0}
+.fam{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.card>*{min-width:0}
+.sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:10px}
+.sw{aspect-ratio:1;border-radius:50%;border:0;box-shadow:inset 0 0 0 1px rgba(28,23,18,.08);padding:0;position:relative;max-width:100%}
+.sw.sq{border-radius:10px}
+.sw[aria-pressed="true"]{outline:2px solid var(--charcoal);outline-offset:3px}
+.sw.avoid::after{content:"";position:absolute;inset:46% -3px auto;height:2px;background:#fff;transform:rotate(-45deg)}
+.detail{position:relative;display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:14px 40px 14px 14px;border-radius:12px;background:var(--side);border:1px solid var(--warm)}
+.detail .dx{position:absolute;top:6px;right:8px;border:0;background:none;font-size:20px;color:var(--muted);padding:4px 6px}
+.detail .big{width:64px;height:64px;border-radius:50%;border:1px solid rgba(28,23,18,.1)}
+.subtabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin}
+.subtab{flex:0 0 auto;padding:9px 18px;border:1px solid var(--sand);border-radius:24px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:#fff;color:var(--muted);transition:all .2s}
+.subtab:hover{border-color:var(--charcoal);color:var(--charcoal)}
+.subtab[aria-pressed="true"]{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.swap{display:grid;grid-template-columns:40px 20px 40px 1fr;gap:10px;align-items:center;padding:6px 0}
+.dot{width:40px;height:40px;border-radius:50%;border:1px solid rgba(28,23,18,.14)}
+.arrow{color:var(--muted);text-align:center}
+.screen-note{font-size:12px;color:var(--muted);font-style:italic}
+.combos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+.combo{display:grid;gap:8px;justify-items:center;text-align:center;font-size:13px}
+.circles{display:flex}
+.circles span{width:50px;height:50px;border-radius:50%;margin-left:-14px}
+.circles span:first-child{margin-left:0}
+.ratio{display:flex;height:44px;border-radius:10px;overflow:hidden}
+.ratio div{display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--charcoal)}
+.chapter{display:grid;gap:18px}
+.ch-body{display:grid;gap:16px}
+.ch-body h4{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:18px}
+ul.clean{margin:0;padding-left:18px;display:grid;gap:4px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-size:11px;padding:4px 10px;border-radius:20px;background:#F4EEE7}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{text-align:left;padding:9px 10px;border-bottom:1px solid var(--warm);vertical-align:top}
+th{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.locked{display:grid;gap:10px;padding:20px;border-radius:var(--r);border:1px dashed var(--tan);background:var(--soft)}
+.strokes{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.strokes span{height:22px;border-radius:12px 4px 12px 4px}
+.hair{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.hair div{padding:10px 12px;border-radius:10px;background:var(--soft);font-size:13px}
+.hair b{display:block;font-size:15px}
+.app{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:22px 26px;border-radius:var(--r);background:var(--charcoal);color:#F2EDE6}
+.app .eyebrow{color:#C9B79F}
+.app h3{color:#fff}
+.app p{color:#D9CFC3;font-size:13.5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;background:var(--charcoal);color:var(--side)}
+.app .btn{background:var(--side);color:var(--charcoal)}
+.btn.ghost{background:#fff;border:1px solid var(--sand);color:var(--charcoal)}
+@media (max-width:560px){.app{grid-template-columns:1fr}}
+.quizzes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.qcard{display:grid;gap:8px;align-content:start;text-align:left;background:#fff;border:1px solid var(--sand);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow);transition:border-color .2s}
+.qcard:hover{border-color:var(--charcoal)}
+.qcard .meta{display:flex;justify-content:space-between;align-items:center}
+.status{font-size:10px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:20px;background:#F4EEE7;color:var(--muted)}
+.status.pass{background:var(--good-bg);color:var(--good)}
+.progress{height:6px;border-radius:999px;background:var(--warm);overflow:hidden}
+.progress div{height:100%;background:var(--charcoal);transition:width .3s}
+.qstage{display:grid;gap:18px}
+.qprompt{font-family:var(--display);font-size:24px;line-height:1.25}
+.qvisual{display:flex;justify-content:center}
+.qvisual .big{width:min(160px,40vw);aspect-ratio:1;border-radius:24px;border:1px solid rgba(28,23,18,.1)}
+.opts{display:grid;gap:10px}
+.opts.swatches{grid-template-columns:repeat(3,minmax(0,1fr))}
+.opt.sw-opt .circles span{width:clamp(24px,7vw,48px);height:clamp(24px,7vw,48px);margin-left:-8px}
+.opt.sw-opt .circles span:first-child{margin-left:0}
+.toggle{border:1px solid var(--sand);background:#fff;border-radius:24px;padding:8px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.toggle:hover{border-color:var(--charcoal);color:var(--charcoal)}
+.toggle[aria-pressed="true"]{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
+.opt{border:1px solid var(--sand);background:#fff;border-radius:12px;padding:13px 16px;text-align:left;font-weight:500}
+.opt:hover:not(:disabled){border-color:var(--charcoal)}
+.opt.sw-opt{padding:8px;display:grid;justify-items:center}
+.opt.sw-opt span.c{width:100%;aspect-ratio:1;border-radius:10px;border:1px solid rgba(28,23,18,.1)}
+.opt.right{border-color:var(--good);background:var(--good-bg)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.opt:disabled{cursor:default}
+.feedback{padding:12px 14px;border-radius:0 8px 8px 0;background:var(--side);border-left:3px solid var(--charcoal);font-size:13.5px}
+.feedback b{display:block;margin-bottom:2px}
+.score{font-family:var(--display);font-size:56px;line-height:1}
+.confident{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+.badge{width:56px;height:56px;border-radius:14px;background:#93b4ec;display:grid;place-items:center}
+.badge.off{background:var(--warm)}
+.badge svg{width:40px;height:40px}
+.counter{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.counter>div{display:grid;gap:6px;justify-items:center;padding:14px 8px;border-radius:12px;background:var(--soft);text-align:center}
+.counter .num{font-family:var(--display);font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+.counter .ctl{display:flex;gap:6px}
+.counter .ctl button{width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:#fff}
+textarea,input[type=text]{width:100%;font:inherit;font-size:14px;color:var(--charcoal);background:var(--side);border:1px solid var(--sand);border-radius:10px;padding:10px 12px}
+textarea{min-height:70px;resize:vertical}
+.check{display:flex;gap:10px;align-items:flex-start}
+.check input{margin-top:5px;accent-color:var(--charcoal)}
+.todo{display:flex;gap:8px}
+.todo-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.todo-list li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--soft);font-size:14px}
+.todo-list button{border:0;background:none;color:var(--muted);font-size:18px;line-height:1}
+.sw-grid.mini{grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.mobile-only{display:none}
+@media (max-width:768px),(pointer:coarse){.mobile-only{display:inline-flex}.card.mobile-only{display:grid}.desktop-only{display:none}}
+/* try on */
+.modes{display:inline-flex;background:var(--warm);border-radius:24px;padding:3px}
+.modes button{border:0;background:none;border-radius:20px;padding:7px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.modes button[aria-pressed="true"]{background:#fff;color:var(--charcoal);box-shadow:var(--shadow)}
+.stage{display:grid;grid-template-columns:repeat(var(--n,1),minmax(0,1fr));gap:12px;max-width:calc(var(--n,1) * 380px)}
+.drape{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/5;background:var(--warm);border:2px solid transparent;padding:0;max-width:100%}
+.drape[aria-pressed="true"]{border-color:var(--charcoal)}
+.drape canvas{width:100%;height:100%;display:block}
+.drape .tag{position:absolute;left:8px;bottom:8px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(255,255,255,.88);color:var(--charcoal);border-radius:20px;padding:3px 9px}
+.drape .ph-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;font-size:13px;color:var(--muted)}
+.picker{display:grid;gap:10px}
+.picker .sw-grid{grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:8px}
+.filebtn{position:relative;overflow:hidden}
+.filebtn{cursor:pointer}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.status-line{font-size:13px;color:var(--muted)}
+/* colour camera */
+.cam{position:fixed;inset:0;z-index:2000;background:#000;display:flex;flex-direction:column}
+.cam video,.cam img.shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam-top{position:relative;z-index:2;display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0));overflow-x:auto;scrollbar-width:none}
+.cam-top button{flex:0 0 auto;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.25);color:#fff;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+.cam-top button[aria-pressed="true"]{background:#fff;color:var(--charcoal)}
+.cam-top .x{font-size:20px;line-height:1;padding:4px 12px}
+.cam-grid{position:relative;z-index:1;flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--d,44px),1fr));gap:var(--g,14px);align-content:start;padding:14px max(14px,env(safe-area-inset-right,0px)) calc(90px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+.cam-grid span{aspect-ratio:1;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.cam-bottom{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;align-items:center;padding:12px 12px calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,rgba(0,0,0,.55),rgba(0,0,0,0));color:#fff;font-size:12px}
+.cam-bottom input[type=range]{width:140px;accent-color:#fff}
+.cam-msg{position:absolute;inset:0;display:grid;place-items:center;z-index:3;background:rgba(0,0,0,.55);color:#fff;text-align:center;padding:24px}
+.cam-msg .stack{max-width:300px;justify-items:center}
+.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.pg{border:0;padding:0;background:var(--warm);border-radius:10px;overflow:hidden;cursor:zoom-in;box-shadow:var(--shadow);aspect-ratio:874/1241}
+.pg img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.pg:hover img{transform:scale(1.02)}
+@media (max-width:640px){.pages{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding-bottom:6px}.pg{flex:0 0 62%;scroll-snap-align:start}}
+.rv{position:fixed;inset:0;z-index:1000;background:rgba(20,16,12,.94);display:flex;flex-direction:column}
+.rv-top{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));color:#F9F5F0}
+.rv-count{font-size:12px;letter-spacing:1.5px}
+.rv-close{background:none;border:0;color:#F9F5F0;font-size:30px;line-height:1;padding:4px 8px}
+.rv-track{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.rv-track::-webkit-scrollbar{display:none}
+.rv-slide{flex:0 0 100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;padding:0 12px calc(16px + env(safe-area-inset-bottom,0px))}
+.rv-slide img{max-width:100%;max-height:calc(100vh - 90px);object-fit:contain;border-radius:6px}
+.rv-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:var(--charcoal);font-size:22px;display:flex;align-items:center;justify-content:center}
+.rv-arrow.l{left:16px}.rv-arrow.r{right:16px}
+@media (max-width:640px){.rv-arrow{display:none}.rv-slide{padding:0 0 16px}}
+.sw.fav::before{content:"";position:absolute;right:-2px;top:-2px;width:16px;height:16px;border-radius:50%;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%239A6250' d='M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z'/%3E%3C/svg%3E") center/10px no-repeat;box-shadow:0 1px 3px rgba(28,23,18,.25)}
+.heart{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);background:#fff;border-radius:24px;padding:7px 14px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--charcoal)}
+.heart svg{width:16px;height:16px;fill:none;stroke:var(--rose);stroke-width:2}
+.heart[aria-pressed="true"] svg{fill:var(--rose)}
+.favlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px}
+.favitem{display:grid;justify-items:center;gap:6px;text-align:center;font-size:12px;line-height:1.3}
+.favitem .sw{width:52px}
+.pg{position:relative}
+.wm{position:absolute;inset:0;background-image:var(--wm);background-size:300px 183px;pointer-events:none}
+.pg .wm{background-size:170px 104px}
+.wmwrap{position:relative;display:inline-block;max-width:100%;max-height:calc(100vh - 90px)}
+.wmwrap img{display:block}
+.wvideo{width:100%;aspect-ratio:16/9;border-radius:12px;background:var(--charcoal);border:0;display:grid;place-items:center;align-content:center;gap:10px;color:#D9CFC3}
+.wvideo .play{width:64px;height:64px;border-radius:50%;background:var(--side);display:grid;place-items:center}
+.wvideo .play svg{width:26px;height:26px;fill:var(--charcoal);margin-left:4px}
+.steplist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.steplist button{width:100%;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;text-align:left;border:1px solid var(--warm);background:var(--side);border-radius:10px;padding:10px 12px;font-size:14px}
+.steplist button:hover{border-color:var(--charcoal)}
+.steplist .tick{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sand);display:grid;place-items:center;font-size:13px;font-weight:700;background:#fff}
+.steplist .done .tick{background:var(--good);border-color:var(--good);color:#fff}
+.steplist .done span:nth-child(2){color:var(--muted);text-decoration:line-through}
+
+/* sign in */
+body.signed-out .sidebar,body.signed-out .main,body.signed-out .bottom-tabs{display:none!important}
+.signin{min-height:100vh;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.signin-card{width:100%;max-width:420px;background:#fff;border:1px solid var(--sand);border-radius:18px;padding:32px 28px;box-shadow:var(--shadow);display:grid;gap:16px}
+.signin-card .slogo{padding:0;border:0;text-align:center}
+.signin-card h1{font-size:28px;text-align:center}
+.signin-card p{text-align:center;color:var(--muted);font-size:13.5px;margin:0 auto}
+.signin-card label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.signin-card input{width:100%;font:inherit;font-size:16px;padding:12px 14px;border:1px solid var(--sand);border-radius:10px;background:var(--side);color:var(--charcoal)}
+.signin-card input#code{font-size:26px;letter-spacing:10px;text-align:center;font-variant-numeric:tabular-nums}
+.signin-card .btn{width:100%;padding:13px 16px}
+.signin-card .err{color:var(--bad);font-size:13px;text-align:center;min-height:1em}
+.linkbtn{border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;justify-self:center}
+.footer{font-size:12px;color:var(--muted);padding-top:28px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="signin" id="signin" hidden>
+  <form class="signin-card" id="signinForm" novalidate>
+    <div class="slogo">Your <span>SZN</span></div>
+    <h1>Your colour dashboard</h1>
+    <div id="stepEmail" class="stack">
+      <p>Enter the email you used for your colour analysis. We'll email you a 6-digit code. No password needed.</p>
+      <label for="email">Email</label>
+      <input type="email" id="email" autocomplete="email" inputmode="email" required>
+      <button class="btn" type="submit" id="sendBtn">Email me a code</button>
+    </div>
+    <div id="stepCode" class="stack" hidden>
+      <p id="codeMsg">Check your email for your code. It works for 10 minutes.</p>
+      <label for="code">6-digit code</label>
+      <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">
+      <button class="btn" type="submit" id="verifyBtn">Open my dashboard</button>
+      <button class="linkbtn" type="button" id="resend">Send a new code</button>
+      <button class="linkbtn" type="button" id="changeEmail">Use a different email</button>
+    </div>
+    <div class="err" id="signinErr" role="alert"></div>
+  </form>
+</div>
+<aside class="sidebar" id="sidebar">
+  <button id="sbToggle" title="Collapse sidebar" aria-label="Collapse sidebar">&#8249;</button>
+  <div class="slogo">Your <span>SZN</span></div>
+  <div class="suser"><div class="sulab">Logged in as</div><div class="suname" id="suname">Mia</div></div>
+  <nav class="snav" id="snav" aria-label="Dashboard sections"></nav>
+  <button class="sout" id="signOut" type="button">Sign out</button>
+  <a class="sout" href="index.html">← Back to Portal</a>
+</aside>
+
+<div class="main">
+ <div class="inner">
+  <div class="banner">
+    <div class="star" aria-hidden="true"><svg viewBox="0 0 100 100"><polygon id="starPoly" fill="none" stroke="#1C1712" stroke-width="5" stroke-linejoin="round"/></svg></div>
+    <div class="bt"><div class="bnum" id="bnum"></div><div class="blab" id="blab"></div></div>
+  </div>
+  <section class="view" id="v-season"></section>
+  <section class="view" id="v-palette" hidden></section>
+  <section class="view" id="v-tryon" hidden></section>
+  <section class="view" id="v-guide" hidden></section>
+  <section class="view" id="v-combos" hidden></section>
+  <section class="view" id="v-practise" hidden></section>
+  <section class="view" id="v-closet" hidden></section>
+  <div class="footer">Questions? Email <span style="user-select:all">hello@yourszn.com.au</span>. This dashboard is for your personal use, please don't share or copy its content.</div>
+ </div>
+</div>
+<nav class="bottom-tabs" id="btabs" aria-label="Dashboard sections"></nav>
+<div class="cam" id="cam" hidden role="dialog" aria-label="Colour camera"></div>
+<div class="rv" id="rv" hidden role="dialog" aria-label="Guide pages"></div>
+
+<script>
+/* ================= SIGN IN + DATA (portal) ================= */
+var TOKEN_KEY="szn_colour_token";
+var TOKEN=null,SEASON=null,CLIENT=null,PAGES={},PFX="szn-";
+try{var t=JSON.parse(localStorage.getItem(TOKEN_KEY)||"null");if(t&&t.expires>Date.now())TOKEN=t.token}catch(e){}
+function api(path,body){
+  return fetch("/api/"+path,{method:"POST",headers:Object.assign({"Content-Type":"application/json"},TOKEN?{Authorization:"Bearer "+TOKEN}:{}),body:JSON.stringify(body||{})})
+    .then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Something went wrong. Please try again.");e.signin=d.signin;throw e}return d})});
+}
+var SYNCED={favs:1,quiz:1,closet:1,watched:1,tried:1},saveTimer=null;
+function store(k,v){try{if(v===undefined){return JSON.parse(localStorage.getItem(PFX+k))}localStorage.setItem(PFX+k,JSON.stringify(v))}catch(e){return undefined}
+  if(SYNCED[k]&&TOKEN){clearTimeout(saveTimer);saveTimer=setTimeout(saveState,800)}}
+function saveState(){var g=function(k,d){var x=store(k);return x==null?d:x};
+  api("colour-dashboard",{action:"save",state:{favourites:g("favs",[]),quiz:g("quiz",{}),closet:g("closet",{}),checklist:{watched:!!g("watched",false),tried:!!g("tried",false)}}}).catch(function(e){if(e.signin)signOut(true)})}
+function refreshPages(){return api("colour-dashboard",{action:"pages"}).then(function(d){PAGES=d.pages||{};document.querySelectorAll("img[data-n]").forEach(function(im){var u=PAGES[im.dataset.n];if(u)im.src=u})}).catch(function(e){if(e.signin)signOut(true)})}
+function loadScriptOnce(src){return new Promise(function(ok,no){var s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+function showSignin(){document.body.classList.add("signed-out");document.getElementById("signin").hidden=false}
+function signOut(expired){try{if(!expired&&TOKEN)api("colour-dashboard",{action:"logout"}).catch(function(){})}catch(e){}
+  try{localStorage.removeItem(TOKEN_KEY)}catch(e){}TOKEN=null;location.reload()}
+function boot(){
+  if(!TOKEN){showSignin();return}
+  api("colour-dashboard",{action:"load"}).then(function(d){
+    CLIENT=d.client;PAGES=d.pages||{};PFX="szn-"+CLIENT.email+"-";
+    var st=d.state||{};
+    if(st.favourites)store("favs",st.favourites);if(st.quiz)store("quiz",st.quiz);if(st.closet)store("closet",st.closet);
+    if(st.checklist){store("watched",!!st.checklist.watched);store("tried",!!st.checklist.tried)}
+    return loadScriptOnce("seasons/"+CLIENT.seasonSlug+".js").then(function(){
+      SEASON=(window.SZN_SEASONS||{})[CLIENT.seasonSlug];
+      if(!SEASON)throw new Error("season");
+      var over=CLIENT.analysis||{};
+      CLIENT.steps=SEASON.steps.map(function(s){return [s[0],s[1],over[s[0]]||s[2]]});
+      document.body.classList.remove("signed-out");document.getElementById("signin").hidden=true;
+      startApp();
+      setInterval(refreshPages,((d.pagesExpireIn||900)-180)*1000);
+    });
+  }).catch(function(e){
+    if(e.signin){signOut(true);return}
+    document.body.classList.add("signed-out");var si=document.getElementById("signin");si.hidden=false;
+    si.querySelector(".signin-card").innerHTML='<div class="slogo">Your <span>SZN</span></div><h1>Almost ready</h1><p>'+(e.message==="season"?"Your season dashboard is being prepared. We'll email you as soon as it's ready.":e.message)+'</p><button class="btn" type="button" onclick="location.reload()">Try again</button><button class="linkbtn" type="button" onclick="signOut()">Sign out</button>';
+  });
+}
+(function(){
+  var f=document.getElementById("signinForm"),err=document.getElementById("signinErr"),em=document.getElementById("email"),cd=document.getElementById("code");
+  var stage="email";
+  function busy(b,on,label){b.disabled=on;b.textContent=label}
+  function send(){var b=document.getElementById("sendBtn");err.textContent="";busy(b,true,"Sending…");
+    return api("colour-auth",{action:"send",email:em.value}).then(function(){stage="code";document.getElementById("stepEmail").hidden=true;document.getElementById("stepCode").hidden=false;document.getElementById("codeMsg").textContent="If "+em.value.trim()+" has a YourSZN dashboard, we've emailed you a code. It works for 10 minutes.";cd.focus()})
+      .catch(function(e){err.textContent=e.message}).then(function(){busy(b,false,"Email me a code")})}
+  f.addEventListener("submit",function(ev){ev.preventDefault();
+    if(stage==="email"){send();return}
+    var b=document.getElementById("verifyBtn");err.textContent="";busy(b,true,"Checking…");
+    api("colour-auth",{action:"verify",email:em.value,code:cd.value}).then(function(d){try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(e){}TOKEN=d.token;location.reload()})
+      .catch(function(e){err.textContent=e.message;busy(b,false,"Open my dashboard")})});
+  cd.addEventListener("input",function(){cd.value=cd.value.replace(/\D/g,"").slice(0,6);if(cd.value.length===6)f.requestSubmit()});
+  document.getElementById("resend").onclick=function(){stage="email";send()};
+  document.getElementById("changeEmail").onclick=function(){stage="email";document.getElementById("stepEmail").hidden=false;document.getElementById("stepCode").hidden=true;err.textContent="";em.focus()};
+  document.getElementById("signOut").onclick=function(){signOut(false)};
+})();
+</script>
+<script>
+function startApp(){
+
+/* ================= SHARED SEASON CONTENT (one per season, edited from the staff portal) ================= */
+
+/* ================= PER-CLIENT DATA (the only part entered for each client) ================= */
+
+/* ================= helpers ================= */
+const $=(s,el=document)=>el.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function hsl(hex){const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;if(d){s=d/(1-Math.abs(2*l-1));h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}return{h,s,l}}
+function familyOf(hex){const{h,s,l}=hsl(hex);if(s<.23||l>.9)return"neutrals";if(h>=40&&h<160)return"greens";if(h<195&&h>=160)return"aquas";if(h<245&&h>=195)return"blues";if(h<305&&h>=245)return"purples";return"pinks"}
+function wearTip(hex){const{l}=hsl(hex);if(l>.78)return"A light, airy shade. Wear it right up near your face: shirts, knits, tees and scarves.";if(l>.55)return"A mid-light shade and one of your easiest to wear. Great for tops, dresses and knitwear near your face.";if(l>.38)return"A medium shade. Lovely in dresses and tops, or pair it with a lighter shade to keep your contrast soft.";return"One of your deepest shades. Best for bottoms, outerwear, bags and shoes, with a lighter colour near your face."}
+function whyNot(hex){const{h,s,l}=hsl(hex);const r=[];if(l<.22)r.push("too dark and heavy for your light colouring");if(s>.85&&l>.3&&l<.7)r.push("too bright and saturated, where your colours are softly muted");if((h>=20&&h<75)&&s>.3)r.push("too warm, with a yellow or golden base");if(l>.9&&h>=45&&h<75)r.push("a warm cream rather than a cool soft white");if(!r.length)r.push("too warm and earthy for your cool, light palette");return r.slice(0,2).join(", and ")}
+const inPalette=new Set(SEASON.palette);
+const nm=c=>SEASON.names[c]||c.toUpperCase();
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=(a,n)=>shuffle(a).slice(0,n);
+
+/* star mark */
+(function(){const pts=[];for(let i=0;i<20;i++){const r=i%2?24:46,a=Math.PI*2*i/20-Math.PI/2;pts.push((50+r*Math.cos(a)).toFixed(1)+","+(50+r*Math.sin(a)).toFixed(1))}$("#starPoly").setAttribute("points",pts.join(" "))})();
+
+function appCTA(title,text){return `<div class="app"><div class="stack"><span class="eyebrow">YourSZN app</span><h3>${title}</h3><p>${text}</p></div><a class="btn" href="https://www.yourszn.com.au" target="_blank" rel="noopener">Get the app</a></div>`}
+
+/* ================= SEASON VIEW ================= */
+function scale(label,left,right,grad,a,b){return `<div class="scale"><span class="lbl">${label}</span><div class="bar" style="background:${grad}"><span class="range" style="left:${a}%;width:${b-a}%"></span></div><div class="ends"><span>${left}</span><span>${right}</span></div></div>`}
+function renderSeason(){
+  $("#v-season").innerHTML=`
+  <div class="head"><span class="eyebrow">Hi ${esc(CLIENT.first)}, your result</span><h2>Welcome to the Light Summer Club</h2>
+  </div>
+  ${welcomeVideoHTML()}
+  ${checklistHTML()}
+  <div class="head" style="margin-top:6px"><span class="eyebrow">Your season</span><h2>What Light Summer means</h2>
+  <p class="muted">Light Summers have soft, delicate colouring: fair to medium skin with pink or blue undertones, light hair and light eyes, often with rosy cheeks or a few freckles. Even if you tan to a golden brown, your undertones stay cool and light.</p></div>
+
+  <div class="grid2">
+    <div class="card stack"><span class="eyebrow">Your colour properties</span>
+      ${scale("Temperature","Cool","Warm","linear-gradient(90deg,#1f6ff0,#3fb7c4,#f3f13a,#ff8a1e,#ff3d0a)",13,52)}
+      ${scale("Value","Light","Dark","linear-gradient(90deg,#efe6ff,#c9b2ff,#9b6dff,#5e2fc4)",12,40)}
+      ${scale("Chroma","Muted","Clear","linear-gradient(90deg,#6a5c86,#9d7bd6,#8c4dff)",14,86)}
+      ${scale("Contrast","Low","High","linear-gradient(90deg,#e9e9e9,#9a9a9a,#1b1b1b)",4,60)}
+    </div>
+    <div class="card stack"><span class="eyebrow">Your sister seasons</span>
+      <p>Your two neighbouring seasons are <b>Light Spring</b> and <b>True Summer</b>. Shades from their palettes that sit closest to yours can also work well on you.</p>
+      ${Object.entries(SEASON.neighbours).map(([n,cs])=>`<div class="stack" style="gap:6px"><span class="small"><b>${n}</b></span><div class="sw-grid mini">${cs.map(c=>`<span class="sw" style="background:${c}"></span>`).join("")}</div></div>`).join("")}
+      <span class="eyebrow" style="margin-top:6px">Your best metals</span>
+      <div class="pills"><span class="pill">Silver</span><span class="pill">White gold</span><span class="pill">Rose gold</span><span class="pill">Matte yellow gold, sometimes</span></div>
+      <span class="eyebrow" style="margin-top:6px">Your gemstones</span>
+      <div class="pills"><span class="pill">White pearl</span><span class="pill">Rose quartz</span><span class="pill">Aquamarine</span><span class="pill">Opal</span><span class="pill">Moonstone</span><span class="pill">Amethyst</span></div>
+    </div>
+  </div>
+
+  <div class="card stack"><span class="eyebrow">How we found your season</span>
+    <ol class="steps">${CLIENT.steps.map((s,i)=>`<li><span class="n">${i+1}</span><div><b>${s[0]}</b><p class="small muted">${s[1]}</p></div><span class="result">${s[2]}</span></li>`).join("")}</ol>
+    <p class="small muted">Your full draping photos are in your colour analysis report.</p>
+  </div>
+
+  ${appCTA("Shop your season, done for you","Over 400 styled looks for your Summer season, with links to shop every piece and new looks added every week.")}
+
+  <div class="card stack mobile-only"><span class="eyebrow">Keep it on your phone</span><h3>Add to your home screen</h3>
+    <p class="small muted">Open your dashboard in one tap, just like an app.</p>
+    <div class="grid2"><div class="stack" style="gap:4px"><b class="small">iPhone (Safari)</b><ol class="clean small"><li>Tap the Share button at the bottom of the screen.</li><li>Scroll down and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div>
+    <div class="stack" style="gap:4px"><b class="small">Android (Chrome)</b><ol class="clean small"><li>Tap the three dots at the top right.</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li><li>Tap <b>Add</b>.</li></ol></div></div></div>
+  <div class="card stack"><span class="eyebrow">What to do now</span>
+    <ul class="clean">
+      <li>Explore your palette slowly. There's no need to overhaul your wardrobe.</li>
+      <li>Try new shades in low-pressure pieces first, like gym wear, a cheap tee or accessories.</li>
+      <li>Take the quizzes in <b>Practise</b> so choosing colours in a shop feels easy.</li>
+      <li>Sort your wardrobe with the <b>Closet</b> worksheet when you're ready.</li>
+    </ul>
+    <div class="row"><button class="btn ghost" data-go="practise">Start practising</button><a class="btn ghost" href="https://www.instagram.com/yourszn.online" target="_blank" rel="noopener">Follow @yourszn.online</a></div>
+    <p class="small muted">Loved your analysis? A Google review helps others find Your SZN.</p>
+  </div>`;
+}
+
+
+/* ================= WELCOME VIDEO + FIRST WEEK ================= */
+function welcomeVideoHTML(){
+  const v=SEASON.welcomeVideo;if(!v)return "";
+  return `<div class="card stack"><span class="eyebrow">A welcome from Latisha</span>
+    ${v?`<video class="wvideo" id="wvid" src="${v}" controls playsinline preload="metadata"></video>`
+      :`<button class="wvideo ph" id="wvid"><span class="play">${'<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg>'}</span><span class="small">Your welcome video will appear here</span></button>`}
+  </div>`}
+function steps(){
+  const pr=progress(),cl=store("closet")||{};
+  return [
+    ...(SEASON.welcomeVideo?[{k:"video",t:"Watch your welcome video",done:!!store("watched"),go:"season"}]:[]),
+    {k:"favs",t:"Save 5 favourite colours",done:favs().length>=5,note:`${Math.min(favs().length,5)} of 5`,go:"palette"},
+    {k:"try",t:"Try your colours on",done:!!store("tried"),go:"tryon"},
+    {k:"quiz",t:"Pass a quiz",done:Object.values(pr).some(x=>x.best>=.7),go:"practise"},
+    {k:"closet",t:"Sort your closet",done:((cl.keep||0)+(cl.maybe||0)+(cl.donate||0))>0,go:"closet"}]}
+function checklistHTML(){
+  const st=steps(),n=st.filter(x=>x.done).length,all=n===st.length;
+  return `<div class="card stack"><div class="confident"><div class="badge ${all?"":"off"}"><svg viewBox="0 0 100 100"><polygon points="${$("#starPoly").getAttribute("points")}" fill="none" stroke="#1C1712" stroke-width="6" stroke-linejoin="round"/></svg></div>
+    <div class="stack" style="gap:6px"><span class="eyebrow">Your first week</span><b>${all?"You're Season Confident!":`${n} of ${st.length} done. Finish them all to earn your Season Confident badge.`}</b><div class="progress"><div style="width:${n/st.length*100}%"></div></div></div></div>
+    <ul class="steplist">${st.map(x=>`<li><button data-go="${x.go}" class="${x.done?"done":""}"><span class="tick" aria-hidden="true">${x.done?"✓":""}</span><span>${x.t}</span><span class="small muted">${x.done?"Done":(x.note||"")}</span></button></li>`).join("")}</ul></div>`}
+document.addEventListener("click",e=>{const v=e.target.closest("#wvid.ph");if(v){store("watched",true);renderSeason()}});
+document.addEventListener("play",e=>{if(e.target.id==="wvid"){store("watched",true)}},true);
+
+/* ================= PALETTE VIEW ================= */
+let showAvoid=false, selected=null;
+function renderPalette(){
+  const groups={};Object.keys(SEASON.families).forEach(k=>groups[k]=[]);
+  SEASON.palette.forEach(c=>groups[familyOf(c)].push(c));
+  ["greens","aquas","blues","purples","pinks"].forEach(k=>groups[k].sort((a,b)=>hsl(a).h-hsl(b).h));
+  groups.neutrals.sort((a,b)=>hsl(b).l-hsl(a).l);
+  const order=["blues","aquas","greens","purples","pinks","neutrals"];
+  $("#v-palette").innerHTML=`
+  <div class="head"><span class="eyebrow">${SEASON.palette.length} colours</span><h2>Your Light Summer palette</h2>
+  <p class="muted">Tap a colour, then the heart to save it to your favourites. Turn on the comparison to see colours that sit outside your palette.</p>
+  <div class="row"><button class="toggle" id="avoidToggle" aria-pressed="${showAvoid}">Compare with colours to avoid</button><button class="toggle" data-go="tryon">Try colours on your face</button><button class="toggle mobile-only" id="camBtn2">Colour camera</button></div></div>
+  <div class="card fam"><div class="row" style="justify-content:space-between"><h3>My favourites</h3><span class="small muted">${favs().length} saved</span></div>
+    ${favs().length?`<div class="favlist">${favs().map(c=>`<div class="favitem"><button class="sw" style="background:${c}" data-c="${c}" data-fav-row="1" aria-label="${nm(c)}" title="${nm(c)}"></button><span>${nm(c)}</span></div>`).join("")}</div>`:`<p class="small muted">Tap any colour below, then tap the heart to save it here.</p>`}
+    ${favs().length?`<div class="row"><button class="toggle" data-go="tryon">Try my favourites on</button></div>`:""}</div>
+  ${order.map(k=>{const f=SEASON.families[k];return `<div class="card fam"><div class="stack"><h3>${f.name}</h3><p class="small muted">${f.text}</p></div>
+    <div class="sw-grid">${groups[k].map(c=>`<button class="sw${isFav(c)?" fav":""}" style="background:${c}" data-c="${c}" aria-label="${nm(c)}" title="${nm(c)}" aria-pressed="${selected===c}"></button>`).join("")}</div>
+    ${showAvoid&&f.avoid.length?`<div class="stack"><span class="eyebrow">Not in your palette</span><div class="sw-grid">${f.avoid.map(c=>`<button class="sw avoid" style="background:${c}" data-c="${c}" data-avoid="1" aria-label="${nm(c)}, not in your palette" title="${nm(c)}" aria-pressed="${selected===c}"></button>`).join("")}</div></div>`:""}
+  </div>`}).join("")}
+  <div class="card stack"><h3>Neighbouring colours</h3><p class="small muted">Colours from your sister seasons. The softer, lighter ones closest to your palette can work on you too.</p>
+    ${Object.entries(SEASON.neighbours).map(([n,cs])=>`<div class="stack" style="gap:6px"><span class="small"><b>${n}</b></span><div class="sw-grid">${cs.map(c=>`<button class="sw${isFav(c)?" fav":""}" style="background:${c}" data-c="${c}" data-nb="${n}" aria-label="${nm(c)}" title="${nm(c)}"></button>`).join("")}</div></div>`).join("")}</div>
+  <div class="grid2">
+    <div class="card stack"><h3>Neutral swaps</h3><p class="small muted">Swap these everyday neutrals for softer, cooler versions.</p>
+      ${SEASON.swaps.map(s=>`<div class="swap"><span class="dot" style="background:${s[0]}"></span><span class="arrow">→</span><span class="dot" style="background:${s[1]}"></span><span class="small"><b>${s[2]}</b> becomes ${s[3]}</span></div>`).join("")}</div>
+    <div class="card stack"><h3>Colours to avoid</h3><p class="small muted">Dark, warm colours overpower your delicate, cool features. Deep oranges, dark browns and intense rusts clash with your natural softness.</p>
+      <div class="sw-grid">${SEASON.avoidGeneral.map(c=>`<button class="sw sq avoid" style="background:${c}" data-c="${c}" data-avoid="1" aria-label="${nm(c)}, not in your palette" title="${nm(c)}"></button>`).join("")}</div>
+      <p class="small muted">Love one of these? Keep it away from your face, or wear it in a print that's at least 80% your colours.</p></div>
+  </div>
+  <p class="screen-note">Screens show colour slightly differently, so treat these swatches as a guide. Check new pieces in natural daylight, near a window if you can.</p>`;
+  $("#avoidToggle").onclick=()=>{showAvoid=!showAvoid;store("avoid",showAvoid);renderPalette()};
+  $("#v-palette").querySelectorAll(".sw[data-c]").forEach(b=>b.onclick=()=>{
+    const again=selected===b.dataset.c;selected=again?null:b.dataset.c;
+    $("#v-palette").querySelectorAll(".sw[data-c]").forEach(x=>x.setAttribute("aria-pressed",!again&&x===b));
+    $("#v-palette").querySelectorAll(".detail").forEach(d=>d.remove());
+    if(again)return;const grid=b.closest(".sw-grid");const d=document.createElement("div");d.className="detail";d.setAttribute("aria-live","polite");grid.after(d);
+    showDetail(d,selected,!!b.dataset.avoid,b.dataset.nb)});
+  const cb=$("#camBtn2");if(cb)cb.onclick=openCamera;
+}
+function showDetail(el,c,avoid,nb){
+  const fam=SEASON.families[familyOf(c)].name;const fav=isFav(c);
+  el.innerHTML=`<span class="big" style="background:${c}"></span><div class="stack" style="gap:2px"><span class="eyebrow">${nb?nb:avoid?"Not in your palette":fam}</span><b style="font-family:var(--display);font-size:20px;font-weight:400">${nm(c)}</b><span class="small muted">${c.toUpperCase()}</span></div>${avoid?"":`<button class="heart" aria-pressed="${fav}" aria-label="${fav?"Remove from favourites":"Save to favourites"}">${HEART}<span>${fav?"Saved":"Save"}</span></button>`}<button class="dx" aria-label="Close">×</button>`;
+  el.querySelector(".dx").onclick=()=>{selected=null;el.remove();$("#v-palette").querySelectorAll(".sw[aria-pressed=true]").forEach(x=>x.setAttribute("aria-pressed","false"))};
+  const h=el.querySelector(".heart");if(h)h.onclick=()=>{toggleFav(c);const keep=selected;renderPalette();selected=keep;const b=$(`#v-palette .sw[data-c="${c}"]:not([data-fav-row])`);if(b){b.setAttribute("aria-pressed","true");const d=document.createElement("div");d.className="detail";b.closest(".sw-grid").after(d);showDetail(d,c,false,b.dataset.nb)}};
+}
+const HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
+const favs=()=>store("favs")||[];
+const isFav=c=>favs().includes(c);
+function toggleFav(c){const f=favs();store("favs",f.includes(c)?f.filter(x=>x!==c):[...f,c])}
+
+/* ================= GUIDE VIEW ================= */
+let guideIdx=store("ch")||0;
+const GP=SEASON.guidePages;
+const pgSrc=n=>PAGES[n]||"";
+function ch(title,sub,body){const pages=GP[title]||[];const locked=body.includes('class="locked"');
+  return `<article class="card chapter" data-t="${title.replace(/&amp;/g,"&")}"><div class="head"><span class="eyebrow">${sub}</span><h2>${title}</h2></div><div class="ch-body">${body}</div>${pages.length&&!locked?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} page${pages.length>1?"s":""}, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" src="${pgSrc(n)}" data-n="${n}" alt="${esc(CLIENT.season)} guide page" width="874" height="1241"><span class="wm" aria-hidden="true"></span></button>`).join("")}</div></div>`:""}</article>`}
+function premium(title,body){return CLIENT.tier==="premium"?body:`<div class="locked"><b>${title} is part of the Premium Colour Analysis</b><p class="small muted">Premium clients get hair colour, makeup, nail and perfume recommendations for their season.</p><a class="btn" href="https://www.yourszn.com.au" target="_blank" rel="noopener">Upgrade to Premium</a></div>`}
+function renderGuide(){
+  const hair=[["7.1","Medium Ash Blonde"],["8.1","Light Ash Blonde"],["9.1","Very Light Ash Blonde"],["10.1","Extra Light Ash Blonde"],["6.01","Dark Ash Blonde"],["7.01","Medium Ash Blonde"],["8.01","Light Ash Blonde"],["9.01","Very Light Ash Blonde"],["9.2","Very Light Violet Blonde"],["10.7","Extra Light Cool Beige Blonde"],["10.32","Extra Light Cool Chocolate Blonde"],["5.0","Light Brown"]];
+  $("#v-guide").innerHTML=`
+  <div class="head"><span class="eyebrow">Your season guide</span><h2>The Light Summer guide</h2><p class="muted">Your full e-guide, chapter by chapter. Read the quick summary, then tap any page to see it full size.</p></div>
+  <div class="subtabs" id="gnav"></div>
+  <div class="stack" id="chapters">
+  ${ch("Welcome","Start here",`<p>Welcome to the Light Summer Club. Your guide is your step-by-step companion for making the most of your season. Wearing your right colours can even out your skin tone, brighten your eyes and help you look fresh and polished with less effort.</p><p class="small muted">Tip: lighting changes everything. Check colours in natural daylight, near a window, before you buy.</p>`)}
+  ${ch("About Light Summer","Your season",`<p>Summer is the cool season, with three sub-seasons: Light, True and Soft Summer. Light Summers have soft, delicate colouring with fair to medium skin, pink or blue undertones and light hair and eyes. Your colours are cool, light and gently muted.</p><p>Your sister seasons are Light Spring and True Summer.</p>`)}
+  ${ch("Your colours","Your palette",`<p>Over 100 Light Summer colours, family by family, with the colours to avoid beside each one so you can see the difference.</p><div class="row"><button class="btn ghost" data-go="palette">Open my palette</button><button class="btn ghost" data-go="tryon">Try them on my face</button></div>`)}
+  ${ch("Contrast","Why soft beats stark for you",`
+    <p>Picture an outfit in black and white. The difference between its lightest and darkest parts is its contrast. Light Summers shine in <b>low to medium contrast</b>, and the same goes for your makeup.</p>
+    <div class="table-wrap"><table><tr><th>Level</th><th>Shade difference</th><th>For you</th></tr><tr><td>Low</td><td>1 to 3</td><td>Your sweet spot</td></tr><tr><td>Medium</td><td>4 to 6</td><td>Works well</td></tr><tr><td>High</td><td>7 to 9</td><td>Overpowers you, like black with bright white</td></tr></table></div>`)}
+  ${ch("Patterns, prints &amp; fabric","Soft shapes, matte finishes",`
+    <div><h4>Patterns</h4><p>Choose soft, delicate patterns with rounded shapes: swirls, dots, paisley and gentle florals in cool pastels. Avoid bold or high-contrast prints.</p></div>
+    <div><h4>The 80% rule</h4><p>A print works for you when at least 80% of its colours come from your palette.</p></div>
+    <div><h4>Fabric &amp; texture</h4><p>Summers often have more delicate skin. Pick soft, lightweight fabrics with a matte or low-sheen finish: cotton, linen, silk blends and lightweight wool. Skip anything very shiny or harsh.</p></div>
+    <div><h4>Denim</h4><p>Light to mid washes with a cool, blue-grey cast. Avoid yellowed vintage washes and very dark indigo.</p></div>`)}
+  ${ch("Outfit inspiration","Basics, shoes, bags and accessories",`<p>Soft, airy outfits in your colours, plus the basics, shoes, bags and accessories to build them from.</p>${appCTA("Shop these looks","The YourSZN app has over 400 styled looks for your Summer season, with links to shop every piece.")}`)}
+  ${ch("Jewellery, gems &amp; eyewear","Cool metals and soft stones",`
+    <p>Silver, white gold and rose gold suit you best, and you can sometimes wear matte yellow gold. Pearls, rose quartz, opal, moonstone, amethyst and aquamarine echo your soft, cool colouring.</p>
+    <p><b>Eyewear:</b> any colour from your palette works for frames. Clear, soft lilac, blush, silver and pale blue are easy starting points.</p>
+    <div><h4>Brands from your guide</h4><div class="pills">${["Waldor & Co.","Swarovski","Toni May","The Silver Collective","Revolve","Mejuri","Silver Australia","Cos"].map(b=>`<span class="pill">${b}</span>`).join("")}</div></div>`)}
+  ${ch("Hair colour","Light, cool and ash tones",premium("Hair colour",`
+    <p>Avoid very dark or very warm hair colours. Dark hair can wash you out and warm tones clash with your cool undertones. A light, cool or slightly warm-leaning blonde is the boldest choice to keep balance.</p>
+    <div><h4>Shades to ask your colourist about</h4><div class="hair">${hair.map(h=>`<div><b>${h[0]}</b>${h[1]}</div>`).join("")}</div></div>`))}
+  ${ch("Makeup","Fresh, cool and soft",premium("Makeup",`
+    <p>Think soft, fresh and cool. Cool-toned pastels and gentle neutrals bring out your features without overwhelming your skin. The "clean girl" look is perfect for your season.</p>
+    <div><h4>Lips</h4><p>Best colours: soft plum, antique pink, rose pink, watermelon, soft salmon, coral pink and red violets. Choose matte to light sheen. High gloss can feel too bold on you.</p>
+      <p class="small muted">From your guide: Dior Addict Shine 576 Rose Bagatelle, Burberry Kisses 25 English Petal, Clinique Longwear Lipstick Shine in Melon Pop, YSL Loveshine 209 Pink Desire, Glossier Ultralip in Portrait.</p></div>
+    <div><h4>Blush</h4><p>Soft rose, antique pink and tea rose give a natural flush.</p><div class="strokes">${SEASON.blush.map(c=>`<span style="background:${c}"></span>`).join("")}</div>
+      <p class="small muted">From your guide: Rare Beauty Soft Pinch Liquid Blush in Bliss, Dior Rouge Blush 212 Tutu, Glossier Cloud Paint in Puff, Tower 28 BeachPlease in Magic Hour.</p></div>
+    <div><h4>Eyes</h4><p>Highlight with pewter, champagne, lemon, soft iris, dusty plum and soft pinks. Add depth with Wedgwood blue, plum, cocoa, soft teal, light aqua and medium grey.</p><div class="strokes">${SEASON.shadow.map(c=>`<span style="background:${c}"></span>`).join("")}</div>
+      <p>Mascara in charcoal, cocoa or navy. Eyeliner in silvery green, grey, smoky blue or cocoa.</p></div>
+    <div><h4>Contour &amp; highlight</h4><p>Use cool-toned contour rather than warm bronzer. Highlight with champagne, soft pink or dusty plum.</p></div>
+    <div><h4>Nails &amp; perfume</h4><p>The natural, barely-there nail is a timeless Light Summer favourite, and any colour from your palette works. For perfume, citrus and fresh-air notes are the classic Summer match.</p></div>
+    <div><h4>Before you buy</h4><p>Always swatch makeup on your own skin first. Lips and skin react to pigments differently, even within your palette. Two or three lipsticks are plenty: one for every day, one for evening and maybe one for special occasions.</p></div>`))}
+  ${ch("Light Summers to follow","Inspiration from your season",`
+    <div class="pills">${["Margot Robbie","Cate Blanchett","Naomi Watts","January Jones","Lili Reinhart","Taeyeon","Alla Bruletova","Austin Butler","Neil Patrick Harris"].map(b=>`<span class="pill">${b}</span>`).join("")}</div>
+    <p class="small muted">Even celebrities miss the mark sometimes, with hair colours or outfits outside their season. Not every Light Summer looks alike either.</p>`)}
+  ${ch("Shopping tips","Lighting, names and the maybe rule",`
+    <div><h4>Check the light</h4><p>Many shops use dim or warm lighting that flatters clothes. Check colours near a window or take a mirror selfie outside the change room.</p></div>
+    <div><h4>Colour names aren't fixed</h4><p>One brand's "teal" is another's "aqua". Judge the colour itself, not its name.</p></div>
+    <div><h4>Fit matters as much as colour</h4><p>The perfect shade won't shine in the wrong cut or fabric. And you won't love every colour in your palette, which is completely normal.</p></div>
+    <div><h4>The golden rule</h4><p class="note" style="font-size:18px">If it feels like a "maybe", it's a no.</p></div>
+    <div><h4>Foundation &amp; fake tan</h4><p>Don't choose foundation by "warm" or "cool" labels, since brands use them differently. Test in store and take a sample home for a few days. For fake tan, go lighter and choose ash, violet or blue-based formulas.</p></div>
+    <div><h4>Where to start</h4><div class="pills">${["Uniqlo","Sheike","Zara","H&M","Marks and Spencer","Tommy Hilfiger","Aje World","Henne","Cotton On","Forcast","Charles & Keith","Novo Shoes","Nine West"].map(b=>`<span class="pill">${b}</span>`).join("")}</div></div>
+    ${appCTA("Want the exact pieces?","The YourSZN app links straight to items in your colours from these brands and more.")}`)}
+  ${ch("Colour basics","The theory behind your season",`
+    <div><h4>Hue, value and chroma</h4><p><b>Hue</b> is the colour's name, like blue or pink. <b>Value</b> is how light or dark it is. <b>Chroma</b> is how vivid or muted it is. Light Summer colours are cool in hue, light in value and soft to medium in chroma.</p></div>
+    <div><h4>Tints, tones and shades</h4><p>A <b>tint</b> adds white, a <b>tone</b> adds grey and a <b>shade</b> adds black. Your palette is mostly tints and soft tones.</p></div>
+    <div><h4>Enhancers and intensifiers</h4><p><b>Enhancers</b> echo your own hair, skin or eye colour for a harmonious look. <b>Intensifiers</b> sit opposite your eye colour on the colour wheel and make your eyes stand out. Wear both above the waist.</p></div>
+    <div><h4>Why wrong colours look "off"</h4><p>Colours that are too warm, dark or heavy for you can make skin look dull and tired, and show up redness and dark circles. The right colours feel effortless.</p></div>
+    <div><h4>Ageing and your colours</h4><p>Your undertone stays the same, but hair and skin soften over time. If your colours stop feeling right, a refresh session is worth it.</p></div>`)}
+  ${ch("Myths &amp; FAQs","The questions everyone asks",`
+    <div class="table-wrap"><table><tr><th>Myth</th><th>Truth</th></tr>
+      <tr><td>The vein test tells you your undertone</td><td>Lighting, skin thickness and vein depth make it unreliable.</td></tr>
+      <tr><td>Everyone looks good in black</td><td>Black overpowers many people, Light Summers included.</td></tr>
+      <tr><td>You'll look good in every palette colour</td><td>You'll look harmonious in most, but some will suit you better than others.</td></tr>
+      <tr><td>You must replace your whole wardrobe</td><td>Not at all. Change at your own pace.</td></tr></table></div>
+    <div><h4>My favourite colour isn't in my palette</h4><p>You can still wear it. Keep it away from your face, show some skin between it and your face (like a bandeau top), or wear it in a print that's mostly your colours.</p></div>
+    <div><h4>A colour in my palette doesn't suit me</h4><p>That's normal. Your palette is a framework, not a rulebook. Skin variations and preference play a part.</p></div>
+    <div><h4>I got a different season before</h4><p>Older 4-season systems, different naming systems and between-season results can all explain it. Message Latisha if you're unsure.</p></div>`)}
+  ${ch("Closet clean-up","Your wardrobe worksheet",`<p>Sort your wardrobe into keep, maybe and donate, then plan what to shop next.</p><div class="row"><button class="btn ghost" data-go="closet">Open the closet worksheet</button></div>`)}
+  </div>`;
+  const arts=[...document.querySelectorAll("#chapters .chapter")];
+  const show=i=>{guideIdx=i;store("ch",i);arts.forEach((a,n)=>a.hidden=n!==i);$("#gnav").querySelectorAll(".subtab").forEach((b,n)=>b.setAttribute("aria-pressed",n===i))};
+  $("#gnav").innerHTML=arts.map((a,i)=>`<button class="subtab" data-i="${i}">${esc(a.dataset.t)}</button>`).join("");
+  $("#gnav").querySelectorAll(".subtab").forEach(b=>b.onclick=()=>show(+b.dataset.i));
+  show(Math.min(guideIdx,arts.length-1));
+}
+
+/* ================= COMBOS VIEW ================= */
+function renderCombos(){
+  $("#v-combos").innerHTML=`
+  <div class="head"><span class="eyebrow">Colour combos</span><h2>Putting your colours together</h2><p class="muted">Every season uses the same combinations. What changes is how they look. For a Summer, combos stay cool, soft and low in contrast.</p></div>
+  ${Object.entries(SEASON.combos).map(([type,list])=>`<div class="card stack"><h3>${type}</h3>
+    <p class="small muted">${{"Complementary":"Colours from opposite sides of the colour wheel. Eye-catching, and in your soft shades it never feels harsh.","Analogous":"Neighbouring colours that share an undertone. Calm and easy, with gentle colour flow.","Monochromatic":"Lighter and deeper versions of one colour. Add interest with texture: a knit with silk, linen with cotton."}[type]}</p>
+    <div class="combos">${list.map(([cs,name])=>`<div class="combo"><div class="circles">${cs.map(c=>`<span style="background:${c}"></span>`).join("")}</div>${name}</div>`).join("")}</div></div>`).join("")}
+  <div class="grid2">
+    <div class="card stack"><h3>The colour pop rule</h3><p class="small">Use colour in a 60, 30, 10 ratio: 60% base neutral, 30% supporting colour and 10% pop.</p>
+      <div class="ratio"><div style="flex:60;background:#bcbec2">60%</div><div style="flex:30;background:#85a3e0">30%</div><div style="flex:10;background:#e185a3">10%</div></div>
+      <p class="small muted">Example: light grey trousers, a periwinkle knit and a rose pink bag.</p></div>
+    <div class="card stack"><h3>Neutral + one colour</h3><p class="small">Start with a cool, muted neutral like soft grey, blue-grey or cool taupe and add one soft colour. The neutral gives the eye a place to rest.</p>
+      <div class="ratio"><div style="flex:1;background:#a39990"></div><div style="flex:1;background:#bfb2cc"></div><div style="flex:1;background:#829498"></div><div style="flex:1;background:#84e0c2"></div></div></div>
+    <div class="card stack"><h3>Soft contrast</h3><p class="small">When you want a bit more definition, pair two clearly different colours that share a similar depth and a cool undertone. Different, but never extreme.</p>
+      <div class="ratio"><div style="flex:1;background:#7499be"></div><div style="flex:1;background:#e699a5"></div></div></div>
+    <div class="card stack"><h3>The travel capsule</h3><p class="small">Packing within your palette means everything works together.</p>
+      <ul class="clean small"><li>5 tops and 4 bottoms</li><li>3 dresses, 3 accessories and 3 pairs of shoes</li><li>2 bags and 2 jackets</li><li>1 extra item of your choice</li></ul></div>
+  </div>
+  ${appCTA("See these combos as real outfits","Styled looks in the app turn each combo into a full outfit you can shop.")}`;
+}
+
+/* ================= PRACTISE VIEW (quizzes) ================= */
+const QUIZZES={
+  mine:{t:"Is this my colour?",d:"Decide if each colour belongs in your palette. Just like standing in a shop.",build(){
+    const yes=pick(SEASON.palette.filter(c=>hsl(c).l>.3),4).map(c=>({c,ok:true}));
+    const allAvoid=[...SEASON.avoidGeneral,...Object.values(SEASON.families).flatMap(f=>f.avoid)];
+    const no=pick(allAvoid,4).map(c=>({c,ok:false}));
+    return shuffle([...yes,...no]).map(x=>({prompt:"Is this a Light Summer colour?",visual:`<span class="big" style="background:${x.c}"></span>`,opts:["Yes, it's mine","No, skip it"],ans:x.ok?0:1,
+      why:x.ok?`That's ${nm(x.c)}, one of your palette colours.`:`That's ${nm(x.c)}. It's ${whyNot(x.c)}.`}))}},
+  spot:{t:"Spot your shade",d:"Three similar colours, only one is yours. Learn the difference between soft and too strong.",build(){
+    return shuffle(["blues","greens","purples","pinks","neutrals","blues"]).map(k=>{
+      const f=SEASON.families[k];const pal=SEASON.palette.filter(c=>familyOf(c)===k&&hsl(c).l>.35);
+      const right=pick(pal,1)[0];const wrong=pick(f.avoid,2);const opts=shuffle([right,...wrong]);
+      return{prompt:`Which ${f.name.split(" ")[0].toLowerCase().replace("pinks","pink").replace("blues","blue").replace("purples","purple").replace("greens","green").replace("neutrals","neutral")} is yours?`,swatches:true,opts,ans:opts.indexOf(right),
+        why:`Yours is ${nm(right)}, soft and cool. The others are ${wrong.map(whyNot).filter((v,i,a)=>a.indexOf(v)===i).join(", or ")}.`}})}},
+  swaps:{t:"Neutral swaps",d:"Swap everyday neutrals for the soft versions that suit you.",build(){
+    return shuffle(SEASON.swaps).map(s=>{const others=pick(SEASON.swaps.filter(x=>x!==s).map(x=>x[0]),1);const opts=shuffle([s[1],s[0],...others]);
+      return{prompt:`You'd usually reach for ${s[2].toLowerCase()}. Which is your swap?`,swatches:true,opts,ans:opts.indexOf(s[1]),why:`${s[3]} gives the same job as ${s[2].toLowerCase()} without overpowering your light colouring.`}})}},
+  combo:{t:"Combo check",d:"Pick the pairing that works for a Light Summer.",build(){
+    const all=Object.entries(SEASON.combos).flatMap(([t,l])=>l.map(x=>[...x,t]));
+    const avoid=[...SEASON.avoidGeneral];
+    return pick(all,5).map(([cs,name,type])=>{
+      const fakes=[0,1].map(()=>[pick(avoid,1)[0],pick(SEASON.palette.filter(c=>hsl(c).l>.5),1)[0]]);
+      const opts=shuffle([cs,...fakes]);
+      return{prompt:"Which pairing is a Light Summer combo?",combos:true,opts,ans:opts.indexOf(cs),why:`${name} is a ${type.toLowerCase()} combo from your guide. The others mix in a colour that's too warm, dark or bright for you.`}})}},
+  basics:{t:"Season smarts",d:"Can you explain your season to a friend? Test the key ideas.",build(){
+    return shuffle([
+      ["What contrast level suits you best?",["Low to medium","Medium to high","High"],0,"Light Summers shine in low to medium contrast, in clothes and makeup."],
+      ["Which metals suit you best?",["Silver, white gold and rose gold","Bright yellow gold and copper","Antique bronze"],0,"Cool metals echo your colouring. Matte yellow gold can work sometimes."],
+      ["What makes a print work for you?",["At least 80% of its colours are in your palette","It has one bright accent","It's black and white"],0,"The 80% rule lets you enjoy prints with a little flexibility."],
+      ["Which lipstick finish suits you best?",["Matte to light sheen","High gloss","Metallic"],0,"High gloss can feel too bold against your natural softness."],
+      ["How should you wear a favourite colour that isn't yours?",["Away from your face","As a top near your face","Never again"],0,"Keep it below the waist or create a break with some skin."],
+      ["Something in the change room feels like a maybe. What's the rule?",["It's a no","Buy it anyway","Buy it in two colours"],0,"If it feels like a maybe, it's a no."],
+      ["Which hair colour direction suits you most?",["Light, cool ash blonde","Deep warm auburn","Jet black"],0,"Very dark or warm hair can overpower your delicate features."],
+      ["What are your sister seasons?",["Light Spring and True Summer","Dark Autumn and Dark Winter","Bright Spring and Bright Winter"],0,"Shades from your sister seasons that sit close to yours can also work."]
+    ]).map(([p,o,a,w])=>{const opts=shuffle(o);return{prompt:p,opts,ans:opts.indexOf(o[a]),why:w}})}}
+};
+let qState=null;
+function progress(){return store("quiz")||{}}
+function renderPractise(){
+  const pr=progress();const passed=Object.keys(QUIZZES).filter(k=>pr[k]&&pr[k].best>=.7).length;
+  $("#v-practise").innerHTML=`
+  <div class="head"><span class="eyebrow">Practise</span><h2>Practise your season</h2><p class="muted">Short quizzes that build the confidence you need in a shop. Score 70% or more to pass. Passing any quiz ticks off a step in Your first week.</p></div>
+  <div class="card confident"><div class="badge ${passed>0?"":"off"}"><svg viewBox="0 0 100 100"><polygon points="${$("#starPoly").getAttribute("points")}" fill="none" stroke="#1C1712" stroke-width="6" stroke-linejoin="round"/></svg></div>
+    <div class="stack" style="gap:6px"><b>${passed===5?"All five quizzes passed!":`${passed} of 5 quizzes passed`}</b><div class="progress"><div style="width:${passed*20}%"></div></div></div></div>
+  <div class="quizzes">${Object.entries(QUIZZES).map(([k,q])=>{const p=pr[k];return `<button class="qcard" data-q="${k}"><div class="meta"><span class="eyebrow">Quiz</span><span class="status ${p&&p.best>=.7?"pass":""}">${p?(p.best>=.7?"Passed ":"Best ")+Math.round(p.best*100)+"%":"Not started"}</span></div><h3>${q.t}</h3><p class="small muted">${q.d}</p></button>`}).join("")}</div>
+  <div id="qstage"></div>`;
+  $("#v-practise").querySelectorAll(".qcard").forEach(b=>b.onclick=()=>startQuiz(b.dataset.q));
+}
+function startQuiz(k){qState={k,qs:QUIZZES[k].build(),i:0,score:0};drawQ();$("#qstage").scrollIntoView({behavior:"smooth",block:"start"})}
+function drawQ(){
+  const s=qState,q=s.qs[s.i],stage=$("#qstage");
+  const optHtml=q.opts.map((o,i)=>q.swatches?`<button class="opt sw-opt" data-i="${i}" aria-label="Option ${i+1}"><span class="c" style="background:${o}"></span></button>`
+    :q.combos?`<button class="opt sw-opt" data-i="${i}" aria-label="Option ${i+1}"><span class="circles">${o.map(c=>`<span style="background:${c}"></span>`).join("")}</span></button>`
+    :`<button class="opt" data-i="${i}">${esc(o)}</button>`).join("");
+  stage.innerHTML=`<div class="card qstage"><div class="row" style="justify-content:space-between"><span class="eyebrow">${QUIZZES[s.k].t}</span><span class="small muted">${s.i+1} of ${s.qs.length}</span></div>
+    <div class="progress"><div style="width:${s.i/s.qs.length*100}%"></div></div>
+    <p class="qprompt">${esc(q.prompt)}</p>${q.visual?`<div class="qvisual">${q.visual}</div>`:""}
+    <div class="opts ${q.swatches||q.combos?"swatches":""}">${optHtml}</div><div id="fb"></div></div>`;
+  stage.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i,ok=i===q.ans;if(ok)s.score++;
+    stage.querySelectorAll(".opt").forEach(x=>{x.disabled=true;if(+x.dataset.i===q.ans)x.classList.add("right")});if(!ok)b.classList.add("wrong");
+    $("#fb").innerHTML=`<div class="feedback"><b>${ok?pickOne(["That's right.","Spot on.","Nailed it.","Exactly."]):pickOne(["Not quite.","Close, but no.","Good try."])}</b>${esc(q.why)}</div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="nextQ">${s.i<s.qs.length-1?"Next question":"See my score"}</button></div>`;
+    $("#nextQ").onclick=()=>{s.i++;s.i<s.qs.length?drawQ():finishQ()};$("#nextQ").focus();
+  });
+}
+const pickOne=a=>a[Math.floor(Math.random()*a.length)];
+function finishQ(){
+  const s=qState,pct=s.score/s.qs.length,pr=progress();pr[s.k]={best:Math.max(pct,pr[s.k]?.best||0)};store("quiz",pr);
+  renderPractise();
+  $("#qstage").innerHTML=`<div class="card qstage"><span class="eyebrow">${QUIZZES[s.k].t}</span><div class="score">${s.score}/${s.qs.length}</div>
+    <p>${pct>=.7?"Great work. You've got a good eye for your colours.":"Keep going. Every round trains your eye a little more."}</p>
+    <div class="row"><button class="btn" id="again">Try again</button><button class="btn ghost" id="closeQ">Back to quizzes</button></div></div>
+    ${appCTA("Put it into practice","Now you know your colours, shop them. The app has over 400 styled looks for your Summer season, with links to every piece.")}`;
+  $("#again").onclick=()=>startQuiz(s.k);$("#closeQ").onclick=()=>{$("#qstage").innerHTML="";window.scrollTo({top:0,behavior:"smooth"})};
+  $("#qstage").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+
+/* ================= TRY ON VIEW ================= */
+const T={mode:1,slots:["#85a3e0","#e185a3"],active:0,avoid:false,cut:null,busy:false,msg:"",saved:false};
+(function(){const d=store("selfie");if(!d)return;const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);T.cut=c;T.saved=true;if(!$("#v-tryon").hidden)renderTryOn()};im.src=d})();
+function savePhoto(on){
+  if(!on){try{localStorage.removeItem(PFX+"selfie")}catch(e){}T.saved=false;return true}
+  const k=Math.min(1,720/Math.max(T.cut.width,T.cut.height));const c=document.createElement("canvas");c.width=Math.round(T.cut.width*k);c.height=Math.round(T.cut.height*k);c.getContext("2d").drawImage(T.cut,0,0,c.width,c.height);
+  let url=c.toDataURL("image/webp",.85);if(!url.startsWith("data:image/webp"))url=c.toDataURL("image/png");
+  store("selfie",url);T.saved=store("selfie")===url;return T.saved}
+function renderTryOn(){
+  const allAvoid=[...new Set([...SEASON.avoidGeneral,...Object.values(SEASON.families).flatMap(f=>f.avoid)])];
+  $("#v-tryon").innerHTML=`
+  <div class="head"><span class="eyebrow">Try on</span><h2>See your colours on you</h2>
+  <p class="muted">Add a selfie and we'll remove the background so you can see each colour next to your face, like a draping session. Your photo stays on your device and is never uploaded.</p></div>
+  <div class="card stack">
+    <div class="row">
+      <label class="btn filebtn mobile-only">Take a selfie<input type="file" id="selfieCam" accept="image/*" capture="user" aria-label="Take a selfie"></label>
+      <label class="btn filebtn ${T.cut?"ghost":""}">${T.cut?"Change photo":"Upload a photo"}<input type="file" id="selfieUp" accept="image/*" aria-label="Upload a photo"></label>
+      <div class="modes" role="group" aria-label="View"><button data-m="1" aria-pressed="${T.mode===1}">One colour</button><button data-m="2" aria-pressed="${T.mode===2}">Side by side</button></div>
+    </div>
+    ${T.cut?`<label class="check" for="savePic"><input type="checkbox" id="savePic" ${T.saved?"checked":""}><span><b>Save my photo for next time</b><br><span class="small muted">If you choose to save it, it's saved on this device only, in this browser. It isn't uploaded to YourSZN or anywhere else. Untick this box to delete it.</span></span></label>`:""}
+    <p class="status-line" id="tStatus">${esc(T.msg||"Best results: face a window in natural daylight, no filter, hair off your face, shoulders in frame.")}</p>
+    <div class="stage" style="--n:${T.mode}">${Array.from({length:T.mode},(_, i)=>`<button class="drape" data-slot="${i}" aria-pressed="${T.mode===2&&T.active===i}" aria-label="Colour ${i+1}"><canvas id="cv${i}" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?"Removing your background…":"Add a selfie to start"}</span>`}<span class="tag">${nm(T.slots[i])}</span></button>`).join("")}</div>
+    ${T.mode===2?`<p class="small muted">Tap a picture to choose which side changes, then tap a colour below.</p>`:""}
+  </div>
+  <div class="card picker">
+    <div class="row" style="justify-content:space-between"><h3>Pick a colour</h3><button class="toggle" id="tAvoid" aria-pressed="${T.avoid}">Show colours to avoid</button></div>
+    ${favs().length?`<span class="eyebrow">My favourites</span><div class="sw-grid">${favs().map(c=>`<button class="sw" style="background:${c}" data-c="${c}" aria-label="${nm(c)}" title="${nm(c)}" aria-pressed="${T.slots[T.active]===c}"></button>`).join("")}</div><span class="eyebrow">Full palette</span>`:""}
+    <div class="sw-grid">${SEASON.palette.map(c=>`<button class="sw" style="background:${c}" data-c="${c}" aria-label="${nm(c)}" title="${nm(c)}" aria-pressed="${T.slots[T.active]===c}"></button>`).join("")}</div>
+    ${T.avoid?`<span class="eyebrow">Not in your palette</span><div class="sw-grid">${allAvoid.map(c=>`<button class="sw avoid" style="background:${c}" data-c="${c}" aria-label="${nm(c)}, not in your palette" title="${nm(c)}" aria-pressed="${T.slots[T.active]===c}"></button>`).join("")}</div>`:""}
+  </div>
+  <div class="card stack desktop-only"><h3>Colour camera</h3><p class="small muted">On your phone, the colour camera puts your whole palette over your camera view, so you can hold it up to clothes while you shop. Open this dashboard on your phone to use it.</p></div>
+  <div class="card stack mobile-only"><h3>Colour camera</h3><p class="small muted">Hold your palette up to clothes while you shop. Your colours sit over your camera view.</p><div class="row"><button class="btn" id="camBtn">Open colour camera</button></div></div>`;
+  for(let i=0;i<T.mode;i++)drawDrape(i);
+  const v=$("#v-tryon");
+  ["selfieCam","selfieUp"].forEach(id=>{const el=$("#"+id);if(el)el.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)loadSelfie(f)}});
+  v.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>{T.mode=+b.dataset.m;T.active=0;renderTryOn()});
+  v.querySelectorAll(".drape").forEach(b=>b.onclick=()=>{T.active=+b.dataset.slot;renderTryOn()});
+  v.querySelectorAll(".picker .sw").forEach(b=>b.onclick=()=>{T.slots[T.active]=b.dataset.c;renderTryOn()});
+  $("#tAvoid").onclick=()=>{T.avoid=!T.avoid;renderTryOn()};
+  const cb=$("#camBtn");if(cb)cb.onclick=openCamera;
+  const sp=$("#savePic");if(sp)sp.onchange=()=>{const ok=savePhoto(sp.checked);if(sp.checked&&!ok){sp.checked=false;setStatus("This browser couldn't save your photo. It may be in private mode.")}else setStatus(sp.checked?"Saved on this device.":"Your saved photo has been deleted.")};
+}
+function drawDrape(i){
+  const cv=$("#cv"+i);if(!cv)return;const ctx=cv.getContext("2d");const W=cv.width,H=cv.height,c=T.slots[i];
+  ctx.fillStyle=c;ctx.fillRect(0,0,W,H);
+  if(!T.cut)return;
+  const im=T.cut,sc=Math.max(W/im.width,H/im.height)*0.98,w=im.width*sc,h=im.height*sc;
+  ctx.drawImage(im,(W-w)/2,H-h,w,h);
+  // drape band across the shoulders, like a fabric drape
+  ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(0,H*.86);ctx.quadraticCurveTo(W/2,H*.78,W,H*.86);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+}
+let segP=null;
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.appendChild(s)})}
+function getSeg(){
+  if(!segP)segP=(async()=>{await loadScript("vendor/selfie-segmentation/selfie_segmentation.js");
+        const seg=new SelfieSegmentation({locateFile:f=>"vendor/selfie-segmentation/"+f});seg.setOptions({modelSelection:0,selfieMode:false});await seg.initialize();return seg})();
+  segP.catch(()=>{segP=null});return segP;
+}
+function setStatus(t){T.msg=t;const el=$("#tStatus");if(el)el.textContent=t}
+async function loadSelfie(file){
+  T.busy=true;T.cut=null;renderTryOn();setStatus("Removing your background. This takes a few seconds the first time.");
+  try{
+    const bmp=await createImageBitmap(file,{imageOrientation:"from-image"}).catch(()=>createImageBitmap(file));
+    const k=Math.min(1,1100/Math.max(bmp.width,bmp.height));
+    const src=document.createElement("canvas");src.width=Math.round(bmp.width*k);src.height=Math.round(bmp.height*k);src.getContext("2d").drawImage(bmp,0,0,src.width,src.height);
+    const seg=await getSeg();
+    const mask=await new Promise((ok,no)=>{const t=setTimeout(()=>no(new Error("timeout")),30000);seg.onResults(r=>{clearTimeout(t);ok(r.segmentationMask)});seg.send({image:src}).catch(no)});
+    const out=document.createElement("canvas");out.width=src.width;out.height=src.height;const o=out.getContext("2d");
+    o.filter="blur(2px)";o.drawImage(mask,0,0,out.width,out.height);o.filter="none";
+    o.globalCompositeOperation="source-in";o.drawImage(src,0,0);
+    T.cut=out;T.busy=false;store("tried",true);if(T.saved)savePhoto(true);T.msg="Tap colours below to compare them next to your face.";
+  }catch(e){T.busy=false;T.cut=null;T.msg="We couldn't remove the background from that photo. Try a clear, well-lit photo with your face and shoulders in frame."}
+  renderTryOn();
+}
+
+/* ================= COLOUR CAMERA (mobile) ================= */
+let camStream=null,camFam="all",camSize=44;
+function camColours(){return camFam==="all"?SEASON.palette:SEASON.palette.filter(c=>familyOf(c)===camFam)}
+function drawCamGrid(){const g=$("#camGrid");if(!g)return;g.style.setProperty("--d",camSize+"px");g.style.setProperty("--g",Math.round(camSize*.3)+"px");g.innerHTML=camColours().map(c=>`<span style="background:${c}"></span>`).join("")}
+async function openCamera(){
+  const cam=$("#cam");cam.hidden=false;document.body.style.overflow="hidden";
+  const fams=[["all","All"],["blues","Blues"],["aquas","Aquas"],["greens","Greens"],["purples","Purples"],["pinks","Pinks"],["neutrals","Neutrals"]];
+  cam.innerHTML=`<video id="camVid" playsinline muted autoplay></video><img class="shot" id="camShot" alt="" hidden>
+    <div class="cam-top"><button class="x" id="camX" aria-label="Close colour camera">×</button>${fams.map(([k,l])=>`<button data-f="${k}" aria-pressed="${camFam===k}">${l}</button>`).join("")}</div>
+    <div class="cam-msg" id="camMsg"><div class="stack"><b>Starting your camera…</b></div></div>
+    <div class="cam-grid" id="camGrid"></div>
+    <div class="cam-bottom"><label for="camSz">Size</label><input type="range" id="camSz" min="28" max="84" value="${camSize}"></div>`;
+  drawCamGrid();
+  $("#camX").onclick=closeCamera;
+  cam.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{camFam=b.dataset.f;cam.querySelectorAll("[data-f]").forEach(x=>x.setAttribute("aria-pressed",x===b));drawCamGrid()});
+  $("#camSz").oninput=e=>{camSize=+e.target.value;drawCamGrid()};
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("no");
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+    const v=$("#camVid");v.srcObject=camStream;await v.play().catch(()=>{});$("#camMsg").hidden=true;
+  }catch(e){
+    $("#camVid").hidden=true;
+    $("#camMsg").innerHTML=`<div class="stack"><b>Your camera couldn't start</b><p class="small" style="color:#ddd">Check that camera access is allowed for this page, or take a photo of the clothes and your colours will sit on top.</p><label class="btn filebtn" style="background:#fff;color:#1C1712">Take a photo<input type="file" id="camFile" accept="image/*" capture="environment" aria-label="Take a photo"></label></div>`;
+    $("#camFile").onchange=ev=>{const f=ev.target.files&&ev.target.files[0];if(!f)return;const im=$("#camShot");im.src=URL.createObjectURL(f);im.hidden=false;$("#camMsg").hidden=true};
+  }
+}
+function closeCamera(){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}const cam=$("#cam");cam.hidden=true;cam.innerHTML="";document.body.style.overflow=""}
+
+/* ================= CLOSET VIEW ================= */
+function renderCloset(){
+  const c=store("closet")||{prep:[],keep:0,maybe:0,donate:0,r1:"",r2:"",r3:"",todo:[]};
+  const save=()=>store("closet",c);
+  $("#v-closet").innerHTML=`
+  <div class="head"><span class="eyebrow">Closet clean-up</span><h2>Sort your wardrobe</h2><p class="muted">This is about refining, not perfection. You don't have to throw anything away today.</p></div>
+  <div class="card stack"><h3>1. Prep</h3>
+    ${["Open your palette on your phone","Find good lighting, natural is best","Give yourself 30 minutes, one section at a time"].map((t,i)=>`<label class="check" for="prep${i}"><input type="checkbox" id="prep${i}" data-i="${i}" ${c.prep.includes(i)?"checked":""}><span>${t}</span></label>`).join("")}</div>
+  <div class="card stack"><h3>2. Sort into piles</h3>
+    <div class="counter">${[["keep","Keep","In season, loved, fits well"],["maybe","Maybe","Not quite in season, but loved"],["donate","Donate or sell","Wrong season, never worn"]].map(([k,l,d])=>`<div><span class="num" id="n-${k}">${c[k]}</span><b class="small">${l}</b><span class="small muted">${d}</span><div class="ctl"><button data-k="${k}" data-d="-1" aria-label="Remove one from ${l}">−</button><button data-k="${k}" data-d="1" aria-label="Add one to ${l}">+</button></div></div>`).join("")}</div>
+    <p class="small muted">Keep your maybes. Wear them below the waist or style them with your colours near your face.</p></div>
+  <div class="card stack"><h3>3. Reflect</h3>
+    <label for="r1" class="small"><b>Are there gaps in your wardrobe now?</b></label><textarea id="r1">${esc(c.r1)}</textarea>
+    <label for="r2" class="small"><b>Which colours from your palette are you most drawn to?</b></label><textarea id="r2">${esc(c.r2)}</textarea>
+    <label for="r3" class="small"><b>Anything you love that isn't in your season? How could you style it?</b></label><textarea id="r3">${esc(c.r3)}</textarea></div>
+  <div class="card stack"><h3>4. Your shopping list</h3><p class="small muted">Priority pieces in your season, like a soft white tee, dress pants or a blazer.</p>
+    <form class="todo" id="todoForm"><input type="text" id="todoIn" placeholder="Add an item, e.g. soft grey blazer"><button class="btn" type="submit">Add</button></form>
+    <ul class="todo-list" id="todoList"></ul></div>
+  ${appCTA("Fill the gaps in your colours","Search the app by category to find pieces from your shopping list already matched to your season.")}
+  <p class="screen-note">Your worksheet saves on this device only.</p>`;
+  const v=$("#v-closet");
+  v.querySelectorAll(".check input").forEach(x=>x.onchange=()=>{const i=+x.dataset.i;c.prep=x.checked?[...c.prep,i]:c.prep.filter(n=>n!==i);save()});
+  v.querySelectorAll(".ctl button").forEach(b=>b.onclick=()=>{const k=b.dataset.k;c[k]=Math.max(0,c[k]+ +b.dataset.d);$("#n-"+k).textContent=c[k];save()});
+  ["r1","r2","r3"].forEach(id=>$("#"+id).oninput=e=>{c[id]=e.target.value;save()});
+  const drawTodo=()=>{$("#todoList").innerHTML=c.todo.map((t,i)=>`<li><span>${esc(t)}</span><button data-i="${i}" aria-label="Remove ${esc(t)}">×</button></li>`).join("");$("#todoList").querySelectorAll("button").forEach(b=>b.onclick=()=>{c.todo.splice(+b.dataset.i,1);save();drawTodo()})};
+  drawTodo();
+  $("#todoForm").onsubmit=e=>{e.preventDefault();const t=$("#todoIn").value.trim();if(!t)return;c.todo.push(t);$("#todoIn").value="";save();drawTodo()};
+}
+
+/* ================= routing ================= */
+const TABS=[
+ ["season","My Season","Season",'<path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'],
+ ["palette","My Palette","Palette",'<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a6 6 0 0 0 6-6c0-4.9-4.5-8.6-10-8.6z"/>'],
+ ["tryon","Try On","Try On",'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'],
+ ["guide","Season Guide","Guide",'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'],
+ ["combos","Colour Combos","Combos",'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>'],
+ ["practise","Practise","Practise",'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'],
+ ["closet","Closet Clean-up","Closet",'<path d="M12 6a2 2 0 1 1 2-2"/><path d="M12 6v2L3 15.5A1.3 1.3 0 0 0 3.8 18h16.4a1.3 1.3 0 0 0 .8-2.5L12 8"/>']
+];
+const RENDER={season:renderSeason,palette:renderPalette,tryon:renderTryOn,guide:renderGuide,combos:renderCombos,practise:renderPractise,closet:renderCloset};
+const icon=(d,n)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:${n}px;height:${n}px" aria-hidden="true">${d}</svg>`;
+$("#snav").innerHTML=TABS.map(([k,l,,ic])=>`<button class="nitem" data-k="${k}">${icon(ic,14)}<span>${l}</span></button>`).join("");
+$("#btabs").innerHTML=TABS.map(([k,,sl,ic])=>`<button class="bt-item" data-k="${k}">${icon(ic,18)}<span>${sl}</span></button>`).join("");
+function go(k,scroll){
+  TABS.forEach(([t])=>{$("#v-"+t).hidden=t!==k});
+  document.querySelectorAll(".nitem,.bt-item").forEach(b=>b.dataset.k===k?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+  RENDER[k]();store("tab",k);
+  const bt=$(`.bt-item[data-k="${k}"]`);if(bt&&bt.parentElement.scrollWidth>bt.parentElement.clientWidth)bt.scrollIntoView({block:"nearest",inline:"center"});
+  if(scroll)window.scrollTo({top:0,behavior:"smooth"})}
+document.querySelectorAll(".nitem,.bt-item").forEach(b=>b.onclick=()=>go(b.dataset.k,true));
+document.addEventListener("click",e=>{const pg=e.target.closest(".pg");if(pg){openViewer(pg.dataset.pages.split(",").map(Number),+pg.dataset.i);return}});
+function openViewer(pages,i){const rv=$("#rv");rv.hidden=false;document.body.style.overflow="hidden";
+  rv.innerHTML=`<div class="rv-top"><span class="rv-count" id="rvCount"></span><button class="rv-close" id="rvX" aria-label="Close">×</button></div><div class="rv-track" id="rvTrack">${pages.map(n=>`<div class="rv-slide"><div class="wmwrap"><img src="${pgSrc(n)}" data-n="${n}" alt="Light Summer guide page"><span class="wm" aria-hidden="true"></span></div></div>`).join("")}</div><button class="rv-arrow l" aria-label="Previous page">‹</button><button class="rv-arrow r" aria-label="Next page">›</button>`;
+  const tr=$("#rvTrack"),cnt=()=>{$("#rvCount").textContent=`PAGE ${Math.round(tr.scrollLeft/tr.clientWidth)+1} OF ${pages.length}`};
+  requestAnimationFrame(()=>{tr.scrollLeft=i*tr.clientWidth;cnt()});tr.onscroll=cnt;
+  const close=()=>{rv.hidden=true;rv.innerHTML="";document.body.style.overflow="";document.removeEventListener("keydown",key)};
+  const key=e=>{if(e.key==="Escape")close();if(e.key==="ArrowRight")tr.scrollBy({left:tr.clientWidth,behavior:"smooth"});if(e.key==="ArrowLeft")tr.scrollBy({left:-tr.clientWidth,behavior:"smooth"})};
+  document.addEventListener("keydown",key);$("#rvX").onclick=close;$("#rvX").focus();
+  rv.querySelector(".rv-arrow.l").onclick=()=>tr.scrollBy({left:-tr.clientWidth,behavior:"smooth"});rv.querySelector(".rv-arrow.r").onclick=()=>tr.scrollBy({left:tr.clientWidth,behavior:"smooth"})}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b){e.preventDefault();go(b.dataset.go,true)}});
+$("#sbToggle").onclick=()=>{const c=document.body.classList.toggle("sb-collapsed");$("#sbToggle").innerHTML=c?"&#8250;":"&#8249;";$("#sbToggle").setAttribute("aria-label",c?"Expand sidebar":"Collapse sidebar");store("sb",c)};
+if(store("sb")){document.body.classList.add("sb-collapsed");$("#sbToggle").innerHTML="&#8250;"}
+$("#suname").textContent=CLIENT.name||CLIENT.first;
+$("#bnum").textContent=CLIENT.season;
+$("#blab").textContent=SEASON.bannerSub||SEASON.traits;
+(function(){const t=(CLIENT.name||CLIENT.first)+" · "+(CLIENT.email||"")+" · YourSZN";
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="220"><text x="0" y="120" transform="rotate(-28 180 110)" font-family="Montserrat,Arial,sans-serif" font-size="15" font-weight="600" fill="#1C1712" fill-opacity="0.13">${t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</text></svg>`;
+  document.documentElement.style.setProperty("--wm",`url("data:image/svg+xml,${encodeURIComponent(svg)}")`)})();
+showAvoid=!!store("avoid");
+const start=(location.hash||"").slice(1);
+go(TABS.some(t=>t[0]===start)?start:(store("tab")||"season"));
+
+}
+boot();
+</script>
+</body>
+</html>

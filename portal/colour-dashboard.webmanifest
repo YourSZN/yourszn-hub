@@ -1,0 +1,14 @@
+{
+  "name": "Your SZN Colour Dashboard",
+  "short_name": "Your SZN",
+  "start_url": "/colour-dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#EFE8DF",
+  "theme_color": "#1C1712",
+  "icons": [
+    { "src": "/icons/colour-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/colour-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/colour-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
