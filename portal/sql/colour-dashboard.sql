@@ -66,3 +66,11 @@ from public.colour_clients c
 left join public.colour_access_log l on l.client_id = c.id
 group by c.id;
 revoke all on public.colour_access_summary from anon, authenticated;
+
+-- Optional client passwords + "sign out of all devices" (applied 25 Oct 2026)
+alter table public.colour_clients
+  add column if not exists password_hash text,              -- scrypt hash, never plain text
+  add column if not exists password_set_at timestamptz,
+  add column if not exists failed_logins int not null default 0,
+  add column if not exists locked_until timestamptz,        -- 15-minute lock after 10 wrong tries
+  add column if not exists sessions_valid_after timestamptz not null default now(); -- sessions issued before this are signed out
