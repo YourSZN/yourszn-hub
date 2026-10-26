@@ -60,6 +60,14 @@ This project deploys automatically to Vercel when you push to GitHub.
 2. Push to GitHub
 3. Vercel picks it up and deploys in ~30 seconds
 
+## RevenueCat setup
+
+1. Create a RevenueCat project and add your app in the dashboard.
+2. Open [project/js/revenuecat.js](project/js/revenuecat.js) and replace the placeholder public API key.
+3. Set your entitlement ID and offering ID if they differ from the defaults.
+4. Load the app and click “Check RevenueCat” in the sidebar to confirm initialization.
+5. Add your purchase and restore flows next using the RevenueCat web SDK.
+
 ## Data
 
 All data is currently stored in the browser (`localStorage`). Future plan: move to Supabase for proper database storage and login security.
