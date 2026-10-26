@@ -104,11 +104,12 @@ function _vtClientCard(list, c, idx) {
       return '<button class="vt-tab'+(activeDetailTab===tabId?' on':'')+'" style="padding:5px 12px;font-size:11px" onclick="event.stopPropagation();vtSetClientDetailTab(\''+key+'\',\''+tabId+'\')">'+label+'</button>';
     };
     var tabsBar = '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      + tabBtn('checklist','Checklist') + tabBtn('info','Contract & Info') + tabBtn('payments','Payments') + tabBtn('lookbook','Lookbook')
+      + tabBtn('checklist','Checklist') + tabBtn('info','Contract & Info') + tabBtn('payments','Payments') + tabBtn('lookbook','Lookbook') + tabBtn('wardrobe', vtWardrobeTabLabel(c))
       + '</div>';
     var body = activeDetailTab === 'checklist' ? vtStepsHtml(list, idx, c)
       : activeDetailTab === 'info' ? vtRenderClientInfoTab(c, key)
       : activeDetailTab === 'payments' ? vtRenderClientPaymentsTab(c, key)
+      : activeDetailTab === 'wardrobe' ? vtRenderClientWardrobeTab(c, key)
       : vtRenderClientLookbookTab(c, key);
     detailHtml = '<div style="width:100%;margin-top:10px">' + tabsBar + '<div style="margin-top:10px">' + body + '</div></div>';
   }
@@ -306,6 +307,84 @@ async function vtFetchClientLookbook(email) {
         });
     })
     .catch(function() { vtClientLookbookCache[key] = { error: true }; renderVietnamTour(); });
+}
+
+/* ── Wardrobe Brief (client's Tailoring → Wardrobe & Planning questionnaire, read-only).
+   Read as the logged-in staff member from vietnam_wardrobe_plans, matched via the
+   vietnam_clients row with this email. Photos are private; ysz-private-media.js
+   swaps their links for signed ones automatically. ── */
+var vtWardrobeCache = {};   // email (lowercased) -> { plan } | { none: true } | { error: true }
+
+function vtWardrobeTabLabel(c) {
+  var w = c && c.email ? vtWardrobeCache[c.email.toLowerCase()] : null;
+  if (!w && c && c.email) vtFetchClientWardrobe(c.email);
+  if (w && w.plan && w.plan.completed_at) return 'Wardrobe Brief ✓';
+  if (w && w.plan) return 'Wardrobe Brief (in progress)';
+  return 'Wardrobe Brief';
+}
+
+async function vtFetchClientWardrobe(email) {
+  var key = email.toLowerCase();
+  if (vtWardrobeCache[key] && vtWardrobeCache[key].loading) return;
+  vtWardrobeCache[key] = { loading: true };
+  try {
+    var headers = await window.yszAuthHeaders();
+    var vc = await fetch(SUPA_URL + '/rest/v1/vietnam_clients?email=ilike.' + encodeURIComponent(key.replace(/[_%\\]/g, '\\$&')) + '&select=id', { headers: headers }).then(function(r) { return r.json(); });
+    var ids = (Array.isArray(vc) ? vc : []).map(function(x) { return x.id; });
+    if (!ids.length) { vtWardrobeCache[key] = { none: true }; renderVietnamTour(); return; }
+    var rows = await fetch(SUPA_URL + '/rest/v1/vietnam_wardrobe_plans?client_id=in.(' + ids.join(',') + ')&select=*&order=updated_at.desc&limit=1', { headers: headers }).then(function(r) { return r.json(); });
+    var plan = Array.isArray(rows) && rows[0];
+    vtWardrobeCache[key] = plan ? { plan: plan } : { none: true };
+  } catch (e) { vtWardrobeCache[key] = { error: true }; }
+  renderVietnamTour();
+}
+
+function vtRenderClientWardrobeTab(c, key) {
+  if (!c.email) return '<div style="color:var(--muted);font-size:12px;padding:6px 0">Add an email to see their Wardrobe Brief.</div>';
+  var w = vtWardrobeCache[c.email.toLowerCase()];
+  if (!w || w.loading) { if (!w) vtFetchClientWardrobe(c.email); return '<div style="color:var(--muted);font-size:12px;padding:6px 0">Loading…</div>'; }
+  if (w.error) return '<div style="color:var(--muted);font-size:12px;padding:6px 0">Couldn\'t load their Wardrobe Brief. Try again.</div>';
+  if (w.none) return '<div style="color:var(--muted);font-size:12px;padding:6px 0">They haven\'t started the Wardrobe &amp; Planning questionnaire yet.</div>';
+  var p = w.plan, a = p.answers || {};
+  var list = function(arr, other) { var x = (Array.isArray(arr) ? arr : []).slice(); if (other) x.push(other); return x.map(esc).join(' · '); };
+  var row = function(l, v) { return v ? '<div style="display:grid;grid-template-columns:150px 1fr;gap:10px;padding:5px 0;border-top:1px dashed var(--warm);font-size:12px"><div style="color:var(--muted)">'+esc(l)+'</div><div style="white-space:pre-wrap">'+v+'</div></div>' : ''; };
+  var sec = function(t, body) { return body ? '<div style="margin-top:12px"><div style="font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--charcoal);margin-bottom:4px">'+t+'</div>'+body+'</div>' : ''; };
+  var week = '';
+  if (a.week) {
+    var labels = { work: 'Work', casual: 'Everyday casual', going_out: 'Going out & events', travel: 'Travel', active: 'Active' }, tot = 0;
+    Object.keys(a.week).forEach(function(k) { tot += +a.week[k] || 0; });
+    if (tot) week = Object.keys(labels).filter(function(k) { return +a.week[k]; }).map(function(k) { return labels[k] + ' ' + Math.round(a.week[k] / tot * 100) + '%'; }).join(' · ');
+  }
+  var gaps = '';
+  if (a.gaps) {
+    var by = { missing: [], replace: [], love: [] };
+    Object.keys(a.gaps).forEach(function(cat) { if (by[a.gaps[cat]]) by[a.gaps[cat]].push(cat); });
+    gaps = row('Missing', by.missing.map(esc).join(' · ')) + row('Needs replacing', by.replace.map(esc).join(' · ')) + row('Have & love', by.love.map(esc).join(' · '));
+  }
+  var musts = (Array.isArray(a.musts) ? a.musts : []).filter(function(m) { return m && (m.text || m.category); })
+    .map(function(m, i) { return (i + 1) + '. ' + esc(m.text || '') + (m.category ? ' <span style="color:var(--muted)">(' + esc(m.category) + ')</span>' : '') + (m.added ? ' <span style="color:#5F7253">· on board</span>' : ''); }).join('<br>');
+  var copyLbl = { exact: 'Copy exactly', changes: 'Copy with changes', no: 'Don\'t copy' };
+  var photos = (p.photos || []).length ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:6px 0">' + p.photos.map(function(ph) {
+    var u = 'https://ntqemlkwsymdxhaonfdv.supabase.co/storage/v1/object/public/inspiration-photos/' + ph.path;
+    return '<div style="border:1px solid var(--sand);border-radius:8px;overflow:hidden;background:#fff">'
+      + '<a href="'+u+'" target="_blank" onclick="event.stopPropagation()" style="display:block;height:110px;background:var(--warm);overflow:hidden"><img src="'+u+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></a>'
+      + '<div style="font-size:10px;padding:5px 6px;line-height:1.4"><b>'+esc(ph.category||'Piece')+'</b>'+((ph.why||[]).length?'<br>'+ph.why.map(esc).join(', '):'')
+      + (ph.copy?'<br><i>'+copyLbl[ph.copy]+'</i>':'')+(ph.note?'<br>'+esc(ph.note):'')+'</div></div>';
+  }).join('') + '</div>' : '';
+  var status = p.completed_at
+    ? '<span style="background:#E7EFE1;color:#3F5534;font-weight:700;font-size:11px;padding:3px 9px;border-radius:12px">✓ Completed ' + new Date(p.completed_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) + '</span>'
+    : '<span style="background:#FBF0DC;color:#8C6E38;font-weight:700;font-size:11px;padding:3px 9px;border-radius:12px">In progress · step ' + ((p.step || 0) + 1) + ' of 6</span>';
+  return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">' + status
+    + '<span style="font-size:11px;color:var(--muted)">Last updated ' + new Date(p.updated_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + '</span></div>'
+    + sec('Must-haves', row('Top 3', musts) + row('Pieces to make', a.piece_count ? esc(a.piece_count) : '') + gaps)
+    + sec('Lifestyle', row('Work wear', list(a.dress_code)) + row('Week', esc(week)) + row('Climate', esc(a.climate)) + row('Coming up', list(a.occasions, a.occasions_other)))
+    + sec('Style', row('In 3 words', list(a.style_words)) + row('Want to feel', esc(a.feel)) + row('References', esc(a.references)))
+    + sec('Pieces they love', photos + row('Never worn because', list(a.never_wear)) + row('Detail', esc(a.never_wear_note)))
+    + sec('Fit problems', row('Tops & shirts', list(a.fit_tops, a.fit_tops_other)) + row('Trousers & shorts', list(a.fit_trousers, a.fit_trousers_other))
+        + row('Jackets & blazers', list(a.fit_jackets, a.fit_jackets_other)) + row('Dresses & skirts', list(a.fit_dresses, a.fit_dresses_other)) + row('Notes', esc(a.fit_notes)))
+    + sec('Colours & fabrics', row('Season', esc(a.season)) + row('Love wearing', esc(a.colours_love)) + row('Avoid', esc(a.colours_avoid))
+        + row('Fabrics loved', list(a.fabrics_love, a.fabrics_love_other)) + row('Fabrics disliked', list(a.fabrics_dislike, a.fabrics_dislike_other)))
+    + '<div style="margin-top:12px"><button class="fin-row-edit" onclick="event.stopPropagation();delete vtWardrobeCache[\''+esc(c.email.toLowerCase())+'\'];renderVietnamTour()">Refresh</button></div>';
 }
 
 function vtRenderClientLookbookTab(c, key) {

@@ -668,6 +668,102 @@
     .vm-wrap { height: calc(100svh - 300px); min-height: 380px; margin: 0 -16px; border-radius: 0; border-left: none; border-right: none; }
     .vm-card-img { width: 88px; }
   }
+
+  /* ── Tailoring → Wardrobe & Planning ── */
+  .tl-subtabs { margin-bottom: 22px; }
+  .vw-tick { color: var(--green); font-weight: 700; margin-left: 2px; }
+  .rec-subtab.on .vw-tick { color: #CFE0C3; }
+  .vw-wrap { max-width: 760px; }
+  .vw-steps { display: flex; gap: 6px; margin: 4px 0 16px; flex-wrap: wrap; }
+  .vw-dot { display: flex; align-items: center; gap: 6px; border: 1px solid var(--sand); background: #fff; border-radius: 20px; padding: 4px 10px 4px 4px;
+    font-family: 'Montserrat', sans-serif; font-size: 11px; color: var(--muted); cursor: pointer; }
+  .vw-dot span { width: 20px; height: 20px; border-radius: 50%; background: var(--warm); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+  .vw-dot em { font-style: normal; }
+  .vw-dot.done span { background: var(--green); color: #fff; }
+  .vw-dot.on { border-color: var(--charcoal); color: var(--charcoal); }
+  .vw-dot.on span { background: var(--charcoal); color: #fff; }
+  .vw-card { background: #fff; border: 1px solid var(--sand); border-radius: 16px; padding: 26px 28px; }
+  .vw-eyebrow { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--tan); font-weight: 600; }
+  .vw-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 500; color: var(--charcoal); margin: 4px 0 6px; }
+  .vw-intro { font-size: 13px; color: var(--text-mid); line-height: 1.6; margin: 0 0 18px; }
+  .vw-field { padding: 16px 0; border-top: 1px solid var(--warm); }
+  .vw-lbl { font-size: 13.5px; font-weight: 600; color: var(--charcoal); margin-bottom: 4px; }
+  .vw-lbl span { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .vw-hint { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; line-height: 1.45; }
+  .vw-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .vw-chip { border: 1px solid var(--sand); background: #fff; color: var(--text-mid); border-radius: 20px; padding: 7px 13px; font-family: 'Montserrat', sans-serif;
+    font-size: 12px; cursor: pointer; transition: all .15s; }
+  .vw-chip:hover { border-color: var(--charcoal); }
+  .vw-chip.on { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+  .vw-chip.sm { padding: 5px 10px; font-size: 11px; }
+  .vw-chip.st-love.on { background: var(--green); border-color: var(--green); }
+  .vw-chip.st-replace.on { background: var(--gold); border-color: var(--gold); }
+  .vw-chip.st-missing.on { background: var(--rose); border-color: var(--rose); }
+  .vw-inp { width: 100%; box-sizing: border-box; border: 1px solid var(--sand); border-radius: 10px; padding: 10px 12px; font-family: 'Montserrat', sans-serif;
+    font-size: 13px; color: var(--charcoal); background: #FDFBF8; }
+  .vw-inp:focus { outline: none; border-color: var(--charcoal); background: #fff; }
+  .vw-inp.sm { padding: 7px 10px; font-size: 12px; }
+  textarea.vw-inp { resize: vertical; }
+  .vw-split { display: flex; flex-direction: column; gap: 8px; }
+  .vw-split-row { display: grid; grid-template-columns: 150px 1fr 44px; align-items: center; gap: 12px; font-size: 12.5px; color: var(--text-mid); }
+  .vw-split-row input { accent-color: var(--charcoal); width: 100%; }
+  .vw-split-p { text-align: right; font-weight: 600; color: var(--charcoal); font-size: 12px; }
+  .vw-stepper { display: inline-flex; align-items: center; border: 1px solid var(--sand); border-radius: 22px; overflow: hidden; }
+  .vw-stepper button { width: 40px; height: 36px; border: none; background: #fff; font-size: 18px; cursor: pointer; color: var(--charcoal); }
+  .vw-stepper span { min-width: 44px; text-align: center; font-weight: 600; font-size: 14px; }
+  .vw-gaps { display: flex; flex-direction: column; }
+  .vw-gap-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--warm); flex-wrap: wrap; }
+  .vw-gap-c { font-size: 13px; color: var(--charcoal); min-width: 130px; }
+  .vw-gap-opts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .vw-must { display: grid; grid-template-columns: 26px 170px 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .vw-must-n { width: 24px; height: 24px; border-radius: 50%; background: var(--warm); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .vw-phs { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .vw-ph { border: 1px solid var(--sand); border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+  .vw-ph-img { position: relative; aspect-ratio: 4/3; background: #F4EEE7 center/cover no-repeat; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--muted); }
+  .vw-ph-x { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(255,255,255,.92);
+    font-size: 16px; cursor: pointer; color: var(--charcoal); }
+  .vw-ph-body { padding: 10px; }
+  .vw-ph-add { align-items: center; justify-content: center; min-height: 160px; border-style: dashed; cursor: pointer; font-size: 12px; color: var(--muted); gap: 4px; }
+  .vw-ph-add span { font-size: 28px; line-height: 1; color: var(--tan); }
+  .vw-nav { display: flex; justify-content: space-between; align-items: center; padding-top: 18px; border-top: 1px solid var(--warm); margin-top: 4px; }
+  .vw-btn { border: none; background: var(--charcoal); color: #fff; border-radius: 22px; padding: 10px 20px; font-family: 'Montserrat', sans-serif;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+  .vw-btn.ghost { background: none; color: var(--charcoal); border: 1px solid var(--sand); }
+  .vw-btn.sm { padding: 7px 12px; font-size: 10px; letter-spacing: 1px; }
+  .vw-link { border: none; background: none; padding: 0; color: var(--muted); text-decoration: underline; font-family: 'Montserrat', sans-serif; font-size: 11px; cursor: pointer; }
+  .vw-remind { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: #fff; border: 1px solid var(--tan);
+    border-left: 4px solid var(--tan); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; flex-wrap: wrap; }
+  .vw-remind-t { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--charcoal); }
+  .vw-remind-s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .vw-brief-hero { margin-bottom: 14px; }
+  .vw-b-sec { background: #fff; border: 1px solid var(--sand); border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; }
+  .vw-b-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .vw-b-h span { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--charcoal); }
+  .vw-b-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding: 7px 0; border-top: 1px dashed var(--warm); font-size: 13px; }
+  .vw-b-l { color: var(--muted); font-size: 12px; }
+  .vw-b-v { color: var(--charcoal); line-height: 1.5; white-space: pre-wrap; }
+  .vw-b-must { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--warm); font-size: 13px; flex-wrap: wrap; }
+  .vw-added { font-size: 11px; color: var(--green); font-weight: 600; }
+  .vw-b-phs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 8px; }
+  .vw-b-ph { border: 1px solid var(--warm); border-radius: 10px; overflow: hidden; font-size: 11.5px; }
+  .vw-b-ph-t { padding: 7px 9px; line-height: 1.45; color: var(--text-mid); }
+  @media (max-width: 640px) {
+    .tl-subtabs { flex-wrap: nowrap; }
+    .tl-subtabs .rec-subtab { flex: 1; padding-left: 8px; padding-right: 8px; font-size: 10px; letter-spacing: .6px; }
+    .vw-card { padding: 18px 16px; }
+    .vw-steps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 4px -16px 14px; padding: 0 16px; }
+    .vw-steps::-webkit-scrollbar { display: none; }
+    .vw-dot { flex-shrink: 0; }
+    .vw-dot:not(.on) em { display: none; }
+    .vw-dot:not(.on) { padding: 4px; }
+    .vw-split-row { grid-template-columns: 1fr 44px; }
+    .vw-split-row input { grid-column: 1 / -1; grid-row: 2; }
+    .vw-must { grid-template-columns: 26px 1fr; }
+    .vw-must input { grid-column: 2; }
+    .vw-b-row { grid-template-columns: 1fr; gap: 2px; }
+    .vw-phs { grid-template-columns: 1fr; }
+  }
 </style>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 </head>
@@ -680,6 +776,7 @@
 
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="vietnam-map.js?v=6"></script>
+<script src="vietnam-wardrobe.js?v=1"></script>
 <script src="style-guide-data.js?v=1"></script>
 <script>
 var SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
@@ -2367,7 +2464,8 @@ function toggleSidebar() {
 function setTab(tab) {
   document.querySelectorAll('.nitem, .bt-item').forEach(function(b) { b.classList.toggle('on', b.getAttribute('data-tab') === tab); });
   document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.toggle('on', p.id === 'panel-' + tab); });
-  if (tab === 'tailoring') initTailoringBoard();
+  if (tab === 'tailoring') vwShow();
+  var vwr = document.getElementById('vw-reminder'); if (vwr) vwr.style.display = tab === 'intro' ? '' : 'none';
   if (tab === 'packing') loadPackingPanel();
   if (tab === 'budget') loadBudgetPanel();
   if (tab === 'yourinfo') loadYourInfoPanel();
@@ -2425,6 +2523,7 @@ function init() {
         + '<div class="main">'
         + '<div class="ph"><div class="ptitle">Vietnam Tailoring Tour</div><div class="psub">Your personal trip dashboard</div></div>'
         + renderCountdownBanner(res.data.itinerary)
+        + '<div id="vw-reminder"></div>'
         + '<div class="tab-panel on" id="panel-intro">' + renderIntroPanel(res.data.tour) + '</div>'
         + '<div class="tab-panel" id="panel-itinerary">' + renderItinerary(res.data.itinerary) + '</div>'
         + '<div class="tab-panel" id="panel-packing">' + renderPackingPanel() + '</div>'
@@ -2434,11 +2533,12 @@ function init() {
         + '<div class="tab-panel" id="panel-faq">' + renderFaqPanel() + '</div>'
         + '<div class="tab-panel" id="panel-needtoknow">' + renderNeedToKnowPanel() + '</div>'
         + '<div class="tab-panel" id="panel-style"></div>'
-        + '<div class="tab-panel" id="panel-tailoring">' + tailoringPanelHTML() + '</div>'
+        + '<div class="tab-panel" id="panel-tailoring"><div id="tl-subtabs"></div><div id="tl-wardrobe"></div><div id="tl-board" style="display:none">' + tailoringPanelHTML() + '</div></div>'
         + '<div class="tab-panel" id="panel-yourinfo">' + '<div class="empty">Loading your info…</div>' + '</div>'
         + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
         + '</div>'
         + bottomTabsHTML();
+      vwReminderRefresh();
     })
     .catch(function() {
       document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Something went wrong loading your dashboard. Please try again.</div></div>';
