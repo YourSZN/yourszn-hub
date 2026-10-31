@@ -275,6 +275,152 @@ function ocaR2RemoveBackground(dataUrl) {
   });
 }
 
+// ── Head-only framing for the colour pages ──
+// On the draping pages (season grids, wheels, patterns) the template's cells clip the
+// bottom of the photo, so a face-tight cutout lost its chin while the client's top
+// still showed. This finds the chin with MediaPipe's face landmarker, fades out
+// everything below it (shirt, shoulders), and re-places the head in a canvas the
+// cutout slot's shape with room around it, so the whole face sits clear of every
+// cell edge and the drape colour shows where the shirt was. Falls back to the
+// untouched photo if no face is found or the model can't load.
+var OCA_R2_HEAD_FRAME = {
+  topMargin: 0.05,    // gap above the hair, as a fraction of canvas height
+  maxHeight: 0.82,    // head (hair top to chin) at most this much of the canvas height
+  maxWidth: 0.86,     // and at most this much of its width
+  chinPad: 0.03,      // keep this much below the jawline (fraction of chin-to-forehead height)
+  feather: 0.04,      // soft fade below that, same units
+};
+var _ocaR2FaceLandmarker = null;
+var _ocaR2FaceLandmarkerPromise = null;
+var _ocaR2HeadCache = {};
+
+function ocaR2EnsureFaceLandmarker() {
+  if (_ocaR2FaceLandmarker) return Promise.resolve(_ocaR2FaceLandmarker);
+  if (_ocaR2FaceLandmarkerPromise) return _ocaR2FaceLandmarkerPromise;
+  _ocaR2FaceLandmarkerPromise = import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs')
+    .then(function(vision) {
+      return vision.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+      ).then(function(fileset) {
+        return vision.FaceLandmarker.createFromOptions(fileset, {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+          },
+          runningMode: 'IMAGE',
+          numFaces: 1,
+        });
+      });
+    })
+    .then(function(lm) { _ocaR2FaceLandmarker = lm; return lm; })
+    .catch(function(e) {
+      _ocaR2FaceLandmarkerPromise = null;
+      console.warn('[OCA Report] Face landmark model failed to load:', e);
+      throw e;
+    });
+  return _ocaR2FaceLandmarkerPromise;
+}
+
+// Returns a data URL of the head-only, re-framed photo with the given aspect (w/h).
+async function ocaR2BuildHeadFramedDataUrl(dataUrl, targetAspect) {
+  var key = targetAspect + '|' + dataUrl.length + '|' + dataUrl.slice(-64);
+  if (_ocaR2HeadCache[key]) return _ocaR2HeadCache[key];
+  var img = await new Promise(function(resolve, reject) {
+    var el = new Image();
+    el.onload = function(){ resolve(el); };
+    el.onerror = reject;
+    el.src = dataUrl;
+  });
+  var W = img.naturalWidth, H = img.naturalHeight;
+
+  // Detect on a white-backed copy (the landmarker doesn't like transparent pixels).
+  var det = document.createElement('canvas');
+  det.width = W; det.height = H;
+  var dctx = det.getContext('2d');
+  dctx.fillStyle = '#ffffff'; dctx.fillRect(0, 0, W, H);
+  dctx.drawImage(img, 0, 0);
+  var landmarker;
+  try { landmarker = await ocaR2EnsureFaceLandmarker(); } catch (e) { return null; }
+  var res = landmarker.detect(det);
+  var lms = res && res.faceLandmarks && res.faceLandmarks[0];
+  if (!lms || !lms[152] || !lms[10]) return null;
+
+  var chinY = lms[152].y * H;
+  var browY = lms[10].y * H; // top of forehead landmark
+  var faceH = Math.max(1, chinY - browY);
+  var faceMinX = W, faceMaxX = 0;
+  for (var i = 0; i < lms.length; i++) {
+    faceMinX = Math.min(faceMinX, lms[i].x * W);
+    faceMaxX = Math.max(faceMaxX, lms[i].x * W);
+  }
+  // The cut follows the jawline (so the shirt beside the jaw goes too, not just below the
+  // chin), then runs flat outwards from the jaw corners.
+  var pad = faceH * OCA_R2_HEAD_FRAME.chinPad;
+  var fade = Math.max(1, faceH * OCA_R2_HEAD_FRAME.feather);
+  var jaw = [58,172,136,150,149,176,148,152,377,400,378,379,365,397,288]
+    .filter(function(k){ return lms[k]; })
+    .map(function(k){ return { x: lms[k].x * W, y: lms[k].y * H }; })
+    .sort(function(a, b){ return a.x - b.x; });
+  var sideY = Math.max(jaw[0].y, jaw[jaw.length - 1].y);
+  function cutAt(x) {
+    if (x <= jaw[0].x || x >= jaw[jaw.length - 1].x) return sideY + pad;
+    for (var j = 1; j < jaw.length; j++) {
+      if (x <= jaw[j].x) {
+        var t = (x - jaw[j-1].x) / Math.max(1e-6, jaw[j].x - jaw[j-1].x);
+        return jaw[j-1].y + t * (jaw[j].y - jaw[j-1].y) + pad;
+      }
+    }
+    return sideY + pad;
+  }
+  var cutCol = new Float32Array(W);
+  var lowestCut = 0;
+  for (var cxi = 0; cxi < W; cxi++) { cutCol[cxi] = cutAt(cxi); lowestCut = Math.max(lowestCut, cutCol[cxi]); }
+  var cutY = Math.min(H, Math.max(chinY + pad, lowestCut));
+  var fadeY = Math.min(H, cutY + fade);
+
+  // Copy the photo and fade everything below the jawline to transparent.
+  var src = document.createElement('canvas');
+  src.width = W; src.height = H;
+  var sctx = src.getContext('2d');
+  sctx.drawImage(img, 0, 0);
+  var px = sctx.getImageData(0, 0, W, H);
+  var d = px.data;
+  var topY = H, minX = W, maxX = 0;
+  for (var y = 0; y < H; y++) {
+    for (var x = 0; x < W; x++) {
+      var c0 = cutCol[x];
+      var keep = y <= c0 ? 1 : (y >= c0 + fade ? 0 : 1 - (y - c0) / fade);
+      var ai = (y * W + x) * 4 + 3;
+      if (keep < 1) d[ai] = Math.round(d[ai] * keep);
+      if (keep > 0.5 && d[ai] > 128) {
+        if (y < topY) topY = y;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+      }
+    }
+  }
+  sctx.putImageData(px, 0, 0);
+  if (topY >= cutY) topY = Math.max(0, browY - faceH * 0.6);
+  // Keep the head centred on the face itself, not on stray hair or a raised shoulder.
+  var cx = (faceMinX + faceMaxX) / 2;
+  var halfW = Math.max(cx - minX, maxX - cx);
+  if (!(halfW > 0)) halfW = (faceMaxX - faceMinX) * 0.75;
+  var boxH = fadeY - topY;
+  var boxW = halfW * 2;
+
+  // Place it in the target-shaped canvas.
+  var outH = 1600, outW = Math.round(outH * targetAspect);
+  var scale = Math.min((OCA_R2_HEAD_FRAME.maxHeight * outH) / boxH, (OCA_R2_HEAD_FRAME.maxWidth * outW) / boxW);
+  var out = document.createElement('canvas');
+  out.width = outW; out.height = outH;
+  var octx = out.getContext('2d');
+  var dx = outW / 2 - cx * scale;
+  var dy = OCA_R2_HEAD_FRAME.topMargin * outH - topY * scale;
+  octx.drawImage(src, dx, dy, W * scale, H * scale);
+  var url = out.toDataURL('image/png');
+  _ocaR2HeadCache[key] = url;
+  return url;
+}
+
 // ── Photo upload handling ──
 function ocaR2HandlePhoto(field, inputEl) {
   var file = inputEl.files && inputEl.files[0];
@@ -645,7 +791,12 @@ async function ocaR2BuildBaseBytes() {
   // than a bit of empty space on the sides.
   ocaR2SetStatus('Embedding photos…');
   var cutoutAspect = season.cutoutDims.w / season.cutoutDims.h; // large cutout is the same ratio, shares this canvas
-  var cutoutCanvas = await ocaR2BuildFitCanvas(r.photoCutout, cutoutAspect, 'contain'); // contain-fit, stays transparent — the per-cell colour has to show through around it
+  // Head-only version (shirt faded out, whole face clear of the cell edges); falls back
+  // to the photo as uploaded if no face is found.
+  ocaR2SetStatus('Framing face…');
+  var cutoutSrc = (await ocaR2BuildHeadFramedDataUrl(r.photoCutout, cutoutAspect)) || r.photoCutout;
+  ocaR2SetStatus('Embedding photos…');
+  var cutoutCanvas = await ocaR2BuildFitCanvas(cutoutSrc, cutoutAspect, 'contain'); // contain-fit, stays transparent — the per-cell colour has to show through around it
   var cutoutImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(cutoutCanvas.toDataURL('image/png')));
   var squareGroups = season.squareContainGroups || [];
   var squarePages = squareGroups.reduce(function(acc, g){ return acc.concat(g.pages); }, []);
@@ -661,7 +812,7 @@ async function ocaR2BuildBaseBytes() {
   ocaR2SwapAllPages(pdfDoc, season.cutoutDimsLarge.w, season.cutoutDimsLarge.h, cutoutImg.ref);
   for (var gi = 0; gi < squareGroups.length; gi++) {
     var group = squareGroups[gi];
-    var groupCanvas = await ocaR2BuildSquareContainedCanvas(r.photoCutout, season.cutoutDims, group.frac);
+    var groupCanvas = await ocaR2BuildSquareContainedCanvas(cutoutSrc, season.cutoutDims, group.frac);
     var groupImg = await pdfDoc.embedPng(ocaR2DataUrlToBytes(groupCanvas.toDataURL('image/png')));
     ocaR2SwapOnPages(pdfDoc, group.pages, season.cutoutDims.w, season.cutoutDims.h, groupImg.ref);
   }
@@ -707,6 +858,7 @@ async function ocaR2BuildBaseBytes() {
   // never crops the client's face the way a cover-fit box-fill would.
   var faceDims = season.photoSlots.face;
   var faceDataUrl = r.photoFace || r.photoCutout;
+  faceDataUrl = (await ocaR2BuildHeadFramedDataUrl(faceDataUrl, faceDims.w / faceDims.h)) || faceDataUrl;
   var faceImg = await ocaR2EmbedPhoto(pdfDoc, faceDataUrl, faceDims.w / faceDims.h, 'contain');
   ocaR2SwapOnPages(pdfDoc, null, faceDims.w, faceDims.h, faceImg.ref);
 
