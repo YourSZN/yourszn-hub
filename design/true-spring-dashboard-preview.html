@@ -80,6 +80,10 @@ section.view>*{min-width:0}
   .side .who{margin:0 10px 18px;font-size:12px;color:var(--muted)} .side .who b{display:block;color:var(--ink);font-size:14px;font-weight:600}
   .navi{display:flex;align-items:center;gap:12px;min-height:46px;border:0;background:none;border-radius:14px;padding:0 14px;font-size:14px;font-weight:600;color:var(--muted2);text-align:left}
   .navi svg{width:19px;height:19px}
+  .subnav{display:grid;gap:2px;margin:2px 0 6px 31px;padding-left:12px;border-left:1px solid var(--line)}
+  .subnavi{border:0;background:none;text-align:left;font-size:13px;font-weight:600;color:var(--muted2);padding:8px 12px;border-radius:10px;min-height:36px}
+  .subnavi:hover{background:#EDE4D8;color:var(--ink)}
+  .subnavi[aria-current="page"]{color:var(--ink);background:#E6DCCF}
   .navi:hover{background:#EDE4D8;color:var(--ink)}
   .navi[aria-current="page"]{background:var(--ink);color:#FFFFFF}
   .main{margin-left:240px;padding:34px 48px 60px}
@@ -161,6 +165,7 @@ section.view>*{min-width:0}
 .prod .pi img{max-width:100%;max-height:120px;object-fit:contain}
 .prod .pt{padding:8px 10px 12px;border-top:1px solid #F1EAE1;display:grid;gap:2px}
 .prod .pt b{font-size:10px;letter-spacing:1.4px;text-transform:uppercase}
+.prod .shoplink{font-size:12px;font-weight:700;color:var(--blue-deep);margin-top:4px}
 .prod .pt span{font-size:12px;line-height:1.3;color:var(--muted)}
 .prod .bagbtn{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#FFFFFF;display:grid;place-items:center;padding:0}
 .prod .bagbtn svg{width:16px;height:16px;fill:none;stroke:var(--rose);stroke-width:2}
@@ -265,7 +270,11 @@ section[id],.card[id]{scroll-margin-top:72px}
 .drape{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/5;background:var(--soft);border:0;padding:0;max-width:100%;box-shadow:var(--shadow-lg)}
 .drape canvas{width:100%;height:100%;display:block}
 .drape .tag{position:absolute;left:10px;bottom:10px;font-size:11px;font-weight:700;background:rgba(255,255,255,.92);color:var(--ink);border-radius:999px;padding:5px 11px}
-.drape .ph-empty{position:absolute;inset:0;display:grid;justify-items:center;align-content:start;text-align:center;padding:16px;pointer-events:none}
+.drape .ph-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:22px;pointer-events:none}
+.drape .ph-card{display:grid;justify-items:center;gap:8px;max-width:250px;background:rgba(255,255,255,.92);border-radius:20px;padding:20px 18px;box-shadow:0 10px 28px rgba(28,23,18,.16);color:var(--ink)}
+.drape .ph-card b{font-family:var(--display);font-weight:400;font-size:21px}
+.drape .ph-card span:last-child{font-size:12.5px;color:var(--muted);line-height:1.45}
+.drape .ph-ic{width:52px;height:52px;border-radius:50%;background:var(--blue);color:#FFFFFF;display:grid;place-items:center}.drape .ph-ic svg{width:24px;height:24px}
 .drape .ph-empty .ex{font-size:12px;font-weight:700;background:rgba(28,23,18,.78);color:#FFFFFF;border-radius:999px;padding:7px 14px}
 .drape .half{position:absolute;top:0;bottom:0;width:50%;border:0;background:none;padding:0;cursor:pointer}
 .drape .half.l{left:0}.drape .half.r{right:0}
@@ -286,7 +295,7 @@ section[id],.card[id]{scroll-margin-top:72px}
 @media (max-width:899px),(pointer:coarse){.mobile-only{display:inline-flex}.card.mobile-only{display:grid}.desktop-only{display:none}}
 
 /* learn */
-.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#E8DFD3;border-radius:16px;padding:4px;gap:4px;max-width:520px}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#E8DFD3;border-radius:16px;padding:4px;gap:4px;max-width:520px}
 .seg button{border:0;background:none;border-radius:12px;min-height:42px;font-size:13px;font-weight:700;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:#FFFFFF;color:var(--ink);box-shadow:var(--shadow)}
 .chgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -429,10 +438,11 @@ textarea{min-height:70px;resize:vertical}
   <section class="view" id="v-learn" hidden>
     <div class="head"><span class="eyebrow">Learn</span><h1>Learn your season</h1></div>
     <div class="seg" role="group" aria-label="Learn sections">
-      <button data-sub="guide">Guide</button><button data-sub="combos">Combos</button><button data-sub="practise">Quizzes</button>
+      <button data-sub="guide">Guide</button><button data-sub="makeup">Makeup</button><button data-sub="combos">Combos</button><button data-sub="practise">Quizzes</button>
     </div>
     <div id="v-guide" class="stack" style="gap:18px"></div>
     <div id="v-combos" class="stack" style="gap:18px" hidden></div>
+    <div id="v-makeup" class="stack" style="gap:18px" hidden></div>
     <div id="v-practise" class="stack" style="gap:18px" hidden></div>
   </section>
   <section class="view" id="v-wardrobe" hidden>
@@ -601,7 +611,7 @@ function premium(title,body){return CLIENT.tier==="premium"?body:`<div class="lo
 /* ================= MAKEUP (premium chapter) ================= */
 let mkTab=store("mktab")||"lips";
 const bag=()=>store("bag")||[];
-function prodCard(x){const on=bag().includes(x.img);return `<div class="prod"><div class="pi"><img src="img/${x.img}" alt="${esc(x.brand)} ${esc(x.name)}" loading="lazy"></div><div class="pt"><b>${esc(x.brand)}</b><span>${esc(x.name)}</span></div><button class="bagbtn" data-bag="${x.img}" aria-pressed="${on}" aria-label="${on?"Remove from":"Add to"} my makeup bag">${HEART}</button></div>`}
+function prodCard(x){const on=bag().includes(x.img);return `<div class="prod"><div class="pi"><img src="img/${x.img}" alt="${esc(x.brand)} ${esc(x.name)}" loading="lazy"></div><div class="pt"><b>${esc(x.brand)}</b><span>${esc(x.name)}</span>${x.url?`<a class="shoplink" href="${x.url}" target="_blank" rel="noopener">Shop →</a>`:""}</div><button class="bagbtn" data-bag="${x.img}" aria-pressed="${on}" aria-label="${on?"Remove from":"Add to"} my makeup bag">${HEART}</button></div>`}
 function renderMakeup(){const M=SEASON.makeup;if(!M)return"";
   const all=M.sections.flatMap(s=>(s.groups||[]).flatMap(g=>g[1]));const mine=all.filter(x=>bag().includes(x.img));
   const tabs=[...M.sections.map(s=>[s.k,s.t]),...(mine.length?[["bag",`My bag (${mine.length})`]]:[])];
@@ -627,7 +637,7 @@ document.addEventListener("click",e=>{
 function renderGuide(){
   const pills=a=>`<div class="pills">${a.map(b=>`<span class="pill">${esc(b)}</span>`).join("")}</div>`;
   const strokes=a=>`<div class="strokes">${a.map(c=>`<span style="background:${c}"></span>`).join("")}</div>`;
-  const list=SEASON.chapters({S:SEASON,appCTA,pills,strokes,makeup:renderMakeup});
+  const list=SEASON.chapters({S:SEASON,appCTA,pills,strokes,makeup:renderMakeup}).filter(c=>!(SEASON.makeup&&c[0]==="Makeup"));
   $("#v-guide").innerHTML=`
   <div class="head" id="ghead"><p class="muted">Your full e-guide, chapter by chapter. Pick a chapter for the quick summary, then tap any page to see it full size.</p></div>
   <div id="gnav"></div><button class="back" id="gback" hidden>‹ All chapters</button>
@@ -747,7 +757,7 @@ function renderTryOn(){
     </div>
     ${T.cut?`<label class="check" for="savePic"><input type="checkbox" id="savePic" ${T.saved?"checked":""}><span><b>Save my photo for next time</b><br><span class="small muted">If you choose to save it, it's saved on this device only, in this browser. It isn't uploaded to YourSZN or anywhere else. Untick this box to delete it.</span></span></label>`:""}
     <p class="status-line" id="tStatus">${esc(T.msg||"Best results: face a window in natural daylight, no filter, hair off your face, shoulders in frame.")}</p>
-    <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty"><span class="ex">${T.busy?"Removing your background…":"Example. Add a selfie to see it on you"}</span></span>`}
+    <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?`<span class="ex">Removing your background…</span>`:`<span class="ph-card"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><b>Your face goes here</b><span>Add a selfie and we'll place it between your colours, like a draping session.</span></span>`}</span>`}
       ${T.mode===2?[0,1].map(i=>`<button class="half ${i?"r":"l"}" data-slot="${i}" aria-pressed="${T.active===i}" aria-label="${i?"Right":"Left"} side: ${nm(T.slots[i])}. Tap to change this side"><span class="tag">${nm(T.slots[i])}</span></button>`).join(""):`<span class="tag">${nm(T.slots[0])}</span>${T.cut?"":`<span class="tag" style="left:auto;right:10px">${nm(T.slots[1])}</span>`}`}</div></div>
     ${T.mode===2?`<p class="small muted">Tap the left or right side of your photo to choose which side changes, then tap a colour below.</p>`:""}
   </div>
@@ -790,7 +800,7 @@ function drawDrape(){
   const paint=(shape)=>{ctx.save();ctx.beginPath();ctx.rect(0,0,W/2,H);ctx.clip();ctx.fillStyle=L;shape();ctx.restore();
     ctx.save();ctx.beginPath();ctx.rect(W/2,0,W/2,H);ctx.clip();ctx.fillStyle=R;shape();ctx.restore()};
   paint(()=>ctx.fillRect(0,0,W,H));
-  if(!T.cut){drawExample(ctx,W,H);paint(()=>{ctx.beginPath();ctx.moveTo(0,H*.86);ctx.quadraticCurveTo(W/2,H*.78,W,H*.86);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill()});return}
+  if(!T.cut)return;
   // Centre the face on the split line
   const im=T.cut,sc=Math.max(W/im.width,H/im.height)*0.98,w=im.width*sc,h=im.height*sc;
   const cx=(T.cx==null?.5:T.cx)*w;
@@ -1034,10 +1044,16 @@ function refreshBehind(){const y=window.scrollY;if(!$("#v-palette").hidden)rende
 
 /* ================= LEARN ================= */
 let learnSub=store("sub")||"guide";
-const SUBR={guide:renderGuide,combos:renderCombos,practise:renderPractise};
+function renderMakeupView(){
+  const pages=GP["Makeup"]||[];
+  $("#v-makeup").innerHTML=`<article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span><h2>Makeup for ${SEASON.name}</h2></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
+   ${pages.length&&CLIENT.tier==="premium"?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} pages, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></div>`:""}</article>`}
+const SUBR={guide:renderGuide,makeup:renderMakeupView,combos:renderCombos,practise:renderPractise};
 function renderLearn(){
   document.querySelectorAll("#v-learn .seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sub===learnSub));
-  ["guide","combos","practise"].forEach(k=>$("#v-"+k).hidden=k!==learnSub);
+  if(!SUBR[learnSub])learnSub="guide";
+  ["guide","makeup","combos","practise"].forEach(k=>$("#v-"+k).hidden=k!==learnSub);
+  document.querySelectorAll(".subnavi").forEach(b=>b.setAttribute("aria-current",!$("#v-learn").hidden&&b.dataset.sub===learnSub?"page":"false"));
   SUBR[learnSub]();
 }
 document.querySelectorAll("#v-learn .seg button").forEach(b=>b.onclick=()=>{learnSub=b.dataset.sub;store("sub",learnSub);if(learnSub==="guide")guideIdx=-1;renderLearn()});
@@ -1060,15 +1076,16 @@ const TABS=[
  ["wardrobe","Wardrobe",'<path d="M12 6a2 2 0 1 1 2-2"/><path d="M12 6v2L3 15.5A1.3 1.3 0 0 0 3.8 18h16.4a1.3 1.3 0 0 0 .8-2.5L12 8"/>']
 ];
 const RENDER={home:renderHome,palette:renderPalette,tryon:renderTryOn,learn:renderLearn,wardrobe:renderWardrobe};
-const ALIAS={season:["home"],guide:["learn","guide"],combos:["learn","combos"],practise:["learn","practise"],closet:["wardrobe"]};
+const ALIAS={season:["home"],guide:["learn","guide"],makeup:["learn","makeup"],combos:["learn","combos"],practise:["learn","practise"],closet:["wardrobe"]};
 const icon=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-$("#sidenav").innerHTML=TABS.map(([k,l,ic])=>`<button class="navi" data-k="${k}">${icon(ic)}<span>${l}</span></button>`).join("");
+$("#sidenav").innerHTML=TABS.map(([k,l,ic])=>`<button class="navi" data-k="${k}">${icon(ic)}<span>${l}</span></button>`+(k==="learn"?`<div class="subnav">${[["guide","Guide"],["makeup","Makeup"],["combos","Combos"],["practise","Quizzes"]].map(([s,t])=>`<button class="subnavi" data-go="${s}" data-sub="${s}">${t}</button>`).join("")}</div>`:"")).join("");
 $("#tabbar").innerHTML=TABS.map(([k,l,ic])=>`<button class="tab" data-k="${k}"><span class="ic">${icon(ic)}</span><span>${l}</span></button>`).join("");
 function go(k,scroll){
   if(ALIAS[k]){const [t,sub]=ALIAS[k];if(sub){learnSub=sub;store("sub",sub);if(sub==="guide"&&k==="guide")guideIdx=-1}k=t}
   if(!RENDER[k])k="home";
   TABS.forEach(([t])=>{$("#v-"+t).hidden=t!==k});
   document.querySelectorAll(".navi,.tab").forEach(b=>b.dataset.k===k?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+  document.querySelectorAll(".subnavi").forEach(b=>b.setAttribute("aria-current","false"));
   RENDER[k]();store("tab",k);
   if(scroll)window.scrollTo({top:0,behavior:"instant"in window?"instant":"auto"})}
 document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;go(b.dataset.k,true)});
