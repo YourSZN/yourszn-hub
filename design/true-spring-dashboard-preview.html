@@ -174,6 +174,18 @@ section.view>*{min-width:0}
 .prepsteps li{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;font-size:13.5px}
 .prepsteps .n{width:28px;height:28px;border-radius:50%;background:var(--blue);color:#FFFFFF;display:grid;place-items:center;font-size:12px;font-weight:700}
 @media (max-width:420px){.mk-keys{grid-template-columns:1fr}.mk-keys div{grid-template-columns:70px 1fr;align-items:baseline}}
+details.more-pages{border-top:1px solid #EFE7DC;padding-top:14px}
+details.more-pages>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px}
+details.more-pages>summary::-webkit-details-marker{display:none}
+details.more-pages .chev{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--soft);margin-left:6px;font-size:16px;transition:transform .2s}
+details.more-pages[open] .chev{transform:rotate(45deg)}
+.nudge{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--soft);font-size:13px;line-height:1.4;text-decoration:none;color:var(--ink)}
+.nudge .sw2{flex:0 0 34px;height:34px;border-radius:50%}
+.nudge b{font-weight:600}.nudge .go{margin-left:auto;font-weight:700;color:var(--blue-deep);white-space:nowrap}
+.linkbtn2{border:0;background:none;padding:0;font-size:13px;font-weight:700;color:var(--ink);text-decoration:underline;min-height:32px}
+.cotw{display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:center}
+.cotw .big{width:96px;height:96px;border-radius:22px}
+.todo-list a{font-size:12px;font-weight:700;color:var(--blue-deep);text-decoration:none;white-space:nowrap;margin-left:auto}
 .pills{display:flex;flex-wrap:wrap;gap:8px}
 .pill{font-size:12.5px;padding:6px 12px;border-radius:999px;background:var(--soft)}
 .looks{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin-right:-18px;padding-right:18px}
@@ -760,6 +772,7 @@ function renderTryOn(){
     <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?`<span class="ex">Removing your background…</span>`:`<span class="ph-card"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><b>Your face goes here</b><span>Add a selfie and we'll place it between your colours, like a draping session.</span></span>`}</span>`}
       ${T.mode===2?[0,1].map(i=>`<button class="half ${i?"r":"l"}" data-slot="${i}" aria-pressed="${T.active===i}" aria-label="${i?"Right":"Left"} side: ${nm(T.slots[i])}. Tap to change this side"><span class="tag">${nm(T.slots[i])}</span></button>`).join(""):`<span class="tag">${nm(T.slots[0])}</span>${T.cut?"":`<span class="tag" style="left:auto;right:10px">${nm(T.slots[1])}</span>`}`}</div></div>
     ${T.mode===2?`<p class="small muted">Tap the left or right side of your photo to choose which side changes, then tap a colour below.</p>`:""}
+    ${T.cut?`<a class="nudge" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener"><span class="sw2" style="background:${T.slots[T.active]}"></span><span>Love <b>${nm(T.slots[T.active])}</b> on you? See it styled in real outfits.</span><span class="go">In the app →</span></a>`:""}
   </div>
   <div class="card picker">
     <div class="row" style="justify-content:space-between"><h3>Pick a colour</h3><button class="toggle" id="tAvoid" aria-pressed="${T.avoid}">Show colours to avoid</button></div>
@@ -892,7 +905,7 @@ function renderCloset(){
   v.querySelectorAll(".check input").forEach(x=>x.onchange=()=>{const i=+x.dataset.i;c.prep=x.checked?[...c.prep,i]:c.prep.filter(n=>n!==i);save()});
   v.querySelectorAll(".ctl button").forEach(b=>b.onclick=()=>{const k=b.dataset.k;c[k]=Math.max(0,c[k]+ +b.dataset.d);$("#n-"+k).textContent=c[k];save()});
   ["r1","r2","r3"].forEach(id=>$("#"+id).oninput=e=>{c[id]=e.target.value;save()});
-  const drawTodo=()=>{$("#todoList").innerHTML=c.todo.map((t,i)=>`<li><span>${esc(t)}</span><button data-i="${i}" aria-label="Remove ${esc(t)}">×</button></li>`).join("");$("#todoList").querySelectorAll("button").forEach(b=>b.onclick=()=>{c.todo.splice(+b.dataset.i,1);save();drawTodo()})};
+  const drawTodo=()=>{$("#todoList").innerHTML=c.todo.map((t,i)=>`<li><span>${esc(t)}</span><a href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">Find in my colours</a><button data-i="${i}" aria-label="Remove ${esc(t)}">×</button></li>`).join("");$("#todoList").querySelectorAll("button").forEach(b=>b.onclick=()=>{c.todo.splice(+b.dataset.i,1);save();drawTodo()})};
   drawTodo();
   $("#todoForm").onsubmit=e=>{e.preventDefault();const t=$("#todoIn").value.trim();if(!t)return;c.todo.push(t);$("#todoIn").value="";save();drawTodo()};
 }
@@ -938,6 +951,10 @@ function nextCard(){
     <div class="body"><div class="bars">${bars}</div><p>${text}</p><button class="btn blue" id="nextBtn" data-k="${nx.k}" data-go="${nx.go}">${NEXT[nx.k][1]} →</button>
     <div class="steps">${st.map(x=>`<button data-go="${x.go}" data-k="${x.k}" class="${x.done?"done":""}"><span class="tick" aria-hidden="true">${x.done?"✓":""}</span><span class="t">${x.t}</span><span class="n">${x.done?"Done":(x.note||"")}</span></button>`).join("")}</div></div></section>`}
 function meter(on){return `<div class="meter">${[0,1,2,3,4].map(i=>`<span class="${on.includes(i)?"on":""}"></span>`).join("")}</div>`}
+function colourOfWeek(){const wk=Math.floor(Date.now()/(7*864e5));const pool=SEASON.palette.filter(c=>{const x=hsl(c);return x.s>.35&&x.l>.35&&x.l<.8});const c=pool[wk%pool.length];
+  const fam=SEASON.families[familyOf(c)];
+  return `<section class="card cotw"><span class="big" style="background:${c}"></span><div class="stack" style="gap:6px"><span class="eyebrow">Your colour of the week</span><h3>${nm(c)}</h3><p class="small muted">One of your ${fam.name.toLowerCase()}. Try it near your face this week, then see how others are wearing it.</p><div class="row" style="gap:14px"><button class="linkbtn2" data-try="${c}">Try it on me</button><a class="small" style="font-weight:700;color:var(--blue-deep)" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">See it styled →</a></div></div></section>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-try]");if(b){T.mode=1;T.active=0;T.slots[0]=b.dataset.try;go("tryon",true)}});
 function greeting(){const h=new Date().getHours();return h<12?"Good morning":h<17?"Good afternoon":"Good evening"}
 function renderHome(){
   const v=SEASON.welcomeVideo;
@@ -948,6 +965,7 @@ function renderHome(){
     <p class="muted">${SEASON.hero.text}</p>
     <div class="sig">${SIG.map(c=>`<span style="background:${c}" title="${nm(c)}"></span>`).join("")}</div></div></section>
   ${nextCard()}
+  ${colourOfWeek()}
   <div class="card stack"><span class="eyebrow">A welcome from Latisha</span>
     ${v?`<video class="wvideo" id="wvid" src="${v}" controls playsinline preload="metadata"></video>`
       :`<button class="wvideo ph" id="wvid"><span class="play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg></span><span class="small">Your welcome video will appear here</span></button>`}
@@ -993,7 +1011,7 @@ function renderPalette(){
   <div class="tools"><button class="btn mobile-only" id="camBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Colour camera</button><button class="toggle" id="avoidToggle" aria-pressed="${showAvoid}" style="justify-content:center">${showAvoid?"Hide colours to avoid":"Colours to avoid"}</button></div>
   <div class="card stack" style="gap:14px"><div class="row" style="justify-content:space-between"><h3>Saved</h3><span class="small muted">${f.length} saved</span></div>
     <div class="saved">${f.map(c=>`<button data-c="${c}" aria-label="${nm(c)}"><span class="dot" style="background:${c}"></span>${nm(c)}</button>`).join("")}<button id="addMore" aria-label="Add more favourites"><span class="dot add">+</span>${f.length?"Add more":"Save your first"}</button></div>
-    ${f.length?`<div class="row"><button class="btn ghost" data-go="tryon">Try my favourites on</button></div>`:""}</div>
+    ${f.length?`<div class="row"><button class="btn ghost" data-go="tryon">Try my favourites on</button></div><a class="nudge" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener"><span class="sw2" style="background:linear-gradient(135deg,${(f.length>1?f.slice(0,3):[f[0],f[0]]).join(",")})"></span><span>Pieces in your saved colours are waiting for you.</span><span class="go">Shop them →</span></a>`:""}</div>
   ${showAvoid?`<section class="card stack" id="avoidTop"><div class="row" style="justify-content:space-between"><h3>Colours to avoid</h3><button class="toggle" id="avoidOff">Hide</button></div><p class="small muted">${SEASON.avoidText} Tap one to see why. You'll also see the ones closest to your colours under each family below.</p>
     <div class="chipgrid">${SEASON.avoidGeneral.map(c=>pchip(c,{avoid:1})).join("")}</div>
     <p class="small muted">Love one of these? Keep it away from your face, or wear it in a print that's at least 80% your colours.</p></section>`:""}
@@ -1047,7 +1065,7 @@ let learnSub=store("sub")||"guide";
 function renderMakeupView(){
   const pages=GP["Makeup"]||[];
   $("#v-makeup").innerHTML=`<div class="head"><span class="eyebrow">Makeup</span><h1>Your makeup</h1></div><article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span><h2>Makeup for ${SEASON.name}</h2></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
-   ${pages.length&&CLIENT.tier==="premium"?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} pages, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></div>`:""}</article>`}
+   ${pages.length&&CLIENT.tier==="premium"?`<details class="more-pages"><summary><span class="eyebrow">Your makeup guide pages</span><span class="small muted">${pages.length} pages <span class="chev" aria-hidden="true">+</span></span></summary><div class="pages" style="margin-top:14px">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></details>`:""}</article>`}
 const SUBR={guide:renderGuide,combos:renderCombos,practise:renderPractise};
 function renderLearn(){
   document.querySelectorAll("#v-learn .seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sub===learnSub));
@@ -1072,9 +1090,9 @@ const TABS=[
  ["home","Home",'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>'],
  ["palette","Palette",'<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a6 6 0 0 0 6-6c0-4.9-4.5-8.6-10-8.6z"/>'],
  ["tryon","Try On",'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'],
- ["learn","Learn",'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'],
  ["makeup","Makeup",'<path d="M9 21h6V12H9z"/><path d="M10 12V6.5L14 3v9"/><path d="M8 21h8"/>'],
- ["wardrobe","Wardrobe",'<path d="M12 6a2 2 0 1 1 2-2"/><path d="M12 6v2L3 15.5A1.3 1.3 0 0 0 3.8 18h16.4a1.3 1.3 0 0 0 .8-2.5L12 8"/>']
+ ["wardrobe","Wardrobe",'<path d="M12 6a2 2 0 1 1 2-2"/><path d="M12 6v2L3 15.5A1.3 1.3 0 0 0 3.8 18h16.4a1.3 1.3 0 0 0 .8-2.5L12 8"/>'],
+ ["learn","Learn",'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>']
 ];
 const RENDER={home:renderHome,palette:renderPalette,tryon:renderTryOn,learn:renderLearn,makeup:renderMakeupView,wardrobe:renderWardrobe};
 const ALIAS={season:["home"],guide:["learn","guide"],combos:["learn","combos"],practise:["learn","practise"],closet:["wardrobe"]};
@@ -1087,6 +1105,7 @@ function go(k,scroll){
   TABS.forEach(([t])=>{$("#v-"+t).hidden=t!==k});
   document.querySelectorAll(".navi,.tab").forEach(b=>b.dataset.k===k?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
   document.querySelectorAll(".subnavi").forEach(b=>b.setAttribute("aria-current","false"));
+  document.querySelectorAll(".subnav").forEach(n=>n.hidden=k!=="learn");
   RENDER[k]();store("tab",k);
   if(scroll)window.scrollTo({top:0,behavior:"instant"in window?"instant":"auto"})}
 document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;go(b.dataset.k,true)});
