@@ -9,10 +9,10 @@ Images (guide pages, product crops img/mk/*, guide photos img/gp/*, mood/styled 
 Each product: img, brand, name, url (link from the PDF), clean (tracking stripped), idx (0-130 order of products with links), shopmy (ShopMy link once created).
 
 ## ShopMy (in progress, 1 Nov 2026)
-Links are being created in Latisha's ShopMy (Chrome, shopmy.us/links) by a script running in that tab, in idx order 4..130. Duplicate URLs reuse the same link. Done and recorded here: idx 0-28. To collect the rest: read her ShopMy "My Links" list (newest first) and match by product/merchant, or re-run for missing idx. Then put shopmy links on the product cards (prodCard uses x.url; switch to shopmy where present) and republish.
+All 131 makeup links are created in her ShopMy and are on the product cards (makeup.json "shopmy"; season file "url").
 
 ## Still to do
-- Finish ShopMy links, swap into dashboard
+
 - Montana's sign-in email, then go live: port the season-driven dashboard into portal/colour-dashboard.html (keep sign-in, server sync, account), add Montana to colour_clients, Latisha uploads guide pages to season-guides/true-spring
 - Website brown hex to match exactly (currently #7A5C48)
 - Links for 2 bronzers (Tarte, Rare Beauty) and 4 perfumes
