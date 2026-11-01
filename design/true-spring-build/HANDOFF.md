@@ -18,3 +18,6 @@ Links are being created in Latisha's ShopMy (Chrome, shopmy.us/links) by a scrip
 - Links for 2 bronzers (Tarte, Rare Beauty) and 4 perfumes
 - App screen recording for the app card; welcome video
 - Move Light Summer onto the same season-driven setup
+
+## ShopMy rule (from Latisha)
+From now on, any new product links must be added to a hidden ShopMy collection first (e.g. "True Spring Makeup"). The first True Spring makeup batch was left out of a collection on purpose. New links appear in her "Latest Finds" section, which is hidden from the public.
