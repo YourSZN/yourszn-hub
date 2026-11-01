@@ -1,0 +1,22 @@
+N={
+"#aa090a":"Cherry Red","#f42524":"Poppy Red","#eb4747":"Warm Red","#ff6666":"Coral Red","#c20b29":"Crimson","#f20c33":"Scarlet","#ff3355":"Watermelon","#ff6680":"Bright Rose",
+"#aa2408":"Brick Red","#f2330d":"Flame","#f08a75":"Salmon","#ff7f66":"Bright Coral","#c71505":"Chilli Red","#f92307":"Sunset Red","#ff4433":"Tomato","#ff8a80":"Soft Coral",
+"#f20c59":"Raspberry","#df2060":"Cerise","#f0759e":"Bubblegum","#ff6699":"Hot Pink","#aa3e0a":"Rust","#f2580e":"Tangerine","#f09e75":"Soft Peach","#ff9966":"Peach",
+"#6b382e":"Chestnut","#aa590a":"Burnt Orange","#f2800d":"Orange","#f0b275":"Apricot","#ffb266":"Light Apricot","#aa740a":"Amber","#f2a60e":"Marigold","#ffcc66":"Honey",
+"#ff8833":"Warm Orange","#ff9933":"Mango","#ffaa33":"Saffron","#ffbb32":"Goldenrod","#804000":"Caramel Brown","#995533":"Cinnamon","#47251f":"Espresso",
+"#af986a":"Golden Khaki","#c9b282":"Sand","#e6d4b3":"Cream Beige","#ba8046":"Camel","#af8c6b":"Warm Taupe","#ffe666":"Sunshine","#ffcc33":"Golden Yellow",
+"#f9ec9e":"Butter","#fcf5cf":"Warm Ivory","#ac8539":"Golden Brown","#cdaa65":"Wheat","#e0c285":"Pale Gold","#efc875":"Honey Beige",
+"#b2e085":"Pistachio","#b2ff66":"Neon Lime","#b8da08":"Chartreuse","#b2cc34":"Moss Green","#d6e87e":"Pale Lime","#e5ff65":"Lime Sorbet","#f6f655":"Lemon","#f7e06e":"Pale Yellow",
+"#34cc99":"Turquoise","#66ffcc":"Aqua Mint","#66ff99":"Spring Mint","#24aa08":"Grass Green","#94e086":"Pale Green","#80ff66":"Fresh Lime","#59aa08":"Leaf Green","#7fcc34":"Yellow-Green",
+"#0b2eda":"Cobalt","#758af0":"Cornflower","#667fff":"Bright Periwinkle","#0066cc":"True Blue","#478cd2":"Clear Blue","#76b2f0":"Sky Blue","#66b2ff":"Bright Sky","#0daa74":"Jade",
+"#884dff":"Bright Violet","#5329a3":"Royal Purple","#5d47d1":"Iris","#8a75ef":"Lavender","#6b4dff":"Electric Violet","#0a0ab8":"Ultramarine","#7575f0":"Periwinkle","#6666ff":"Blue Violet",
+"#a346d1":"Orchid","#cc67ff":"Bright Lilac","#660bc2":"Deep Violet","#9e75f0":"Soft Violet","#b275f0":"Lilac","#a64dff":"Amethyst","#470ac2":"Indigo","#7647d1":"Grape","#8113b8":"Plum Purple",
+"#d1ccc8":"Light Stone","#8c8072":"Mushroom","#544c45":"Warm Charcoal","#999999":"Mid Grey","#7f7f7f":"Pewter","#4c4c4c":"Charcoal","#544f45":"Olive Charcoal","#8d8473":"Warm Grey",
+"#d2cec7":"Pale Stone","#544f13":"Olive","#858047":"Khaki Olive","#c9be82":"Light Khaki","#e6ddb2":"Oat","#f9dc85":"Buttercup",
+# avoid + swaps
+"#60a4ff":"Icy Blue","#2542ff":"Electric Blue","#a688c4":"Dusty Lilac","#869ecd":"Dusty Blue","#fafaa9":"Pale Lemon","#03501f":"Forest Green","#3b8686":"Muted Teal","#cecf80":"Sage Yellow",
+"#f0a8de":"Cool Pink","#e185d1":"Orchid Pink","#e185b2":"Dusty Pink","#95949e":"Cool Grey","#000000":"Black",
+"#d680a3":"Dusty Rose","#90b8b4":"Sage Aqua","#8e7faf":"Muted Purple","#f4c9cb":"Pale Pink","#d6d6d6":"Silver Grey","#a43e3e":"Muted Brick","#e669b4":"Cool Fuchsia","#beaddb":"Soft Lavender",
+"#637bfd":"Cool Periwinkle","#f8e48c":"Cool Lemon","#839db6":"Steel Blue","#504442":"Cool Brown","#737373":"Flat Grey","#49bcff":"Icy Cyan",
+"#5c462c":"Chocolate","#f8ecd5":"Warm Cream","#003058":"Navy","#264c71":"Warm Navy","#9b838d":"Mauve Grey","#777769":"Olive Grey","#91887f":"Taupe Grey","#695142":"Warm Brown","#e7e2e1":"Cool White","#bcbeaf":"Stone",
+}
