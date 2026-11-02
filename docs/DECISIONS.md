@@ -2,6 +2,40 @@
 
 Newest first. Each entry: what we chose, why, and what we rejected.
 
+## 2026-11-02: Admin Clients page replaces the in-person Clients page
+
+- **Chose:** one list of Online Colour Analysis clients in the staff hub, one row per email,
+  joining a new `oca_clients` table (paid, tier, drape season) with the questionnaire
+  (`szn_submissions`) and dashboard access (`colour_clients`). All reads and writes go
+  through `api/admin-clients.js`. See `docs/CLIENTS-PAGE.md`.
+- **Who can use it:** first admin only; later the same evening Latisha gave Salma full
+  access ("everything except financials"). The server checks `profiles.role` is `admin`
+  or `staff` from the hub login on every request and records who made each change.
+  Because staff could edit their own `profiles` row, including the role, the role is now
+  locked (`portal/sql/2026-11-02-profiles-role-lock.sql`, applied on go).
+- **Salma's menu:** everything except Finances, Dashboard (revenue targets, rates,
+  expenses) and Staff (Latisha's manager view). Menus only change what she sees; the
+  accounts-and-roles job locks the finance tables themselves.
+- **Why a new table, not more columns on `szn_submissions`:** someone can pay before they
+  submit, or pay with one email and sign in with another, so payment belongs to the
+  person (email), not the questionnaire. `colour_clients` stays only for dashboard access.
+- **Dashboard access only for built seasons:** `READY_SEASONS` in the API (True Spring),
+  checked on the server, so the button can't open an unbuilt dashboard.
+- **Grant OCA access sends no email** (Latisha's choice); she messages them herself.
+- **Undo for mistakes:** "Remove dashboard access" switches the row off and signs the client
+  out, instead of deleting it.
+- **Removed (Latisha's choice):** in-person screens and files (`app-in-person.js`,
+  `client-upload.html` in both sites, both `client-booking.js`, `client-day-colours.js`,
+  the hidden Appointment Slots grid, in-person bookings on the calendar, dashboard and
+  notifications), and the Client Profiles tab. The in-person **data** is deleted on go,
+  with no export (`portal/sql/2026-11-02-delete-in-person.sql`), plus the
+  `in-person-photos` bucket emptied by hand.
+- **Kept for the clean-up pass:** `app-crm.js` (Client Profiles code; its one saved profile
+  stays in the shared app data). The sidebar search and dashboard Today card moved out of
+  it onto the new list.
+- **Rejected:** letting the browser write `colour_clients` directly (any staff login could
+  then open dashboards), and emailing from the browser.
+
 ## 2026-11-02: One sign-in on the portal front page
 
 - **Chose:** clients sign in once on clients.yourszn.com.au (name, email, emailed code) and

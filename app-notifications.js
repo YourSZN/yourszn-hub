@@ -68,37 +68,6 @@ async function notifPollSubmissions() {
       });
     }
 
-    // --- In-Person Bookings ---
-    var bookings = await notifFetch('in_person_bookings?select=id,client_name,client_email,appointment_type,status,photos_submitted_at,created_at');
-    if (bookings) {
-      bookings.forEach(function(b) {
-        var bookKey = b.id + ':new_booking';
-        if (!existingMap[bookKey]) {
-          toInsert.push({
-            type: 'new_booking',
-            submission_id: b.id,
-            client_name: b.client_name || 'Unknown',
-            client_email: b.client_email || '',
-            message: (b.client_name || 'A client') + ' booked an in-person ' + (b.appointment_type || 'appointment'),
-            status: 'Not Addressed'
-          });
-        }
-        if (b.photos_submitted_at) {
-          var photoKey = b.id + ':booking_photos';
-          if (!existingMap[photoKey]) {
-            toInsert.push({
-              type: 'booking_photos',
-              submission_id: b.id,
-              client_name: b.client_name || 'Unknown',
-              client_email: b.client_email || '',
-              message: (b.client_name || 'A client') + ' uploaded photos for their in-person appointment',
-              status: 'Not Addressed'
-            });
-          }
-        }
-      });
-    }
-
     // --- Ivorey Submissions (from Google Sheets) ---
     var existingIvoreyEmails = {};
     existing.forEach(function(n) {
@@ -286,8 +255,6 @@ function notifTimeAgo(d) {
 function notifTypeLabel(type) {
   if (type === 'new_submission') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#EBF2FF;color:#5588DD">Online Submission</span>';
   if (type === 'revised_images') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FFF3EB;color:#E07020">Revised Photos</span>';
-  if (type === 'new_booking') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F0EBFF;color:#7C3AED">In-Person Booking</span>';
-  if (type === 'booking_photos') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#FFF3EB;color:#E07020">Booking Photos</span>';
   if (type === 'ivorey_submission') return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F5EDE4;color:#8B6914">Ivorey Submission</span>';
   return '<span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:#F4F4F4;color:#888">' + type + '</span>';
 }

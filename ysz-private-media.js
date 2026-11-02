@@ -3,7 +3,7 @@
 //
 // Client photo buckets are private. Older records (and some code paths) still
 // hold "public" style links like
-//   https://<project>.supabase.co/storage/v1/object/public/in-person-photos/...
+//   https://<project>.supabase.co/storage/v1/object/public/online-clients-photos/...
 // which no longer open. This watches the page and swaps any such link on an
 // <img>, <a>, <video> or <source> for a short-lived signed link, using the
 // logged-in staff member's session. No per-feature changes needed.
@@ -13,7 +13,7 @@
 // ═══════════════════════════════════════════════════════════════
 (function () {
   var BASE = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-  var PRIVATE_BUCKETS = ['in-person-photos', 'online-clients-photos', 'inspiration-photos', 'online-clients-submissions', 'yszn-clients'];
+  var PRIVATE_BUCKETS = ['online-clients-photos', 'inspiration-photos', 'online-clients-submissions', 'yszn-clients'];
   var RE = new RegExp('^' + BASE.replace(/[.]/g, '\\.') + '/storage/v1/object/(?:public|authenticated)/(' + PRIVATE_BUCKETS.join('|') + ')/([^?#]+)');
   var TTL = 3600;             // signed link lifetime (seconds)
   var REUSE_FOR = 50 * 60e3;  // reuse a signed link for 50 minutes
@@ -36,12 +36,21 @@
     return { bucket: m[1], path: path };
   }
 
+  // iPhone photos (.heic) don't display in Chrome: convert to JPEG in the browser.
+  // Needs the heic-to library (loaded in index.html); does nothing without it.
+  function fixHeic(img) {
+    if (typeof window.HeicTo !== 'function') return;
+    fetch(img.src)
+      .then(function (res) { return res.blob(); })
+      .then(function (blob) { return window.HeicTo({ blob: blob, type: 'image/jpeg', quality: 0.85 }); })
+      .then(function (jpeg) { img.src = URL.createObjectURL(jpeg); })
+      .catch(function (err) { console.warn('[ysz-media] HEIC conversion failed', err); });
+  }
+
   function apply(el, attr, url, path) {
     el.setAttribute('data-ysz-signed', '1');
     el.setAttribute(attr, url);
-    if (el.tagName === 'IMG' && /\.(heic|heif)$/i.test(path) && typeof window.ipFixHeicImg === 'function') {
-      try { window.ipFixHeicImg(el); } catch (e) {}
-    }
+    if (el.tagName === 'IMG' && /\.(heic|heif)$/i.test(path)) fixHeic(el);
   }
 
   function enqueue(el, attr) {
