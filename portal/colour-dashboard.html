@@ -161,6 +161,17 @@ section.view>*{min-width:0}
 .mk-keys b{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--eyebrow)}
 .mk-bag{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--blue-tint);border-radius:14px;padding:10px 14px;font-size:13px}
 .mk-sec{display:grid;gap:16px}
+.mk-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.mk-tile{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;text-align:left;background:var(--soft);border:1px solid var(--line);border-radius:18px;padding:14px;font:inherit;color:var(--ink);cursor:pointer;min-height:44px}
+.mk-tile:hover{border-color:var(--ink)}
+.mk-tile b{font-size:16px}.mk-tile .go{font-size:16px;color:var(--muted)}
+.mk-tile .small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mk-vis{display:flex;align-items:center;width:100px;flex:none}
+.mk-vis .dot{width:26px;height:26px;border-radius:50%;margin-left:-8px;box-shadow:0 0 0 2px var(--soft)}
+.mk-vis .dot:first-child{margin-left:0}
+.mk-vis img{width:40px;height:40px;border-radius:10px;object-fit:cover;margin-left:-10px;box-shadow:0 0 0 2px var(--soft);background:#fff}
+.mk-vis img:first-child{margin-left:0}
+.mk-back{justify-self:start}
 .shades{display:flex;flex-wrap:wrap;gap:12px 10px}
 .shades div{display:grid;justify-items:center;gap:5px;width:62px;text-align:center;font-size:11px;line-height:1.2;color:var(--muted)}
 .shades span{width:44px;height:44px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(28,23,18,.08)}
@@ -727,13 +738,25 @@ function ch(title,sub,body){const pages=GP[title]||[];const locked=body.includes
   return `<article class="card chapter" data-t="${title.replace(/&amp;/g,"&")}"><div class="band"><span class="eyebrow">${sub}</span><h2>${title}</h2></div><div class="ch-body">${body}</div>${pages.length&&!locked?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} page${pages.length>1?"s":""}, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></div>`:""}</article>`}
 function premium(title,body){return CLIENT.tier==="premium"?body:`<div class="locked"><b>${title} is part of the Premium Colour Analysis</b><p class="small muted">Premium clients get hair colour, makeup, nail and perfume recommendations for their season.</p><a class="btn" href="https://www.yourszn.com.au" target="_blank" rel="noopener">Upgrade to Premium</a></div>`}
 /* ================= MAKEUP (premium chapter) ================= */
-let mkTab=store("mktab")||"lips";
+let mkTab="";  // "" = the Makeup overview; otherwise a category key, or "bag"
 const bag=()=>store("bag")||[];
 function prodCard(x){const on=bag().includes(x.img);return `<div class="prod"><div class="pi"><img src="${SIMG}${x.img}" alt="${esc(x.brand)} ${esc(x.name)}" loading="lazy"></div><div class="pt"><b>${esc(x.brand)}</b><span>${esc(x.name)}</span>${x.url?`<a class="shoplink" href="${x.url}" target="_blank" rel="noopener">Shop →</a>`:""}</div><button class="bagbtn" data-bag="${x.img}" aria-pressed="${on}" aria-label="${on?"Remove from":"Add to"} my makeup bag">${HEART}</button></div>`}
 function renderMakeup(){const M=SEASON.makeup;if(!M)return"";
   const all=M.sections.flatMap(s=>(s.groups||[]).flatMap(g=>g[1]));const mine=all.filter(x=>bag().includes(x.img));
   const tabs=[...M.sections.map(s=>[s.k,s.t]),...(mine.length?[["bag",`My bag (${mine.length})`]]:[])];
-  if(!tabs.some(t=>t[0]===mkTab))mkTab="lips";
+  if(mkTab&&!tabs.some(t=>t[0]===mkTab))mkTab="";
+  if(!mkTab){
+    // Overview: intro, looks, the three keys, then a tile per category
+    const tile=(k,t,txt,vis,count)=>`<button class="mk-tile" data-mk="${k}"><span class="mk-vis">${vis}</span><span class="stack" style="gap:4px"><span class="row" style="justify-content:space-between"><b>${t}</b><span class="go" aria-hidden="true">→</span></span><span class="small muted">${txt}</span>${count?`<span class="eyebrow">${count}</span>`:""}</span></button>`;
+    const vis=s=>s.shades?s.shades.slice(0,5).map(([c])=>`<span class="dot" style="background:${c}"></span>`).join("")
+      :(s.groups||[]).flatMap(g=>g[1]).slice(0,3).map(x=>`<img src="${SIMG}${x.img}" alt="" loading="lazy">`).join("");
+    const n=s=>(s.groups||[]).reduce((a,g)=>a+g[1].length,0);
+    return `<div class="mk" id="mk"><p>${M.intro}</p>
+      ${(SEASON.makeupLooks||[]).length?`<div class="looks">${SEASON.makeupLooks.map(n=>`<img src="${SIMG}${n}" alt="${SEASON.name} makeup look" loading="lazy">`).join("")}</div>`:""}
+      <div class="mk-keys">${M.keys.map(([a,b])=>`<div><b>${a}</b>${b}</div>`).join("")}</div>
+      <div class="mk-tiles">${mine.length?tile("bag","My makeup bag","Products you've saved. Take this list shopping.",mine.slice(0,3).map(x=>`<img src="${SIMG}${x.img}" alt="" loading="lazy">`).join(""),`${mine.length} saved`):""}
+        ${M.sections.map(s=>tile(s.k,s.t,s.text,vis(s),n(s)?`${n(s)} products`:"")).join("")}</div>
+      ${mine.length?"":`<div class="mk-bag"><span>Tap the heart on any product to save it to your makeup bag.</span></div>`}</div>`}
   const sec=M.sections.find(s=>s.k===mkTab);
   const body=mkTab==="bag"?`<div class="mk-sec"><p class="small muted">Products you've saved from your guide. Take this list shopping.</p><div class="prods">${mine.map(prodCard).join("")}</div></div>`
    :`<div class="mk-sec"><p>${sec.text}</p>
@@ -741,15 +764,15 @@ function renderMakeup(){const M=SEASON.makeup;if(!M)return"";
     ${sec.do?`<div class="dd"><div class="y"><b>Choose</b>${sec.do}</div><div class="n"><b>Avoid</b>${sec.avoid}</div></div>`:""}
     ${sec.steps?`<ol class="prepsteps">${sec.steps.map(([t,d],i)=>`<li><span class="n">${i+1}</span><div><b>${t}</b><p class="small muted">${d}</p></div></li>`).join("")}</ol>`:""}
     ${(sec.groups||[]).map(([t,list])=>`<div class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="eyebrow">${t}</span><span class="small muted">${list.length} from your guide</span></div><div class="prods">${list.map(prodCard).join("")}</div></div>`).join("")}</div>`;
-  return `<div class="mk" id="mk"><p>${M.intro}</p>
-    ${(SEASON.makeupLooks||[]).length?`<div class="looks">${SEASON.makeupLooks.map(n=>`<img src="${SIMG}${n}" alt="${SEASON.name} makeup look" loading="lazy">`).join("")}</div>`:""}
-    <div class="mk-keys">${M.keys.map(([a,b])=>`<div><b>${a}</b>${b}</div>`).join("")}</div>
-    ${mine.length?"":`<div class="mk-bag"><span>Tap the heart on any product to save it to your makeup bag.</span></div>`}
-    <div class="chips" role="group" aria-label="Makeup sections">${tabs.map(([k,t])=>`<button class="chip" data-mk="${k}" aria-pressed="${k===mkTab}">${t}</button>`).join("")}</div>
-    ${body}</div>`}
+  // One category, with a way back to the overview and quick hops to the others
+  const title=mkTab==="bag"?"My makeup bag":sec.t;
+  return `<div class="mk" id="mk"><button class="linkbtn2 mk-back" data-mk="">← All makeup</button>
+    <h2>${title}</h2>
+    ${body}
+    <div class="chips" role="group" aria-label="Other makeup sections">${tabs.filter(([k])=>k!==mkTab).map(([k,t])=>`<button class="chip" data-mk="${k}">${t}</button>`).join("")}</div></div>`}
 function redrawMakeup(){const el=$("#mk");if(!el)return;const t=document.createElement("div");t.innerHTML=renderMakeup();el.replaceWith(t.firstElementChild)}
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-mk]");if(t){mkTab=t.dataset.mk;store("mktab",mkTab);redrawMakeup();const c=$(`#mk [data-mk="${mkTab}"]`);if(c)c.scrollIntoView({block:"nearest",inline:"center"});return}
+  const t=e.target.closest("[data-mk]");if(t){mkTab=t.dataset.mk;redrawMakeup();$("#v-makeup").scrollIntoView({block:"start"});return}
   const b=e.target.closest("[data-bag]");if(b){const k=b.dataset.bag,l=bag();store("bag",l.includes(k)?l.filter(x=>x!==k):[...l,k]);
     const on=bag().includes(k);document.querySelectorAll(`[data-bag="${k}"]`).forEach(x=>{x.setAttribute("aria-pressed",on)});
     const chip=$('#mk [data-mk="bag"]'),n=bag().length;if(!chip&&n||chip&&!n||mkTab==="bag")redrawMakeup();else if(chip)chip.textContent=`My bag (${n})`}});
@@ -1288,7 +1311,7 @@ function refreshBehind(){const y=window.scrollY;if(!$("#v-palette").hidden&&palS
 let learnSub=store("sub")==="practise"?"practise":"guide";
 function renderMakeupView(){
   const pages=GP["Makeup"]||[];
-  $("#v-makeup").innerHTML=`<div class="head"><span class="eyebrow">Makeup</span><h1>Your makeup</h1></div><article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span><h2>Makeup for ${SEASON.name}</h2></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
+  $("#v-makeup").innerHTML=`<div class="head"><span class="eyebrow">Makeup</span><h1>Makeup for ${SEASON.plural}</h1></div><article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
    ${pages.length&&CLIENT.tier==="premium"?`<details class="more-pages"><summary><span class="eyebrow">Your makeup guide pages</span><span class="small muted">${pages.length} pages <span class="chev" aria-hidden="true">+</span></span></summary><div class="pages" style="margin-top:14px">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></details>`:""}</article>`}
 const SUBR={guide:renderGuide,practise:renderPractise};
 function renderLearn(){
@@ -1349,7 +1372,7 @@ function go(k,scroll){
   try{RENDER[k]()}catch(err){console.error(err);$("#v-"+k).insertAdjacentHTML("beforeend",`<div class="card"><p>Sorry, this section didn't load. Please refresh the page, or email hello@yourszn.com.au if it keeps happening.</p></div>`)}
   store("tab",k);
   if(scroll)window.scrollTo({top:0,behavior:"instant"in window?"instant":"auto"})}
-document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;go(b.dataset.k,true)});
+document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;if(b.dataset.k==="makeup")mkTab="";go(b.dataset.k,true)});
 $("#avatarBtn").onclick=()=>openAccount();$("#whoBtn").onclick=()=>openAccount();
 document.addEventListener("click",e=>{const pg=e.target.closest(".pg,.tp-pages");if(pg){openViewer(pg.dataset.pages.split(",").map(Number),+pg.dataset.i);return}});
 function openViewer(pages,i){const rv=$("#rv");rv.hidden=false;document.body.style.overflow="hidden";
