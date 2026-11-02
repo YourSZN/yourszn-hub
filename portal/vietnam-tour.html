@@ -1067,14 +1067,14 @@ function renderPackingPanel() {
 }
 
 function packingBody(action, extra) {
-  return JSON.stringify(Object.assign({ cid: qs('cid'), email: dashClient && dashClient.email, action: action }, extra || {}));
+  return JSON.stringify(Object.assign({ action: action }, extra || {}));
 }
 
 function loadPackingPanel() {
   var panel = document.getElementById('panel-packing');
   if (!panel) return;
   panel.innerHTML = renderPackingPanel();
-  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('list') })
+  fetch('/api/vietnam-packing', { method: 'POST', headers: vtHeaders(), body: packingBody('list') })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       packingLoaded = true;
@@ -1094,7 +1094,7 @@ function addPackItem() {
   var text = (textEl.value || '').trim();
   if (!text) { textEl.focus(); return; }
   textEl.value = '';
-  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('add', { category: category, item_text: text }) })
+  fetch('/api/vietnam-packing', { method: 'POST', headers: vtHeaders(), body: packingBody('add', { category: category, item_text: text }) })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       packingItems = (data && data.items) || packingItems;
@@ -1109,7 +1109,7 @@ function togglePackItem(id, checked) {
   if (item) item.is_checked = checked;
   var row = document.querySelector('.pack-row[data-id="' + id + '"]');
   if (row) row.classList.toggle('checked', checked);
-  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('toggle', { id: id, is_checked: checked }) })
+  fetch('/api/vietnam-packing', { method: 'POST', headers: vtHeaders(), body: packingBody('toggle', { id: id, is_checked: checked }) })
     .catch(function() { showToast('Failed to save — please try again', true); });
 }
 
@@ -1133,14 +1133,14 @@ function savePackItemEdit(id, newText) {
   if (!newText || !item) { document.getElementById('panel-packing').innerHTML = renderPackingPanel(); return; }
   item.item_text = newText;
   document.getElementById('panel-packing').innerHTML = renderPackingPanel();
-  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('edit', { id: id, item_text: newText }) })
+  fetch('/api/vietnam-packing', { method: 'POST', headers: vtHeaders(), body: packingBody('edit', { id: id, item_text: newText }) })
     .catch(function() { showToast('Failed to save — please try again', true); });
 }
 
 function deletePackItem(id) {
   packingItems = packingItems.filter(function(i){ return i.id !== id; });
   document.getElementById('panel-packing').innerHTML = renderPackingPanel();
-  fetch('/api/vietnam-packing', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: packingBody('delete', { id: id }) })
+  fetch('/api/vietnam-packing', { method: 'POST', headers: vtHeaders(), body: packingBody('delete', { id: id }) })
     .catch(function() { showToast('Failed to remove — please try again', true); });
 }
 
@@ -1157,7 +1157,7 @@ function fmtMoney(n) {
 }
 
 function budgetBody(action, extra) {
-  return JSON.stringify(Object.assign({ cid: qs('cid'), email: dashClient && dashClient.email, action: action }, extra || {}));
+  return JSON.stringify(Object.assign({ action: action }, extra || {}));
 }
 
 function budgetSummaryHTML() {
@@ -1216,7 +1216,7 @@ function loadBudgetPanel() {
   var panel = document.getElementById('panel-budget');
   if (!panel) return;
   panel.innerHTML = renderBudgetPanel();
-  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('list') })
+  fetch('/api/vietnam-budget', { method: 'POST', headers: vtHeaders(), body: budgetBody('list') })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       budgetLoaded = true;
@@ -1239,7 +1239,7 @@ function saveBudgetGoal() {
   budgetGoal = val;
   budgetGoalEditing = false;
   document.getElementById('panel-budget').innerHTML = renderBudgetPanel();
-  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('set_goal', { amount: val }) })
+  fetch('/api/vietnam-budget', { method: 'POST', headers: vtHeaders(), body: budgetBody('set_goal', { amount: val }) })
     .catch(function() { showToast('Failed to save goal', true); });
 }
 
@@ -1252,7 +1252,7 @@ function addBudgetItem() {
   if (!amount || amount <= 0) { amtEl.focus(); return; }
   var payload = { expense_date: dateEl.value || null, category: catEl.value.trim(), description: descEl.value.trim(), amount: amount };
   catEl.value = ''; descEl.value = ''; amtEl.value = '';
-  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('add', payload) })
+  fetch('/api/vietnam-budget', { method: 'POST', headers: vtHeaders(), body: budgetBody('add', payload) })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       budgetItems = (data && data.items) || budgetItems;
@@ -1264,7 +1264,7 @@ function addBudgetItem() {
 function deleteBudgetItem(id) {
   budgetItems = budgetItems.filter(function(i){ return i.id !== id; });
   document.getElementById('panel-budget').innerHTML = renderBudgetPanel();
-  fetch('/api/vietnam-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: budgetBody('delete', { id: id }) })
+  fetch('/api/vietnam-budget', { method: 'POST', headers: vtHeaders(), body: budgetBody('delete', { id: id }) })
     .catch(function() { showToast('Failed to remove — please try again', true); });
 }
 
@@ -1370,7 +1370,7 @@ var yourInfoLoaded = false;
 var yourInfoData = { info: null, documents: [] };
 
 function infoBody(action, extra) {
-  return JSON.stringify(Object.assign({ cid: qs('cid'), email: dashClient && dashClient.email, action: action }, extra || {}));
+  return JSON.stringify(Object.assign({ action: action }, extra || {}));
 }
 
 function fmtFileSize() { return ''; }
@@ -1539,7 +1539,7 @@ function loadYourInfoPanel() {
   var panel = document.getElementById('panel-yourinfo');
   if (!panel) return;
   panel.innerHTML = renderYourInfoPanel();
-  fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('get') })
+  fetch('/api/vietnam-info', { method: 'POST', headers: vtHeaders(), body: infoBody('get') })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       yourInfoLoaded = true;
@@ -1565,7 +1565,7 @@ function saveYourInfo(which) {
   };
   var btn = document.getElementById('info-save-' + which);
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-  fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('save_info', payload) })
+  fetch('/api/vietnam-info', { method: 'POST', headers: vtHeaders(), body: infoBody('save_info', payload) })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data || !data.ok) throw new Error((data && data.error) || 'Failed to save');
@@ -1596,7 +1596,7 @@ function uploadYourInfoDoc(input, type) {
   var reader = new FileReader();
   reader.onload = function() {
     fetch('/api/vietnam-info', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: vtHeaders(),
       body: infoBody('upload', { doc_type: type, file_name: file.name, content_type: file.type, file_base64: reader.result.split(',')[1] })
     })
       .then(function(r) { return r.json(); })
@@ -1612,7 +1612,7 @@ function uploadYourInfoDoc(input, type) {
 
 function deleteYourInfoDoc(id) {
   var restore = infoKeepTyped();
-  fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('delete_document', { id: id }) })
+  fetch('/api/vietnam-info', { method: 'POST', headers: vtHeaders(), body: infoBody('delete_document', { id: id }) })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data && data.documents) { yourInfoData.documents = data.documents; setInfoSub(infoSub); restore(); }
@@ -1832,8 +1832,8 @@ async function sb(path, opts) {
   opts = opts || {};
   var res = await fetch('/api/vietnam-board', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cid: qs('cid'), email: dashClient && dashClient.email, path: path, method: opts.method || 'GET', body: opts.body, prefer: opts.prefer || undefined })
+    headers: vtHeaders(),
+    body: JSON.stringify({ path: path, method: opts.method || 'GET', body: opts.body, prefer: opts.prefer || undefined })
   });
   var out = null; try { out = await res.json(); } catch (e) {}
   if (!res.ok || !out || !out.ok) throw new Error((out && out.error) || ('Request failed (' + res.status + ')'));
@@ -1860,8 +1860,8 @@ async function uploadPhoto(file, clientId, itemId, slot) {
 async function deletePhoto(path) {
   await fetch('/api/vietnam-board', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cid: qs('cid'), email: dashClient && dashClient.email, op: 'deletePhoto', storagePath: path })
+    headers: vtHeaders(),
+    body: JSON.stringify({ op: 'deletePhoto', storagePath: path })
   });
 }
 
@@ -2382,7 +2382,7 @@ function renderStyleGuide() {
 
 /* Checklist: saved to the client's record via /api/vietnam-info */
 function sgLoadChecklist() {
-  fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('get') })
+  fetch('/api/vietnam-info', { method: 'POST', headers: vtHeaders(), body: infoBody('get') })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       var saved = data && data.info && data.info.style_checklist;
@@ -2397,7 +2397,7 @@ function sgQueueSave() {
   var el = document.getElementById('sg-save-state'); if (el) el.textContent = 'Saving…';
   clearTimeout(sgSaveTimer);
   sgSaveTimer = setTimeout(function() {
-    fetch('/api/vietnam-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: infoBody('save_checklist', { checklist: sgChecklist }) })
+    fetch('/api/vietnam-info', { method: 'POST', headers: vtHeaders(), body: infoBody('save_checklist', { checklist: sgChecklist }) })
       .then(function(r) { return r.json(); })
       .then(function(d) { var e = document.getElementById('sg-save-state'); if (e) e.textContent = d && d.ok ? 'Saved ✓' : ((d && d.error) || 'Couldn’t save'); })
       .catch(function() { var e = document.getElementById('sg-save-state'); if (e) e.textContent = 'Couldn’t save — check your connection'; });
@@ -2442,9 +2442,10 @@ function sidebarHTML(clientName) {
   return '<aside class="sidebar" id="app-sidebar">'
     + '<button id="sb-toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar">&#8249;</button>'
     + '<div class="slogo">Your <span>SZN</span></div>'
-    + '<div class="suser"><div class="sulab">Logged in as</div><div class="suname">' + clientName + '</div></div>'
+    + '<div class="suser"><div class="sulab">Signed in as</div><div class="suname">' + vtEsc(clientName) + '</div></div>'
     + '<nav class="snav">' + items + '</nav>'
     + '<a class="sout" href="index.html">← Back to Portal</a>'
+    + '<button type="button" class="sout" onclick="vtSignOut()">Sign out</button>'
     + '</aside>';
 }
 
@@ -2473,13 +2474,101 @@ function setTab(tab) {
   if (tab === 'style') renderStyleGuide();
 }
 
-function showLoginRequired() {
+/* ── Sign-in ─────────────────────────────────────────────
+   Tour clients sign in here with an emailed 6-digit code (/api/vietnam-login).
+   The session token is kept in this browser for up to 7 days and sent as
+   "Authorization: Bearer …" on every /api/vietnam-* call; the server works out
+   who the client is from the token alone. "Sign out" deletes it from the device. */
+var VT_SESSION_KEY = 'vt_session';
+var vtSignInEmail = '';
+
+function vtEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function vtSession() {
+  try {
+    var s = JSON.parse(localStorage.getItem(VT_SESSION_KEY) || 'null');
+    return s && s.token && s.expires > Date.now() ? s : null;
+  } catch (e) { return null; }
+}
+function vtHeaders() {
+  var s = vtSession();
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (s ? s.token : '') };
+}
+function vtClearSession() {
+  try { localStorage.removeItem(VT_SESSION_KEY); sessionStorage.clear(); } catch (e) {}
+}
+function vtSignOut() {
+  vtClearSession();
+  window.location.href = 'vietnam-tour.html';
+}
+function vtAuthPost(body) {
+  return fetch('/api/vietnam-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(function(r) { return r.json().catch(function() { return {}; }); });
+}
+
+function showSignIn(step, message, quiet) {
+  var codeStep = step === 'code';
   document.getElementById('app-root').innerHTML =
-    '<div class="center-box"><div class="msg-card">'
-    + '<div class="msg-title">Please Log In</div>'
-    + '<div class="msg-desc">Head back to the Client Portal and enter your name &amp; email on the Vietnam Tailoring Tour card to view your dashboard.</div>'
-    + '<a class="msg-link" href="index.html">← Back to Client Portal</a>'
-    + '</div></div>';
+    '<div class="center-box"><form class="msg-card" id="vt-signin" novalidate>'
+    + '<div class="msg-title">' + (codeStep ? 'Enter your code' : 'Vietnam Tailoring Tour') + '</div>'
+    + '<div class="msg-desc">' + (codeStep
+        ? 'We sent a 6-digit code to <b>' + vtEsc(vtSignInEmail) + '</b>. It works for 10 minutes. Check your junk folder if you can’t see it.'
+        : 'Sign in with the email you booked with. We’ll email you a 6-digit code.') + '</div>'
+    + '<div class="form-group">'
+    + (codeStep
+        ? '<label for="vt-code">6-digit code</label><input id="vt-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>'
+        : '<label for="vt-email">Email</label><input id="vt-email" type="email" autocomplete="email" value="' + vtEsc(vtSignInEmail) + '" required>')
+    + '</div>'
+    + '<div id="vt-signin-msg" class="msg-desc" role="alert" style="color:' + (quiet ? 'var(--muted)' : 'var(--danger)') + ';margin-bottom:12px' + (message ? '' : ';display:none') + '">' + vtEsc(message || '') + '</div>'
+    + '<button class="btn btn-primary" id="vt-signin-btn" type="submit" style="width:100%">' + (codeStep ? 'Sign in' : 'Email me a code') + '</button>'
+    + (codeStep
+        ? '<div style="display:flex;justify-content:space-between;gap:12px;margin-top:16px">'
+          + '<button type="button" class="msg-link" style="background:none;border:0;cursor:pointer" onclick="vtSendCode(true)">Send a new code</button>'
+          + '<button type="button" class="msg-link" style="background:none;border:0;cursor:pointer" onclick="showSignIn(\'email\')">Use another email</button></div>'
+        : '<div style="margin-top:16px"><a class="msg-link" href="index.html">← Back to Client Portal</a></div>')
+    + '</form></div>';
+  document.getElementById('vt-signin').onsubmit = function(e) {
+    e.preventDefault();
+    if (codeStep) vtVerifyCode(); else vtSendCode(false);
+  };
+  var first = document.getElementById(codeStep ? 'vt-code' : 'vt-email');
+  if (first) first.focus();
+}
+
+function vtSignInError(text) {
+  var el = document.getElementById('vt-signin-msg');
+  if (el) { el.textContent = text; el.style.color = 'var(--danger)'; el.style.display = 'block'; }
+  var btn = document.getElementById('vt-signin-btn');
+  if (btn) btn.disabled = false;
+}
+
+function vtSendCode(resend) {
+  if (!resend) vtSignInEmail = (document.getElementById('vt-email').value || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(vtSignInEmail)) { vtSignInError('Please enter a valid email address.'); return; }
+  var btn = document.getElementById('vt-signin-btn');
+  if (btn) btn.disabled = true;
+  vtAuthPost({ action: 'send', email: vtSignInEmail })
+    .then(function(data) {
+      if (data && data.ok) { showSignIn('code', resend ? 'A new code is on its way.' : '', true); return; }
+      vtSignInError((data && data.error) || 'Something went wrong. Please try again.');
+    })
+    .catch(function() { vtSignInError('Something went wrong. Please try again.'); });
+}
+
+function vtVerifyCode() {
+  var code = (document.getElementById('vt-code').value || '').replace(/\D/g, '');
+  if (code.length !== 6) { vtSignInError('Please enter the 6-digit code from your email.'); return; }
+  document.getElementById('vt-signin-btn').disabled = true;
+  vtAuthPost({ action: 'verify', email: vtSignInEmail, code: code })
+    .then(function(data) {
+      if (!data || !data.ok) { vtSignInError((data && data.error) || 'Something went wrong. Please try again.'); return; }
+      try { localStorage.setItem(VT_SESSION_KEY, JSON.stringify({ token: data.token, expires: data.expires })); } catch (e) {}
+      init();
+    })
+    .catch(function() { vtSignInError('Something went wrong. Please try again.'); });
 }
 
 function showNotFound() {
@@ -2491,33 +2580,28 @@ function showNotFound() {
     + '</div></div>';
 }
 
-/* Client/itinerary/recommendations now come from /api/vietnam-dashboard, which
-   verifies the session email server-side before returning anything — the
-   browser no longer has direct read access to these tables (anon access was
-   revoked). A cid alone in the URL is not enough to see someone's data. */
+/* Client/itinerary/recommendations come from /api/vietnam-dashboard, which only
+   answers for the client named in the signed session token (see Sign-in above).
+   The browser has no direct read access to these tables. */
 function init() {
-  var cid = qs('cid');
-  var nameParam = qs('name');
-  var email = '';
-  try { email = sessionStorage.getItem('vt_email') || ''; } catch (e) {}
-
-  if (!cid || !email) { showLoginRequired(); return; }
+  if (!vtSession()) { vtClearSession(); showSignIn('email'); return; }
 
   document.getElementById('app-root').innerHTML = '<div class="center-box"><div class="empty">Loading your dashboard…</div></div>';
 
   fetch('/api/vietnam-dashboard', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cid: cid, email: email })
+    headers: vtHeaders(),
+    body: '{}'
   })
     .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); })
     .then(function(res) {
+      if (res.status === 401) { vtClearSession(); showSignIn('email', 'Your session has ended. Please sign in again.'); return; }
       if (!res.data || !res.data.ok) { showNotFound(); return; }
-      dashClient = Object.assign({}, res.data.client, { email: email });
+      dashClient = res.data.client;
       recsData = res.data.recommendations || [];
       faqData = res.data.faqs || [];
       tourInfo = res.data.tour || {};
-      var displayName = nameParam || dashClient.name;
+      var displayName = dashClient.name || '';
       document.getElementById('app-root').innerHTML =
         sidebarHTML(displayName)
         + '<div class="main">'
@@ -2535,7 +2619,8 @@ function init() {
         + '<div class="tab-panel" id="panel-style"></div>'
         + '<div class="tab-panel" id="panel-tailoring"><div id="tl-subtabs"></div><div id="tl-wardrobe"></div><div id="tl-board" style="display:none">' + tailoringPanelHTML() + '</div></div>'
         + '<div class="tab-panel" id="panel-yourinfo">' + '<div class="empty">Loading your info…</div>' + '</div>'
-        + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a></div>'
+        + '<div class="footer" style="text-align:left;padding:24px 0 0">Questions? Email <a href="mailto:hello@yourszn.com.au" style="color:var(--muted)">hello@yourszn.com.au</a>'
+        + ' · <button type="button" onclick="vtSignOut()" style="background:none;border:0;padding:0;font:inherit;color:var(--muted);text-decoration:underline;cursor:pointer">Sign out</button></div>'
         + '</div>'
         + bottomTabsHTML();
       vwReminderRefresh();

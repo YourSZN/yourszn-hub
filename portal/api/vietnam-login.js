@@ -1,55 +1,69 @@
 // POST /api/vietnam-login
-// Validates the shared access code and looks up a Vietnam Tailoring Tour client
-// by email. Uses the Supabase SERVICE ROLE key server-side only — this key never
-// reaches the browser. Direct anon access to vietnam_clients has been revoked, so
-// this endpoint is now the only way to read that table.
+// Email + 6-digit code sign-in for Vietnam Tailoring Tour clients.
+// Replaces the old shared access code, which anyone could read in the page source.
 //
-// Required env var (set in Vercel → this project → Settings → Environment Variables):
-//   SUPABASE_SERVICE_ROLE_KEY — from Supabase Dashboard → Settings → API → service_role key
+//   { action: "send",   email }        -> emails a code if the email is on the tour client list
+//   { action: "verify", email, code }  -> { ok, token, expires, name }
+//
+// The token (scope 'tour') goes in the Authorization header of every tour API
+// call; _tour.js checks it. Sessions last SESSION_DAYS. Codes: see _login-codes.js.
+//
+// Who can sign in: any vietnam_clients row with this email (booked clients,
+// plus "preview" rows used for testing). Staff add clients in the hub's Tours page.
+//
+// Required env vars: SUPABASE_SERVICE_ROLE_KEY, COLOUR_SESSION_SECRET, RESEND_API_KEY
 
-const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
-const ACCESS_CODE = '2462';
-const ALLOWED_ORIGINS = ['https://clients.yourszn.com.au', 'http://localhost:3000'];
+const { cors, sb, newSession } = require('./_colour');
+const { cleanEmail, validEmail, sendCode, checkCode } = require('./_login-codes');
 
-function cors(req, res) {
-  const origin = req.headers.origin || '';
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  res.setHeader('Access-Control-Allow-Origin', allowed);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Vary', 'Origin');
-  if (req.method === 'OPTIONS') { res.status(204).end(); return false; }
-  return true;
+// Shorter than the colour dashboard (30 days): tour dashboards hold passport and flight details.
+const SESSION_DAYS = 7;
+
+async function findTourClient(email) {
+  // Emails may have been typed with capitals in the hub, so match case-insensitively,
+  // then keep only exact matches (ilike treats _ and % as wildcards) and require exactly one.
+  const rows = await sb('/rest/v1/vietnam_clients?email=ilike.' + encodeURIComponent(email) + '&select=id,name,email&limit=10');
+  const exact = rows.filter((r) => String(r.email || '').trim().toLowerCase() === email);
+  return exact.length === 1 ? exact[0] : null;
 }
 
 module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
-
-  const { code, name, email } = req.body || {};
-  if (!code || code !== ACCESS_CODE) {
-    return res.status(401).json({ error: 'Invalid access code. Please check and try again.' });
-  }
-  if (!name || !email) {
-    return res.status(400).json({ error: 'Name and email are required.' });
+  for (const k of ['SUPABASE_SERVICE_ROLE_KEY', 'COLOUR_SESSION_SECRET', 'RESEND_API_KEY']) {
+    if (!process.env[k]) {
+      console.error('[vietnam-login] missing ' + k);
+      return res.status(500).json({ error: 'Sign-in isn\'t set up yet. Please contact YourSZN.' });
+    }
   }
 
-  const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!SERVICE_KEY) {
-    console.error('[vietnam-login] missing SUPABASE_SERVICE_ROLE_KEY');
-    return res.status(500).json({ error: 'Server not configured. Please contact YourSZN.' });
-  }
+  const { action } = req.body || {};
+  const email = cleanEmail((req.body || {}).email);
+  if (!validEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address.' });
 
   try {
-    const url = SUPABASE_URL + '/rest/v1/vietnam_clients?email=eq.' + encodeURIComponent(String(email).trim().toLowerCase()) + '&select=id,name,email&limit=1';
-    const r = await fetch(url, { headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY } });
-    const data = await r.json();
-    if (!Array.isArray(data) || data.length === 0) {
-      return res.status(404).json({ error: 'We couldn’t find a dashboard for that email. Please check with your tour coordinator.' });
+    if (action === 'send') {
+      // Same answer whether or not the email is on the list, so the form can't be used to find tour clients.
+      const generic = { ok: true, message: 'If that email is booked on the tour, a code is on its way.' };
+      const client = await findTourClient(email);
+      if (!client) return res.status(200).json(generic);
+      const sent = await sendCode(email, client.name, 'tour');
+      if (!sent.ok) return res.status(sent.status).json({ error: sent.error });
+      return res.status(200).json(generic);
     }
-    return res.status(200).json({ ok: true, cid: data[0].id, name: data[0].name });
+
+    if (action === 'verify') {
+      const checked = await checkCode(email, (req.body || {}).code);
+      if (!checked.ok) return res.status(checked.status).json({ error: checked.error });
+      const client = await findTourClient(email);
+      if (!client) return res.status(401).json({ error: 'We couldn\'t find a tour booking for that email. Please contact YourSZN.' });
+      const { token, expires } = newSession(client.id, SESSION_DAYS, 'tour');
+      return res.status(200).json({ ok: true, token, expires, name: client.name || '' });
+    }
+
+    return res.status(400).json({ error: 'Unknown action.' });
   } catch (err) {
-    console.error('[vietnam-login] error:', err);
+    console.error('[vietnam-login]', err && err.message);
     return res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 };

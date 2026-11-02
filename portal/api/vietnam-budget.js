@@ -1,11 +1,15 @@
 // POST /api/vietnam-budget
-// Client's trip budget — spending goal + expense log, verified server-side
-// against the client's email (same pattern as vietnam-packing.js). Uses the
+// Client's trip budget — spending goal + expense log.
+// Sign-in: every request needs the tour session token (Authorization: Bearer …)
+// from /api/vietnam-login. The client is taken from that token (see _tour.js);
+// any cid/email in the body is ignored.
+// Uses the
 // Supabase SERVICE ROLE key; vietnam_budget_items has no anon policy.
 //
-// Required env var: SUPABASE_SERVICE_ROLE_KEY
+// Required env vars: SUPABASE_SERVICE_ROLE_KEY, COLOUR_SESSION_SECRET
 
 const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+const { tourSession } = require('./_tour');
 const ALLOWED_ORIGINS = ['https://clients.yourszn.com.au', 'http://localhost:3000'];
 
 function cors(req, res) {
@@ -13,7 +17,7 @@ function cors(req, res) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.setHeader('Access-Control-Allow-Origin', allowed);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') { res.status(204).end(); return false; }
   return true;
@@ -36,8 +40,11 @@ module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
-  const { cid, email, action } = req.body || {};
-  if (!cid || !email) return res.status(400).json({ error: 'Missing client id or email.' });
+  // Identity comes only from the signed tour session (see _tour.js), never from the request body.
+  const who = await tourSession(req, res);
+  if (!who) return;
+  const { cid, email } = who;
+  const { action } = req.body || {};
 
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!SERVICE_KEY) {

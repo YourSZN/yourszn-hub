@@ -58,8 +58,8 @@ var VW = { loaded: false, loading: false, answers: {}, photos: [], step: 0, comp
 
 /* ── API ── */
 function vwApi(body) {
-  body.cid = qs('cid'); body.email = dashClient && dashClient.email;
-  return fetch('/api/vietnam-wardrobe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  // Who the client is comes from the session token (vtHeaders, in vietnam-tour.html), not the body.
+  return fetch('/api/vietnam-wardrobe', { method: 'POST', headers: vtHeaders(), body: JSON.stringify(body) })
     .then(function(r) { return r.json().then(function(d) { if (!r.ok || !d.ok) throw new Error((d && d.error) || 'Request failed'); return d; }); });
 }
 
@@ -313,7 +313,7 @@ function vwPhotoAdd(input) {
   var files = Array.prototype.slice.call(input.files || [], 0, 6 - VW.photos.length);
   input.value = '';
   files.forEach(function(file) {
-    var path = 'wardrobe/' + qs('cid') + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
+    var path = 'wardrobe/' + dashClient.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
     var entry = { path: path, url: '', category: '', why: [], note: '', copy: '' };
     VW.photos.push(entry); VW.uploading++; vwRender();
     vwResize(file).then(function(blob) {
