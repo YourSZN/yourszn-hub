@@ -302,7 +302,13 @@ section[id],.card[id]{scroll-margin-top:72px}
 @media (min-width:900px){.sheet-bg{align-items:center}.sheet{border-radius:28px;padding-bottom:26px}}
 .grab{justify-self:center;width:40px;height:4px;border-radius:2px;background:var(--line)}
 .sheet .top-row{display:grid;grid-template-columns:112px 1fr auto;gap:18px;align-items:center}
-.sheet .big{width:112px;height:112px;border-radius:24px}
+.sheet .big{width:112px;height:112px;border-radius:24px;border:0;padding:0;cursor:zoom-in}
+.full{position:fixed;inset:0;z-index:200;display:grid;touch-action:pan-y}
+.full .fl-x{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:14px;width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:26px;line-height:1;color:var(--ink);box-shadow:var(--shadow)}
+.full .fl-name{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(255,255,255,.92);color:var(--ink);border-radius:999px;padding:10px 18px;font-size:14px;white-space:nowrap;box-shadow:var(--shadow)}
+.full .fl-name span{color:var(--muted);margin-left:8px;font-size:12px}
+.full .fl-arrow{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;border:0;background:rgba(255,255,255,.82);font-size:26px;color:var(--ink)}
+.full .fl-arrow.l{left:14px}.full .fl-arrow.r{right:14px}
 .sheet h2{font-size:30px}
 .sheet .x{width:44px;height:44px;border-radius:50%;border:0;background:var(--soft);font-size:20px;align-self:start}
 .sheet .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -1224,6 +1230,29 @@ function renderColours(){
   $("#addMore").onclick=()=>{palFilter="all";renderColours();const t=$("#fam-blues");if(t)t.scrollIntoView({behavior:"smooth",block:"start"})};
   const cb=$("#camBtn2");if(cb)cb.onclick=openCamera;
 }
+// Full-screen colour: hold the phone up to clothes or fabric. Swipe or use the arrows to
+// move through the palette in the same order as My colours. Esc or × closes.
+function paletteOrder(){const g=groups();return FAMS.map(x=>x[0]).flatMap(k=>g[k]||[])}
+function openFull(c,list){
+  let i=Math.max(0,list.indexOf(c));
+  const el=document.createElement("div");el.className="full";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");
+  const multi=list.length>1;
+  el.innerHTML=`<button class="fl-x" aria-label="Close">×</button>${multi?`<button class="fl-arrow l" aria-label="Previous colour">‹</button><button class="fl-arrow r" aria-label="Next colour">›</button>`:""}<div class="fl-name" aria-live="polite"></div>`;
+  const draw=()=>{const x=list[i];el.style.background=x;el.setAttribute("aria-label",nm(x)+" full screen");el.querySelector(".fl-name").innerHTML=`<b>${esc(nm(x))}</b><span>${x.toUpperCase()}${multi?` · ${i+1} of ${list.length}`:""}</span>`};
+  const step=d=>{if(!multi)return;i=(i+d+list.length)%list.length;draw()};
+  const close=()=>{document.removeEventListener("keydown",key);try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}el.remove();document.body.style.overflow=""};
+  const key=e=>{if(e.key==="Escape")close();if(e.key==="ArrowRight")step(1);if(e.key==="ArrowLeft")step(-1)};
+  el.querySelector(".fl-x").onclick=close;
+  if(multi){el.querySelector(".fl-arrow.l").onclick=()=>step(-1);el.querySelector(".fl-arrow.r").onclick=()=>step(1)}
+  let sx=null;el.addEventListener("touchstart",e=>{sx=e.touches[0].clientX},{passive:true});
+  el.addEventListener("touchend",e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>50)step(dx<0?1:-1)});
+  // Leaving browser full screen (e.g. the Esc key on a computer) closes it too.
+  el.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&el.isConnected)close()});
+  document.addEventListener("keydown",key);document.body.style.overflow="hidden";
+  document.body.appendChild(el);draw();el.querySelector(".fl-x").focus();
+  // Real full screen where the browser allows it (computers, Android). iPhones keep the overlay.
+  try{if(el.requestFullscreen&&!/iPhone|iPad/.test(navigator.userAgent))el.requestFullscreen().catch(()=>{})}catch(e){}
+}
 function nearest(c,list){let best=null,bd=1e9;list.forEach(x=>{if(x===c)return;const a=hsl(c),b=hsl(x);let dh=Math.abs(a.h-b.h);dh=Math.min(dh,360-dh);const d=dh/180+Math.abs(a.l-b.l)*1.5;if(d<bd){bd=d;best=x}});return best}
 function hueShift(c,deg){const{h}=hsl(c);const t=(h+deg)%360;let best=null,bd=1e9;SEASON.palette.forEach(x=>{const y=hsl(x);if(y.s<.23)return;let d=Math.abs(y.h-t);d=Math.min(d,360-d)+Math.abs(y.l-hsl(c).l)*60;if(d<bd){bd=d;best=x}});return best}
 function openSheet(c,avoid,nb){
@@ -1234,8 +1263,9 @@ function openSheet(c,avoid,nb){
   const label=nb?nb:avoid?"Not in your palette":SEASON.families[fam].name;
   host.innerHTML=`<div class="sheet-bg" id="sheetBg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${nm(c)}">
     <span class="grab" aria-hidden="true"></span>
-    <div class="top-row"><span class="big" style="background:${c}"></span><div class="stack" style="gap:4px"><span class="eyebrow">${label}</span><h2>${nm(c)}</h2><span class="small muted">${c.toUpperCase()}</span></div><button class="x" id="sheetX" aria-label="Close">×</button></div>
+    <div class="top-row"><button class="big" id="sheetBig" style="background:${c}" aria-label="See ${nm(c)} full screen"></button><div class="stack" style="gap:4px"><span class="eyebrow">${label}</span><h2>${nm(c)}</h2><span class="small muted">${c.toUpperCase()}</span></div><button class="x" id="sheetX" aria-label="Close">×</button></div>
     ${avoid?`<p class="note">This one is ${whyNot(c)}. If you love it, wear it away from your face or in a print that's mostly your colours.</p>`:""}
+    <button class="btn ghost" id="sheetFull" style="border-radius:14px;min-height:46px">See it full screen</button>
     <div class="acts">${avoid?"":`<button class="btn ghost heart-btn" id="sheetFav" aria-pressed="${fav}">${HEART}<span>${fav?"Saved":"Save"}</span></button>`}<button class="btn" id="sheetTry"${avoid?' style="grid-column:1/-1"':""}>Try on my face</button></div>
     ${pairs.length?`<div class="stack" style="gap:10px"><span class="eyebrow">Wear it with</span><div class="pairs">${pairs.map(([a,b,l])=>`<div><span class="duo"><span style="background:${a}"></span><span style="background:${b}"></span></span>${l}: ${nm(b)}</div>`).join("")}</div></div>`:""}
     ${ramp.length>1?`<div class="stack" style="gap:10px"><span class="eyebrow">Lighter and deeper</span><div class="ramp">${ramp.map(x=>`<button style="background:${x}" data-c="${x}" aria-label="${nm(x)}" aria-current="${x===c}"></button>`).join("")}</div></div>`:""}
@@ -1247,6 +1277,8 @@ function openSheet(c,avoid,nb){
   $("#sheetBg").onclick=e=>{if(e.target.id==="sheetBg")close()};$("#sheetX").onclick=close;
   const fb=$("#sheetFav");if(fb)fb.onclick=()=>{toggleFav(c);const on=isFav(c);fb.setAttribute("aria-pressed",on);fb.querySelector("span").textContent=on?"Saved":"Save";refreshBehind()};
   $("#sheetTry").onclick=()=>{close();T.mode=1;T.active=0;T.slots[0]=c;go("tryon",true)};
+  const full=()=>{close();openFull(c,avoid||nb?[c]:paletteOrder())};
+  $("#sheetFull").onclick=full;$("#sheetBig").onclick=full;
   host.querySelectorAll(".ramp button").forEach(b=>b.onclick=()=>openSheet(b.dataset.c));
   $("#sheetX").focus();
 }

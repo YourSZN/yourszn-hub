@@ -69,7 +69,7 @@ Optional wording: `swapText` (neutral swaps intro), `swapQuiz` and `swapWhy` (Ne
 ## Layout
 - **Home:** welcome, next steps, looks, app showcase (`img/app-demo.mp4`, trimmed 2 Nov so it never stops on unloaded product photos).
 - **Account menu:** the avatar (top right on phones) or "Signed in as" (sidebar on desktop) opens Your account (password, sign out, sign out everywhere), the Vietnam Tailoring Tour (Open your tour if their email is on the tour list, otherwise the enquiry form) and Add to your home screen.
-- **Palette:** My colours · Season profile (temperature/value/chroma/contrast, metals, sister seasons) · Combos.
+- **Palette:** My colours · Season profile (temperature/value/chroma/contrast, metals, sister seasons) · Combos. Tapping a colour opens its card; **See it full screen** (or tapping the big swatch) fills the screen with it, swipe or arrows to move through the palette.
 - **Try On:** photo and colour picker side by side on desktop, stacked on phones.
 - **Makeup**, **Wardrobe** (Latisha's picks · My wardrobe, which ends with the travel capsule), **Learn** (Guide · Quizzes).
 `seasons/true-spring.js` is the complete example to copy.
