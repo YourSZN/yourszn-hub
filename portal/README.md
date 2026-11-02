@@ -88,7 +88,6 @@ Files starting with `_` are shared helpers, not endpoints.
 | `colour-auth.js`, `colour-dashboard.js` | Colour dashboard sign-in and data |
 | `vietnam-login.js` | Tour sign-in |
 | `vietnam-dashboard.js`, `-board.js`, `-budget.js`, `-info.js`, `-packing.js`, `-wardrobe.js` | Tour dashboard data, each scoped to the signed-in client |
-| `vietnam-staff-info.js` | Staff-only tour admin (needs a staff Supabase session) |
 | `client-submission.js` | Revised photos, for the signed-in client's own questionnaire |
 
 ## Environment variables (Vercel project for clients.yourszn.com.au)
