@@ -12,7 +12,6 @@ project, which serves this folder at clients.yourszn.com.au. The staff hub
 | `colour-dashboard.html` | Online Colour Analysis results dashboard (see `COLOUR-DASHBOARD.md`) |
 | `vietnam-tour.html` | Vietnam Tailoring Tour trip dashboard (+ `vietnam-wardrobe.js`, `vietnam-map.js`) |
 | `yourszn-form-7.html` | Online Colour Analysis questionnaire and photo upload |
-| `client-upload.html` | In-person booking photo upload (no longer linked from the portal; to be removed with the in-person flow) |
 
 ## How clients sign in
 
@@ -70,8 +69,9 @@ as HMAC hashes, and code rows are deleted after 7 days.
 | `review` | Status `in_progress` or `complete` | Progress: In review, plus Upload revised photos |
 | `sent` | Status `sent` | Progress: Results, marked Done |
 
-The colour dashboard card unlocks when the email has an active `colour_clients` row
-(that is how a client is approved today). The tour card shows **Open your tour** when the
+The colour dashboard card unlocks when the email has an active `colour_clients` row.
+Latisha creates that row with **Give dashboard access + email client** on the staff hub's
+Clients page (see `../docs/CLIENTS-PAGE.md`). The tour card shows **Open your tour** when the
 email is on the tour list, otherwise a link to the website.
 
 ## API files (`portal/api/`)
@@ -90,7 +90,6 @@ Files starting with `_` are shared helpers, not endpoints.
 | `vietnam-dashboard.js`, `-board.js`, `-budget.js`, `-info.js`, `-packing.js`, `-wardrobe.js` | Tour dashboard data, each scoped to the signed-in client |
 | `vietnam-staff-info.js` | Staff-only tour admin (needs a staff Supabase session) |
 | `client-submission.js` | Revised photos, for the signed-in client's own questionnaire |
-| `client-booking.js` | In-person booking photo upload (to be removed with the in-person flow) |
 
 ## Environment variables (Vercel project for clients.yourszn.com.au)
 
@@ -107,13 +106,20 @@ Files starting with `_` are shared helpers, not endpoints.
 a pretend database and email service (no network, no real data). Run it before every
 change to `portal/api`, and add a check when you change an API.
 
+The staff hub's Clients API has its own checks: `node tests/staff/admin-clients.test.js`.
+
 ## Not built yet
 
 - **Payment check:** anyone signed in can start the questionnaire, as before (the old
   access code was visible in the page source). The Shopify webhook will add this.
-- **Approving clients:** done by adding a `colour_clients` row until the admin
-  Clients page exists.
 - **Account deletion requests:** handled by email for now (hello@yourszn.com.au).
+
+## Giving someone colour dashboard access
+
+Staff hub → **Clients** → pick the client → choose their season (from the drape) and
+tier → **Give dashboard access + email client**. Only seasons whose dashboard is built
+can be chosen (`READY_SEASONS` in `api/admin-clients.js`, at the repository root).
+Details: `../docs/CLIENTS-PAGE.md`.
 
 ## Giving someone tour access
 

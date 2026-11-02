@@ -20,7 +20,9 @@ Start here if you're picking this work up. For how the client site works, read
 
 - Every change goes on a branch, then a draft PR with a plain-language description, then
   a Vercel preview for Latisha to test. It is merged (squash) only after she says **go**.
-- Run `node tests/portal/api.test.js` before every change to `portal/api`, and add checks.
+- Run `node tests/portal/api.test.js` before every change to `portal/api`, and
+  `node tests/staff/admin-clients.test.js` before every change to `api/admin-clients.js`
+  or `api/_staff.js`; add checks.
 - Update `portal/README.md` and add an entry to `docs/DECISIONS.md` with every feature.
 - After each feature, give Latisha a short security check (what could go wrong / what we did).
 - Latisha isn't technical: explain in plain language, flag anything that weakens security
@@ -46,7 +48,15 @@ Start here if you're picking this work up. For how the client site works, read
    Spring items with photos), then "My wardrobe". App screen recording plays in the
    "Inside the YourSZN app" card (`img/app-demo.mp4`, same for every season).
 
-## Next: admin Clients page (agreed with Latisha)
+## Admin Clients page (PR, 2 Nov): waiting for Latisha's go
+
+Built on branch `admin-clients-page`. How it works: `docs/CLIENTS-PAGE.md`. On **go**:
+merge, then apply `portal/sql/2026-11-02-profiles-role-lock.sql` and
+`portal/sql/2026-11-02-delete-in-person.sql` as migrations, then Latisha empties and
+deletes the `in-person-photos` bucket in Supabase Storage. (`oca_clients` is already
+created; it's additive and needed for the preview.)
+
+### What was agreed (kept for reference)
 
 In the staff hub, replace the in-person **Clients** view with a list of everyone with a portal
 account / online submission. Per client:
@@ -61,7 +71,8 @@ account / online submission. Per client:
 - **Grant OCA access** for someone who paid with a different email.
 - Filters: All, Paid not submitted, New, In progress, Complete, Dashboard live.
 - Remove the in-person screens and `client-upload.html` / `api/client-booking.js` (confirm
-  nothing else uses them first). Latisha is dropping in-person work.
+  nothing else uses them first). Latisha is dropping in-person work. (2 Nov: also delete
+  the in-person data, no export; admin only; remove Client Profiles tab; no email on grant.)
 - Mock-up: the "Your admin · Clients" artboard on the design canvas above.
 
 ## After that
@@ -76,6 +87,12 @@ account / online submission. Per client:
    second Vercel project; root `client-portal.html` (old portal copy on the staff site,
    still shows code `1893` and uses root `api/client-submission.js` / `client-booking.js`);
    social-media PNGs in the repo root. Trace what the staff hub actually loads before deleting.
+   Also: `app-crm.js` and its modals in `index.html` (Client Profiles, now unreachable apart
+   from the gift-voucher "add to CRM" button), `app-colours.js` (not loaded),
+   `comms-fix.js`/`-v37`/`-v38` (not loaded), the in-person dashboard stat cards
+   ("In-Person Rate", "10 in-person"), and `launchApp()` in `app.js`, which calls
+   `renderAdCreativePage()` that no loaded file defines, so the rest of launch is skipped
+   (renderGoals, renderFinances, renderPlanPage, staff page). Already broken on main.
 3. **Accounts and roles:** one client account table; lock every staff table by role
    (38 tables currently allow any signed-in user). Test on a temporary Supabase branch
    ("claudedev") and delete it afterwards.
@@ -98,7 +115,7 @@ account / online submission. Per client:
 
 ## Watch out for
 
-- `colour_clients` has one active row (Light Summer, premium). Approving someone today =
-  adding a row there.
+- `colour_clients` has one active row (Light Summer, premium). Once the Clients page is
+  live, approving someone = **Give dashboard access** on that page.
 - One booked tour client has no email and can't sign in (Latisha is fine with that).
 - Anyone signed in can start the questionnaire (no payment check yet), same as before.

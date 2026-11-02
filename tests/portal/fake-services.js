@@ -1,14 +1,18 @@
-// A pretend Supabase (REST only) and Resend for testing portal/api without any network
-// or real data. Supports just the query shapes portal/api uses.
+// A pretend Supabase (REST + the Auth "who is this token" call) and Resend, for testing
+// portal/api and the staff APIs in api/ without any network or real data.
+// Supports just the query shapes those APIs use.
 
 const db = {};
 const sentEmails = [];
+// Pretend Supabase Auth: access token -> user. Tests add staff logins here.
+const authUsers = {};
 let nextId = 0;
 
 function reset(tables) {
   Object.keys(db).forEach((k) => delete db[k]);
   Object.assign(db, JSON.parse(JSON.stringify(tables)));
   sentEmails.length = 0;
+  Object.keys(authUsers).forEach((k) => delete authUsers[k]);
 }
 
 function matches(row, key, op) {
@@ -32,12 +36,22 @@ function respond(status, data) {
 async function fakeFetch(url, opts = {}) {
   const u = new URL(url);
   if (u.hostname === 'api.resend.com') { sentEmails.push(JSON.parse(opts.body)); return respond(200, {}); }
+  if (u.pathname === '/auth/v1/user') {
+    const token = ((opts.headers || {}).Authorization || '').replace(/^Bearer /, '');
+    return authUsers[token] ? respond(200, authUsers[token]) : respond(401, { msg: 'invalid token' });
+  }
   const m = u.pathname.match(/\/rest\/v1\/([a-z_]+)/);
   if (!m) return respond(200, []);
   const table = db[m[1]] || (db[m[1]] = []);
   const filters = [...u.searchParams].filter(([k]) => !['select', 'order', 'limit', 'or'].includes(k));
   const method = (opts.method || 'GET').toUpperCase();
   let rows = table.filter((r) => filters.every(([k, v]) => matches(r, k, v)));
+  // or=(col.op.value,col.op.value): keep rows matching any of them.
+  const or = u.searchParams.get('or');
+  if (or) {
+    const parts = or.replace(/^\(|\)$/g, '').split(',').map((p) => { const i = p.indexOf('.'); return [p.slice(0, i), p.slice(i + 1)]; });
+    rows = rows.filter((r) => parts.some(([k, op]) => matches(r, k, op)));
+  }
   if (method === 'POST') {
     const items = [].concat(JSON.parse(opts.body));
     rows = items.map((b) => Object.assign({ id: 'row' + (++nextId), created_at: new Date(Date.now() + nextId).toISOString(), attempts: 0, used_at: null }, b));
@@ -52,4 +66,4 @@ async function fakeFetch(url, opts = {}) {
   return respond(200, rows);
 }
 
-module.exports = { db, sentEmails, reset, fakeFetch };
+module.exports = { db, sentEmails, authUsers, reset, fakeFetch };

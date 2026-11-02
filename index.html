@@ -93,9 +93,6 @@
 </script>
 
     <style>
-      .clients-subtab{background:var(--warm);border:1px solid var(--sand);color:var(--brown);font-size:12px;padding:6px 16px;border-radius:8px;cursor:pointer;transition:all .15s}
-      .clients-subtab:hover{background:var(--sand)}
-      .clients-subtab.on{background:var(--charcoal);color:white;border-color:var(--charcoal)}
     </style>
   </head>
 <body>
@@ -276,81 +273,14 @@
     </div>
 
 
-    <!-- CLIENTS -->
     <div class="page" id="pg-calendar">
       <div id="calendar-root"></div>
     </div>
+    <!-- CLIENTS -->
     <div class="page" id="pg-clients">
-      <div class="ph">
-        <div><div class="ptitle">Clients</div><div class="psub" id="clients-psub">Manage in-person client bookings</div></div>
-        <div id="clients-header-actions"><button class="btn btnp" onclick="openNewBookingModal()" style="font-size:13px;padding:8px 18px;">+ New Booking</button></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <!-- Appointment Slots hidden for now (Oct 2026). Data is kept; remove style="display:none" to bring it back. -->
-        <button class="btn clients-subtab" id="cst-slots" style="display:none" onclick="showClientsTab('slots')">Appointment Slots</button>
-        <button class="btn clients-subtab on" id="cst-inperson" onclick="showClientsTab('inperson')">In-Person Clients</button>
-        <button class="btn clients-subtab"    id="cst-profiles" onclick="showClientsTab('profiles')">Client Profiles</button>
-      </div>
-      <div id="clients-slots-panel" style="display:none">
-      <div class="csumrow">
-        <div class="csum"><strong id="cs-tot">0</strong>Total</div>
-        <div class="csum"><strong id="cs-inv">0</strong>Invoiced</div>
-        <div class="csum"><strong id="cs-vou">0</strong>Vouchers</div>
-        <div class="csum"><strong id="cs-pen">0</strong>Pending</div>
-      </div>
-      <div class="cwrap">
-        <table class="ctable">
-          <thead><tr>
-            <th style="width:24px"></th>
-            <th style="width:24px">#</th>
-            <th style="min-width:110px">Name</th>
-            <th style="min-width:110px">Day</th>
-            <th style="min-width:120px">Date</th>
-            <th style="min-width:150px">Appt Type</th>
-            <th style="min-width:110px">Contrast</th>
-            <th style="min-width:200px">Other Attendees</th>
-            <th style="min-width:100px">Invoice</th>
-            <th style="min-width:110px">Notes</th>
-            <th style="width:36px"></th>
-          </tr></thead>
-          <tbody id="ctbody"></tbody>
-        </table>
-      </div>
-
-      <!-- ── CLIENT CONTRAST ANALYSER ── -->
-      <div style="margin-top:32px">
-        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px">Contrast Analyser</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-          <div class="card">
-            <div class="ch">
-              <div class="ct">Contrast</div>
-              <div style="font-size:11px;color:var(--muted)">Drag each tag over the matching feature.</div>
-              <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-                <label style="display:inline-flex;align-items:center;gap:6px;background:var(--deep);color:#fff;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;letter-spacing:.3px">
-                  <span>&#128247;</span> Upload Photo
-                  <input type="file" accept="image/*" id="cct-photo-input" style="display:none" onchange="cctLoadPhoto(event)">
-                </label>
-                <button onclick="cctClearPhoto()" style="background:none;border:1px solid var(--sand);color:var(--muted);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer">Clear</button>
-              </div>
-            </div>
-            <div class="cb">
-              <div id="client-contrast-preview" style="position:relative;width:100%;padding-top:115%;border-radius:8px;overflow:hidden;background:var(--sand)"></div>
-            </div>
-          </div>
-          <div>
-            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Feature Values</div>
-            <div id="client-contrast-controls"></div>
-            <div style="background:var(--warm);border-radius:10px;padding:10px 14px;border:1px solid var(--sand)">
-              <div style="font-size:11px;font-weight:600;color:var(--deep);margin-bottom:6px">Contrast Range</div>
-              <div id="client-contrast-result" style="font-size:12px;color:var(--brown);line-height:1.5"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </div><!-- /clients-slots-panel -->
-      <div id="clients-inperson-panel"></div>
-      <div id="clients-profiles-panel" style="display:none"></div>
-  </div>
+      <!-- Online Colour Analysis clients (admin only). Built by app-admin-clients.js -->
+      <div id="admin-clients-root"></div>
+    </div>
 
     <!-- CRM PROFILE OVERLAY + SLIDE-IN PANEL -->
     <div id="crm-overlay" onclick="closeCRMProfile()" style="display:none;position:fixed;inset:0;background:rgba(28,23,18,.45);z-index:800"></div>
@@ -1785,8 +1715,9 @@
 <script src="app-oca.js?v=3"></script>
 <script src="app-mediapipe.js"></script>
 <script src="app-oca-submissions.js"></script>
-<script src="ysz-private-media.js"></script>
-<script src="app-notifications.js"></script>
+<script src="app-admin-clients.js"></script>
+<script src="ysz-private-media.js?v=2"></script>
+<script src="app-notifications.js?v=2"></script>
 <script src="app-vouchers.js"></script>
 <script src="app-vietnam.js?v=4"></script>
 <script src="vendor/leaflet/leaflet.js"></script>
@@ -1798,12 +1729,12 @@
 <script src="app-brands.js"></script>
 <script src="app-finances.js?v=3"></script>
 <script src="app-comms.js?v=2"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 <script src="app-plan.js"></script>
 <script src="app-finances-extra.js"></script>
 <script src="app-social.js?v=5"></script>
 <script src="app-season-snapshot.js"></script>
-<script src="app-crm.js"></script>
+<script src="app-crm.js?v=2"></script>
 <script src="app-oca-boards.js"></script>
 <script src="app-oca-report.js?v=26"></script>
 <script>
@@ -2025,12 +1956,10 @@
     </div>
   </div>
 <script src="https://cdn.jsdelivr.net/npm/heic-to@1.4.2/dist/iife/heic-to.js"></script>
-<script src="app-in-person.js?v=2"></script>
 <script src="comms-fix-v39.js"></script>
 <script src="unified-calendar.js"></script>
 <script src="comms-fix-daily.js"></script>
 <script src="comms-fix-hidden.js"></script>
-<script src="client-day-colours.js"></script>
    <!-- ── OWNER TASK MODAL (full edit) ── -->
       <div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(44,36,32,.6);z-index:500;align-items:center;justify-content:center;">
         <div style="background:white;border-radius:16px;padding:32px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative">
