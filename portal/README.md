@@ -113,7 +113,7 @@ change to `portal/api`, and add a check when you change an API.
   access code was visible in the page source). The Shopify webhook will add this.
 - **Approving clients:** done by adding a `colour_clients` row until the admin
   Clients page exists.
-- **Account deletion requests:** to be added to the home page.
+- **Account deletion requests:** handled by email for now (hello@yourszn.com.au).
 
 ## Giving someone tour access
 
