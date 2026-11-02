@@ -88,7 +88,7 @@ section.view>*{min-width:0}
   .top,.tabbar{display:none}
   .side{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:240px;background:#F7F2EB;border-right:1px solid var(--line);padding:28px 16px 22px;padding-left:max(16px,env(safe-area-inset-left,0px));gap:6px;z-index:20}
   .side .logo{height:30px;margin:0 10px 22px}
-  .side .who{margin:0 10px 18px;font-size:12px;color:var(--muted)} .side .who b{display:block;color:var(--ink);font-size:14px;font-weight:600}
+  .side .who{margin:0 0 18px;padding:8px 10px;border:0;border-radius:12px;background:none;text-align:left;font:inherit;font-size:12px;color:var(--muted);cursor:pointer} .side .who:hover{background:var(--soft)} .side .who b{display:block;color:var(--ink);font-size:14px;font-weight:600} .side .who .acclink{display:block;margin-top:2px;font-size:12px;text-decoration:underline;text-underline-offset:3px}
   .navi{display:flex;align-items:center;gap:12px;min-height:46px;border:0;background:none;border-radius:14px;padding:0 14px;font-size:14px;font-weight:600;color:var(--muted2);text-align:left}
   .navi svg{width:19px;height:19px}
   .subnav{display:grid;gap:2px;margin:2px 0 6px 31px;padding-left:12px;border-left:1px solid var(--line)}
@@ -551,7 +551,7 @@ body.signed-out .side,body.signed-out .top,body.signed-out .main,body.signed-out
 
 <aside class="side" aria-label="Dashboard">
   <img class="logo" src="img/yourszn-logo.png" alt="YourSZN">
-  <div class="who">Signed in as <b id="sideName"></b></div>
+  <button class="who" id="whoBtn" type="button" aria-label="Your account">Signed in as <b id="sideName"></b><span class="acclink">Your account</span></button>
   <nav id="sidenav" style="display:grid;gap:4px"></nav>
   <button class="sout first" id="signOut" type="button">Sign out</button>
   <a class="sout" href="index.html">← Back to portal</a>
@@ -559,7 +559,7 @@ body.signed-out .side,body.signed-out .top,body.signed-out .main,body.signed-out
 
 <header class="top">
   <img class="logo" src="img/yourszn-logo.png" alt="YourSZN">
-  <button class="avatar" id="avatarBtn" aria-label="Go to Home"></button>
+  <button class="avatar" id="avatarBtn" aria-label="Your account"></button>
 </header>
 
 <div class="main">
@@ -995,7 +995,8 @@ function closeCamera(){if(camStream){camStream.getTracks().forEach(t=>t.stop());
 
 /* ================= CLOSET VIEW ================= */
 function renderCloset(){
-  const c=store("closet")||{prep:[],keep:0,maybe:0,donate:0,r1:"",r2:"",r3:"",todo:[]};
+  // Fill in anything missing: a new account's saved closet starts as {} from the server.
+  const c=Object.assign({prep:[],keep:0,maybe:0,donate:0,r1:"",r2:"",r3:"",todo:[]},store("closet")||{});
   const save=()=>store("closet",c);
   $("#v-closet").innerHTML=`
   <div class="head"><span class="eyebrow">Closet clean-up</span><h2>Sort your wardrobe</h2><p class="muted">This is about refining, not perfection. You don't have to throw anything away today.</p></div>
@@ -1040,7 +1041,7 @@ function appShowcase(){
 
 /* ================= ACCOUNT ================= */
 function accountHTML(){
-  return `<section class="card stack" id="account"><span class="eyebrow">Your account</span>
+  return `<section class="card stack" id="account">
     <p class="small">Signed in as <b>${esc(CLIENT.email)}</b></p>
     <div class="row">
       <button class="btn ghost" id="accPwBtn">${CLIENT.hasPassword?"Change password":"Create a password"}</button>
@@ -1065,12 +1066,31 @@ function wireAccount(){
   $("#accPwForm").onsubmit=e=>{e.preventDefault();const v=$("#accNewPw").value;if(v.length<8){msg("Please use at least 8 characters.");return}
     const b=$("#accSave");b.disabled=true;b.textContent="Saving…";
     api("colour-dashboard",{action:"set_password",password:v}).then(d=>{try{if(d.portal)localStorage.setItem("szn_portal_session",JSON.stringify(d.portal))}catch(x){}try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(x){}TOKEN=d.token;CLIENT.hasPassword=true;
-      renderHome();wireAccount();setTimeout(()=>{$("#accMsg").textContent="Password saved. Use it with your email next time you sign in.";$("#account").scrollIntoView({block:"center"})},0)})
+      openAccount("Password saved. Use it with your email next time you sign in, here or on the portal.")})
       .catch(err=>{msg(err.message);b.disabled=false;b.textContent="Save password"})};
   $("#accOut").onclick=()=>signOut(false);
   $("#accOutAll").onclick=()=>{$("#accConfirm").hidden=false};
   $("#accOutAllNo").onclick=()=>{$("#accConfirm").hidden=true};
   $("#accOutAllYes").onclick=()=>{api("colour-dashboard",{action:"logout_all"}).catch(()=>{}).then(()=>signOut(true))};
+}
+// Account menu: the avatar (top right on phones) and "Signed in as" (sidebar on desktop).
+function openAccount(note){
+  const host=$("#sheetHost");
+  host.innerHTML=`<div class="sheet-bg" id="sheetBg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Your account">
+    <span class="grab" aria-hidden="true"></span>
+    <div class="row" style="justify-content:space-between"><h2>Your account</h2><button class="x" id="sheetX" aria-label="Close">×</button></div>
+    ${accountHTML()}
+    <details class="card acc mobile-only" open><summary><span class="stack" style="gap:4px"><span class="eyebrow">Keep it on your phone</span><b>Add to your home screen</b></span><span class="plus" aria-hidden="true">+</span></summary>
+    <div class="grid2" style="margin-top:12px"><div class="stack" style="gap:4px"><b class="small">iPhone (Safari)</b><ol class="clean small"><li>Tap the Share button.</li><li>Tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div>
+    <div class="stack" style="gap:4px"><b class="small">Android (Chrome)</b><ol class="clean small"><li>Tap the three dots at the top right.</li><li>Tap <b>Add to Home screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div></div></details>
+  </div></div>`;
+  document.body.style.overflow="hidden";
+  const close=()=>{host.innerHTML="";document.body.style.overflow="";document.removeEventListener("keydown",key)};
+  const key=e=>{if(e.key==="Escape")close()};document.addEventListener("keydown",key);
+  $("#sheetBg").onclick=e=>{if(e.target.id==="sheetBg")close()};$("#sheetX").onclick=close;
+  wireAccount();
+  if(note)$("#accMsg").textContent=note;
+  $("#sheetX").focus();
 }
 /* ================= HOME ================= */
 const SIG=SEASON.sig;
@@ -1124,12 +1144,8 @@ function renderHome(){
   <div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">${SEASON.name} looks</span><a class="small" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">See 400+ in the app</a></div>
     <div class="looks">${SEASON.images.looks.map(n=>`<img src="${SIMG}${n}.webp" alt="Styled ${SEASON.name} look from your guide" loading="lazy">`).join("")}</div></div>
   ${appShowcase()}
-  <details class="card acc mobile-only"><summary><span class="stack" style="gap:4px"><span class="eyebrow">Keep it on your phone</span><b>Add to your home screen</b></span><span class="plus" aria-hidden="true">+</span></summary>
-    <div class="grid2" style="margin-top:12px"><div class="stack" style="gap:4px"><b class="small">iPhone (Safari)</b><ol class="clean small"><li>Tap the Share button.</li><li>Tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div>
-    <div class="stack" style="gap:4px"><b class="small">Android (Chrome)</b><ol class="clean small"><li>Tap the three dots at the top right.</li><li>Tap <b>Add to Home screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div></div></details>
   <div class="row"><a class="btn ghost" href="https://www.instagram.com/yourszn.online" target="_blank" rel="noopener">Follow @yourszn.online</a></div>
-  ${accountHTML()}`;
-  wireAccount();
+  `;
   const nb=$("#nextBtn");if(nb&&nb.dataset.k==="video")nb.onclick=e=>{e.stopPropagation();$("#wvid").scrollIntoView({behavior:"smooth",block:"center"})};
   $("#v-home").querySelectorAll('.steps [data-k="video"]').forEach(b=>b.onclick=e=>{e.stopPropagation();$("#wvid").scrollIntoView({behavior:"smooth",block:"center"})});
 }
@@ -1282,10 +1298,11 @@ function go(k,scroll){
   document.querySelectorAll(".navi,.tab").forEach(b=>b.dataset.k===k?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
   document.querySelectorAll(".subnavi").forEach(b=>b.setAttribute("aria-current","false"));
   document.querySelectorAll(".subnav").forEach(n=>n.hidden=k!==n.dataset.for);
-  RENDER[k]();store("tab",k);
+  try{RENDER[k]()}catch(err){console.error(err);$("#v-"+k).insertAdjacentHTML("beforeend",`<div class="card"><p>Sorry, this section didn't load. Please refresh the page, or email hello@yourszn.com.au if it keeps happening.</p></div>`)}
+  store("tab",k);
   if(scroll)window.scrollTo({top:0,behavior:"instant"in window?"instant":"auto"})}
 document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;go(b.dataset.k,true)});
-$("#avatarBtn").onclick=()=>go("home",true);
+$("#avatarBtn").onclick=()=>openAccount();$("#whoBtn").onclick=()=>openAccount();
 document.addEventListener("click",e=>{const pg=e.target.closest(".pg,.tp-pages");if(pg){openViewer(pg.dataset.pages.split(",").map(Number),+pg.dataset.i);return}});
 function openViewer(pages,i){const rv=$("#rv");rv.hidden=false;document.body.style.overflow="hidden";
   rv.innerHTML=`<div class="rv-top"><span class="rv-count" id="rvCount"></span><button class="rv-close" id="rvX" aria-label="Close">×</button></div><div class="rv-track" id="rvTrack">${pages.map(n=>`<div class="rv-slide"><img data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page"></div>`).join("")}</div><button class="rv-arrow l" aria-label="Previous page">‹</button><button class="rv-arrow r" aria-label="Next page">›</button>`;

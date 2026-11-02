@@ -25,7 +25,7 @@ On this page's own sign-in:
 - **Forgot password:** emailed code, then choose a new password. This signs out their other devices.
 - Wrong passwords: locked for 15 minutes after 10 tries (a correct email code also unlocks).
 - Passwords are stored as scrypt hashes in `client_accounts.password_hash`, never as plain text. (`colour_clients.password_*` columns are no longer used.)
-- Sessions last 30 days per device. "Sign out of all devices" (Your account card at the bottom of Home) and any password change sign out every other device, on the front page and here (`sessions_valid_after` in both `client_accounts` and `colour_clients`).
+- Sessions last 30 days per device. "Sign out of all devices" (account menu) and any password change sign out every other device, on the front page and here (`sessions_valid_after` in both `client_accounts` and `colour_clients`).
 - Clients coming from the portal home are signed in automatically (see `README.md`).
 - `/api/colour-dashboard` checks the session on every request.
 
@@ -61,7 +61,8 @@ To be shown on the new design, a season file needs at least: `name`, `plural`, `
 Optional wording: `swapText` (neutral swaps intro), `swapQuiz` and `swapWhy` (Neutral swaps quiz).
 
 ## Layout
-- **Home:** welcome, next steps, app showcase, account card.
+- **Home:** welcome, next steps, looks, app showcase (`img/app-demo.mp4`, trimmed 2 Nov so it never stops on unloaded product photos).
+- **Account menu:** the avatar (top right on phones) or "Signed in as" (sidebar on desktop) opens Your account (password, sign out, sign out everywhere) and Add to your home screen.
 - **Palette:** My colours · Season profile (temperature/value/chroma/contrast, metals, sister seasons) · Combos.
 - **Try On:** photo and colour picker side by side on desktop, stacked on phones.
 - **Makeup**, **Wardrobe** (Latisha's picks · My wardrobe), **Learn** (Guide · Quizzes).
