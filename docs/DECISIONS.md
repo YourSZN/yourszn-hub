@@ -2,6 +2,22 @@
 
 Newest first. Each entry: what we chose, why, and what we rejected.
 
+## 2026-11-02: One password for the whole client site; dashboard rearranged
+
+- **Chose:** one optional password per client email (`client_accounts`), used by the portal
+  front page and the colour dashboard. After a code sign-in on the front page, clients without
+  a password are asked to create one ("Skip for now"). "Forgot password?" = code sign-in, then
+  choose a new one.
+- **Why:** clients sign in on the front page, which only had codes; a dashboard-only password
+  would never save them the email. This is also the first piece of the planned single client
+  account table.
+- **Security:** scrypt hashes, 10 wrong tries locks for 15 minutes (a correct code unlocks),
+  a password change signs out every other device on both pages, the table is service-role only.
+- **Dashboard (Latisha's review):** Season profile and Combos moved into Palette as subtabs;
+  Learn is Guide + Quizzes; colour of the week removed (nothing to update weekly); Try On has
+  photo and colours side by side on desktop; One colour fixed before a photo is added;
+  quiz and wardrobe wording no longer borrows Light Summer's ("soft", "light colouring").
+
 ## 2026-11-02: Clean-up pass
 
 - **Chose:** delete only what nothing loads, traced file by file (scripts in `index.html`,

@@ -11,7 +11,8 @@
 // <season-slug>/pNNN.webp. Clients only ever get short-lived signed links, and
 // only for their own season.
 
-const { cors, sb, readToken, clientIp, hashPassword, passwordProblem, sessionStillValid, newSession } = require('./_colour');
+const { cors, sb, readToken, clientIp, sessionStillValid, newSession } = require('./_colour');
+const { hasPassword, setPassword, signOutEverywhere } = require('./_accounts');
 const SESSION_DAYS = 30;
 
 const PAGE_LINK_SECONDS = 15 * 60;
@@ -49,7 +50,7 @@ module.exports = async function handler(req, res) {
   if (!session) return res.status(401).json({ error: 'Please sign in again.', signin: true });
 
   try {
-    const rows = await sb('/rest/v1/colour_clients?id=eq.' + session.cid + '&active=eq.true&select=id,name,email,season,tier,analysis,password_hash,sessions_valid_after&limit=1');
+    const rows = await sb('/rest/v1/colour_clients?id=eq.' + session.cid + '&active=eq.true&select=id,name,email,season,tier,analysis,sessions_valid_after&limit=1');
     const client = rows[0];
     if (!client || !sessionStillValid(session, client)) return res.status(401).json({ error: 'Please sign in again.', signin: true });
     const { action, state } = req.body || {};
@@ -65,7 +66,7 @@ module.exports = async function handler(req, res) {
       });
       return res.status(200).json({
         ok: true,
-        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {}, hasPassword: !!client.password_hash },
+        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {}, hasPassword: await hasPassword(client.email) },
         state: saved[0] || {},
         pages,
         pagesExpireIn: PAGE_LINK_SECONDS,
@@ -89,22 +90,19 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'set_password') {
-      const password = String((req.body || {}).password || '');
-      const problem = passwordProblem(password);
+      const had = await hasPassword(client.email);
+      const problem = await setPassword(client.email, String((req.body || {}).password || ''));
       if (problem) return res.status(400).json({ error: problem });
-      const now = new Date().toISOString();
-      await sb('/rest/v1/colour_clients?id=eq.' + client.id, {
-        method: 'PATCH',
-        body: { password_hash: hashPassword(password), password_set_at: now, failed_logins: 0, locked_until: null, sessions_valid_after: now },
-      });
-      await sb('/rest/v1/colour_access_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: { client_id: client.id, event: client.password_hash ? 'password-changed' : 'password-set', ip: clientIp(req) } });
-      // Every other device is now signed out; give this device a fresh session.
+      await sb('/rest/v1/colour_access_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: { client_id: client.id, event: had ? 'password-changed' : 'password-set', ip: clientIp(req) } });
+      // Every other device is now signed out; keep this device signed in to the
+      // dashboard and to the portal front page (same password covers both).
       const fresh = newSession(client.id, SESSION_DAYS);
-      return res.status(200).json(Object.assign({ ok: true }, fresh));
+      const portal = newSession(client.email, SESSION_DAYS, 'portal', { name: client.name });
+      return res.status(200).json(Object.assign({ ok: true, portal }, fresh));
     }
 
     if (action === 'logout_all') {
-      await sb('/rest/v1/colour_clients?id=eq.' + client.id, { method: 'PATCH', body: { sessions_valid_after: new Date().toISOString() } });
+      await signOutEverywhere(client.email);
       await sb('/rest/v1/colour_access_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: { client_id: client.id, event: 'logout-all', ip: clientIp(req) } });
       return res.status(200).json({ ok: true });
     }

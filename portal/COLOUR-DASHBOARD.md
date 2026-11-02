@@ -14,12 +14,18 @@ When a season's content is written for the new design, add `topics` (and the res
 and its clients move over automatically. The classic page can be deleted once no season needs it.
 
 ## How sign-in works
+Clients normally sign in on the portal front page and come here from their home page.
+**One password covers the whole client site** (front page and this dashboard), stored once
+per email in `client_accounts` (`api/_accounts.js`). The front page asks for it after a code
+sign-in ("Skip for now" allowed); it can also be set here.
+
+On this page's own sign-in:
 - **First time:** client taps "Email me a code instead", gets a 6-digit code by email (Resend; 10 minutes, max 5 codes an hour, 5 tries per code), then is asked to create a password (optional, "Skip for now").
 - **After that:** email + password. No email is sent.
 - **Forgot password:** emailed code, then choose a new password. This signs out their other devices.
 - Wrong passwords: locked for 15 minutes after 10 tries (a correct email code also unlocks).
-- Passwords are stored as scrypt hashes in `colour_clients.password_hash`, never as plain text.
-- Sessions last 30 days per device. "Sign out of all devices" (Your account card at the bottom of Home) and any password change sign out every other device (`sessions_valid_after`).
+- Passwords are stored as scrypt hashes in `client_accounts.password_hash`, never as plain text. (`colour_clients.password_*` columns are no longer used.)
+- Sessions last 30 days per device. "Sign out of all devices" (Your account card at the bottom of Home) and any password change sign out every other device, on the front page and here (`sessions_valid_after` in both `client_accounts` and `colour_clients`).
 - Clients coming from the portal home are signed in automatically (see `README.md`).
 - `/api/colour-dashboard` checks the session on every request.
 
@@ -52,6 +58,13 @@ To be shown on the new design, a season file needs at least: `name`, `plural`, `
 `hero`, `sig`, `families`, `palette`, `names`, `avoidGeneral`, `swaps`, `combos`, `neighbours`,
 `sisters`, `metals`, `scales`, `guidePages`, `fanPages`, `topics`, `images`, `trySlots`.
 `makeup`, `makeupLooks` and `shopPicks` are optional (the sections hide without them).
+Optional wording: `swapText` (neutral swaps intro), `swapQuiz` and `swapWhy` (Neutral swaps quiz).
+
+## Layout
+- **Home:** welcome, next steps, app showcase, account card.
+- **Palette:** My colours · Season profile (temperature/value/chroma/contrast, metals, sister seasons) · Combos.
+- **Try On:** photo and colour picker side by side on desktop, stacked on phones.
+- **Makeup**, **Wardrobe** (Latisha's picks · My wardrobe), **Learn** (Guide · Quizzes).
 `seasons/true-spring.js` is the complete example to copy.
 
 ## Spotting shared logins

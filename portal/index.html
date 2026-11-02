@@ -88,7 +88,8 @@
 <script>
 /* ══════════════════════════════════════════════════════════════
    Client portal — clients.yourszn.com.au
-   1. Sign in: name + email → 6-digit code (/api/client-auth).
+   1. Sign in: name + email → 6-digit code, or email + password (/api/client-auth).
+      After a code sign-in, clients without a password are asked to create one (they can skip).
    2. Home: /api/client-home returns this client's analysis status, tour booking
       and colour dashboard. Opening the tour or dashboard asks the server for that
       dashboard's own session, so the client doesn't sign in twice.
@@ -110,6 +111,8 @@ var MAX_PHOTO_MB = 15;
 var KEYS = { portal: 'szn_portal_session', tour: 'vt_session', colour: 'szn_colour_token' };
 
 var signInName = '', signInEmail = '', home = null;
+var usePassword = false;   /* front page: sign in with a password instead of a code */
+var resetting = false;     /* signed in with a code after "Forgot password?" */
 var app = document.getElementById('app');
 
 /* ── helpers ── */
@@ -167,16 +170,78 @@ function showEmailStep(message) {
     + '<div style="display:grid;gap:8px"><span class="eyebrow">Client portal</span><h1>Welcome to YourSZN</h1>'
     + '<p class="muted">Sign in to start your colour analysis, see your results or open your tour.</p></div>'
     + '<form class="card" id="f-email" novalidate>'
-    + '<div class="field"><label for="in-name">Full name</label><input id="in-name" autocomplete="name" maxlength="120" value="' + esc(signInName) + '" required></div>'
+    + (usePassword ? '' : '<div class="field"><label for="in-name">Full name</label><input id="in-name" autocomplete="name" maxlength="120" value="' + esc(signInName) + '" required></div>')
     + '<div class="field"><label for="in-email">Email</label><input id="in-email" type="email" autocomplete="email" maxlength="200" value="' + esc(signInEmail) + '" required>'
-    + '<span class="hint">Use the email you booked with.</span></div>'
+    + (usePassword ? '' : '<span class="hint">Use the email you booked with.</span>') + '</div>'
+    + (usePassword ? '<div class="field"><label for="in-pw">Password</label><input id="in-pw" type="password" autocomplete="current-password" maxlength="200" required></div>' : '')
     + '<p class="msg" id="m-email" role="alert" hidden></p>'
-    + '<button class="btn" id="b-email" type="submit">Email me a code</button>'
-    + '</form>'
-    + '<p class="hint" style="text-align:center">You’ll get a 6-digit code by email. No password needed.</p>';
+    + '<button class="btn" id="b-email" type="submit">' + (usePassword ? 'Sign in' : 'Email me a code') + '</button>'
+    + '<div class="links">'
+    + (usePassword
+        ? '<button type="button" class="linkbtn" id="l-forgot">Forgot password?</button><button type="button" class="linkbtn" id="l-mode">Email me a code instead</button>'
+        : '<button type="button" class="linkbtn" id="l-mode">Sign in with my password</button>')
+    + '</div></form>'
+    + (usePassword ? '' : '<p class="hint" style="text-align:center">You’ll get a 6-digit code by email.</p>');
   if (message) setMsg('m-email', message);
-  document.getElementById('f-email').onsubmit = function(e) { e.preventDefault(); sendCode(false); };
-  document.getElementById(signInName ? 'in-email' : 'in-name').focus();
+  document.getElementById('f-email').onsubmit = function(e) { e.preventDefault(); usePassword ? passwordSignIn() : sendCode(false); };
+  document.getElementById('l-mode').onclick = function() { keepTyped(); usePassword = !usePassword; showEmailStep(); };
+  var fg = document.getElementById('l-forgot');
+  if (fg) fg.onclick = function() { keepTyped(); usePassword = false; resetting = true; showEmailStep('Enter your name and email and we’ll send a code. You can choose a new password after.'); };
+  document.getElementById(usePassword ? (signInEmail ? 'in-pw' : 'in-email') : (signInName ? 'in-email' : 'in-name')).focus();
+}
+
+/* Keep what's been typed when switching between code and password sign-in. */
+function keepTyped() {
+  var n = document.getElementById('in-name'), e = document.getElementById('in-email');
+  if (n) signInName = n.value.trim();
+  if (e) signInEmail = e.value.trim().toLowerCase();
+}
+
+function passwordSignIn() {
+  keepTyped();
+  var pw = document.getElementById('in-pw').value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signInEmail)) { setMsg('m-email', 'Please enter a valid email address.'); return; }
+  if (!pw) { setMsg('m-email', 'Please enter your password.'); return; }
+  var btn = document.getElementById('b-email');
+  busy(btn, true);
+  api('client-auth', { action: 'login', email: signInEmail, password: pw }).then(function(d) {
+    if (!d.ok) { busy(btn, false, 'Sign in'); setMsg('m-email', d.error || 'Something went wrong. Please try again.'); return; }
+    saveSession(KEYS.portal, d);
+    loadHome();
+  }).catch(function() { busy(btn, false, 'Sign in'); setMsg('m-email', 'Something went wrong. Please try again.'); });
+}
+
+/* After a code sign-in: offer to create a password (or choose a new one after "Forgot password?"). */
+function showPasswordStep() {
+  var reset = resetting;
+  app.innerHTML = heroHTML()
+    + '<div style="display:grid;gap:8px"><span class="eyebrow">' + (reset ? 'Forgot password' : 'Make it quicker next time') + '</span>'
+    + '<h1>' + (reset ? 'Choose a new password' : 'Create a password') + '</h1>'
+    + '<p class="muted">' + (reset
+        ? 'Choose a new password. Any other phones or computers you’re signed in on will be signed out.'
+        : 'Next time, sign in with your email and password instead of waiting for a code. It also works on your Colour Dashboard.') + '</p></div>'
+    + '<form class="card" id="f-pw" novalidate>'
+    + '<div class="field"><label for="in-newpw">' + (reset ? 'New password' : 'Password') + '</label>'
+    + '<input id="in-newpw" type="password" autocomplete="new-password" minlength="8" maxlength="200" required>'
+    + '<span class="hint">At least 8 characters.</span></div>'
+    + '<p class="msg" id="m-pw" role="alert" hidden></p>'
+    + '<button class="btn" id="b-pw" type="submit">Save password</button>'
+    + '<div class="links"><button type="button" class="linkbtn" id="l-skip">' + (reset ? 'Not now' : 'Skip for now') + '</button></div>'
+    + '</form>';
+  document.getElementById('f-pw').onsubmit = function(e) {
+    e.preventDefault();
+    var v = document.getElementById('in-newpw').value, btn = document.getElementById('b-pw');
+    if (v.length < 8) { setMsg('m-pw', 'Please use at least 8 characters.'); return; }
+    busy(btn, true);
+    api('client-auth', { action: 'set_password', password: v }, true).then(function(d) {
+      if (!d.ok) { busy(btn, false, 'Save password'); setMsg('m-pw', d.error || 'Something went wrong. Please try again.'); return; }
+      saveSession(KEYS.portal, d);
+      resetting = false;
+      loadHome();
+    }).catch(function() { busy(btn, false, 'Save password'); setMsg('m-pw', 'Something went wrong. Please try again.'); });
+  };
+  document.getElementById('l-skip').onclick = function() { resetting = false; loadHome(); };
+  document.getElementById('in-newpw').focus();
 }
 
 function sendCode(resend) {
@@ -224,7 +289,7 @@ function verifyCode() {
   api('client-auth', { action: 'verify', email: signInEmail, code: code, name: signInName }).then(function(d) {
     if (!d.ok) { busy(btn, false, 'Sign in'); setMsg('m-code', d.error || 'Something went wrong. Please try again.'); return; }
     saveSession(KEYS.portal, d);
-    loadHome();
+    if (!d.hasPassword || resetting) showPasswordStep(); else loadHome();
   }).catch(function() { busy(btn, false, 'Sign in'); setMsg('m-code', 'Something went wrong. Please try again.'); });
 }
 

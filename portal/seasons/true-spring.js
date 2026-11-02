@@ -52,6 +52,10 @@ window.SZN_SEASONS["true-spring"] = {
     if(!r.length)r.push("too cool and icy next to your warm, clear palette");
     return r.slice(0,2).join(", and ")},
   swaps:[["#000000","#5c462c","Black","Chocolate brown"],["#ffffff","#f8ecd5","Bright white","Warm cream"],["#003058","#264c71","Dark navy","Warm navy"],["#9b838d","#777769","Mauve grey","Olive grey"],["#91887f","#695142","Taupe grey","Warm brown"],["#e7e2e1","#bcbeaf","Cool white","Warm stone"]],
+  // Wording for the neutral swaps (Palette > My colours, and the Neutral swaps quiz)
+  swapText:"Swap stark black, bright white and cool greys for warm, golden neutrals.",
+  swapQuiz:"Swap everyday neutrals for the warm, clear versions that suit you.",
+  swapWhy:"without draining your warm, bright colouring",
   pairNeutral:"#e6d4b3", pairAccent:"#34cc99",
   combos:{"Complementary": [[["#f76c5e", "#64d2e3"], "Warm Coral + Aqua Blue"], [["#ffd447", "#d6aedd"], "Golden Yellow + Soft Lavender"], [["#7bb661", "#f9b8a7"], "Grass Green + Soft Peach"], [["#2bc5a0", "#ed574a"], "Turquoise + Poppy Red"], [["#f8b195", "#8ccbeb"], "Apricot + Sky Blue"], [["#f8983a", "#a6a9e2"], "Tangerine + Periwinkle"]], "Analogous": [[["#ff8334", "#f9b8a7"], "Orange + Peach"], [["#ffd447", "#f8983a"], "Golden Yellow + Warm Orange"], [["#7bb661", "#eaef8d"], "Fresh Green + Yellow-Green"], [["#ff390e", "#ff8334", "#f76c5e"], "Sunset Red + Orange + Salmon"], [["#cb6bc1", "#ff390e", "#ff8334"], "Violet + Sunset Red + Orange"], [["#f8983a", "#ffd447", "#d2f15f"], "Tangerine + Goldenrod + Fresh Lime"]], "Monochromatic": [[["#f9b8a7", "#f76c5e"], "Soft Peach + Coral"], [["#ffe08a", "#ffd447"], "Pale Gold + Golden Yellow"], [["#c8f1f6", "#64d2e3"], "Pale Aqua + Turquoise"], [["#fcd5bd", "#f8b195", "#f2845c"], "Light Apricot + Orange Coral + Deep Apricot"], [["#e3f9a6", "#d2f15e", "#7bb661"], "Pale Lime + Fresh Lime + Grass Green"], [["#ffd6dc", "#fdae9b", "#ff8196"], "Blush + Salmon + Bright Pink"]]},
   comboIntro:"Every season uses the same combinations. What changes is how they look. For a True Spring, combos are warm, clear and lively, with medium to high contrast.",

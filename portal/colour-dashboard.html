@@ -194,8 +194,6 @@ details.more-pages[open] .chev{transform:rotate(45deg)}
 .nudge .sw2{flex:0 0 34px;height:34px;border-radius:50%}
 .nudge b{font-weight:600}.nudge .go{margin-left:auto;font-weight:700;color:var(--blue-deep);white-space:nowrap}
 .linkbtn2{border:0;background:none;padding:0;font-size:13px;font-weight:700;color:var(--ink);text-decoration:underline;min-height:32px}
-.cotw{display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:center}
-.cotw .big{width:96px;height:96px;border-radius:22px}
 .spgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media (min-width:700px){.spgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .sp{display:grid;grid-template-rows:auto 1fr auto;gap:4px;min-height:132px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--soft);text-decoration:none;color:var(--ink);transition:transform .15s,border-color .15s}
@@ -341,6 +339,8 @@ section[id],.card[id]{scroll-margin-top:72px}
 .drape .half.l[aria-pressed="true"]{border-radius:20px 0 0 20px}.drape .half.r[aria-pressed="true"]{border-radius:0 20px 20px 0}
 .drape .half.r .tag{left:auto;right:10px}
 .picker{display:grid;gap:12px}
+.tryon-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+@media (min-width:1000px){.tryon-grid{grid-template-columns:minmax(0,470px) minmax(0,1fr)}.tryon-grid .picker{position:sticky;top:20px;max-height:calc(100vh - 40px);overflow-y:auto}}
 .picker .sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:8px}
 .sw{aspect-ratio:1;border-radius:50%;border:0;padding:0;position:relative;max-width:100%;box-shadow:inset 0 0 0 1px rgba(28,23,18,.08)}
 .sw[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:2px}
@@ -565,15 +565,22 @@ body.signed-out .side,body.signed-out .top,body.signed-out .main,body.signed-out
 <div class="main">
  <div class="inner">
   <section class="view" id="v-home"></section>
-  <section class="view" id="v-palette" hidden></section>
+  <section class="view" id="v-palette" hidden>
+    <div class="head"><span class="eyebrow">Palette</span><h1>Your palette</h1></div>
+    <div class="seg" role="group" aria-label="Palette sections">
+      <button data-psub="colours">My colours</button><button data-psub="profile">Season profile</button><button data-psub="combos">Combos</button>
+    </div>
+    <div id="v-colours" class="stack" style="gap:18px"></div>
+    <div id="v-profile" class="stack" style="gap:18px" hidden></div>
+    <div id="v-combos" class="stack" style="gap:18px" hidden></div>
+  </section>
   <section class="view" id="v-tryon" hidden></section>
   <section class="view" id="v-learn" hidden>
     <div class="head"><span class="eyebrow">Learn</span><h1>Learn your season</h1></div>
-    <div class="seg" role="group" aria-label="Learn sections">
-      <button data-sub="guide">Guide</button><button data-sub="combos">Combos</button><button data-sub="practise">Quizzes</button>
+    <div class="seg seg2" role="group" aria-label="Learn sections">
+      <button data-sub="guide">Guide</button><button data-sub="practise">Quizzes</button>
     </div>
     <div id="v-guide" class="stack" style="gap:18px"></div>
-    <div id="v-combos" class="stack" style="gap:18px" hidden></div>
     <div id="v-practise" class="stack" style="gap:18px" hidden></div>
   </section>
   <section class="view" id="v-makeup" hidden></section>
@@ -668,7 +675,7 @@ function boot(){
       }).catch(function(e){err.textContent=e.message;busy(b2,false,"Continue")});return}
     if(stage==="setPw"){if(np.value.length<8){err.textContent="Please use at least 8 characters.";np.focus();return}
       var b3=$i("savePwBtn");busy(b3,true,"Saving…");
-      api("colour-dashboard",{action:"set_password",password:np.value}).then(function(d){keep(d.token,d.expires);location.reload()})
+      api("colour-dashboard",{action:"set_password",password:np.value}).then(function(d){try{if(d.portal)localStorage.setItem("szn_portal_session",JSON.stringify(d.portal))}catch(x){}keep(d.token,d.expires);location.reload()})
         .catch(function(e){err.textContent=e.message;busy(b3,false,"Save password")})}
   });
   cd.addEventListener("input",function(){cd.value=cd.value.replace(/\D/g,"").slice(0,6);if(cd.value.length===6)f.requestSubmit()});
@@ -785,7 +792,7 @@ const QUIZZES={
   mine:{t:"Is this my colour?",d:"Decide if each colour belongs in your palette. Just like standing in a shop.",build(){
     const yes=pick(SEASON.palette.filter(c=>hsl(c).l>.3),4).map(c=>({c,ok:true}));
     const allAvoid=[...SEASON.avoidGeneral,...Object.values(SEASON.families).flatMap(f=>f.avoid)];
-    const no=pick(allAvoid,4).map(c=>({c,ok:false}));
+    const no=pick(allAvoid.filter(c=>!inPalette.has(c)),4).map(c=>({c,ok:false}));
     return shuffle([...yes,...no]).map(x=>({prompt:`Is this a ${SEASON.name} colour?`,visual:`<span class="big" style="background:${x.c}"></span>`,opts:["Yes, it's mine","No, skip it"],ans:x.ok?0:1,
       why:x.ok?`That's ${nm(x.c)}, one of your palette colours.`:`That's ${nm(x.c)}. It's ${whyNot(x.c)}.`}))}},
   spot:{t:"Spot your shade",d:"Three similar colours, only one is yours. Train your eye for the shades that suit you.",build(){
@@ -793,17 +800,18 @@ const QUIZZES={
       const f=SEASON.families[k];const pal=SEASON.palette.filter(c=>familyOf(c)===k&&hsl(c).l>.35);
       const right=pick(pal,1)[0];const wrong=pick(f.avoid,2);const opts=shuffle([right,...wrong]);
       return{prompt:`Which ${f.noun} is yours?`,swatches:true,opts,ans:opts.indexOf(right),
-        why:`Yours is ${nm(right)}. The others are ${wrong.map(whyNot).filter((v,i,a)=>a.indexOf(v)===i).join(", or ")}.`}})}},
-  swaps:{t:"Neutral swaps",d:"Swap everyday neutrals for the soft versions that suit you.",build(){
+        why:`Yours is ${nm(right)}. The others are ${wrong.map(x=>whyNot(x).split(", and ")[0]).filter((v,i,a)=>a.indexOf(v)===i).join(", or ")}.`}})}},
+  swaps:{t:"Neutral swaps",d:SEASON.swapQuiz||"Swap everyday neutrals for the versions that suit you.",build(){
     return shuffle(SEASON.swaps).map(s=>{const others=pick(SEASON.swaps.filter(x=>x!==s).map(x=>x[0]),1);const opts=shuffle([s[1],s[0],...others]);
-      return{prompt:`You'd usually reach for ${s[2].toLowerCase()}. Which is your swap?`,swatches:true,opts,ans:opts.indexOf(s[1]),why:`${s[3]} gives the same job as ${s[2].toLowerCase()} without overpowering your light colouring.`}})}},
+      return{prompt:`You'd usually reach for ${s[2].toLowerCase()}. Which is your swap?`,swatches:true,opts,ans:opts.indexOf(s[1]),why:`${s[3]} does the same job as ${s[2].toLowerCase()}${SEASON.swapWhy?" "+SEASON.swapWhy:" and sits in your palette"}.`}})}},
   combo:{t:"Combo check",d:`Pick the pairing that works for a ${SEASON.name}.`,build(){
     const all=Object.entries(SEASON.combos).flatMap(([t,l])=>l.map(x=>[...x,t]));
     const avoid=[...SEASON.avoidGeneral];
     return pick(all,5).map(([cs,name,type])=>{
       const fakes=[0,1].map(()=>[pick(avoid,1)[0],pick(SEASON.palette.filter(c=>hsl(c).l>.5),1)[0]]);
       const opts=shuffle([cs,...fakes]);
-      return{prompt:`Which pairing is a ${SEASON.name} combo?`,combos:true,opts,ans:opts.indexOf(cs),why:`${name} is a ${type.toLowerCase()} combo from your guide. The others mix in a colour that's too warm, dark or bright for you.`}})}},
+      const odd=[...new Set(fakes.map(f=>f[0]))];
+      return{prompt:`Which pairing is a ${SEASON.name} combo?`,combos:true,opts,ans:opts.indexOf(cs),why:`${name} is ${/^[aeiou]/i.test(type)?"an":"a"} ${type.toLowerCase()} combo from your guide. The others include ${odd.map(nm).join(" and ")}, which ${odd.length>1?"aren't":"isn't"} in your palette: ${whyNot(odd[0])}.`}})}},
   basics:{t:"Season smarts",d:"Can you explain your season to a friend? Test the key ideas.",build(){
     return shuffle(SEASON.basics).map(([p,o,a,w])=>{const opts=shuffle(o);return{prompt:p,opts,ans:opts.indexOf(o[a]),why:w}})}}
 };
@@ -863,6 +871,7 @@ function renderTryOn(){
   $("#v-tryon").innerHTML=`
   <div class="head"><span class="eyebrow">Try on</span><h1>See your colours on you</h1>
   <p class="muted">Add a selfie and we'll remove the background so you can see each colour next to your face, like a draping session. Your photo stays on your device and is never uploaded.</p></div>
+  <div class="tryon-grid">
   <div class="card stack">
     <div class="row">
       <label class="btn filebtn mobile-only">Take a selfie<input type="file" id="selfieCam" accept="image/*" capture="user" aria-label="Take a selfie"></label>
@@ -871,8 +880,8 @@ function renderTryOn(){
     </div>
     ${T.cut?`<label class="check" for="savePic"><input type="checkbox" id="savePic" ${T.saved?"checked":""}><span><b>Save my photo for next time</b><br><span class="small muted">If you choose to save it, it's saved on this device only, in this browser. It isn't uploaded to YourSZN or anywhere else. Untick this box to delete it.</span></span></label>`:""}
     <p class="status-line" id="tStatus">${esc(T.msg||"Best results: face a window in natural daylight, no filter, hair off your face, shoulders in frame.")}</p>
-    <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?`<span class="ex">Removing your background…</span>`:`<span class="ph-card"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><b>Your face goes here</b><span>Add a selfie and we'll place it between your colours, like a draping session.</span></span>`}</span>`}
-      ${T.mode===2?[0,1].map(i=>`<button class="half ${i?"r":"l"}" data-slot="${i}" aria-pressed="${T.active===i}" aria-label="${i?"Right":"Left"} side: ${nm(T.slots[i])}. Tap to change this side"><span class="tag">${nm(T.slots[i])}</span></button>`).join(""):`<span class="tag">${nm(T.slots[0])}</span>${T.cut?"":`<span class="tag" style="left:auto;right:10px">${nm(T.slots[1])}</span>`}`}</div></div>
+    <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?`<span class="ex">Removing your background…</span>`:`<span class="ph-card"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><b>Your face goes here</b><span>Add a selfie and we'll place your colours around your face, like a draping session.</span></span>`}</span>`}
+      ${T.mode===2?[0,1].map(i=>`<button class="half ${i?"r":"l"}" data-slot="${i}" aria-pressed="${T.active===i}" aria-label="${i?"Right":"Left"} side: ${nm(T.slots[i])}. Tap to change this side"><span class="tag">${nm(T.slots[i])}</span></button>`).join(""):`<span class="tag">${nm(T.slots[0])}</span>`}</div></div>
     ${T.mode===2?`<p class="small muted">Tap the left or right side of your photo to choose which side changes, then tap a colour below.</p>`:""}
     ${T.cut?`<a class="nudge" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener"><span class="sw2" style="background:${T.slots[T.active]}"></span><span>Love <b>${nm(T.slots[T.active])}</b> on you? See it styled in real outfits.</span><span class="go">In the app →</span></a>`:""}
   </div>
@@ -881,6 +890,7 @@ function renderTryOn(){
     ${favs().length?`<span class="eyebrow">My favourites</span><div class="sw-grid">${favs().map(c=>`<button class="sw" style="background:${c}" data-c="${c}" aria-label="${nm(c)}" title="${nm(c)}" aria-pressed="${T.slots[T.active]===c}"></button>`).join("")}</div><span class="eyebrow">Full palette</span>`:""}
     <div class="sw-grid">${SEASON.palette.map(c=>`<button class="sw" style="background:${c}" data-c="${c}" aria-label="${nm(c)}" title="${nm(c)}" aria-pressed="${T.slots[T.active]===c}"></button>`).join("")}</div>
     ${T.avoid?`<span class="eyebrow">Not in your palette</span><div class="sw-grid">${allAvoid.map(c=>`<button class="sw avoid" style="background:${c}" data-c="${c}" aria-label="${nm(c)}, not in your palette" title="${nm(c)}" aria-pressed="${T.slots[T.active]===c}"></button>`).join("")}</div>`:""}
+  </div>
   </div>
   <div class="card stack desktop-only"><h3>Colour camera</h3><p class="small muted">On your phone, the colour camera puts your whole palette over your camera view, so you can hold it up to clothes while you shop. Open this dashboard on your phone to use it.</p></div>
   <div class="card stack mobile-only"><h3>Colour camera</h3><p class="small muted">Hold your palette up to clothes while you shop. Your colours sit over your camera view.</p><div class="row"><button class="btn" id="camBtn">Open colour camera</button></div></div>`;
@@ -911,7 +921,7 @@ function drawExample(ctx,W,H){
   ctx.restore()}
 function drawDrape(){
   const cv=$("#cv0");if(!cv)return;const ctx=cv.getContext("2d");const W=cv.width,H=cv.height;
-  const L=T.slots[0],R=(T.mode===2||!T.cut)?T.slots[1]:T.slots[0];
+  const L=T.slots[0],R=T.mode===2?T.slots[1]:T.slots[0];
   const paint=(shape)=>{ctx.save();ctx.beginPath();ctx.rect(0,0,W/2,H);ctx.clip();ctx.fillStyle=L;shape();ctx.restore();
     ctx.save();ctx.beginPath();ctx.rect(W/2,0,W/2,H);ctx.clip();ctx.fillStyle=R;shape();ctx.restore()};
   paint(()=>ctx.fillRect(0,0,W,H));
@@ -998,10 +1008,10 @@ function renderCloset(){
     <label for="r1" class="small"><b>Are there gaps in your wardrobe now?</b></label><textarea id="r1">${esc(c.r1)}</textarea>
     <label for="r2" class="small"><b>Which colours from your palette are you most drawn to?</b></label><textarea id="r2">${esc(c.r2)}</textarea>
     <label for="r3" class="small"><b>Anything you love that isn't in your season? How could you style it?</b></label><textarea id="r3">${esc(c.r3)}</textarea></div>
-  <div class="card stack"><h3>4. Your shopping list</h3><p class="small muted">Priority pieces in your season, like a soft white tee, dress pants or a blazer.</p>
-    <form class="todo" id="todoForm"><input type="text" id="todoIn" placeholder="Add an item, e.g. soft grey blazer"><button class="btn" type="submit">Add</button></form>
+  <div class="card stack"><h3>4. Your shopping list</h3><p class="small muted">Priority pieces in your colours, like a tee, dress pants or a blazer in one of your neutrals.</p>
+    <form class="todo" id="todoForm"><input type="text" id="todoIn" placeholder="Add an item, e.g. a blazer"><button class="btn" type="submit">Add</button></form>
     <ul class="todo-list" id="todoList"></ul></div>
-  <p class="screen-note">Your worksheet saves on this device only.</p>`;
+  <p class="screen-note">Your worksheet saves to your account, so it's there on any device you sign in on.</p>`;
   const v=$("#v-closet");
   v.querySelectorAll(".check input").forEach(x=>x.onchange=()=>{const i=+x.dataset.i;c.prep=x.checked?[...c.prep,i]:c.prep.filter(n=>n!==i);save()});
   v.querySelectorAll(".ctl button").forEach(b=>b.onclick=()=>{const k=b.dataset.k;c[k]=Math.max(0,c[k]+ +b.dataset.d);$("#n-"+k).textContent=c[k];save()});
@@ -1054,7 +1064,7 @@ function wireAccount(){
   $("#accCancel").onclick=()=>{$("#accPwForm").hidden=true;msg("")};
   $("#accPwForm").onsubmit=e=>{e.preventDefault();const v=$("#accNewPw").value;if(v.length<8){msg("Please use at least 8 characters.");return}
     const b=$("#accSave");b.disabled=true;b.textContent="Saving…";
-    api("colour-dashboard",{action:"set_password",password:v}).then(d=>{try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(x){}TOKEN=d.token;CLIENT.hasPassword=true;
+    api("colour-dashboard",{action:"set_password",password:v}).then(d=>{try{if(d.portal)localStorage.setItem("szn_portal_session",JSON.stringify(d.portal))}catch(x){}try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(x){}TOKEN=d.token;CLIENT.hasPassword=true;
       renderHome();wireAccount();setTimeout(()=>{$("#accMsg").textContent="Password saved. Use it with your email next time you sign in.";$("#account").scrollIntoView({block:"center"})},0)})
       .catch(err=>{msg(err.message);b.disabled=false;b.textContent="Save password"})};
   $("#accOut").onclick=()=>signOut(false);
@@ -1089,9 +1099,6 @@ function nextCard(){
     <div class="body"><div class="bars">${bars}</div><p>${text}</p><button class="btn blue" id="nextBtn" data-k="${nx.k}" data-go="${nx.go}">${NEXT[nx.k][1]} →</button>
     <div class="steps">${st.map(x=>`<button data-go="${x.go}" data-k="${x.k}" class="${x.done?"done":""}"><span class="tick" aria-hidden="true">${x.done?"✓":""}</span><span class="t">${x.t}</span><span class="n">${x.done?"Done":(x.note||"")}</span></button>`).join("")}</div></div></section>`}
 function meter(on){return `<div class="meter">${[0,1,2,3,4].map(i=>`<span class="${on.includes(i)?"on":""}"></span>`).join("")}</div>`}
-function colourOfWeek(){const wk=Math.floor(Date.now()/(7*864e5));const pool=SEASON.palette.filter(c=>{const x=hsl(c);return x.s>.35&&x.l>.35&&x.l<.8});const c=pool[wk%pool.length];
-  const fam=SEASON.families[familyOf(c)];
-  return `<section class="card cotw"><span class="big" style="background:${c}"></span><div class="stack" style="gap:6px"><span class="eyebrow">Your colour of the week</span><h3>${nm(c)}</h3><p class="small muted">One of your ${fam.name.toLowerCase()}. Try it near your face this week, then see how others are wearing it.</p><div class="row" style="gap:14px"><button class="linkbtn2" data-try="${c}">Try it on me</button><a class="small" style="font-weight:700;color:var(--blue-deep)" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">See it styled →</a></div></div></section>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-try]");if(b){T.mode=1;T.active=0;T.slots[0]=b.dataset.try;go("tryon",true)}});
 function greeting(){const h=new Date().getHours();return h<12?"Good morning":h<17?"Good afternoon":"Good evening"}
 function renderHome(){
@@ -1103,7 +1110,6 @@ function renderHome(){
     <p class="muted">${SEASON.hero.text}</p>
     <div class="sig">${SIG.map(c=>`<span style="background:${c}" title="${nm(c)}"></span>`).join("")}</div></div></section>
   ${nextCard()}
-  ${colourOfWeek()}
   <div class="card stack"><span class="eyebrow">A welcome from Latisha</span>
     ${v?`<video class="wvideo" id="wvid" src="${v}" controls playsinline preload="metadata"></video>`
       :`<button class="wvideo ph" id="wvid"><span class="play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg></span><span class="small">Your welcome video will appear here</span></button>`}
@@ -1118,13 +1124,6 @@ function renderHome(){
   <div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">${SEASON.name} looks</span><a class="small" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">See 400+ in the app</a></div>
     <div class="looks">${SEASON.images.looks.map(n=>`<img src="${SIMG}${n}.webp" alt="Styled ${SEASON.name} look from your guide" loading="lazy">`).join("")}</div></div>
   ${appShowcase()}
-  <div class="card stack" style="gap:14px"><span class="eyebrow">Your colour profile</span>
-    <div class="scales">${SEASON.scales.map(([l,a,b,g,x,y,v])=>`<div class="scale"><div class="sh"><span>${l}</span><b>${v}</b></div><div class="bar" style="background:${g}" role="img" aria-label="${l}: ${v}"><span class="fade l" style="width:${x}%"></span><span class="fade r" style="width:${100-y}%"></span><span class="range" style="left:${x}%;width:${y-x}%"></span></div><div class="ends"><span>${a}</span><span>${b}</span></div></div>`).join("")}</div>
-    <span class="eyebrow" style="margin-top:6px">Best metals</span>
-    <div class="pills">${SEASON.metals.map(m=>`<span class="pill">${m}</span>`).join("")}</div>
-    <span class="eyebrow" style="margin-top:6px">Sister seasons</span>
-    <div class="pills">${SEASON.sisters.map(m=>`<span class="pill">${m}</span>`).join("")}</div>
-  </div>
   <details class="card acc mobile-only"><summary><span class="stack" style="gap:4px"><span class="eyebrow">Keep it on your phone</span><b>Add to your home screen</b></span><span class="plus" aria-hidden="true">+</span></summary>
     <div class="grid2" style="margin-top:12px"><div class="stack" style="gap:4px"><b class="small">iPhone (Safari)</b><ol class="clean small"><li>Tap the Share button.</li><li>Tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div>
     <div class="stack" style="gap:4px"><b class="small">Android (Chrome)</b><ol class="clean small"><li>Tap the three dots at the top right.</li><li>Tap <b>Add to Home screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div></div></details>
@@ -1138,16 +1137,37 @@ document.addEventListener("click",e=>{const v=e.target.closest("#wvid.ph");if(v)
 document.addEventListener("play",e=>{if(e.target.id==="wvid"){store("watched",true)}},true);
 
 /* ================= PALETTE ================= */
+// Palette has three parts: My colours (renderColours), Season profile and Combos.
+let palSub=store("psub")||"colours";
+function renderProfile(){
+  $("#v-profile").innerHTML=`
+  <div class="card stack" style="gap:14px"><span class="eyebrow">Your colour profile</span>
+    <div class="scales">${SEASON.scales.map(([l,a,b,g,x,y,v])=>`<div class="scale"><div class="sh"><span>${l}</span><b>${v}</b></div><div class="bar" style="background:${g}" role="img" aria-label="${l}: ${v}"><span class="fade l" style="width:${x}%"></span><span class="fade r" style="width:${100-y}%"></span><span class="range" style="left:${x}%;width:${y-x}%"></span></div><div class="ends"><span>${a}</span><span>${b}</span></div></div>`).join("")}</div>
+    <span class="eyebrow" style="margin-top:6px">Best metals</span>
+    <div class="pills">${SEASON.metals.map(m=>`<span class="pill">${m}</span>`).join("")}</div>
+    <span class="eyebrow" style="margin-top:6px">Sister seasons</span>
+    <div class="pills">${SEASON.sisters.map(m=>`<span class="pill">${m}</span>`).join("")}</div>
+  </div>`;
+}
+const PSUBR={colours:()=>renderColours(),profile:()=>renderProfile(),combos:()=>renderCombos()};
+function renderPalette(){
+  if(!PSUBR[palSub])palSub="colours";
+  document.querySelectorAll("#v-palette .seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.psub===palSub));
+  Object.keys(PSUBR).forEach(k=>$("#v-"+k).hidden=k!==palSub);
+  document.querySelectorAll('.subnav[data-for="palette"] .subnavi').forEach(b=>b.setAttribute("aria-current",!$("#v-palette").hidden&&b.dataset.sub===palSub?"page":"false"));
+  PSUBR[palSub]();
+}
+document.querySelectorAll("#v-palette .seg button").forEach(b=>b.onclick=()=>{palSub=b.dataset.psub;store("psub",palSub);renderPalette()});
 let palFilter="all",showAvoid=false;
 const FAMS=SEASON.familyOrder.map(k=>[k,SEASON.families[k].short]);
 function groups(){const g={};Object.keys(SEASON.families).forEach(k=>g[k]=[]);SEASON.palette.forEach(c=>g[familyOf(c)].push(c));
   Object.keys(g).forEach(k=>k==="neutrals"?g[k].sort((a,b)=>hsl(b).l-hsl(a).l):g[k].sort((a,b)=>Math.round(hsl(a).h/12)-Math.round(hsl(b).h/12)||hsl(b).l-hsl(a).l));return g}
 function pchip(c,o={}){const fav=!o.avoid&&isFav(c);return `<button class="pchip${o.avoid?" avoid":""}" data-c="${c}"${o.avoid?' data-avoid="1"':""}${o.nb?` data-nb="${o.nb}"`:""} aria-label="${nm(c)}${o.avoid?", not in your palette":""}"><span class="pc" style="background:${c}"></span><span class="nm">${nm(c)}</span>${fav?`<span class="ht">${HEART}</span>`:""}</button>`}
-function renderPalette(){
+function renderColours(){
   const g=groups(),f=favs();
   const fams=palFilter==="all"?FAMS.map(x=>x[0]):FAMS.map(x=>x[0]).filter(k=>k===palFilter);
-  $("#v-palette").innerHTML=`
-  <div class="head"><span class="eyebrow">${SEASON.palette.length} colours</span><h1>Your palette</h1><p class="muted">Tap any colour to see its name, save it, or try it on your face.</p></div>
+  $("#v-colours").innerHTML=`
+  <p class="muted">${SEASON.palette.length} colours. Tap any colour to see its name, save it, or try it on your face.</p>
   <div class="tools"><button class="btn mobile-only" id="camBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Colour camera</button><button class="toggle" id="avoidToggle" aria-pressed="${showAvoid}" style="justify-content:center">${showAvoid?"Hide colours to avoid":"Colours to avoid"}</button></div>
   <div class="card stack" style="gap:14px"><div class="row" style="justify-content:space-between"><h3>Saved</h3><span class="small muted">${f.length} saved</span></div>
     <div class="saved">${f.map(c=>`<button data-c="${c}" aria-label="${nm(c)}"><span class="dot" style="background:${c}"></span>${nm(c)}</button>`).join("")}<button id="addMore" aria-label="Add more favourites"><span class="dot add">+</span>${f.length?"Add more":"Save your first"}</button></div>
@@ -1159,17 +1179,17 @@ function renderPalette(){
   ${fams.map(k=>{const fm=SEASON.families[k];return `<section class="stack" id="fam-${k}" style="gap:12px"><div class="fam-head"><div class="t"><h2>${fm.name}</h2><span class="small muted">${g[k].length}</span></div><p>${fm.text}</p></div>
     <div class="chipgrid">${g[k].map(c=>pchip(c)).join("")}</div>
     ${showAvoid&&fm.avoid.length?`<span class="eyebrow" style="margin-top:4px">Not in your palette</span><div class="chipgrid">${fm.avoid.map(c=>pchip(c,{avoid:1})).join("")}</div>`:""}</section>`}).join("")}
-  ${palFilter==="all"||palFilter==="neutrals"?`<section class="card stack"><h3>Neutral swaps</h3><p class="small muted">Swap everyday neutrals for softer, cooler versions.</p>
+  ${palFilter==="all"||palFilter==="neutrals"?`<section class="card stack"><h3>Neutral swaps</h3><p class="small muted">${SEASON.swapText||"Swap everyday neutrals for the versions in your palette."}</p>
     ${SEASON.swaps.map(s=>`<div class="swap"><span class="dot" style="background:${s[0]}"></span><span aria-hidden="true">→</span><span class="dot" style="background:${s[1]}"></span><span class="small"><b>${s[2]}</b> becomes ${s[3]}</span></div>`).join("")}</section>`:""}
   ${palFilter==="all"?`<section class="stack" style="gap:12px"><div class="fam-head"><h2>Neighbouring colours</h2><p>From your sister seasons. The softer, lighter ones closest to your palette can work on you too.</p></div>
     ${Object.entries(SEASON.neighbours).map(([n,cs])=>`<span class="eyebrow">${n}</span><div class="chipgrid">${cs.map(c=>pchip(c,{nb:n})).join("")}</div>`).join("")}</section>`:""}
   <p class="screen-note">Screens show colour slightly differently, so treat these swatches as a guide. Check new pieces in natural daylight, near a window if you can.</p>`;
-  const v=$("#v-palette");
-  const setAvoid=on=>{showAvoid=on;store("avoid",on);renderPalette();if(on)$("#avoidTop").scrollIntoView({behavior:"smooth",block:"start"})};
+  const v=$("#v-colours");
+  const setAvoid=on=>{showAvoid=on;store("avoid",on);renderColours();if(on)$("#avoidTop").scrollIntoView({behavior:"smooth",block:"start"})};
   $("#avoidToggle").onclick=()=>setAvoid(!showAvoid);const ao=$("#avoidOff");if(ao)ao.onclick=()=>setAvoid(false);
-  v.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{palFilter=b.dataset.f;renderPalette()});
+  v.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{palFilter=b.dataset.f;renderColours()});
   v.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>openSheet(b.dataset.c,!!b.dataset.avoid,b.dataset.nb));
-  $("#addMore").onclick=()=>{palFilter="all";renderPalette();const t=$("#fam-blues");if(t)t.scrollIntoView({behavior:"smooth",block:"start"})};
+  $("#addMore").onclick=()=>{palFilter="all";renderColours();const t=$("#fam-blues");if(t)t.scrollIntoView({behavior:"smooth",block:"start"})};
   const cb=$("#camBtn2");if(cb)cb.onclick=openCamera;
 }
 function nearest(c,list){let best=null,bd=1e9;list.forEach(x=>{if(x===c)return;const a=hsl(c),b=hsl(x);let dh=Math.abs(a.h-b.h);dh=Math.min(dh,360-dh);const d=dh/180+Math.abs(a.l-b.l)*1.5;if(d<bd){bd=d;best=x}});return best}
@@ -1198,19 +1218,19 @@ function openSheet(c,avoid,nb){
   host.querySelectorAll(".ramp button").forEach(b=>b.onclick=()=>openSheet(b.dataset.c));
   $("#sheetX").focus();
 }
-function refreshBehind(){const y=window.scrollY;if(!$("#v-palette").hidden)renderPalette();else if(!$("#v-home").hidden)renderHome();window.scrollTo(0,y)}
+function refreshBehind(){const y=window.scrollY;if(!$("#v-palette").hidden&&palSub==="colours")renderColours();else if(!$("#v-home").hidden)renderHome();window.scrollTo(0,y)}
 
 /* ================= LEARN ================= */
-let learnSub=store("sub")||"guide";
+let learnSub=store("sub")==="practise"?"practise":"guide";
 function renderMakeupView(){
   const pages=GP["Makeup"]||[];
   $("#v-makeup").innerHTML=`<div class="head"><span class="eyebrow">Makeup</span><h1>Your makeup</h1></div><article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span><h2>Makeup for ${SEASON.name}</h2></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
    ${pages.length&&CLIENT.tier==="premium"?`<details class="more-pages"><summary><span class="eyebrow">Your makeup guide pages</span><span class="small muted">${pages.length} pages <span class="chev" aria-hidden="true">+</span></span></summary><div class="pages" style="margin-top:14px">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></details>`:""}</article>`}
-const SUBR={guide:renderGuide,combos:renderCombos,practise:renderPractise};
+const SUBR={guide:renderGuide,practise:renderPractise};
 function renderLearn(){
   document.querySelectorAll("#v-learn .seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sub===learnSub));
   if(!SUBR[learnSub])learnSub="guide";
-  ["guide","combos","practise"].forEach(k=>$("#v-"+k).hidden=k!==learnSub);
+  ["guide","practise"].forEach(k=>$("#v-"+k).hidden=k!==learnSub);
   document.querySelectorAll('.subnav[data-for="learn"] .subnavi').forEach(b=>b.setAttribute("aria-current",!$("#v-learn").hidden&&b.dataset.sub===learnSub?"page":"false"));
   SUBR[learnSub]();
 }
@@ -1246,13 +1266,17 @@ const TABS=[
  ["learn","Learn",'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>']
 ];
 const RENDER={home:renderHome,palette:renderPalette,tryon:renderTryOn,learn:renderLearn,makeup:renderMakeupView,wardrobe:renderWardrobe};
-const ALIAS={season:["home"],guide:["learn","guide"],combos:["learn","combos"],practise:["learn","practise"],closet:["wardrobe","closet"],picks:["wardrobe","picks"]};
-const SUBS={learn:[["guide","Guide"],["combos","Combos"],["practise","Quizzes"]],wardrobe:[["picks","Latisha's picks"],["closet","My wardrobe"]]};
+const ALIAS={season:["palette","profile"],colours:["palette","colours"],profile:["palette","profile"],combos:["palette","combos"],guide:["learn","guide"],practise:["learn","practise"],closet:["wardrobe","closet"],picks:["wardrobe","picks"]};
+const SUBS={palette:[["colours","My colours"],["profile","Season profile"],["combos","Combos"]],learn:[["guide","Guide"],["practise","Quizzes"]],wardrobe:[["picks","Latisha's picks"],["closet","My wardrobe"]]};
 const icon=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 $("#sidenav").innerHTML=TABS.map(([k,l,ic])=>`<button class="navi" data-k="${k}">${icon(ic)}<span>${l}</span></button>`+(SUBS[k]?`<div class="subnav" data-for="${k}">${SUBS[k].map(([s,t])=>`<button class="subnavi" data-go="${s}" data-sub="${s}">${t}</button>`).join("")}</div>`:"")).join("");
 $("#tabbar").innerHTML=TABS.map(([k,l,ic])=>`<button class="tab" data-k="${k}"><span class="ic">${icon(ic)}</span><span>${l}</span></button>`).join("");
 function go(k,scroll){
-  if(ALIAS[k]){const [t,sub]=ALIAS[k];if(sub&&t==="wardrobe"){wardSub=sub;store("wsub",sub)}else if(sub){learnSub=sub;store("sub",sub);if(sub==="guide"&&k==="guide")guideIdx=-1}k=t}
+  if(ALIAS[k]){const [t,sub]=ALIAS[k];
+    if(sub&&t==="wardrobe"){wardSub=sub;store("wsub",sub)}
+    else if(sub&&t==="palette"){palSub=sub;store("psub",sub)}
+    else if(sub){learnSub=sub;store("sub",sub);if(sub==="guide"&&k==="guide")guideIdx=-1}
+    k=t}
   if(!RENDER[k])k="home";
   TABS.forEach(([t])=>{$("#v-"+t).hidden=t!==k});
   document.querySelectorAll(".navi,.tab").forEach(b=>b.dataset.k===k?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
