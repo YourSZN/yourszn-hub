@@ -244,6 +244,21 @@ check('password: set inside the dashboard, it also works on the front page and k
   assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, r.data.token)).data.client.hasPassword, true);
 });
 
+// ── Tour from the colour dashboard's account menu ──
+check('dashboard: opens the tour only for clients on the tour list', async () => {
+  db.vietnam_clients.push({ id: 'vt-cora', name: 'Cora Colour', email: 'cora@example.com', budget_goal_amount: 0 });
+  await call('colour-auth.js', { action: 'send', email: 'cora@example.com' });
+  const t = (await call('colour-auth.js', { action: 'verify', email: 'cora@example.com', code: lastCode() })).data.token;
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.tourBooked, true);
+  const r = await call('colour-dashboard.js', { action: 'open_tour' }, t);
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual((await call('vietnam-dashboard.js', { action: 'get' }, r.data.token)).status !== 401, true, 'the tour session works on the tour');
+  db.vietnam_clients = db.vietnam_clients.filter((c) => c.id !== 'vt-cora');
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.tourBooked, false);
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'open_tour' }, t)).status, 403);
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'open_tour' })).status, 401, 'no session, no tour');
+});
+
 (async () => {
   let failed = 0;
   for (const c of checks) {

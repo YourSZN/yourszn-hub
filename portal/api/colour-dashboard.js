@@ -6,6 +6,8 @@
 //   { action: "logout" }               -> records the sign-out
 //   { action: "set_password", password } -> sets/changes the password, signs out other devices, returns a new token
 //   { action: "logout_all" }           -> signs this client out on every device
+//   { action: "open_tour" }            -> a Vietnam Tailoring Tour session, only if this client's
+//                                         email is on the tour list (load says so: client.tourBooked)
 //
 // Guide pages live in the PRIVATE storage bucket "season-guides" at
 // <season-slug>/pNNN.webp. Clients only ever get short-lived signed links, and
@@ -13,6 +15,10 @@
 
 const { cors, sb, readToken, clientIp, sessionStillValid, newSession } = require('./_colour');
 const { hasPassword, setPassword, signOutEverywhere } = require('./_accounts');
+const { findTourClient } = require('./_tour');
+
+// Must match vietnam-login.js and client-home.js.
+const TOUR_SESSION_DAYS = 7;
 const SESSION_DAYS = 30;
 
 const PAGE_LINK_SECONDS = 15 * 60;
@@ -66,7 +72,7 @@ module.exports = async function handler(req, res) {
       });
       return res.status(200).json({
         ok: true,
-        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {}, hasPassword: await hasPassword(client.email) },
+        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {}, hasPassword: await hasPassword(client.email), tourBooked: !!(await findTourClient(client.email)) },
         state: saved[0] || {},
         pages,
         pagesExpireIn: PAGE_LINK_SECONDS,
@@ -99,6 +105,12 @@ module.exports = async function handler(req, res) {
       const fresh = newSession(client.id, SESSION_DAYS);
       const portal = newSession(client.email, SESSION_DAYS, 'portal', { name: client.name });
       return res.status(200).json(Object.assign({ ok: true, portal }, fresh));
+    }
+
+    if (action === 'open_tour') {
+      const tour = await findTourClient(client.email);
+      if (!tour) return res.status(403).json({ error: 'We couldn\'t find a tour booking for your email.' });
+      return res.status(200).json(Object.assign({ ok: true }, newSession(tour.id, TOUR_SESSION_DAYS, 'tour')));
     }
 
     if (action === 'logout_all') {

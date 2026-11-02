@@ -781,8 +781,6 @@ function renderCombos(){
   <div class="grid2">
     ${SEASON.comboCards.map(([t,txt,bar,ex])=>`<div class="card stack"><h3>${t}</h3><p class="small">${txt}</p>
       <div class="ratio">${bar.map(([c,f,l])=>`<div style="flex:${f};background:${c}">${l||""}</div>`).join("")}</div>${ex?`<p class="small muted">${ex}</p>`:""}</div>`).join("")}
-    <div class="card stack"><h3>The travel capsule</h3><p class="small">Packing within your palette means everything works together.</p>
-      <ul class="clean small"><li>5 tops and 4 bottoms</li><li>3 dresses, 3 accessories and 3 pairs of shoes</li><li>2 bags and 2 jackets</li><li>1 extra item of your choice</li></ul></div>
   </div>
   ${appCTA("See these combos as real outfits","Styled looks in the app turn each combo into a full outfit you can shop.")}`;
 }
@@ -1012,6 +1010,8 @@ function renderCloset(){
   <div class="card stack"><h3>4. Your shopping list</h3><p class="small muted">Priority pieces in your colours, like a tee, dress pants or a blazer in one of your neutrals.</p>
     <form class="todo" id="todoForm"><input type="text" id="todoIn" placeholder="Add an item, e.g. a blazer"><button class="btn" type="submit">Add</button></form>
     <ul class="todo-list" id="todoList"></ul></div>
+  <div class="card stack"><h3>The travel capsule</h3><p class="small">Packing within your palette means everything works together.</p>
+      <ul class="clean small"><li>5 tops and 4 bottoms</li><li>3 dresses, 3 accessories and 3 pairs of shoes</li><li>2 bags and 2 jackets</li><li>1 extra item of your choice</li></ul></div>
   <p class="screen-note">Your worksheet saves to your account, so it's there on any device you sign in on.</p>`;
   const v=$("#v-closet");
   v.querySelectorAll(".check input").forEach(x=>x.onchange=()=>{const i=+x.dataset.i;c.prep=x.checked?[...c.prep,i]:c.prep.filter(n=>n!==i);save()});
@@ -1073,6 +1073,19 @@ function wireAccount(){
   $("#accOutAllNo").onclick=()=>{$("#accConfirm").hidden=true};
   $("#accOutAllYes").onclick=()=>{api("colour-dashboard",{action:"logout_all"}).catch(()=>{}).then(()=>signOut(true))};
 }
+// Vietnam Tailoring Tour: straight in if they're on the tour, otherwise the enquiry form.
+const TOUR_INTEREST_FORM="https://links.ivorey.io/widget/form/9Iyx9X6ofTxjcQVTdyDl";
+function tourHTML(){
+  return CLIENT.tourBooked
+    ?`<section class="card stack"><span class="eyebrow">Vietnam Tailoring Tour</span><p class="small">Your itinerary, packing list, budget and wardrobe plan.</p>
+       <p class="small" id="tourMsg" role="status"></p><button class="btn" id="tourBtn">Open your tour →</button></section>`
+    :`<section class="card stack"><span class="eyebrow">Vietnam Tailoring Tour</span><p class="small">Have your wardrobe made in your colours in Hoi An.</p>
+       <a class="btn ghost" href="${TOUR_INTEREST_FORM}" target="_blank" rel="noopener">Register your interest →</a></section>`}
+function wireTour(){
+  const b=$("#tourBtn");if(!b)return;
+  b.onclick=()=>{b.disabled=true;b.textContent="Opening…";
+    api("colour-dashboard",{action:"open_tour"}).then(d=>{try{localStorage.setItem("vt_session",JSON.stringify({token:d.token,expires:d.expires}))}catch(x){}location.href="vietnam-tour.html"})
+      .catch(err=>{$("#tourMsg").textContent=err.message;b.disabled=false;b.textContent="Open your tour →"})}}
 // Account menu: the avatar (top right on phones) and "Signed in as" (sidebar on desktop).
 function openAccount(note){
   const host=$("#sheetHost");
@@ -1080,6 +1093,7 @@ function openAccount(note){
     <span class="grab" aria-hidden="true"></span>
     <div class="row" style="justify-content:space-between"><h2>Your account</h2><button class="x" id="sheetX" aria-label="Close">×</button></div>
     ${accountHTML()}
+    ${tourHTML()}
     <details class="card acc mobile-only" open><summary><span class="stack" style="gap:4px"><span class="eyebrow">Keep it on your phone</span><b>Add to your home screen</b></span><span class="plus" aria-hidden="true">+</span></summary>
     <div class="grid2" style="margin-top:12px"><div class="stack" style="gap:4px"><b class="small">iPhone (Safari)</b><ol class="clean small"><li>Tap the Share button.</li><li>Tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div>
     <div class="stack" style="gap:4px"><b class="small">Android (Chrome)</b><ol class="clean small"><li>Tap the three dots at the top right.</li><li>Tap <b>Add to Home screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div></div></details>
@@ -1088,7 +1102,7 @@ function openAccount(note){
   const close=()=>{host.innerHTML="";document.body.style.overflow="";document.removeEventListener("keydown",key)};
   const key=e=>{if(e.key==="Escape")close()};document.addEventListener("keydown",key);
   $("#sheetBg").onclick=e=>{if(e.target.id==="sheetBg")close()};$("#sheetX").onclick=close;
-  wireAccount();
+  wireAccount();wireTour();
   if(note)$("#accMsg").textContent=note;
   $("#sheetX").focus();
 }
