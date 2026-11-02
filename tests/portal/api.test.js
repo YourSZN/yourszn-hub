@@ -171,6 +171,18 @@ check('colour: sign-in unchanged', async () => {
   assert.strictEqual(r.status, 200); assert.ok(r.data.token);
 });
 
+check('colour: saves the makeup bag with the rest of your progress; unknown fields dropped', async () => {
+  await call('colour-auth.js', { action: 'send', email: 'cora@example.com' });
+  const token = (await call('colour-auth.js', { action: 'verify', email: 'cora@example.com', code: lastCode() })).data.token;
+  const r = await call('colour-dashboard.js', { action: 'save', state: { favourites: ['#ff8844'], makeup_bag: ['mk/lips-67-0-177.webp'], password_hash: 'x' } }, token);
+  assert.strictEqual(r.status, 200);
+  const row = db.colour_client_state[db.colour_client_state.length - 1];
+  assert.deepStrictEqual(row.makeup_bag, ['mk/lips-67-0-177.webp']);
+  assert.strictEqual(row.client_id, CORA, 'saved against the signed-in client only');
+  assert.strictEqual(row.password_hash, undefined, 'only known progress fields are saved');
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'save', state: { makeup_bag: [] } })).status, 401, 'no session, no save');
+});
+
 (async () => {
   let failed = 0;
   for (const c of checks) {

@@ -2,7 +2,7 @@
 //
 //   { action: "load" }                 -> client details, saved progress, guide page links
 //   { action: "pages" }                -> fresh guide page links (they expire after PAGE_LINK_SECONDS)
-//   { action: "save", state: {...} }   -> saves favourites, quiz scores, closet and checklist
+//   { action: "save", state: {...} }   -> saves favourites, quiz scores, closet, checklist and makeup bag
 //   { action: "logout" }               -> records the sign-out
 //   { action: "set_password", password } -> sets/changes the password, signs out other devices, returns a new token
 //   { action: "logout_all" }           -> signs this client out on every device
@@ -15,7 +15,7 @@ const { cors, sb, readToken, clientIp, hashPassword, passwordProblem, sessionSti
 const SESSION_DAYS = 30;
 
 const PAGE_LINK_SECONDS = 15 * 60;
-const STATE_KEYS = ['favourites', 'quiz', 'closet', 'checklist'];
+const STATE_KEYS = ['favourites', 'quiz', 'closet', 'checklist', 'makeup_bag'];
 const MAX_STATE_BYTES = 20000;
 
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
 
     if (action === 'load') {
       const [saved, pages] = await Promise.all([
-        sb('/rest/v1/colour_client_state?client_id=eq.' + client.id + '&select=favourites,quiz,closet,checklist&limit=1'),
+        sb('/rest/v1/colour_client_state?client_id=eq.' + client.id + '&select=favourites,quiz,closet,checklist,makeup_bag&limit=1'),
         guidePages(client.season),
       ]);
       await sb('/rest/v1/colour_access_log', {

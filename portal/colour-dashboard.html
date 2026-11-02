@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Your SZN · Colour Dashboard</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#1C1712">
+<meta name="theme-color" content="#EEE6DB">
 <link rel="manifest" href="colour-dashboard.webmanifest">
 <link rel="apple-touch-icon" href="icons/colour-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,235 +13,452 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600;700&display=swap">
+<!--
+  Online Colour Analysis client dashboard (season-driven design).
+  How it works: portal/COLOUR-DASHBOARD.md. Season content: seasons/<season-slug>.js.
+  Seasons not yet written for this design (no `topics`) open colour-dashboard-classic.html.
+-->
 <style>
-/* Layout: same shell as the Vietnam Tailoring Tour dashboard. Fixed 220px sidebar on desktop (collapsible to 56px), bottom tab bar under 768px. Single warm light theme to match the client portal. */
+/* Layout: phone-first app. Phones: slim top bar + 5-tab bottom bar. Desktop (>=900px): left sidebar, wide content.
+   Season dashboard: warm cream ground, white cards with fine warm borders, YourSZN blue for the "next step". */
 :root{
-  --cream:#EFE8DF; --warm:#E7DED3; --sand:#D3C6B6; --tan:#8C7550; --charcoal:#1C1712; --rose:#9A6250; --muted:#5E5248; --side:#F9F5F0; --card:#FFFFFF; --soft:#F6EFE6;
-  --good:#5F7253; --good-bg:#EEF2EA; --bad:#C4685A; --bad-bg:#FDF0EE;
-  --display:"Playfair Display",Georgia,serif; --logo:"Cormorant Garamond",Georgia,serif; --body:"Montserrat",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
-  --r:14px; --shadow:0 2px 10px rgba(28,23,18,.06);
+  --ground:#EEE6DB; --card:#FFFFFF; --line:#D9CCBC; --soft:#F6F1EA; --ink:#1C1712; --muted:#5E5248; --muted2:#6B6058;
+  --blue:#7A5C48; --blue-deep:#5F4636; --blue-ink:#5F4636; --blue-tint:#F3ECE6; --blue-line:#E8DDD3;
+  --pink:#F8E9EE; --pink-ink:#8A3E5A; --rose:#B04A6A; --eyebrow:#8A5A4A;
+  --good:#3F6B4E; --good-bg:#E2EFE6; --bad:#B4505F; --bad-bg:#F8E6EA;
+  --display:"Playfair Display",Georgia,serif; --body:"Montserrat","Helvetica Neue",Arial,sans-serif;
+  --r:22px; --shadow:0 8px 20px rgba(28,23,18,.08); --shadow-lg:0 10px 30px rgba(28,23,18,.10);
   color-scheme:light;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{background:var(--cream)}
-body{color:var(--charcoal);font-family:var(--body);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
-h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.15;text-wrap:balance;margin:0;color:var(--charcoal)}
-h2{font-size:30px} h3{font-size:21px}
-p{margin:0;max-width:72ch}
+html,body{background:var(--ground)}
+body{color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ground)}
+h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.12;text-wrap:balance;margin:0;color:var(--ink)}
+h1{font-size:34px} h2{font-size:26px} h3{font-size:21px}
+p{margin:0;max-width:68ch}
 button{font:inherit;color:inherit;cursor:pointer}
-:focus-visible{outline:2px solid var(--charcoal);outline-offset:2px;border-radius:6px}
-.eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--rose)}
+a{color:var(--ink)}
+:focus-visible{outline:2px solid var(--blue-deep);outline-offset:2px;border-radius:8px}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--eyebrow)}
 .muted{color:var(--muted)} .small{font-size:13px}
-
-/* sidebar */
-.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:var(--side);border-right:1px solid var(--sand);display:flex;flex-direction:column;padding:32px 0 24px;padding-left:env(safe-area-inset-left,0px);z-index:100;transition:width .22s cubic-bezier(.4,0,.2,1)}
-#sbToggle{position:absolute;top:16px;right:-12px;width:24px;height:24px;border-radius:50%;background:var(--side);border:1px solid var(--sand);color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(28,23,18,.1);padding:0}
-.slogo{font-family:var(--logo);font-size:22px;font-weight:300;letter-spacing:3px;text-transform:uppercase;padding:0 28px 24px;border-bottom:1px solid var(--sand);white-space:nowrap;overflow:hidden}
-.slogo span{font-style:italic;opacity:.6}
-.suser{padding:14px 28px;border-bottom:1px solid var(--sand);margin-bottom:8px;white-space:nowrap;overflow:hidden}
-.sulab{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
-.suname{font-size:13px;margin-top:3px;font-weight:500}
-.snav{flex:1;padding:8px 0;display:flex;flex-direction:column;gap:2px;overflow:hidden}
-.nitem{display:flex;align-items:center;gap:12px;padding:9px 16px;margin:1px 12px;border-radius:8px;border:0;background:none;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);transition:background .2s,color .2s;white-space:nowrap;text-align:left}
-.nitem svg{width:14px;height:14px;flex-shrink:0}
-.nitem:hover{background:var(--sand);color:var(--charcoal)}
-.nitem[aria-current="page"]{background:var(--charcoal);color:var(--side)}
-.sout{display:block;margin:8px 20px 0;padding:10px;border-radius:8px;border:1px solid var(--sand);color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;text-align:center;text-decoration:none;white-space:nowrap}
-.sout:hover{background:var(--sand);color:var(--charcoal)}
-body.sb-collapsed .sidebar{width:56px}
-body.sb-collapsed .slogo,body.sb-collapsed .suser,body.sb-collapsed .nitem span,body.sb-collapsed .sout{display:none}
-body.sb-collapsed .nitem{justify-content:center;margin:1px 8px;padding:11px 0}
-body.sb-collapsed .main{margin-left:56px}
-
-/* main */
-.main{margin-left:220px;min-height:100vh;padding-block:32px 48px;padding-left:max(44px,env(safe-area-inset-left,0px));padding-right:max(44px,env(safe-area-inset-right,0px));transition:margin-left .22s cubic-bezier(.4,0,.2,1)}
-.inner{max-width:980px}
-.ph{margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--sand);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:end}
-.ptitle{font-family:var(--display);font-size:28px}
-.psub{font-size:12px;color:var(--muted);margin-top:4px}
-.preview{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
-.preview select{font:inherit;font-size:11px;border:1px solid var(--sand);border-radius:8px;padding:5px 8px;background:var(--card);color:var(--charcoal)}
-.banner{background:var(--charcoal);border-radius:var(--r);padding:22px 28px;margin-bottom:26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.banner .star{width:52px;height:52px;border-radius:12px;background:#93b4ec;display:grid;place-items:center;flex-shrink:0}
-.banner .star svg{width:38px;height:38px}
-.banner .bt{display:grid;gap:4px;min-width:0}
-.banner .bnum{font-family:var(--display);font-size:34px;color:#fff;line-height:1}
-.banner .blab{font-size:13px;color:#F2EDE6}
-
-/* bottom tabs (mobile) */
-.bottom-tabs{display:none;position:fixed;bottom:0;left:0;right:0;z-index:60;background:#fff;border-top:1px solid var(--sand);padding:6px max(4px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px));overflow-x:auto;scrollbar-width:none}
-.bottom-tabs::-webkit-scrollbar{display:none}
-.bt-item{flex:1 0 auto;min-width:54px;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;font-size:10px;font-weight:600;letter-spacing:.3px;color:var(--muted);padding:6px 2px}
-.bt-item svg{width:18px;height:18px}
-.bt-item[aria-current="page"]{color:var(--charcoal)}
-.bt-item[aria-current="page"] svg{stroke-width:2.4}
-@media (max-width:768px){
-  .sidebar{display:none}
-  .main{margin-left:0!important;padding-block:20px 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-  .bottom-tabs{display:flex}
-  .banner{padding:18px 20px}.banner .bnum{font-size:28px}
-  h2{font-size:26px}
-}
-
-/* views */
-section.view{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
-section.view>*{min-width:0}
-.card{background:var(--card);border:1px solid var(--sand);border-radius:var(--r);padding:22px 24px;box-shadow:var(--shadow)}
 .stack{display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.head{display:grid;gap:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+.card>*{min-width:0}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
 .grid2>*{min-width:0}
-.head{display:grid;gap:8px}
-.scale{display:grid;gap:6px}
-.scale .bar{position:relative;height:12px;border-radius:999px}
-.scale .range{position:absolute;top:-4px;height:20px;border:2px solid var(--charcoal);border-radius:999px}
-.scale .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
-.scale .lbl{font-weight:600;font-size:13px}
-ol.steps{list-style:none;margin:0;padding:0;display:grid}
-ol.steps li{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-top:1px solid var(--warm)}
-ol.steps li:first-child{border-top:0}
-.n{width:30px;height:30px;border-radius:50%;background:var(--warm);display:grid;place-items:center;font-size:12px;font-weight:700}
-.result{font-weight:600;font-size:13px;text-align:right}
-@media (max-width:520px){ol.steps li{grid-template-columns:34px 1fr}.result{grid-column:2;text-align:left;color:var(--rose)}}
-.note{font-size:14px;line-height:1.65;background:var(--side);border-left:3px solid var(--charcoal);padding:12px 14px;border-radius:0 8px 8px 0}
-.fam{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
-.card>*{min-width:0}
-.sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:10px}
-.sw{aspect-ratio:1;border-radius:50%;border:0;box-shadow:inset 0 0 0 1px rgba(28,23,18,.08);padding:0;position:relative;max-width:100%}
-.sw.sq{border-radius:10px}
-.sw[aria-pressed="true"]{outline:2px solid var(--charcoal);outline-offset:3px}
-.sw.avoid::after{content:"";position:absolute;inset:46% -3px auto;height:2px;background:#fff;transform:rotate(-45deg)}
-.detail{position:relative;display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:14px 40px 14px 14px;border-radius:12px;background:var(--side);border:1px solid var(--warm)}
-.detail .dx{position:absolute;top:6px;right:8px;border:0;background:none;font-size:20px;color:var(--muted);padding:4px 6px}
-.detail .big{width:64px;height:64px;border-radius:50%;border:1px solid rgba(28,23,18,.1)}
-.subtabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin}
-.subtab{flex:0 0 auto;padding:9px 18px;border:1px solid var(--sand);border-radius:24px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:#fff;color:var(--muted);transition:all .2s}
-.subtab:hover{border-color:var(--charcoal);color:var(--charcoal)}
-.subtab[aria-pressed="true"]{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+ul.clean{margin:0;padding-left:18px;display:grid;gap:4px}
+.note{font-size:14px;line-height:1.6;background:var(--soft);border-radius:12px;padding:12px 14px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:0;border-radius:999px;padding:12px 20px;font-size:13.5px;font-weight:600;text-decoration:none;background:var(--ink);color:#FFFFFF;transition:transform .15s}
+.btn:active{transform:scale(.97)}
+.btn.blue{background:var(--blue);color:#FFFFFF;font-weight:700}
+.btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn svg{width:18px;height:18px}
+.toggle{display:inline-flex;align-items:center;gap:8px;min-height:44px;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px 16px;font-size:13px;font-weight:600}
+.toggle[aria-pressed="true"]{background:var(--ink);color:#FFFFFF;border-color:var(--ink)}
+.toggle svg{width:18px;height:18px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;margin:0 -2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:13px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:#FFFFFF;border-color:var(--ink)}
+
+/* shell */
+.side{display:none}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;justify-content:space-between;padding:12px max(18px,env(safe-area-inset-right,0px)) 10px max(18px,env(safe-area-inset-left,0px));background:rgba(238,230,219,.94);backdrop-filter:blur(8px)}
+.logo{display:block;height:26px;width:auto}
+.avatar{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-family:var(--display);font-size:17px}
+.main{padding-block:8px 110px;padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+.inner{max-width:1080px;margin:0 auto}
+section.view{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;animation:fade .25s ease}
+section.view>*{min-width:0}
+@keyframes fade{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:rgba(255,255,255,.97);border-top:1px solid var(--line);padding:8px max(4px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px))}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;font-size:10.5px;font-weight:600;color:var(--muted2);padding:2px 0;white-space:nowrap}
+.tab .ic{display:grid;place-items:center;width:46px;height:30px;border-radius:999px;transition:background .2s}
+.tab svg{width:19px;height:19px}
+.tab[aria-current="page"]{color:var(--ink)}
+.tab[aria-current="page"] .ic{background:var(--ink);color:#FFFFFF}
+@media (min-width:900px){
+  .top,.tabbar{display:none}
+  .side{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:240px;background:#F7F2EB;border-right:1px solid var(--line);padding:28px 16px 22px;padding-left:max(16px,env(safe-area-inset-left,0px));gap:6px;z-index:20}
+  .side .logo{height:30px;margin:0 10px 22px}
+  .side .who{margin:0 10px 18px;font-size:12px;color:var(--muted)} .side .who b{display:block;color:var(--ink);font-size:14px;font-weight:600}
+  .navi{display:flex;align-items:center;gap:12px;min-height:46px;border:0;background:none;border-radius:14px;padding:0 14px;font-size:14px;font-weight:600;color:var(--muted2);text-align:left}
+  .navi svg{width:19px;height:19px}
+  .subnav{display:grid;gap:2px;margin:2px 0 6px 31px;padding-left:12px;border-left:1px solid var(--line)}
+  .subnavi{border:0;background:none;text-align:left;font-size:13px;font-weight:600;color:var(--muted2);padding:8px 12px;border-radius:10px;min-height:36px}
+  .subnavi:hover{background:#EDE4D8;color:var(--ink)}
+  .subnavi[aria-current="page"]{color:var(--ink);background:#E6DCCF}
+  .navi:hover{background:#EDE4D8;color:var(--ink)}
+  .navi[aria-current="page"]{background:var(--ink);color:#FFFFFF}
+  .main{margin-left:240px;padding:34px 48px 60px}
+  h1{font-size:40px}
+}
+
+/* home */
+.hello{font-size:14px;color:var(--muted)}
+.hero{background:var(--card);border:1px solid var(--line);border-radius:26px;overflow:hidden;box-shadow:var(--shadow-lg);display:grid}
+.hero img{display:block;width:100%;height:230px;object-fit:cover}
+.hero .in{padding:22px 22px 24px;display:grid;gap:12px}
+.hero h1{font-size:42px;margin-top:-4px}
+.sig{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.sig span{height:44px;border-radius:12px}
+@media (min-width:900px){.hero{grid-template-columns:1.1fr 1fr}.hero img{height:360px}.hero .in{padding:34px;align-content:center}.hero h1{font-size:52px}}
+.next{background:var(--card);border:1px solid var(--line);border-radius:26px;overflow:hidden;box-shadow:0 10px 26px rgba(70,48,34,.16);display:grid}
+.next .band{background:var(--blue);padding:22px 22px 18px;display:grid;gap:10px;color:#FFFFFF}
+.next .band .top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.next .band .eyebrow{color:#FFFFFF}
+.next .band .count{font-size:13px;font-weight:600}
+.next .band h2{color:#FFFFFF;font-weight:500;font-size:28px}
+.next .body{padding:18px 22px 22px;display:grid;gap:14px;justify-items:start}
+.bars{display:flex;gap:6px;width:100%}
+.bars span{flex:1;height:5px;border-radius:3px;background:var(--blue-line)}
+.bars span.on{background:var(--blue)}
+.next .body p{font-size:15px;font-weight:500}
+.steps{display:grid;gap:6px;width:100%;margin-top:4px}
+.steps button{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;width:100%;min-height:44px;text-align:left;border:0;border-top:1px solid #EFE7DC;background:none;padding:8px 0;font-size:14px}
+.steps .tick{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:700;color:#FFFFFF}
+.steps .done .tick{background:var(--blue);border-color:var(--blue)}
+.steps .done .t{color:var(--muted);text-decoration:line-through}
+.steps .n{font-size:12px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:900px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tile{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);text-align:left;padding:0;color:var(--ink);transition:transform .15s}
+.tile:hover{transform:translateY(-2px)}
+.tile .pic{height:124px;position:relative;overflow:hidden;background:var(--soft)}
+.tile .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.tile .lbl{padding:12px 14px 14px}
+.tile .lbl b{display:block;font-size:14.5px}
+.tile .lbl span{font-size:12.5px;color:var(--muted)}
+.mosaic{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:10px;height:100%}
+.mosaic span{border-radius:8px}
+.splitpic{display:flex;height:100%}
+.splitpic span{flex:1}
+.splitpic svg{position:absolute;left:50%;bottom:0;width:110px;height:100px;transform:translateX(-50%)}
+.fan img{position:absolute;width:70px;height:99px;object-fit:cover;border-radius:6px;box-shadow:0 4px 12px rgba(28,23,18,.18)}
+.profile{display:grid;grid-template-columns:96px 1fr 72px;gap:12px 10px;align-items:center;font-size:13.5px}
+.meter{display:flex;gap:4px}
+.meter span{flex:1;height:8px;border-radius:4px;background:#E8E0D5}
+.meter span.on{background:var(--ink)}
+.scales{display:grid;gap:18px}
+.scale .sh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.scale .sh span{font-size:13.5px;color:var(--muted)} .scale .sh b{font-size:13.5px}
+.scale .bar{position:relative;height:16px;border-radius:999px}
+.scale .fade{display:none}
+.scale .fade.l{left:0;border-radius:999px 0 0 999px}.scale .fade.r{right:0;border-radius:0 999px 999px 0}
+.scale .range{position:absolute;top:-4px;bottom:-4px;border:2.5px solid var(--ink);border-radius:999px;box-shadow:0 2px 6px rgba(28,23,18,.2)}
+.scale .ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:6px}
+/* makeup chapter */
+.mk{display:grid;gap:18px}
+.mk-keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mk-keys div{background:var(--soft);border-radius:14px;padding:12px;display:grid;gap:4px;font-size:12.5px;line-height:1.35}
+.mk-keys b{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--eyebrow)}
+.mk-bag{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--blue-tint);border-radius:14px;padding:10px 14px;font-size:13px}
+.mk-sec{display:grid;gap:16px}
+.shades{display:flex;flex-wrap:wrap;gap:12px 10px}
+.shades div{display:grid;justify-items:center;gap:5px;width:62px;text-align:center;font-size:11px;line-height:1.2;color:var(--muted)}
+.shades span{width:44px;height:44px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(28,23,18,.08)}
+.dd{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dd div{border-radius:14px;padding:12px;font-size:13px;line-height:1.45}
+.dd .y{background:var(--good-bg)} .dd .n{background:var(--bad-bg)}
+.dd b{display:block;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:3px}
+.dd .y b{color:var(--good)} .dd .n b{color:var(--bad)}
+.prods{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;margin:0 -20px;padding:2px 20px 6px}
+.prods::-webkit-scrollbar{display:none}
+.prod{position:relative;flex:0 0 148px;scroll-snap-align:start;display:grid;grid-template-rows:140px auto;background:#FFFFFF;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.prod .pi{display:grid;place-items:center;padding:10px;background:#FFFFFF}
+.prod .pi img{max-width:100%;max-height:120px;object-fit:contain}
+.prod .pt{padding:8px 10px 12px;border-top:1px solid #F1EAE1;display:grid;gap:2px}
+.prod .pt b{font-size:10px;letter-spacing:1.4px;text-transform:uppercase}
+.prod .shoplink{font-size:12px;font-weight:700;color:var(--blue-deep);margin-top:4px}
+.prod .pt span{font-size:12px;line-height:1.3;color:var(--muted)}
+.prod .bagbtn{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#FFFFFF;display:grid;place-items:center;padding:0}
+.prod .bagbtn svg{width:16px;height:16px;fill:none;stroke:var(--rose);stroke-width:2}
+.prod .bagbtn[aria-pressed="true"] svg{fill:var(--rose)}
+.prepsteps{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.prepsteps li{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;font-size:13.5px}
+.prepsteps .n{width:28px;height:28px;border-radius:50%;background:var(--blue);color:#FFFFFF;display:grid;place-items:center;font-size:12px;font-weight:700}
+@media (max-width:420px){.mk-keys{grid-template-columns:1fr}.mk-keys div{grid-template-columns:70px 1fr;align-items:baseline}}
+details.more-pages{border-top:1px solid #EFE7DC;padding-top:14px}
+details.more-pages>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px}
+details.more-pages>summary::-webkit-details-marker{display:none}
+details.more-pages .chev{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--soft);margin-left:6px;font-size:16px;transition:transform .2s}
+details.more-pages[open] .chev{transform:rotate(45deg)}
+.nudge{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--soft);font-size:13px;line-height:1.4;text-decoration:none;color:var(--ink)}
+.nudge .sw2{flex:0 0 34px;height:34px;border-radius:50%}
+.nudge b{font-weight:600}.nudge .go{margin-left:auto;font-weight:700;color:var(--blue-deep);white-space:nowrap}
+.linkbtn2{border:0;background:none;padding:0;font-size:13px;font-weight:700;color:var(--ink);text-decoration:underline;min-height:32px}
+.cotw{display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:center}
+.cotw .big{width:96px;height:96px;border-radius:22px}
+.spgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:700px){.spgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.sp{display:grid;grid-template-rows:auto 1fr auto;gap:4px;min-height:132px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--soft);text-decoration:none;color:var(--ink);transition:transform .15s,border-color .15s}
+.sp:hover{transform:translateY(-2px);border-color:var(--blue)}
+.sp .pi{margin:-14px -14px 6px;aspect-ratio:1;background:#FFFFFF;border-radius:15px 15px 0 0;display:grid;place-items:center;overflow:hidden;max-width:none}
+.sp .pi img{width:100%;height:100%;object-fit:contain}
+.sp .c{font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--eyebrow)}
+.sp b{font-size:13px;line-height:1.3}
+.sp .n{font-size:12.5px;line-height:1.35;color:var(--muted)}
+.sp .go{font-size:12px;font-weight:700;color:var(--blue-deep);margin-top:6px}
+.todo-list a{font-size:12px;font-weight:700;color:var(--blue-deep);text-decoration:none;white-space:nowrap;margin-left:auto}
+/* guide topics (app-style screens) */
+.tbar{display:flex;gap:20px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);margin:0 -2px;padding:0 2px}
+.tbar::-webkit-scrollbar{display:none}
+.tbar button{flex:0 0 auto;border:0;background:none;padding:10px 0 12px;font-size:13.5px;font-weight:600;color:var(--muted2);border-bottom:2px solid transparent;margin-bottom:-1px;min-height:44px}
+.tbar button[aria-current="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tp{display:grid;gap:18px}
+.tp h2{font-size:28px}
+.tp-text{display:grid;gap:8px;font-size:14.5px}
+.tp-text ul{margin:0;padding-left:18px;display:grid;gap:5px;color:var(--muted)}
+.tp-sw{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.tp-sw span,.tp-sw button{aspect-ratio:1;border-radius:10px;border:0;padding:0}
+.tp-sw.big{grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}
+.tp-sw .av{position:relative}.tp-sw .av::after{content:"";position:absolute;inset:47% -2px auto;height:2px;background:#fff;transform:rotate(-35deg)}
+.tp-imgs{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:10px}
+@media (max-width:520px){.tp-imgs[style*="--cols:6"]{grid-template-columns:repeat(3,minmax(0,1fr))}.tp-imgs[style*="--cols:4"]{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tp-imgs figure{margin:0;display:grid;gap:6px}
+.tp-imgs .ph{aspect-ratio:var(--ar);border-radius:14px;overflow:hidden;background:var(--soft)}
+.tp-imgs .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.tp-imgs.contain .ph{background:#FFFFFF;border:1px solid #EFE7DC}.tp-imgs.contain .ph img{object-fit:contain;padding:6px}
+.tp-imgs.round .ph{border-radius:50%}
+.tp-imgs figcaption{font-size:12px;font-weight:600;text-align:center;line-height:1.3}
+.tp-imgs.small figcaption{font-size:11px;font-weight:500;color:var(--muted)}
+.tp-pages{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;text-align:left;border:1px solid var(--line);background:#FFFFFF;border-radius:14px;padding:8px 14px 8px 8px;aspect-ratio:auto;cursor:pointer;box-shadow:none}
+.tp-pages img{width:44px;height:62px;object-fit:cover;border-radius:6px}
+.tp-pages span:not(.small){display:grid;gap:2px}
+.tp-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #EFE7DC;padding-top:16px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{font-size:12.5px;padding:6px 12px;border-radius:999px;background:var(--soft)}
+.looks{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin-right:-18px;padding-right:18px}
+.looks::-webkit-scrollbar{display:none}
+.looks img{flex:0 0 170px;height:208px;border-radius:16px;object-fit:cover;background:#F1EEEA;border:1px solid var(--line)}
+details.acc>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary .plus{font-size:22px;color:var(--muted);transition:transform .2s}
+details.acc[open]>summary .plus{transform:rotate(45deg)}
+ol.found{list-style:none;margin:14px 0 0;padding:0;display:grid}
+ol.found li{display:grid;grid-template-columns:30px 1fr auto;gap:12px;padding:12px 0;border-top:1px solid #EFE7DC;align-items:start}
+ol.found .n{width:26px;height:26px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:12px;font-weight:700}
+ol.found .res{font-weight:600;font-size:13px;text-align:right}
+@media (max-width:520px){ol.found li{grid-template-columns:30px 1fr}ol.found .res{grid-column:2;text-align:left;color:var(--blue-ink)}}
+
+/* app card */
+.app{display:grid;grid-template-columns:1fr 96px;gap:14px;align-items:center;padding:20px;border-radius:var(--r);background:var(--pink);border:1px solid #EED3DC}
+.app .eyebrow{color:var(--pink-ink)}
+.app h3{font-size:21px}
+.app p{font-size:13.5px;color:var(--muted)}
+.app img{width:96px;height:128px;border-radius:14px;object-fit:cover}
+
+section[id],.card[id]{scroll-margin-top:72px}
+/* app showcase */
+.show{display:grid;grid-template-columns:150px 1fr;gap:20px;align-items:center;padding:22px;border-radius:var(--r);background:var(--pink);border:1px solid #EED3DC}
+.show .eyebrow{color:var(--pink-ink)}
+.phone{position:relative;width:150px;height:300px;border-radius:28px;border:6px solid var(--ink);background:#FFFFFF;overflow:hidden;box-shadow:0 12px 28px rgba(28,23,18,.22)}
+.phone::before{content:"";position:absolute;top:6px;left:50%;width:44px;height:12px;margin-left:-22px;border-radius:8px;background:var(--ink);z-index:2}
+.phone video{width:100%;height:100%;object-fit:cover;display:block}
+.phone .roll{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:24px 4px 4px;animation:roll 18s linear infinite}
+.phone .roll img{width:100%;height:96px;object-fit:cover;border-radius:8px;display:block}
+@keyframes roll{to{transform:translateY(-50%)}}
+.facts{display:grid;gap:10px;margin:4px 0 6px}
+.facts div{display:flex;align-items:baseline;gap:10px;font-size:13.5px;color:var(--muted)}
+.facts b{font-family:var(--display);font-weight:400;font-size:26px;color:var(--ink);min-width:78px}
+@media (max-width:420px){.show{grid-template-columns:120px 1fr;gap:16px;padding:18px}.phone{width:120px;height:240px;border-radius:24px;border-width:5px}.phone .roll img{height:76px}.facts{gap:8px}.facts div{flex-direction:column;align-items:flex-start;gap:0;font-size:12.5px;line-height:1.3}.facts b{font-size:22px;min-width:0}}
+
+/* palette */
+.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:900px){.tools{display:flex}}
+.saved{display:flex;gap:14px;overflow-x:auto;scrollbar-width:none}
+.saved::-webkit-scrollbar{display:none}
+.saved button{flex:0 0 76px;display:grid;justify-items:center;gap:6px;border:0;background:none;padding:0;font-size:11.5px;font-weight:600;text-align:center;line-height:1.25}
+.saved .dot{width:60px;height:60px;border-radius:50%}
+.saved .add{border:1.5px dashed #CFC3B4;display:grid;place-items:center;color:#8A7E73}
+.fam-head{display:grid;gap:4px}
+.fam-head .t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.fam-head p{font-size:13.5px;color:var(--muted)}
+.chipgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (min-width:600px){.chipgrid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}}
+.pchip{position:relative;display:grid;gap:8px;padding:6px 6px 10px;border:1px solid var(--line);border-radius:16px;background:var(--card);text-align:left;box-shadow:0 4px 12px rgba(28,23,18,.06);transition:transform .15s}
+.pchip:active{transform:scale(.97)}
+.pchip .pc{display:block;height:76px;border-radius:12px}
+.pchip .nm{padding:0 4px;font-size:12.5px;font-weight:600;line-height:1.2}
+.pchip .ht{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:50%;background:#FFFFFF;display:grid;place-items:center;box-shadow:0 2px 6px rgba(28,23,18,.18)}
+.pchip .ht svg{width:14px;height:14px;fill:var(--rose);stroke:var(--rose)}
+.pchip.avoid .pc{position:relative}
+.pchip.avoid .pc::after{content:"";position:absolute;inset:47% -2px auto;height:2px;background:#FFFFFF;transform:rotate(-30deg)}
+.pchip.avoid .nm{color:var(--muted)}
 .swap{display:grid;grid-template-columns:40px 20px 40px 1fr;gap:10px;align-items:center;padding:6px 0}
-.dot{width:40px;height:40px;border-radius:50%;border:1px solid rgba(28,23,18,.14)}
-.arrow{color:var(--muted);text-align:center}
-.screen-note{font-size:12px;color:var(--muted);font-style:italic}
-.combos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+.dot{width:40px;height:40px;border-radius:50%;border:1px solid rgba(28,23,18,.12)}
+.screen-note{font-size:12.5px;color:var(--muted)}
+
+/* colour sheet */
+.sheet-bg{position:fixed;inset:0;z-index:50;background:rgba(28,23,18,.45);display:flex;align-items:flex-end;justify-content:center;animation:fadebg .2s ease}
+@keyframes fadebg{from{opacity:0}to{opacity:1}}
+.sheet{width:100%;max-width:520px;background:#FFFFFF;border-radius:28px 28px 0 0;padding:10px 22px calc(26px + env(safe-area-inset-bottom,0px));display:grid;gap:18px;box-shadow:0 -12px 40px rgba(28,23,18,.18);animation:up .25s cubic-bezier(.2,.8,.2,1);max-height:92vh;overflow:auto}
+@keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+@media (min-width:900px){.sheet-bg{align-items:center}.sheet{border-radius:28px;padding-bottom:26px}}
+.grab{justify-self:center;width:40px;height:4px;border-radius:2px;background:var(--line)}
+.sheet .top-row{display:grid;grid-template-columns:112px 1fr auto;gap:18px;align-items:center}
+.sheet .big{width:112px;height:112px;border-radius:24px}
+.sheet h2{font-size:30px}
+.sheet .x{width:44px;height:44px;border-radius:50%;border:0;background:var(--soft);font-size:20px;align-self:start}
+.sheet .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sheet .acts .btn{border-radius:14px;min-height:50px}
+.heart-btn[aria-pressed="true"]{background:#FFF4F7;border:1px solid #EBC9D4;color:var(--ink)}
+.heart-btn svg{fill:none;stroke:var(--rose);stroke-width:2}
+.heart-btn[aria-pressed="true"] svg{fill:var(--rose);animation:pop .3s ease}
+@keyframes pop{50%{transform:scale(1.35)}}
+.pairs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pairs div{display:grid;gap:6px;font-size:11.5px;color:var(--muted)}
+.pairs .duo{display:flex;height:44px;border-radius:12px;overflow:hidden}
+.pairs .duo span{flex:1}
+.ramp{display:flex;gap:8px}
+.ramp button{flex:1;height:38px;border-radius:10px;border:0;padding:0}
+.ramp button[aria-current="true"]{outline:2px solid var(--ink);outline-offset:2px}
+
+/* try on */
+.modes{display:inline-flex;background:#E8DFD3;border-radius:999px;padding:4px}
+.modes button{border:0;background:none;border-radius:999px;min-height:38px;padding:0 16px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.modes button[aria-pressed="true"]{background:#FFFFFF;color:var(--ink);box-shadow:var(--shadow)}
+.stage{display:grid;max-width:420px}
+.drape{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/5;background:var(--soft);border:0;padding:0;max-width:100%;box-shadow:var(--shadow-lg)}
+.drape canvas{width:100%;height:100%;display:block}
+.drape .tag{position:absolute;left:10px;bottom:10px;font-size:11px;font-weight:700;background:rgba(255,255,255,.92);color:var(--ink);border-radius:999px;padding:5px 11px}
+.drape .ph-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:22px;pointer-events:none}
+.drape .ph-card{display:grid;justify-items:center;gap:8px;max-width:250px;background:rgba(255,255,255,.92);border-radius:20px;padding:20px 18px;box-shadow:0 10px 28px rgba(28,23,18,.16);color:var(--ink)}
+.drape .ph-card b{font-family:var(--display);font-weight:400;font-size:21px}
+.drape .ph-card span:last-child{font-size:12.5px;color:var(--muted);line-height:1.45}
+.drape .ph-ic{width:52px;height:52px;border-radius:50%;background:var(--blue);color:#FFFFFF;display:grid;place-items:center}.drape .ph-ic svg{width:24px;height:24px}
+.drape .ph-empty .ex{font-size:12px;font-weight:700;background:rgba(28,23,18,.78);color:#FFFFFF;border-radius:999px;padding:7px 14px}
+.drape .half{position:absolute;top:0;bottom:0;width:50%;border:0;background:none;padding:0;cursor:pointer}
+.drape .half.l{left:0}.drape .half.r{right:0}
+.drape .half[aria-pressed="true"] .tag{background:var(--ink);color:#FFFFFF}
+.drape .half.l[aria-pressed="true"]{border-radius:20px 0 0 20px}.drape .half.r[aria-pressed="true"]{border-radius:0 20px 20px 0}
+.drape .half.r .tag{left:auto;right:10px}
+.picker{display:grid;gap:12px}
+.picker .sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:8px}
+.sw{aspect-ratio:1;border-radius:50%;border:0;padding:0;position:relative;max-width:100%;box-shadow:inset 0 0 0 1px rgba(28,23,18,.08)}
+.sw[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:2px}
+.sw.avoid::after{content:"";position:absolute;inset:46% -3px auto;height:2px;background:#fff;transform:rotate(-45deg)}
+.filebtn{position:relative;cursor:pointer}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.status-line{font-size:13px;color:var(--muted)}
+.check{display:flex;gap:10px;align-items:flex-start}
+.check input{margin-top:5px;accent-color:var(--blue-deep);width:18px;height:18px}
+.mobile-only{display:none}
+@media (max-width:899px),(pointer:coarse){.mobile-only{display:inline-flex}.card.mobile-only{display:grid}.desktop-only{display:none}}
+
+/* learn */
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#E8DFD3;border-radius:16px;padding:4px;gap:4px;max-width:520px}
+.seg.seg2{grid-template-columns:repeat(2,minmax(0,1fr));max-width:380px}
+.seg button{border:0;background:none;border-radius:12px;min-height:42px;font-size:13px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:var(--ink);box-shadow:var(--shadow)}
+.chgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:700px){.chgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}
+.chcard{display:grid;grid-template-rows:auto 1fr;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);text-align:left;padding:0}
+.chcard .thumb{height:110px;background:var(--soft);overflow:hidden}
+.chcard .thumb img{width:100%;height:100%;object-fit:cover;object-position:top}
+.chcard .t{padding:10px 12px 12px;display:grid;gap:2px}
+.chcard .t b{font-size:13.5px;line-height:1.25}
+.chcard .t span{font-size:11.5px;color:var(--muted)}
+.chcard .lock{font-size:11px;font-weight:700;color:var(--pink-ink)}
+.chapter{display:grid;gap:18px}
+.chapter .band{background:var(--blue);color:#FFFFFF;border-radius:22px 22px 0 0;margin:-20px -20px 0;padding:22px 20px}
+.chapter .band .eyebrow{color:#FFFFFF}
+.chapter .band h2{color:#FFFFFF;font-weight:500}
+.ch-body{display:grid;gap:16px}
+.ch-body h4{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:18px}
+.back{justify-self:start;display:inline-flex;align-items:center;gap:6px;border:0;background:none;font-weight:600;font-size:13.5px;min-height:44px;padding:0}
+.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.pg{border:0;padding:0;background:var(--soft);border-radius:10px;overflow:hidden;cursor:zoom-in;box-shadow:var(--shadow);aspect-ratio:874/1241}
+.pg img{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:640px){.pages{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding-bottom:6px}.pg{flex:0 0 62%;scroll-snap-align:start}}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+td,th{text-align:left;padding:9px 10px;border-bottom:1px solid #EFE7DC;vertical-align:top}
+th{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.locked{display:grid;gap:10px;padding:20px;border-radius:18px;border:1px dashed var(--eyebrow);background:var(--soft)}
+.strokes{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.strokes span{height:22px;border-radius:12px 4px 12px 4px}
+.hair{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.hair div{padding:10px 12px;border-radius:12px;background:var(--soft);font-size:13px}
+.hair b{display:block;font-size:15px}
+.combos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:18px}
 .combo{display:grid;gap:8px;justify-items:center;text-align:center;font-size:13px}
 .circles{display:flex}
 .circles span{width:50px;height:50px;border-radius:50%;margin-left:-14px}
 .circles span:first-child{margin-left:0}
-.ratio{display:flex;height:44px;border-radius:10px;overflow:hidden}
-.ratio div{display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--charcoal)}
-.chapter{display:grid;gap:18px}
-.ch-body{display:grid;gap:16px}
-.ch-body h4{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:18px}
-ul.clean{margin:0;padding-left:18px;display:grid;gap:4px}
-.pills{display:flex;flex-wrap:wrap;gap:6px}
-.pill{font-size:11px;padding:4px 10px;border-radius:20px;background:#F4EEE7}
-.table-wrap{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:13px}
-td,th{text-align:left;padding:9px 10px;border-bottom:1px solid var(--warm);vertical-align:top}
-th{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
-.locked{display:grid;gap:10px;padding:20px;border-radius:var(--r);border:1px dashed var(--tan);background:var(--soft)}
-.strokes{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
-.strokes span{height:22px;border-radius:12px 4px 12px 4px}
-.hair{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.hair div{padding:10px 12px;border-radius:10px;background:var(--soft);font-size:13px}
-.hair b{display:block;font-size:15px}
-.app{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:22px 26px;border-radius:var(--r);background:var(--charcoal);color:#F2EDE6}
-.app .eyebrow{color:#C9B79F}
-.app h3{color:#fff}
-.app p{color:#D9CFC3;font-size:13.5px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;background:var(--charcoal);color:var(--side)}
-.app .btn{background:var(--side);color:var(--charcoal)}
-.btn.ghost{background:#fff;border:1px solid var(--sand);color:var(--charcoal)}
-@media (max-width:560px){.app{grid-template-columns:1fr}}
+.ratio{display:flex;height:44px;border-radius:12px;overflow:hidden}
+.ratio div{display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ink)}
 .quizzes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-.qcard{display:grid;gap:8px;align-content:start;text-align:left;background:#fff;border:1px solid var(--sand);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow);transition:border-color .2s}
-.qcard:hover{border-color:var(--charcoal)}
-.qcard .meta{display:flex;justify-content:space-between;align-items:center}
-.status{font-size:10px;font-weight:700;letter-spacing:.5px;padding:3px 9px;border-radius:20px;background:#F4EEE7;color:var(--muted)}
+.qcard{display:grid;align-content:start;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:0 0 16px;overflow:hidden;box-shadow:var(--shadow);gap:8px;transition:transform .15s}
+.qcard:hover{transform:translateY(-2px)}
+.qcard .meta{display:flex;justify-content:space-between;align-items:center;background:var(--blue);padding:12px 16px}
+.qcard .meta .eyebrow{color:#FFFFFF}
+.qcard h3,.qcard p{padding:0 16px}
+.qcard h3{margin-top:6px}
+.status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.9);color:var(--blue-ink)}
 .status.pass{background:var(--good-bg);color:var(--good)}
-.progress{height:6px;border-radius:999px;background:var(--warm);overflow:hidden}
-.progress div{height:100%;background:var(--charcoal);transition:width .3s}
+.progress{height:6px;border-radius:999px;background:var(--blue-line);overflow:hidden}
+.progress div{height:100%;background:var(--blue);transition:width .3s}
 .qstage{display:grid;gap:18px}
 .qprompt{font-family:var(--display);font-size:24px;line-height:1.25}
 .qvisual{display:flex;justify-content:center}
-.qvisual .big{width:min(160px,40vw);aspect-ratio:1;border-radius:24px;border:1px solid rgba(28,23,18,.1)}
+.qvisual .big{width:min(160px,40vw);aspect-ratio:1;border-radius:24px}
 .opts{display:grid;gap:10px}
 .opts.swatches{grid-template-columns:repeat(3,minmax(0,1fr))}
+.opt{border:1px solid var(--line);background:#FFFFFF;border-radius:14px;padding:14px 16px;text-align:left;font-weight:500;min-height:48px}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.sw-opt{padding:8px;display:grid;justify-items:center}
+.opt.sw-opt span.c{width:100%;aspect-ratio:1;border-radius:10px}
 .opt.sw-opt .circles span{width:clamp(24px,7vw,48px);height:clamp(24px,7vw,48px);margin-left:-8px}
 .opt.sw-opt .circles span:first-child{margin-left:0}
-.toggle{border:1px solid var(--sand);background:#fff;border-radius:24px;padding:8px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-.toggle:hover{border-color:var(--charcoal);color:var(--charcoal)}
-.toggle[aria-pressed="true"]{background:var(--charcoal);color:#fff;border-color:var(--charcoal)}
-.opt{border:1px solid var(--sand);background:#fff;border-radius:12px;padding:13px 16px;text-align:left;font-weight:500}
-.opt:hover:not(:disabled){border-color:var(--charcoal)}
-.opt.sw-opt{padding:8px;display:grid;justify-items:center}
-.opt.sw-opt span.c{width:100%;aspect-ratio:1;border-radius:10px;border:1px solid rgba(28,23,18,.1)}
 .opt.right{border-color:var(--good);background:var(--good-bg)}
 .opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
 .opt:disabled{cursor:default}
-.feedback{padding:12px 14px;border-radius:0 8px 8px 0;background:var(--side);border-left:3px solid var(--charcoal);font-size:13.5px}
+.feedback{padding:12px 14px;border-radius:12px;background:var(--blue-tint);font-size:14px}
 .feedback b{display:block;margin-bottom:2px}
 .score{font-family:var(--display);font-size:56px;line-height:1}
 .confident{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
-.badge{width:56px;height:56px;border-radius:14px;background:#93b4ec;display:grid;place-items:center}
-.badge.off{background:var(--warm)}
-.badge svg{width:40px;height:40px}
-.counter{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.counter>div{display:grid;gap:6px;justify-items:center;padding:14px 8px;border-radius:12px;background:var(--soft);text-align:center}
+.badge{width:56px;height:56px;border-radius:16px;background:var(--blue);display:grid;place-items:center}
+.badge.off{background:#E8E0D5}
+.badge{color:#FFFFFF}.badge.off{color:#9C8F84}.badge svg{width:40px;height:40px}
+.wvideo{width:100%;aspect-ratio:16/9;border-radius:16px;background:#F3ECE6;border:0;display:grid;place-items:center;gap:8px;align-content:center;color:var(--blue-ink)}
+.wvideo .play{width:56px;height:56px;border-radius:50%;background:var(--blue);display:grid;place-items:center}.wvideo .play svg{width:22px;height:22px;fill:#FFFFFF}
+
+/* wardrobe */
+.counter{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.counter>div{display:grid;gap:6px;justify-items:center;padding:14px 8px;border-radius:14px;background:var(--soft);text-align:center}
 .counter .num{font-family:var(--display);font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
 .counter .ctl{display:flex;gap:6px}
-.counter .ctl button{width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:#fff}
-textarea,input[type=text]{width:100%;font:inherit;font-size:14px;color:var(--charcoal);background:var(--side);border:1px solid var(--sand);border-radius:10px;padding:10px 12px}
+.counter .ctl button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#FFFFFF;font-size:18px}
+textarea,input[type=text]{width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
 textarea{min-height:70px;resize:vertical}
-.check{display:flex;gap:10px;align-items:flex-start}
-.check input{margin-top:5px;accent-color:var(--charcoal)}
 .todo{display:flex;gap:8px}
 .todo-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.todo-list li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 12px;border-radius:10px;background:var(--soft);font-size:14px}
-.todo-list button{border:0;background:none;color:var(--muted);font-size:18px;line-height:1}
-.sw-grid.mini{grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
-.mobile-only{display:none}
-@media (max-width:768px),(pointer:coarse){.mobile-only{display:inline-flex}.card.mobile-only{display:grid}.desktop-only{display:none}}
-/* try on */
-.modes{display:inline-flex;background:var(--warm);border-radius:24px;padding:3px}
-.modes button{border:0;background:none;border-radius:20px;padding:7px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-.modes button[aria-pressed="true"]{background:#fff;color:var(--charcoal);box-shadow:var(--shadow)}
-.stage{display:grid;max-width:420px}
-.drape{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/5;background:var(--warm);border:2px solid transparent;padding:0;max-width:100%}
-.drape .half{position:absolute;top:0;bottom:0;width:50%;border:0;background:none;padding:0;cursor:pointer}
-.drape .half.l{left:0}.drape .half.r{right:0}
-.drape .half[aria-pressed="true"]{box-shadow:inset 0 0 0 3px var(--charcoal)}
-.drape .half.l[aria-pressed="true"]{border-radius:12px 0 0 12px}.drape .half.r[aria-pressed="true"]{border-radius:0 12px 12px 0}
-.drape .half.r .tag{left:auto;right:8px}
-.drape canvas{width:100%;height:100%;display:block}
-.drape .tag{position:absolute;left:8px;bottom:8px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(255,255,255,.88);color:var(--charcoal);border-radius:20px;padding:3px 9px}
-.drape .ph-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;font-size:13px;color:var(--muted)}
-.picker{display:grid;gap:10px}
-.picker .sw-grid{grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:8px}
-.filebtn{position:relative;overflow:hidden}
-.filebtn{cursor:pointer}
-.filebtn input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.status-line{font-size:13px;color:var(--muted)}
-/* colour camera */
+.todo-list li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--soft);font-size:14px}
+.todo-list button{border:0;background:none;color:var(--muted);font-size:20px;line-height:1;min-width:32px;min-height:32px}
+.wshop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.wshop img{width:100%;height:150px;object-fit:cover;border-radius:14px}
+
+/* colour camera + page viewer */
 .cam{position:fixed;inset:0;z-index:2000;background:#000;display:flex;flex-direction:column}
 .cam video,.cam img.shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.cam-top{position:relative;z-index:2;display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0));overflow-x:auto;scrollbar-width:none}
-.cam-top button{flex:0 0 auto;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.25);color:#fff;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
-.cam-top button[aria-pressed="true"]{background:#fff;color:var(--charcoal)}
+.cam-top{position:relative;z-index:2;display:flex;gap:8px;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));background:rgba(0,0,0,.45);overflow-x:auto;scrollbar-width:none}
+.cam-top button{flex:0 0 auto;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.25);color:#fff;border-radius:20px;padding:7px 13px;font-size:12px;font-weight:700}
+.cam-top button[aria-pressed="true"]{background:#fff;color:var(--ink)}
 .cam-top .x{font-size:20px;line-height:1;padding:4px 12px}
 .cam-grid{position:relative;z-index:1;flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--d,44px),1fr));gap:var(--g,14px);align-content:start;padding:14px max(14px,env(safe-area-inset-right,0px)) calc(90px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
 .cam-grid span{aspect-ratio:1;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3)}
-.cam-bottom{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;align-items:center;padding:12px 12px calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,rgba(0,0,0,.55),rgba(0,0,0,0));color:#fff;font-size:12px}
+.cam-bottom{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;align-items:center;padding:12px 12px calc(14px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.45);color:#fff;font-size:12px}
 .cam-bottom input[type=range]{width:140px;accent-color:#fff}
 .cam-msg{position:absolute;inset:0;display:grid;place-items:center;z-index:3;background:rgba(0,0,0,.55);color:#fff;text-align:center;padding:24px}
 .cam-msg .stack{max-width:300px;justify-items:center}
-.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.pg{border:0;padding:0;background:var(--warm);border-radius:10px;overflow:hidden;cursor:zoom-in;box-shadow:var(--shadow);aspect-ratio:874/1241}
-.pg img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
-.pg:hover img{transform:scale(1.02)}
-@media (max-width:640px){.pages{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding-bottom:6px}.pg{flex:0 0 62%;scroll-snap-align:start}}
 .rv{position:fixed;inset:0;z-index:1000;background:rgba(20,16,12,.94);display:flex;flex-direction:column}
 .rv-top{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));color:#F9F5F0}
 .rv-count{font-size:12px;letter-spacing:1.5px}
@@ -250,56 +467,53 @@ textarea{min-height:70px;resize:vertical}
 .rv-track::-webkit-scrollbar{display:none}
 .rv-slide{flex:0 0 100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;padding:0 12px calc(16px + env(safe-area-inset-bottom,0px))}
 .rv-slide img{max-width:100%;max-height:calc(100vh - 90px);object-fit:contain;border-radius:6px}
-.rv-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:var(--charcoal);font-size:22px;display:flex;align-items:center;justify-content:center}
+.rv-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.9);color:var(--ink);font-size:22px;display:flex;align-items:center;justify-content:center}
 .rv-arrow.l{left:16px}.rv-arrow.r{right:16px}
 @media (max-width:640px){.rv-arrow{display:none}.rv-slide{padding:0 0 16px}}
-.sw.fav::before{content:"";position:absolute;right:-2px;top:-2px;width:16px;height:16px;border-radius:50%;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%239A6250' d='M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z'/%3E%3C/svg%3E") center/10px no-repeat;box-shadow:0 1px 3px rgba(28,23,18,.25)}
-.heart{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);background:#fff;border-radius:24px;padding:7px 14px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--charcoal)}
-.heart svg{width:16px;height:16px;fill:none;stroke:var(--rose);stroke-width:2}
-.heart[aria-pressed="true"] svg{fill:var(--rose)}
-.favlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px}
-.favitem{display:grid;justify-items:center;gap:6px;text-align:center;font-size:12px;line-height:1.3}
-.favitem .sw{width:52px}
-.pg{position:relative}
-.wmwrap{position:relative;display:inline-block;max-width:100%;max-height:calc(100vh - 90px)}
-.wmwrap img{display:block}
-.wvideo{width:100%;aspect-ratio:16/9;border-radius:12px;background:var(--charcoal);border:0;display:grid;place-items:center;align-content:center;gap:10px;color:#D9CFC3}
-.wvideo .play{width:64px;height:64px;border-radius:50%;background:var(--side);display:grid;place-items:center}
-.wvideo .play svg{width:26px;height:26px;fill:var(--charcoal);margin-left:4px}
-.steplist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.steplist button{width:100%;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;text-align:left;border:1px solid var(--warm);background:var(--side);border-radius:10px;padding:10px 12px;font-size:14px}
-.steplist button:hover{border-color:var(--charcoal)}
-.steplist .tick{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--sand);display:grid;place-items:center;font-size:13px;font-weight:700;background:#fff}
-.steplist .done .tick{background:var(--good);border-color:var(--good);color:#fff}
-.steplist .done span:nth-child(2){color:var(--muted);text-decoration:line-through}
+.footer{font-size:12px;color:var(--muted);padding-top:28px}
 
-/* sign in */
-body.signed-out .sidebar,body.signed-out .main,body.signed-out .bottom-tabs{display:none!important}
+/* Learn: compact image grids that fill the row */
+.tp{max-width:780px}
+.tp .tp-imgs.tp-imgs{--min:80px;grid-template-columns:repeat(auto-fill,minmax(var(--min),1fr));gap:10px}
+.tp .tp-imgs.tp-imgs.round{--min:64px}
+.tp .tp-imgs.tp-imgs[style*="--ar:5/2"]{--min:140px;grid-template-columns:repeat(auto-fill,minmax(140px,170px))}
+.tp .tp-imgs.tp-imgs:is([style*="--ar:3/5"],[style*="--ar:auto"],[style*="--ar:2/3"],[style*="--ar:3/4"],[style*="--ar:4/5"]){--min:104px}
+.tp-imgs[style*="--ar:auto"] .ph{aspect-ratio:3/4}
+.tp-imgs .ph{border-radius:12px}
+.tp-imgs figcaption{font-size:11px}
+.tp .tp-sw{grid-template-columns:repeat(auto-fill,minmax(32px,1fr));gap:6px}
+.tp .tp-sw span{border-radius:8px}
+.looks img{flex-basis:140px;height:172px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---------- Sign in (before the dashboard loads) ---------- */
+body.signed-out .side,body.signed-out .top,body.signed-out .main,body.signed-out .tabbar{display:none!important}
 .signin{min-height:100vh;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
-.signin-card{width:100%;max-width:420px;background:#fff;border:1px solid var(--sand);border-radius:18px;padding:32px 28px;box-shadow:var(--shadow);display:grid;gap:16px}
-.signin-card .slogo{padding:0;border:0;text-align:center}
+.signin-card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:32px 28px;box-shadow:var(--shadow);display:grid;gap:16px}
+.signin-card .slogo{height:34px;justify-self:center}
 .signin-card h1{font-size:28px;text-align:center}
 .signin-card p{text-align:center;color:var(--muted);font-size:13.5px;margin:0 auto}
-.signin-card label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
-.signin-card input{width:100%;font:inherit;font-size:16px;padding:12px 14px;border:1px solid var(--sand);border-radius:10px;background:var(--side);color:var(--charcoal)}
+.signin-card label{font-size:10.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.signin-card input{width:100%;font:inherit;font-size:16px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--ink)}
 .signin-card input#code{font-size:26px;letter-spacing:10px;text-align:center;font-variant-numeric:tabular-nums}
-.signin-card .btn{width:100%;padding:13px 16px}
+.signin-card .btn{width:100%;background:var(--blue);color:#fff;font-weight:700}
 .signin-card .err{color:var(--bad);font-size:13px;text-align:center;min-height:1em}
-.linkbtn{border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;justify-self:center}
-.silinks{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.signin-card p.small{font-size:12px}
+.linkbtn{border:0;background:none;color:var(--muted);font-size:12.5px;text-decoration:underline;justify-self:center;padding:6px}
+.silinks{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px}
 .pwrow{position:relative}
 .pwrow input{padding-right:64px}
 .pwshow{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px}
-.signin-card p.small{font-size:12px}
-.footer{font-size:12px;color:var(--muted);padding-top:28px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ---------- Sidebar links (desktop) + account card ---------- */
+.side .sout{display:block;margin:6px 10px 0;padding:10px;border-radius:12px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;text-align:center;text-decoration:none}
+.side .sout:hover{background:var(--soft);color:var(--ink)}
+.side .sout.first{margin-top:auto}
+#account input{width:100%;max-width:360px;font:inherit;font-size:16px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
 </style>
-
 </head>
-<body>
+<body class="signed-out">
 <div class="signin" id="signin" hidden>
   <form class="signin-card" id="signinForm" novalidate>
-    <div class="slogo">Your <span>SZN</span></div>
+    <img class="slogo" src="img/yourszn-logo.png" alt="YourSZN">
     <h1 id="siTitle">Your colour dashboard</h1>
     <div id="stepMain" class="stack">
       <p>Sign in with the email you used for your colour analysis.</p>
@@ -331,49 +545,67 @@ body.signed-out .sidebar,body.signed-out .main,body.signed-out .bottom-tabs{disp
     <div class="err" id="signinErr" role="alert"></div>
   </form>
 </div>
-<aside class="sidebar" id="sidebar">
-  <button id="sbToggle" title="Collapse sidebar" aria-label="Collapse sidebar">&#8249;</button>
-  <div class="slogo">Your <span>SZN</span></div>
-  <div class="suser"><div class="sulab">Logged in as</div><div class="suname" id="suname">Mia</div></div>
-  <nav class="snav" id="snav" aria-label="Dashboard sections"></nav>
-  <button class="sout" id="signOut" type="button">Sign out</button>
-  <a class="sout" href="index.html">← Back to Portal</a>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><polygon id="starPoly"/></svg>
+
+<aside class="side" aria-label="Dashboard">
+  <img class="logo" src="img/yourszn-logo.png" alt="YourSZN">
+  <div class="who">Signed in as <b id="sideName"></b></div>
+  <nav id="sidenav" style="display:grid;gap:4px"></nav>
+  <button class="sout first" id="signOut" type="button">Sign out</button>
+  <a class="sout" href="index.html">← Back to portal</a>
 </aside>
+
+<header class="top">
+  <img class="logo" src="img/yourszn-logo.png" alt="YourSZN">
+  <button class="avatar" id="avatarBtn" aria-label="Go to Home"></button>
+</header>
 
 <div class="main">
  <div class="inner">
-  <div class="banner">
-    <div class="star" aria-hidden="true"><svg viewBox="0 0 100 100"><polygon id="starPoly" fill="none" stroke="#1C1712" stroke-width="5" stroke-linejoin="round"/></svg></div>
-    <div class="bt"><div class="bnum" id="bnum"></div><div class="blab" id="blab"></div></div>
-  </div>
-  <section class="view" id="v-season"></section>
+  <section class="view" id="v-home"></section>
   <section class="view" id="v-palette" hidden></section>
   <section class="view" id="v-tryon" hidden></section>
-  <section class="view" id="v-guide" hidden></section>
-  <section class="view" id="v-combos" hidden></section>
-  <section class="view" id="v-practise" hidden></section>
-  <section class="view" id="v-closet" hidden></section>
+  <section class="view" id="v-learn" hidden>
+    <div class="head"><span class="eyebrow">Learn</span><h1>Learn your season</h1></div>
+    <div class="seg" role="group" aria-label="Learn sections">
+      <button data-sub="guide">Guide</button><button data-sub="combos">Combos</button><button data-sub="practise">Quizzes</button>
+    </div>
+    <div id="v-guide" class="stack" style="gap:18px"></div>
+    <div id="v-combos" class="stack" style="gap:18px" hidden></div>
+    <div id="v-practise" class="stack" style="gap:18px" hidden></div>
+  </section>
+  <section class="view" id="v-makeup" hidden></section>
+  <section class="view" id="v-wardrobe" hidden>
+    <div class="head"><span class="eyebrow">Wardrobe</span><h1>Your wardrobe</h1></div>
+    <div class="seg seg2" role="group" aria-label="Wardrobe sections">
+      <button data-wsub="picks">Latisha's picks</button><button data-wsub="closet">My wardrobe</button>
+    </div>
+    <div id="v-picks" class="stack" style="gap:18px"></div>
+    <div id="v-closet" class="stack" style="gap:18px" hidden></div>
+  </section>
   <div class="footer">Questions? Email <span style="user-select:all">hello@yourszn.com.au</span>. This dashboard is for your personal use, please don't share or copy its content.</div>
  </div>
 </div>
-<nav class="bottom-tabs" id="btabs" aria-label="Dashboard sections"></nav>
+<nav class="tabbar" id="tabbar" aria-label="Dashboard"></nav>
 <div class="cam" id="cam" hidden role="dialog" aria-label="Colour camera"></div>
 <div class="rv" id="rv" hidden role="dialog" aria-label="Guide pages"></div>
-
+<div id="sheetHost"></div>
 <script>
 /* ================= SIGN IN + DATA (portal) ================= */
 var TOKEN_KEY="szn_colour_token";
-var TOKEN=null,SEASON=null,CLIENT=null,PAGES={},PFX="szn-";
+var TOKEN=null,SEASON=null,CLIENT=null,PAGES={},PFX="szn-",SIMG="";
 try{var t=JSON.parse(localStorage.getItem(TOKEN_KEY)||"null");if(t&&t.expires>Date.now())TOKEN=t.token}catch(e){}
 function api(path,body){
   return fetch("/api/"+path,{method:"POST",headers:Object.assign({"Content-Type":"application/json"},TOKEN?{Authorization:"Bearer "+TOKEN}:{}),body:JSON.stringify(body||{})})
     .then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok){var e=new Error(d.error||"Something went wrong. Please try again.");e.signin=d.signin;throw e}return d})});
 }
-var SYNCED={favs:1,quiz:1,closet:1,watched:1,tried:1},saveTimer=null;
+var SYNCED={favs:1,quiz:1,closet:1,watched:1,tried:1,bag:1},saveTimer=null;
 function store(k,v){try{if(v===undefined){return JSON.parse(localStorage.getItem(PFX+k))}localStorage.setItem(PFX+k,JSON.stringify(v))}catch(e){return undefined}
   if(SYNCED[k]&&TOKEN){clearTimeout(saveTimer);saveTimer=setTimeout(saveState,800)}}
 function saveState(){var g=function(k,d){var x=store(k);return x==null?d:x};
-  api("colour-dashboard",{action:"save",state:{favourites:g("favs",[]),quiz:g("quiz",{}),closet:g("closet",{}),checklist:{watched:!!g("watched",false),tried:!!g("tried",false)}}}).catch(function(e){if(e.signin)signOut(true)})}
+  api("colour-dashboard",{action:"save",state:{favourites:g("favs",[]),quiz:g("quiz",{}),closet:g("closet",{}),checklist:{watched:!!g("watched",false),tried:!!g("tried",false)},makeup_bag:g("bag",[])}}).catch(function(e){if(e.signin)signOut(true)})}
 function refreshPages(){return api("colour-dashboard",{action:"pages"}).then(function(d){PAGES=d.pages||{};document.querySelectorAll("img[data-n]").forEach(function(im){var u=PAGES[im.dataset.n];if(u)im.src=u})}).catch(function(e){if(e.signin)signOut(true)})}
 function loadScriptOnce(src){return new Promise(function(ok,no){var s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 function showSignin(){document.body.classList.add("signed-out");document.getElementById("signin").hidden=false}
@@ -386,11 +618,15 @@ function boot(){
     var st=d.state||{};
     if(st.favourites)store("favs",st.favourites);if(st.quiz)store("quiz",st.quiz);if(st.closet)store("closet",st.closet);
     if(st.checklist){store("watched",!!st.checklist.watched);store("tried",!!st.checklist.tried)}
+    if(st.makeup_bag)store("bag",st.makeup_bag);
     return loadScriptOnce("seasons/"+CLIENT.seasonSlug+".js").then(function(){
       SEASON=(window.SZN_SEASONS||{})[CLIENT.seasonSlug];
       if(!SEASON)throw new Error("season");
-      var over=CLIENT.analysis||{};
-      CLIENT.steps=SEASON.steps.map(function(s){return [s[0],s[1],over[s[0]]||s[2]]});
+      // Seasons not yet written for this design keep the classic dashboard (same sign-in).
+      if(!SEASON.topics){location.replace("colour-dashboard-classic.html"+location.hash);return}
+      CLIENT.full=CLIENT.name;
+      SIMG="seasons/"+CLIENT.seasonSlug+"/";
+      document.title="Your SZN · "+SEASON.name;
       document.body.classList.remove("signed-out");document.getElementById("signin").hidden=true;
       startApp();
       setInterval(refreshPages,((d.pagesExpireIn||900)-180)*1000);
@@ -398,7 +634,7 @@ function boot(){
   }).catch(function(e){
     if(e.signin){signOut(true);return}
     document.body.classList.add("signed-out");var si=document.getElementById("signin");si.hidden=false;
-    si.querySelector(".signin-card").innerHTML='<div class="slogo">Your <span>SZN</span></div><h1>Almost ready</h1><p>'+(e.message==="season"?"Your season dashboard is being prepared. We'll email you as soon as it's ready.":e.message)+'</p><button class="btn" type="button" onclick="location.reload()">Try again</button><button class="linkbtn" type="button" onclick="signOut()">Sign out</button>';
+    si.querySelector(".signin-card").innerHTML='<img class="slogo" src="img/yourszn-logo.png" alt="YourSZN"><h1>Almost ready</h1><p>'+(e.message==="season"?"Your season dashboard is being prepared. We'll email you as soon as it's ready.":e.message)+'</p><button class="btn" type="button" onclick="location.reload()">Try again</button><button class="linkbtn" type="button" onclick="signOut()">Sign out</button>';
   });
 }
 (function(){
@@ -448,17 +684,15 @@ function boot(){
 <script>
 function startApp(){
 
-/* ================= SHARED SEASON CONTENT (one per season, edited from the staff portal) ================= */
-
-/* ================= PER-CLIENT DATA (the only part entered for each client) ================= */
+/* SEASON, CLIENT, PAGES, SIMG and store() come from the sign-in script above. */
 
 /* ================= helpers ================= */
 const $=(s,el=document)=>el.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function hsl(hex){const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn;let h=0,s=0;if(d){s=d/(1-Math.abs(2*l-1));h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}return{h,s,l}}
-function familyOf(hex){const{h,s,l}=hsl(hex);if(s<.23||l>.9)return"neutrals";if(h>=40&&h<160)return"greens";if(h<195&&h>=160)return"aquas";if(h<245&&h>=195)return"blues";if(h<305&&h>=245)return"purples";return"pinks"}
+function familyOf(hex){const k=hex.toLowerCase();if(SEASON.famOf&&SEASON.famOf[k])return SEASON.famOf[k];for(const f in SEASON.families)if(SEASON.families[f].avoid.includes(k))return f;const{h,s,l}=hsl(k);return SEASON.famRule(h,s,l)}
 function wearTip(hex){const{l}=hsl(hex);if(l>.78)return"A light, airy shade. Wear it right up near your face: shirts, knits, tees and scarves.";if(l>.55)return"A mid-light shade and one of your easiest to wear. Great for tops, dresses and knitwear near your face.";if(l>.38)return"A medium shade. Lovely in dresses and tops, or pair it with a lighter shade to keep your contrast soft.";return"One of your deepest shades. Best for bottoms, outerwear, bags and shoes, with a lighter colour near your face."}
-function whyNot(hex){const{h,s,l}=hsl(hex);const r=[];if(l<.22)r.push("too dark and heavy for your light colouring");if(s>.85&&l>.3&&l<.7)r.push("too bright and saturated, where your colours are softly muted");if((h>=20&&h<75)&&s>.3)r.push("too warm, with a yellow or golden base");if(l>.9&&h>=45&&h<75)r.push("a warm cream rather than a cool soft white");if(!r.length)r.push("too warm and earthy for your cool, light palette");return r.slice(0,2).join(", and ")}
+function whyNot(hex){return SEASON.whyNot(hex,hsl)}
 const inPalette=new Set(SEASON.palette);
 const nm=c=>SEASON.names[c]||c.toUpperCase();
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -466,263 +700,80 @@ const pick=(a,n)=>shuffle(a).slice(0,n);
 
 /* star mark */
 (function(){const pts=[];for(let i=0;i<20;i++){const r=i%2?24:46,a=Math.PI*2*i/20-Math.PI/2;pts.push((50+r*Math.cos(a)).toFixed(1)+","+(50+r*Math.sin(a)).toFixed(1))}$("#starPoly").setAttribute("points",pts.join(" "))})();
-
-function appCTA(title,text){return `<div class="app"><div class="stack"><span class="eyebrow">YourSZN app</span><h3>${title}</h3><p>${text}</p></div><a class="btn" href="https://www.yourszn.com.au" target="_blank" rel="noopener">Get the app</a></div>`}
-
-/* ================= SEASON VIEW ================= */
-function scale(label,left,right,grad,a,b){return `<div class="scale"><span class="lbl">${label}</span><div class="bar" style="background:${grad}"><span class="range" style="left:${a}%;width:${b-a}%"></span></div><div class="ends"><span>${left}</span><span>${right}</span></div></div>`}
-function renderSeason(){
-  $("#v-season").innerHTML=`
-  <div class="head"><span class="eyebrow">Hi ${esc(CLIENT.first)}, your result</span><h2>Welcome to the Light Summer Club</h2>
-  </div>
-  ${welcomeVideoHTML()}
-  ${checklistHTML()}
-  <div class="head" style="margin-top:6px"><span class="eyebrow">Your season</span><h2>What Light Summer means</h2>
-  <p class="muted">Light Summers have soft, delicate colouring: fair to medium skin with pink or blue undertones, light hair and light eyes, often with rosy cheeks or a few freckles. Even if you tan to a golden brown, your undertones stay cool and light.</p></div>
-
-  <div class="grid2">
-    <div class="card stack"><span class="eyebrow">Your colour properties</span>
-      ${scale("Temperature","Cool","Warm","linear-gradient(90deg,#1f6ff0,#3fb7c4,#f3f13a,#ff8a1e,#ff3d0a)",13,52)}
-      ${scale("Value","Light","Dark","linear-gradient(90deg,#efe6ff,#c9b2ff,#9b6dff,#5e2fc4)",12,40)}
-      ${scale("Chroma","Muted","Clear","linear-gradient(90deg,#6a5c86,#9d7bd6,#8c4dff)",14,86)}
-      ${scale("Contrast","Low","High","linear-gradient(90deg,#e9e9e9,#9a9a9a,#1b1b1b)",4,60)}
-    </div>
-    <div class="card stack"><span class="eyebrow">Your sister seasons</span>
-      <p>Your two neighbouring seasons are <b>Light Spring</b> and <b>True Summer</b>. Shades from their palettes that sit closest to yours can also work well on you.</p>
-      ${Object.entries(SEASON.neighbours).map(([n,cs])=>`<div class="stack" style="gap:6px"><span class="small"><b>${n}</b></span><div class="sw-grid mini">${cs.map(c=>`<span class="sw" style="background:${c}"></span>`).join("")}</div></div>`).join("")}
-      <span class="eyebrow" style="margin-top:6px">Your best metals</span>
-      <div class="pills"><span class="pill">Silver</span><span class="pill">White gold</span><span class="pill">Rose gold</span><span class="pill">Matte yellow gold, sometimes</span></div>
-      <span class="eyebrow" style="margin-top:6px">Your gemstones</span>
-      <div class="pills"><span class="pill">White pearl</span><span class="pill">Rose quartz</span><span class="pill">Aquamarine</span><span class="pill">Opal</span><span class="pill">Moonstone</span><span class="pill">Amethyst</span></div>
-    </div>
-  </div>
-
-  <div class="card stack"><span class="eyebrow">How we found your season</span>
-    <ol class="steps">${CLIENT.steps.map((s,i)=>`<li><span class="n">${i+1}</span><div><b>${s[0]}</b><p class="small muted">${s[1]}</p></div><span class="result">${s[2]}</span></li>`).join("")}</ol>
-    <p class="small muted">Your full draping photos are in your colour analysis report.</p>
-  </div>
-
-  ${appCTA("Shop your season, done for you","Over 400 styled looks for your Summer season, with links to shop every piece and new looks added every week.")}
-
-  <div class="card stack mobile-only"><span class="eyebrow">Keep it on your phone</span><h3>Add to your home screen</h3>
-    <p class="small muted">Open your dashboard in one tap, just like an app.</p>
-    <div class="grid2"><div class="stack" style="gap:4px"><b class="small">iPhone (Safari)</b><ol class="clean small"><li>Tap the Share button at the bottom of the screen.</li><li>Scroll down and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div>
-    <div class="stack" style="gap:4px"><b class="small">Android (Chrome)</b><ol class="clean small"><li>Tap the three dots at the top right.</li><li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li><li>Tap <b>Add</b>.</li></ol></div></div></div>
-  <div class="card stack"><span class="eyebrow">What to do now</span>
-    <ul class="clean">
-      <li>Explore your palette slowly. There's no need to overhaul your wardrobe.</li>
-      <li>Try new shades in low-pressure pieces first, like gym wear, a cheap tee or accessories.</li>
-      <li>Take the quizzes in <b>Practise</b> so choosing colours in a shop feels easy.</li>
-      <li>Sort your wardrobe with the <b>Closet</b> worksheet when you're ready.</li>
-    </ul>
-    <div class="row"><button class="btn ghost" data-go="practise">Start practising</button><a class="btn ghost" href="https://www.instagram.com/yourszn.online" target="_blank" rel="noopener">Follow @yourszn.online</a></div>
-    <p class="small muted">Loved your analysis? A Google review helps others find Your SZN.</p>
-  </div>
-  ${accountHTML()}`;
-  wireAccount();
-}
-
-
-
-/* ================= ACCOUNT ================= */
-function accountHTML(){
-  return `<div class="card stack" id="account"><span class="eyebrow">Your account</span>
-    <p class="small">Signed in as <b>${esc(CLIENT.email)}</b></p>
-    <div class="row">
-      <button class="btn ghost" id="accPwBtn">${CLIENT.hasPassword?"Change password":"Create a password"}</button>
-      <button class="btn ghost" id="accOut">Sign out</button>
-      <button class="btn ghost" id="accOutAll">Sign out of all devices</button>
-    </div>
-    <form class="stack" id="accPwForm" hidden novalidate>
-      <label class="small" for="accNewPw"><b>${CLIENT.hasPassword?"New password":"Password"}</b></label>
-      <input type="password" id="accNewPw" autocomplete="new-password" minlength="8" style="max-width:360px">
-      <p class="small muted">At least 8 characters. Saving signs you out on your other devices.</p>
-      <div class="row"><button class="btn" type="submit" id="accSave">Save password</button><button class="btn ghost" type="button" id="accCancel">Cancel</button></div>
-    </form>
-    <p class="small" id="accMsg" role="status"></p>
-    <div class="stack" id="accConfirm" hidden><p class="small"><b>Sign out on every phone and computer?</b> You'll need your password or an email code to sign back in.</p>
-      <div class="row"><button class="btn" id="accOutAllYes">Yes, sign out everywhere</button><button class="btn ghost" id="accOutAllNo">Cancel</button></div></div>
-  </div>`}
-function wireAccount(){
-  const msg=t=>{$("#accMsg").textContent=t};
-  $("#accPwBtn").onclick=()=>{$("#accPwForm").hidden=false;$("#accNewPw").focus()};
-  $("#accCancel").onclick=()=>{$("#accPwForm").hidden=true;msg("")};
-  $("#accPwForm").onsubmit=e=>{e.preventDefault();const v=$("#accNewPw").value;if(v.length<8){msg("Please use at least 8 characters.");return}
-    const b=$("#accSave");b.disabled=true;b.textContent="Saving…";
-    api("colour-dashboard",{action:"set_password",password:v}).then(d=>{try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(x){}TOKEN=d.token;CLIENT.hasPassword=true;
-      renderSeason();setTimeout(()=>{$("#accMsg").textContent="Password saved. Use it with your email next time you sign in.";$("#account").scrollIntoView({block:"center"})},0)})
-      .catch(err=>{msg(err.message);b.disabled=false;b.textContent="Save password"})};
-  $("#accOut").onclick=()=>signOut(false);
-  $("#accOutAll").onclick=()=>{$("#accConfirm").hidden=false};
-  $("#accOutAllNo").onclick=()=>{$("#accConfirm").hidden=true};
-  $("#accOutAllYes").onclick=()=>{api("colour-dashboard",{action:"logout_all"}).catch(()=>{}).then(()=>signOut(true))};
-}
-
-/* ================= WELCOME VIDEO + FIRST WEEK ================= */
-function welcomeVideoHTML(){
-  const v=SEASON.welcomeVideo;if(!v)return "";
-  return `<div class="card stack"><span class="eyebrow">A welcome from Latisha</span>
-    ${v?`<video class="wvideo" id="wvid" src="${v}" controls playsinline preload="metadata"></video>`
-      :`<button class="wvideo ph" id="wvid"><span class="play">${'<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg>'}</span><span class="small">Your welcome video will appear here</span></button>`}
-  </div>`}
-function steps(){
-  const pr=progress(),cl=store("closet")||{};
-  return [
-    ...(SEASON.welcomeVideo?[{k:"video",t:"Watch your welcome video",done:!!store("watched"),go:"season"}]:[]),
-    {k:"favs",t:"Save 5 favourite colours",done:favs().length>=5,note:`${Math.min(favs().length,5)} of 5`,go:"palette"},
-    {k:"try",t:"Try your colours on",done:!!store("tried"),go:"tryon"},
-    {k:"quiz",t:"Pass a quiz",done:Object.values(pr).some(x=>x.best>=.7),go:"practise"},
-    {k:"closet",t:"Sort your closet",done:((cl.keep||0)+(cl.maybe||0)+(cl.donate||0))>0,go:"closet"}]}
-function checklistHTML(){
-  const st=steps(),n=st.filter(x=>x.done).length,all=n===st.length;
-  return `<div class="card stack"><div class="confident"><div class="badge ${all?"":"off"}"><svg viewBox="0 0 100 100"><polygon points="${$("#starPoly").getAttribute("points")}" fill="none" stroke="#1C1712" stroke-width="6" stroke-linejoin="round"/></svg></div>
-    <div class="stack" style="gap:6px"><span class="eyebrow">Your first week</span><b>${all?"You're Season Confident!":`${n} of ${st.length} done. Finish them all to earn your Season Confident badge.`}</b><div class="progress"><div style="width:${n/st.length*100}%"></div></div></div></div>
-    <ul class="steplist">${st.map(x=>`<li><button data-go="${x.go}" class="${x.done?"done":""}"><span class="tick" aria-hidden="true">${x.done?"✓":""}</span><span>${x.t}</span><span class="small muted">${x.done?"Done":(x.note||"")}</span></button></li>`).join("")}</ul></div>`}
-document.addEventListener("click",e=>{const v=e.target.closest("#wvid.ph");if(v){store("watched",true);renderSeason()}});
-document.addEventListener("play",e=>{if(e.target.id==="wvid"){store("watched",true)}},true);
-
-/* ================= PALETTE VIEW ================= */
-let showAvoid=false, selected=null;
-function renderPalette(){
-  const groups={};Object.keys(SEASON.families).forEach(k=>groups[k]=[]);
-  SEASON.palette.forEach(c=>groups[familyOf(c)].push(c));
-  ["greens","aquas","blues","purples","pinks"].forEach(k=>groups[k].sort((a,b)=>hsl(a).h-hsl(b).h));
-  groups.neutrals.sort((a,b)=>hsl(b).l-hsl(a).l);
-  const order=["blues","aquas","greens","purples","pinks","neutrals"];
-  $("#v-palette").innerHTML=`
-  <div class="head"><span class="eyebrow">${SEASON.palette.length} colours</span><h2>Your Light Summer palette</h2>
-  <p class="muted">Tap a colour, then the heart to save it to your favourites. Turn on the comparison to see colours that sit outside your palette.</p>
-  <div class="row"><button class="toggle" id="avoidToggle" aria-pressed="${showAvoid}">Compare with colours to avoid</button><button class="toggle" data-go="tryon">Try colours on your face</button><button class="toggle mobile-only" id="camBtn2">Colour camera</button></div></div>
-  <div class="card fam"><div class="row" style="justify-content:space-between"><h3>My favourites</h3><span class="small muted">${favs().length} saved</span></div>
-    ${favs().length?`<div class="favlist">${favs().map(c=>`<div class="favitem"><button class="sw" style="background:${c}" data-c="${c}" data-fav-row="1" aria-label="${nm(c)}" title="${nm(c)}"></button><span>${nm(c)}</span></div>`).join("")}</div>`:`<p class="small muted">Tap any colour below, then tap the heart to save it here.</p>`}
-    ${favs().length?`<div class="row"><button class="toggle" data-go="tryon">Try my favourites on</button></div>`:""}</div>
-  ${order.map(k=>{const f=SEASON.families[k];return `<div class="card fam"><div class="stack"><h3>${f.name}</h3><p class="small muted">${f.text}</p></div>
-    <div class="sw-grid">${groups[k].map(c=>`<button class="sw${isFav(c)?" fav":""}" style="background:${c}" data-c="${c}" aria-label="${nm(c)}" title="${nm(c)}" aria-pressed="${selected===c}"></button>`).join("")}</div>
-    ${showAvoid&&f.avoid.length?`<div class="stack"><span class="eyebrow">Not in your palette</span><div class="sw-grid">${f.avoid.map(c=>`<button class="sw avoid" style="background:${c}" data-c="${c}" data-avoid="1" aria-label="${nm(c)}, not in your palette" title="${nm(c)}" aria-pressed="${selected===c}"></button>`).join("")}</div></div>`:""}
-  </div>`}).join("")}
-  <div class="card stack"><h3>Neighbouring colours</h3><p class="small muted">Colours from your sister seasons. The softer, lighter ones closest to your palette can work on you too.</p>
-    ${Object.entries(SEASON.neighbours).map(([n,cs])=>`<div class="stack" style="gap:6px"><span class="small"><b>${n}</b></span><div class="sw-grid">${cs.map(c=>`<button class="sw${isFav(c)?" fav":""}" style="background:${c}" data-c="${c}" data-nb="${n}" aria-label="${nm(c)}" title="${nm(c)}"></button>`).join("")}</div></div>`).join("")}</div>
-  <div class="grid2">
-    <div class="card stack"><h3>Neutral swaps</h3><p class="small muted">Swap these everyday neutrals for softer, cooler versions.</p>
-      ${SEASON.swaps.map(s=>`<div class="swap"><span class="dot" style="background:${s[0]}"></span><span class="arrow">→</span><span class="dot" style="background:${s[1]}"></span><span class="small"><b>${s[2]}</b> becomes ${s[3]}</span></div>`).join("")}</div>
-    <div class="card stack"><h3>Colours to avoid</h3><p class="small muted">Dark, warm colours overpower your delicate, cool features. Deep oranges, dark browns and intense rusts clash with your natural softness.</p>
-      <div class="sw-grid">${SEASON.avoidGeneral.map(c=>`<button class="sw sq avoid" style="background:${c}" data-c="${c}" data-avoid="1" aria-label="${nm(c)}, not in your palette" title="${nm(c)}"></button>`).join("")}</div>
-      <p class="small muted">Love one of these? Keep it away from your face, or wear it in a print that's at least 80% your colours.</p></div>
-  </div>
-  <p class="screen-note">Screens show colour slightly differently, so treat these swatches as a guide. Check new pieces in natural daylight, near a window if you can.</p>`;
-  $("#avoidToggle").onclick=()=>{showAvoid=!showAvoid;store("avoid",showAvoid);renderPalette()};
-  $("#v-palette").querySelectorAll(".sw[data-c]").forEach(b=>b.onclick=()=>{
-    const again=selected===b.dataset.c;selected=again?null:b.dataset.c;
-    $("#v-palette").querySelectorAll(".sw[data-c]").forEach(x=>x.setAttribute("aria-pressed",!again&&x===b));
-    $("#v-palette").querySelectorAll(".detail").forEach(d=>d.remove());
-    if(again)return;const grid=b.closest(".sw-grid");const d=document.createElement("div");d.className="detail";d.setAttribute("aria-live","polite");grid.after(d);
-    showDetail(d,selected,!!b.dataset.avoid,b.dataset.nb)});
-  const cb=$("#camBtn2");if(cb)cb.onclick=openCamera;
-}
-function showDetail(el,c,avoid,nb){
-  const fam=SEASON.families[familyOf(c)].name;const fav=isFav(c);
-  el.innerHTML=`<span class="big" style="background:${c}"></span><div class="stack" style="gap:2px"><span class="eyebrow">${nb?nb:avoid?"Not in your palette":fam}</span><b style="font-family:var(--display);font-size:20px;font-weight:400">${nm(c)}</b><span class="small muted">${c.toUpperCase()}</span></div>${avoid?"":`<button class="heart" aria-pressed="${fav}" aria-label="${fav?"Remove from favourites":"Save to favourites"}">${HEART}<span>${fav?"Saved":"Save"}</span></button>`}<button class="dx" aria-label="Close">×</button>`;
-  el.querySelector(".dx").onclick=()=>{selected=null;el.remove();$("#v-palette").querySelectorAll(".sw[aria-pressed=true]").forEach(x=>x.setAttribute("aria-pressed","false"))};
-  const h=el.querySelector(".heart");if(h)h.onclick=()=>{toggleFav(c);const keep=selected;renderPalette();selected=keep;const b=$(`#v-palette .sw[data-c="${c}"]:not([data-fav-row])`);if(b){b.setAttribute("aria-pressed","true");const d=document.createElement("div");d.className="detail";b.closest(".sw-grid").after(d);showDetail(d,c,false,b.dataset.nb)}};
-}
 const HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
 const favs=()=>store("favs")||[];
 const isFav=c=>favs().includes(c);
 function toggleFav(c){const f=favs();store("favs",f.includes(c)?f.filter(x=>x!==c):[...f,c])}
-
 /* ================= GUIDE VIEW ================= */
-let guideIdx=store("ch")||0;
+let guideIdx=-1;
 const GP=SEASON.guidePages;
 const pgSrc=n=>PAGES[n]||"";
 function ch(title,sub,body){const pages=GP[title]||[];const locked=body.includes('class="locked"');
-  return `<article class="card chapter" data-t="${title.replace(/&amp;/g,"&")}"><div class="head"><span class="eyebrow">${sub}</span><h2>${title}</h2></div><div class="ch-body">${body}</div>${pages.length&&!locked?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} page${pages.length>1?"s":""}, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" src="${pgSrc(n)}" data-n="${n}" alt="${esc(CLIENT.season)} guide page" width="874" height="1241"></button>`).join("")}</div></div>`:""}</article>`}
+  return `<article class="card chapter" data-t="${title.replace(/&amp;/g,"&")}"><div class="band"><span class="eyebrow">${sub}</span><h2>${title}</h2></div><div class="ch-body">${body}</div>${pages.length&&!locked?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} page${pages.length>1?"s":""}, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></div>`:""}</article>`}
 function premium(title,body){return CLIENT.tier==="premium"?body:`<div class="locked"><b>${title} is part of the Premium Colour Analysis</b><p class="small muted">Premium clients get hair colour, makeup, nail and perfume recommendations for their season.</p><a class="btn" href="https://www.yourszn.com.au" target="_blank" rel="noopener">Upgrade to Premium</a></div>`}
+/* ================= MAKEUP (premium chapter) ================= */
+let mkTab=store("mktab")||"lips";
+const bag=()=>store("bag")||[];
+function prodCard(x){const on=bag().includes(x.img);return `<div class="prod"><div class="pi"><img src="${SIMG}${x.img}" alt="${esc(x.brand)} ${esc(x.name)}" loading="lazy"></div><div class="pt"><b>${esc(x.brand)}</b><span>${esc(x.name)}</span>${x.url?`<a class="shoplink" href="${x.url}" target="_blank" rel="noopener">Shop →</a>`:""}</div><button class="bagbtn" data-bag="${x.img}" aria-pressed="${on}" aria-label="${on?"Remove from":"Add to"} my makeup bag">${HEART}</button></div>`}
+function renderMakeup(){const M=SEASON.makeup;if(!M)return"";
+  const all=M.sections.flatMap(s=>(s.groups||[]).flatMap(g=>g[1]));const mine=all.filter(x=>bag().includes(x.img));
+  const tabs=[...M.sections.map(s=>[s.k,s.t]),...(mine.length?[["bag",`My bag (${mine.length})`]]:[])];
+  if(!tabs.some(t=>t[0]===mkTab))mkTab="lips";
+  const sec=M.sections.find(s=>s.k===mkTab);
+  const body=mkTab==="bag"?`<div class="mk-sec"><p class="small muted">Products you've saved from your guide. Take this list shopping.</p><div class="prods">${mine.map(prodCard).join("")}</div></div>`
+   :`<div class="mk-sec"><p>${sec.text}</p>
+    ${sec.shades?`<div class="stack" style="gap:10px"><span class="eyebrow">Your shades</span><div class="shades">${sec.shades.map(([c,n])=>`<div><span style="background:${c}"></span>${n}</div>`).join("")}</div>${sec.shadeNote?`<p class="small muted">${sec.shadeNote}</p>`:""}</div>`:""}
+    ${sec.do?`<div class="dd"><div class="y"><b>Choose</b>${sec.do}</div><div class="n"><b>Avoid</b>${sec.avoid}</div></div>`:""}
+    ${sec.steps?`<ol class="prepsteps">${sec.steps.map(([t,d],i)=>`<li><span class="n">${i+1}</span><div><b>${t}</b><p class="small muted">${d}</p></div></li>`).join("")}</ol>`:""}
+    ${(sec.groups||[]).map(([t,list])=>`<div class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="eyebrow">${t}</span><span class="small muted">${list.length} from your guide</span></div><div class="prods">${list.map(prodCard).join("")}</div></div>`).join("")}</div>`;
+  return `<div class="mk" id="mk"><p>${M.intro}</p>
+    ${(SEASON.makeupLooks||[]).length?`<div class="looks">${SEASON.makeupLooks.map(n=>`<img src="${SIMG}${n}" alt="${SEASON.name} makeup look" loading="lazy">`).join("")}</div>`:""}
+    <div class="mk-keys">${M.keys.map(([a,b])=>`<div><b>${a}</b>${b}</div>`).join("")}</div>
+    ${mine.length?"":`<div class="mk-bag"><span>Tap the heart on any product to save it to your makeup bag.</span></div>`}
+    <div class="chips" role="group" aria-label="Makeup sections">${tabs.map(([k,t])=>`<button class="chip" data-mk="${k}" aria-pressed="${k===mkTab}">${t}</button>`).join("")}</div>
+    ${body}</div>`}
+function redrawMakeup(){const el=$("#mk");if(!el)return;const t=document.createElement("div");t.innerHTML=renderMakeup();el.replaceWith(t.firstElementChild)}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-mk]");if(t){mkTab=t.dataset.mk;store("mktab",mkTab);redrawMakeup();const c=$(`#mk [data-mk="${mkTab}"]`);if(c)c.scrollIntoView({block:"nearest",inline:"center"});return}
+  const b=e.target.closest("[data-bag]");if(b){const k=b.dataset.bag,l=bag();store("bag",l.includes(k)?l.filter(x=>x!==k):[...l,k]);
+    const on=bag().includes(k);document.querySelectorAll(`[data-bag="${k}"]`).forEach(x=>{x.setAttribute("aria-pressed",on)});
+    const chip=$('#mk [data-mk="bag"]'),n=bag().length;if(!chip&&n||chip&&!n||mkTab==="bag")redrawMakeup();else if(chip)chip.textContent=`My bag (${n})`}});
+let topicK=store("topic")||"welcome";
+function blockHTML(b){
+  const imgSrc=x=>SIMG+x.img;
+  switch(b.type){
+  case "text":return `<div class="tp-text">${b.p?`<p>${b.p}</p>`:""}${b.bullets?`<ul>${b.bullets.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}</div>`;
+  case "scale":{const [l,a,c,g,x,y,v]=SEASON.scales[b.i];return `<div class="scale"><div class="sh"><span>${l}</span><b>${v}</b></div><div class="bar" style="background:${g}" role="img" aria-label="${l}: ${v}"><span class="fade l" style="width:${x}%"></span><span class="fade r" style="width:${100-y}%"></span><span class="range" style="left:${x}%;width:${y-x}%"></span></div><div class="ends"><span>${a}</span><span>${c}</span></div></div>`}
+  case "swatches":return b.rows.map(([l,cs])=>`<div class="stack" style="gap:8px"><span class="eyebrow">${l}</span><div class="tp-sw">${cs.map(c=>`<span style="background:${c}"></span>`).join("")}</div></div>`).join("");
+  case "family":{const cs=SEASON.palette.filter(c=>familyOf(c)===b.k).sort((a,c)=>hsl(c).l-hsl(a).l);return `<div class="tp-sw big">${cs.map(c=>`<button data-c="${c}" style="background:${c}" aria-label="${nm(c)}" title="${nm(c)}"></button>`).join("")}</div>`}
+  case "swaps":return `<div class="stack" style="gap:6px"><span class="eyebrow">Neutral swaps</span>${SEASON.swaps.map(s=>`<div class="swap"><span class="dot" style="background:${s[0]}"></span><span aria-hidden="true">→</span><span class="dot" style="background:${s[1]}"></span><span class="small"><b>${s[2]}</b> becomes ${s[3]}</span></div>`).join("")}</div>`;
+  case "avoid":{const all=[...new Set([...SEASON.avoidGeneral,...Object.values(SEASON.families).flatMap(f=>f.avoid)])];return `<div class="tp-sw big">${all.map(c=>`<button class="av" data-c="${c}" data-avoid="1" style="background:${c}" aria-label="${nm(c)}, not in your palette" title="${nm(c)}"></button>`).join("")}</div>`}
+  case "imgs":return `${b.label?`<span class="eyebrow">${b.label}</span>`:""}<div class="tp-imgs${b.round?" round":""}${b.contain?" contain":""}${b.small?" small":""}" style="--cols:${b.cols};--ar:${b.aspect||"1/1"}">${b.items.map(x=>`<figure><div class="ph"><img src="${imgSrc(x)}" alt="${esc(x.label||"")}" loading="lazy"></div>${x.label?`<figcaption>${esc(x.label)}</figcaption>`:""}</figure>`).join("")}</div>`;
+  case "pills":return `<div class="stack" style="gap:8px">${b.label?`<span class="eyebrow">${b.label}</span>`:""}<div class="pills">${b.items.map(x=>`<span class="pill">${esc(x)}</span>`).join("")}</div></div>`;
+  case "go":return `<button class="btn ghost" data-go="${b.to}" style="justify-self:start">${b.label}</button>`;
+  case "app":return `<a class="nudge" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener"><span class="sw2" style="background:linear-gradient(135deg,${SEASON.sig.slice(0,3).join(",")})"></span><span>${b.text}</span><span class="go">In the app →</span></a>`;
+  case "pages":return `<button class="tp-pages" data-pages="${b.pages.join(",")}" data-i="0"><img data-n="${b.pages[0]}" src="${pgSrc(b.pages[0])}" alt="" loading="lazy"><span><b>See it in your guide</b><span class="small muted">${b.pages.length} page${b.pages.length>1?"s":""}</span></span><span aria-hidden="true">›</span></button>`;
+  }return ""}
 function renderGuide(){
-  const hair=[["7.1","Medium Ash Blonde"],["8.1","Light Ash Blonde"],["9.1","Very Light Ash Blonde"],["10.1","Extra Light Ash Blonde"],["6.01","Dark Ash Blonde"],["7.01","Medium Ash Blonde"],["8.01","Light Ash Blonde"],["9.01","Very Light Ash Blonde"],["9.2","Very Light Violet Blonde"],["10.7","Extra Light Cool Beige Blonde"],["10.32","Extra Light Cool Chocolate Blonde"],["5.0","Light Brown"]];
-  $("#v-guide").innerHTML=`
-  <div class="head"><span class="eyebrow">Your season guide</span><h2>The Light Summer guide</h2><p class="muted">Your full e-guide, chapter by chapter. Read the quick summary, then tap any page to see it full size.</p></div>
-  <div class="subtabs" id="gnav"></div>
-  <div class="stack" id="chapters">
-  ${ch("Welcome","Start here",`<p>Welcome to the Light Summer Club. Your guide is your step-by-step companion for making the most of your season. Wearing your right colours can even out your skin tone, brighten your eyes and help you look fresh and polished with less effort.</p><p class="small muted">Tip: lighting changes everything. Check colours in natural daylight, near a window, before you buy.</p>`)}
-  ${ch("About Light Summer","Your season",`<p>Summer is the cool season, with three sub-seasons: Light, True and Soft Summer. Light Summers have soft, delicate colouring with fair to medium skin, pink or blue undertones and light hair and eyes. Your colours are cool, light and gently muted.</p><p>Your sister seasons are Light Spring and True Summer.</p>`)}
-  ${ch("Your colours","Your palette",`<p>Over 100 Light Summer colours, family by family, with the colours to avoid beside each one so you can see the difference.</p><div class="row"><button class="btn ghost" data-go="palette">Open my palette</button><button class="btn ghost" data-go="tryon">Try them on my face</button></div>`)}
-  ${ch("Contrast","Why soft beats stark for you",`
-    <p>Picture an outfit in black and white. The difference between its lightest and darkest parts is its contrast. Light Summers shine in <b>low to medium contrast</b>, and the same goes for your makeup.</p>
-    <div class="table-wrap"><table><tr><th>Level</th><th>Shade difference</th><th>For you</th></tr><tr><td>Low</td><td>1 to 3</td><td>Your sweet spot</td></tr><tr><td>Medium</td><td>4 to 6</td><td>Works well</td></tr><tr><td>High</td><td>7 to 9</td><td>Overpowers you, like black with bright white</td></tr></table></div>`)}
-  ${ch("Patterns, prints &amp; fabric","Soft shapes, matte finishes",`
-    <div><h4>Patterns</h4><p>Choose soft, delicate patterns with rounded shapes: swirls, dots, paisley and gentle florals in cool pastels. Avoid bold or high-contrast prints.</p></div>
-    <div><h4>The 80% rule</h4><p>A print works for you when at least 80% of its colours come from your palette.</p></div>
-    <div><h4>Fabric &amp; texture</h4><p>Summers often have more delicate skin. Pick soft, lightweight fabrics with a matte or low-sheen finish: cotton, linen, silk blends and lightweight wool. Skip anything very shiny or harsh.</p></div>
-    <div><h4>Denim</h4><p>Light to mid washes with a cool, blue-grey cast. Avoid yellowed vintage washes and very dark indigo.</p></div>`)}
-  ${ch("Outfit inspiration","Basics, shoes, bags and accessories",`<p>Soft, airy outfits in your colours, plus the basics, shoes, bags and accessories to build them from.</p>${appCTA("Shop these looks","The YourSZN app has over 400 styled looks for your Summer season, with links to shop every piece.")}`)}
-  ${ch("Jewellery, gems &amp; eyewear","Cool metals and soft stones",`
-    <p>Silver, white gold and rose gold suit you best, and you can sometimes wear matte yellow gold. Pearls, rose quartz, opal, moonstone, amethyst and aquamarine echo your soft, cool colouring.</p>
-    <p><b>Eyewear:</b> any colour from your palette works for frames. Clear, soft lilac, blush, silver and pale blue are easy starting points.</p>
-    <div><h4>Brands from your guide</h4><div class="pills">${["Waldor & Co.","Swarovski","Toni May","The Silver Collective","Revolve","Mejuri","Silver Australia","Cos"].map(b=>`<span class="pill">${b}</span>`).join("")}</div></div>`)}
-  ${ch("Hair colour","Light, cool and ash tones",premium("Hair colour",`
-    <p>Avoid very dark or very warm hair colours. Dark hair can wash you out and warm tones clash with your cool undertones. A light, cool or slightly warm-leaning blonde is the boldest choice to keep balance.</p>
-    <div><h4>Shades to ask your colourist about</h4><div class="hair">${hair.map(h=>`<div><b>${h[0]}</b>${h[1]}</div>`).join("")}</div></div>`))}
-  ${ch("Makeup","Fresh, cool and soft",premium("Makeup",`
-    <p>Think soft, fresh and cool. Cool-toned pastels and gentle neutrals bring out your features without overwhelming your skin. The "clean girl" look is perfect for your season.</p>
-    <div><h4>Lips</h4><p>Best colours: soft plum, antique pink, rose pink, watermelon, soft salmon, coral pink and red violets. Choose matte to light sheen. High gloss can feel too bold on you.</p>
-      <p class="small muted">From your guide: Dior Addict Shine 576 Rose Bagatelle, Burberry Kisses 25 English Petal, Clinique Longwear Lipstick Shine in Melon Pop, YSL Loveshine 209 Pink Desire, Glossier Ultralip in Portrait.</p></div>
-    <div><h4>Blush</h4><p>Soft rose, antique pink and tea rose give a natural flush.</p><div class="strokes">${SEASON.blush.map(c=>`<span style="background:${c}"></span>`).join("")}</div>
-      <p class="small muted">From your guide: Rare Beauty Soft Pinch Liquid Blush in Bliss, Dior Rouge Blush 212 Tutu, Glossier Cloud Paint in Puff, Tower 28 BeachPlease in Magic Hour.</p></div>
-    <div><h4>Eyes</h4><p>Highlight with pewter, champagne, lemon, soft iris, dusty plum and soft pinks. Add depth with Wedgwood blue, plum, cocoa, soft teal, light aqua and medium grey.</p><div class="strokes">${SEASON.shadow.map(c=>`<span style="background:${c}"></span>`).join("")}</div>
-      <p>Mascara in charcoal, cocoa or navy. Eyeliner in silvery green, grey, smoky blue or cocoa.</p></div>
-    <div><h4>Contour &amp; highlight</h4><p>Use cool-toned contour rather than warm bronzer. Highlight with champagne, soft pink or dusty plum.</p></div>
-    <div><h4>Nails &amp; perfume</h4><p>The natural, barely-there nail is a timeless Light Summer favourite, and any colour from your palette works. For perfume, citrus and fresh-air notes are the classic Summer match.</p></div>
-    <div><h4>Before you buy</h4><p>Always swatch makeup on your own skin first. Lips and skin react to pigments differently, even within your palette. Two or three lipsticks are plenty: one for every day, one for evening and maybe one for special occasions.</p></div>`))}
-  ${ch("Light Summers to follow","Inspiration from your season",`
-    <div class="pills">${["Margot Robbie","Cate Blanchett","Naomi Watts","January Jones","Lili Reinhart","Taeyeon","Alla Bruletova","Austin Butler","Neil Patrick Harris"].map(b=>`<span class="pill">${b}</span>`).join("")}</div>
-    <p class="small muted">Even celebrities miss the mark sometimes, with hair colours or outfits outside their season. Not every Light Summer looks alike either.</p>`)}
-  ${ch("Shopping tips","Lighting, names and the maybe rule",`
-    <div><h4>Check the light</h4><p>Many shops use dim or warm lighting that flatters clothes. Check colours near a window or take a mirror selfie outside the change room.</p></div>
-    <div><h4>Colour names aren't fixed</h4><p>One brand's "teal" is another's "aqua". Judge the colour itself, not its name.</p></div>
-    <div><h4>Fit matters as much as colour</h4><p>The perfect shade won't shine in the wrong cut or fabric. And you won't love every colour in your palette, which is completely normal.</p></div>
-    <div><h4>The golden rule</h4><p class="note" style="font-size:18px">If it feels like a "maybe", it's a no.</p></div>
-    <div><h4>Foundation &amp; fake tan</h4><p>Don't choose foundation by "warm" or "cool" labels, since brands use them differently. Test in store and take a sample home for a few days. For fake tan, go lighter and choose ash, violet or blue-based formulas.</p></div>
-    <div><h4>Where to start</h4><div class="pills">${["Uniqlo","Sheike","Zara","H&M","Marks and Spencer","Tommy Hilfiger","Aje World","Henne","Cotton On","Forcast","Charles & Keith","Novo Shoes","Nine West"].map(b=>`<span class="pill">${b}</span>`).join("")}</div></div>
-    ${appCTA("Want the exact pieces?","The YourSZN app links straight to items in your colours from these brands and more.")}`)}
-  ${ch("Colour basics","The theory behind your season",`
-    <div><h4>Hue, value and chroma</h4><p><b>Hue</b> is the colour's name, like blue or pink. <b>Value</b> is how light or dark it is. <b>Chroma</b> is how vivid or muted it is. Light Summer colours are cool in hue, light in value and soft to medium in chroma.</p></div>
-    <div><h4>Tints, tones and shades</h4><p>A <b>tint</b> adds white, a <b>tone</b> adds grey and a <b>shade</b> adds black. Your palette is mostly tints and soft tones.</p></div>
-    <div><h4>Enhancers and intensifiers</h4><p><b>Enhancers</b> echo your own hair, skin or eye colour for a harmonious look. <b>Intensifiers</b> sit opposite your eye colour on the colour wheel and make your eyes stand out. Wear both above the waist.</p></div>
-    <div><h4>Why wrong colours look "off"</h4><p>Colours that are too warm, dark or heavy for you can make skin look dull and tired, and show up redness and dark circles. The right colours feel effortless.</p></div>
-    <div><h4>Ageing and your colours</h4><p>Your undertone stays the same, but hair and skin soften over time. If your colours stop feeling right, a refresh session is worth it.</p></div>`)}
-  ${ch("Myths &amp; FAQs","The questions everyone asks",`
-    <div class="table-wrap"><table><tr><th>Myth</th><th>Truth</th></tr>
-      <tr><td>The vein test tells you your undertone</td><td>Lighting, skin thickness and vein depth make it unreliable.</td></tr>
-      <tr><td>Everyone looks good in black</td><td>Black overpowers many people, Light Summers included.</td></tr>
-      <tr><td>You'll look good in every palette colour</td><td>You'll look harmonious in most, but some will suit you better than others.</td></tr>
-      <tr><td>You must replace your whole wardrobe</td><td>Not at all. Change at your own pace.</td></tr></table></div>
-    <div><h4>My favourite colour isn't in my palette</h4><p>You can still wear it. Keep it away from your face, show some skin between it and your face (like a bandeau top), or wear it in a print that's mostly your colours.</p></div>
-    <div><h4>A colour in my palette doesn't suit me</h4><p>That's normal. Your palette is a framework, not a rulebook. Skin variations and preference play a part.</p></div>
-    <div><h4>I got a different season before</h4><p>Older 4-season systems, different naming systems and between-season results can all explain it. Message Latisha if you're unsure.</p></div>`)}
-  ${ch("Closet clean-up","Your wardrobe worksheet",`<p>Sort your wardrobe into keep, maybe and donate, then plan what to shop next.</p><div class="row"><button class="btn ghost" data-go="closet">Open the closet worksheet</button></div>`)}
-  </div>`;
-  const arts=[...document.querySelectorAll("#chapters .chapter")];
-  const show=i=>{guideIdx=i;store("ch",i);arts.forEach((a,n)=>a.hidden=n!==i);$("#gnav").querySelectorAll(".subtab").forEach((b,n)=>b.setAttribute("aria-pressed",n===i))};
-  $("#gnav").innerHTML=arts.map((a,i)=>`<button class="subtab" data-i="${i}">${esc(a.dataset.t)}</button>`).join("");
-  $("#gnav").querySelectorAll(".subtab").forEach(b=>b.onclick=()=>show(+b.dataset.i));
-  show(Math.min(guideIdx,arts.length-1));
+  const T=SEASON.topics;if(!T.some(t=>t.k===topicK))topicK=T[0].k;const tp=T.find(t=>t.k===topicK),idx=T.indexOf(tp);
+  $("#v-guide").innerHTML=`<nav class="tbar" aria-label="Guide topics">${T.map(t=>`<button data-topic="${t.k}" aria-current="${t.k===topicK?"true":"false"}">${t.t}</button>`).join("")}</nav>
+  <article class="card tp"><h2>${tp.h}</h2>${tp.blocks.map(blockHTML).join("")}
+    <div class="tp-nav">${idx>0?`<button class="linkbtn2" data-topic="${T[idx-1].k}">‹ ${T[idx-1].t}</button>`:"<span></span>"}${idx<T.length-1?`<button class="btn blue" data-topic="${T[idx+1].k}">${T[idx+1].t} ›</button>`:""}</div></article>`;
+  const cur=$('#v-guide .tbar [aria-current="true"]');if(cur)cur.scrollIntoView({block:"nearest",inline:"center"});
+  $("#v-guide").querySelectorAll(".tp [data-c]").forEach(b=>b.onclick=()=>openSheet(b.dataset.c,!!b.dataset.avoid));
 }
+document.addEventListener("click",e=>{const b=e.target.closest("[data-topic]");if(b){topicK=b.dataset.topic;store("topic",topicK);renderGuide();if(b.closest(".tp-nav"))$("#v-learn").scrollIntoView({block:"start"})}});
 
 /* ================= COMBOS VIEW ================= */
 function renderCombos(){
   $("#v-combos").innerHTML=`
-  <div class="head"><span class="eyebrow">Colour combos</span><h2>Putting your colours together</h2><p class="muted">Every season uses the same combinations. What changes is how they look. For a Summer, combos stay cool, soft and low in contrast.</p></div>
+  <div class="head"><p class="muted">${SEASON.comboIntro}</p></div>
   ${Object.entries(SEASON.combos).map(([type,list])=>`<div class="card stack"><h3>${type}</h3>
-    <p class="small muted">${{"Complementary":"Colours from opposite sides of the colour wheel. Eye-catching, and in your soft shades it never feels harsh.","Analogous":"Neighbouring colours that share an undertone. Calm and easy, with gentle colour flow.","Monochromatic":"Lighter and deeper versions of one colour. Add interest with texture: a knit with silk, linen with cotton."}[type]}</p>
+    <p class="small muted">${SEASON.comboText[type]||""}</p>
     <div class="combos">${list.map(([cs,name])=>`<div class="combo"><div class="circles">${cs.map(c=>`<span style="background:${c}"></span>`).join("")}</div>${name}</div>`).join("")}</div></div>`).join("")}
   <div class="grid2">
-    <div class="card stack"><h3>The colour pop rule</h3><p class="small">Use colour in a 60, 30, 10 ratio: 60% base neutral, 30% supporting colour and 10% pop.</p>
-      <div class="ratio"><div style="flex:60;background:#bcbec2">60%</div><div style="flex:30;background:#85a3e0">30%</div><div style="flex:10;background:#e185a3">10%</div></div>
-      <p class="small muted">Example: light grey trousers, a periwinkle knit and a rose pink bag.</p></div>
-    <div class="card stack"><h3>Neutral + one colour</h3><p class="small">Start with a cool, muted neutral like soft grey, blue-grey or cool taupe and add one soft colour. The neutral gives the eye a place to rest.</p>
-      <div class="ratio"><div style="flex:1;background:#a39990"></div><div style="flex:1;background:#bfb2cc"></div><div style="flex:1;background:#829498"></div><div style="flex:1;background:#84e0c2"></div></div></div>
-    <div class="card stack"><h3>Soft contrast</h3><p class="small">When you want a bit more definition, pair two clearly different colours that share a similar depth and a cool undertone. Different, but never extreme.</p>
-      <div class="ratio"><div style="flex:1;background:#7499be"></div><div style="flex:1;background:#e699a5"></div></div></div>
+    ${SEASON.comboCards.map(([t,txt,bar,ex])=>`<div class="card stack"><h3>${t}</h3><p class="small">${txt}</p>
+      <div class="ratio">${bar.map(([c,f,l])=>`<div style="flex:${f};background:${c}">${l||""}</div>`).join("")}</div>${ex?`<p class="small muted">${ex}</p>`:""}</div>`).join("")}
     <div class="card stack"><h3>The travel capsule</h3><p class="small">Packing within your palette means everything works together.</p>
       <ul class="clean small"><li>5 tops and 4 bottoms</li><li>3 dresses, 3 accessories and 3 pairs of shoes</li><li>2 bags and 2 jackets</li><li>1 extra item of your choice</li></ul></div>
   </div>
@@ -735,43 +786,34 @@ const QUIZZES={
     const yes=pick(SEASON.palette.filter(c=>hsl(c).l>.3),4).map(c=>({c,ok:true}));
     const allAvoid=[...SEASON.avoidGeneral,...Object.values(SEASON.families).flatMap(f=>f.avoid)];
     const no=pick(allAvoid,4).map(c=>({c,ok:false}));
-    return shuffle([...yes,...no]).map(x=>({prompt:"Is this a Light Summer colour?",visual:`<span class="big" style="background:${x.c}"></span>`,opts:["Yes, it's mine","No, skip it"],ans:x.ok?0:1,
+    return shuffle([...yes,...no]).map(x=>({prompt:`Is this a ${SEASON.name} colour?`,visual:`<span class="big" style="background:${x.c}"></span>`,opts:["Yes, it's mine","No, skip it"],ans:x.ok?0:1,
       why:x.ok?`That's ${nm(x.c)}, one of your palette colours.`:`That's ${nm(x.c)}. It's ${whyNot(x.c)}.`}))}},
-  spot:{t:"Spot your shade",d:"Three similar colours, only one is yours. Learn the difference between soft and too strong.",build(){
-    return shuffle(["blues","greens","purples","pinks","neutrals","blues"]).map(k=>{
+  spot:{t:"Spot your shade",d:"Three similar colours, only one is yours. Train your eye for the shades that suit you.",build(){
+    return shuffle(SEASON.familyOrder.filter(k=>k!=="neutrals"&&SEASON.families[k].avoid.length>=2)).concat(SEASON.familyOrder.filter(k=>k!=="neutrals"&&SEASON.families[k].avoid.length>=2)).slice(0,6).map(k=>{
       const f=SEASON.families[k];const pal=SEASON.palette.filter(c=>familyOf(c)===k&&hsl(c).l>.35);
       const right=pick(pal,1)[0];const wrong=pick(f.avoid,2);const opts=shuffle([right,...wrong]);
-      return{prompt:`Which ${f.name.split(" ")[0].toLowerCase().replace("pinks","pink").replace("blues","blue").replace("purples","purple").replace("greens","green").replace("neutrals","neutral")} is yours?`,swatches:true,opts,ans:opts.indexOf(right),
-        why:`Yours is ${nm(right)}, soft and cool. The others are ${wrong.map(whyNot).filter((v,i,a)=>a.indexOf(v)===i).join(", or ")}.`}})}},
+      return{prompt:`Which ${f.noun} is yours?`,swatches:true,opts,ans:opts.indexOf(right),
+        why:`Yours is ${nm(right)}. The others are ${wrong.map(whyNot).filter((v,i,a)=>a.indexOf(v)===i).join(", or ")}.`}})}},
   swaps:{t:"Neutral swaps",d:"Swap everyday neutrals for the soft versions that suit you.",build(){
     return shuffle(SEASON.swaps).map(s=>{const others=pick(SEASON.swaps.filter(x=>x!==s).map(x=>x[0]),1);const opts=shuffle([s[1],s[0],...others]);
       return{prompt:`You'd usually reach for ${s[2].toLowerCase()}. Which is your swap?`,swatches:true,opts,ans:opts.indexOf(s[1]),why:`${s[3]} gives the same job as ${s[2].toLowerCase()} without overpowering your light colouring.`}})}},
-  combo:{t:"Combo check",d:"Pick the pairing that works for a Light Summer.",build(){
+  combo:{t:"Combo check",d:`Pick the pairing that works for a ${SEASON.name}.`,build(){
     const all=Object.entries(SEASON.combos).flatMap(([t,l])=>l.map(x=>[...x,t]));
     const avoid=[...SEASON.avoidGeneral];
     return pick(all,5).map(([cs,name,type])=>{
       const fakes=[0,1].map(()=>[pick(avoid,1)[0],pick(SEASON.palette.filter(c=>hsl(c).l>.5),1)[0]]);
       const opts=shuffle([cs,...fakes]);
-      return{prompt:"Which pairing is a Light Summer combo?",combos:true,opts,ans:opts.indexOf(cs),why:`${name} is a ${type.toLowerCase()} combo from your guide. The others mix in a colour that's too warm, dark or bright for you.`}})}},
+      return{prompt:`Which pairing is a ${SEASON.name} combo?`,combos:true,opts,ans:opts.indexOf(cs),why:`${name} is a ${type.toLowerCase()} combo from your guide. The others mix in a colour that's too warm, dark or bright for you.`}})}},
   basics:{t:"Season smarts",d:"Can you explain your season to a friend? Test the key ideas.",build(){
-    return shuffle([
-      ["What contrast level suits you best?",["Low to medium","Medium to high","High"],0,"Light Summers shine in low to medium contrast, in clothes and makeup."],
-      ["Which metals suit you best?",["Silver, white gold and rose gold","Bright yellow gold and copper","Antique bronze"],0,"Cool metals echo your colouring. Matte yellow gold can work sometimes."],
-      ["What makes a print work for you?",["At least 80% of its colours are in your palette","It has one bright accent","It's black and white"],0,"The 80% rule lets you enjoy prints with a little flexibility."],
-      ["Which lipstick finish suits you best?",["Matte to light sheen","High gloss","Metallic"],0,"High gloss can feel too bold against your natural softness."],
-      ["How should you wear a favourite colour that isn't yours?",["Away from your face","As a top near your face","Never again"],0,"Keep it below the waist or create a break with some skin."],
-      ["Something in the change room feels like a maybe. What's the rule?",["It's a no","Buy it anyway","Buy it in two colours"],0,"If it feels like a maybe, it's a no."],
-      ["Which hair colour direction suits you most?",["Light, cool ash blonde","Deep warm auburn","Jet black"],0,"Very dark or warm hair can overpower your delicate features."],
-      ["What are your sister seasons?",["Light Spring and True Summer","Dark Autumn and Dark Winter","Bright Spring and Bright Winter"],0,"Shades from your sister seasons that sit close to yours can also work."]
-    ]).map(([p,o,a,w])=>{const opts=shuffle(o);return{prompt:p,opts,ans:opts.indexOf(o[a]),why:w}})}}
+    return shuffle(SEASON.basics).map(([p,o,a,w])=>{const opts=shuffle(o);return{prompt:p,opts,ans:opts.indexOf(o[a]),why:w}})}}
 };
 let qState=null;
 function progress(){return store("quiz")||{}}
 function renderPractise(){
   const pr=progress();const passed=Object.keys(QUIZZES).filter(k=>pr[k]&&pr[k].best>=.7).length;
   $("#v-practise").innerHTML=`
-  <div class="head"><span class="eyebrow">Practise</span><h2>Practise your season</h2><p class="muted">Short quizzes that build the confidence you need in a shop. Score 70% or more to pass. Passing any quiz ticks off a step in Your first week.</p></div>
-  <div class="card confident"><div class="badge ${passed>0?"":"off"}"><svg viewBox="0 0 100 100"><polygon points="${$("#starPoly").getAttribute("points")}" fill="none" stroke="#1C1712" stroke-width="6" stroke-linejoin="round"/></svg></div>
+  <div class="head"><p class="muted">Short quizzes that build the confidence you need in a shop. Score 70% or more to pass. Passing any quiz ticks off a step in Your first week.</p></div>
+  <div class="card confident"><div class="badge ${passed>0?"":"off"}"><svg viewBox="0 0 100 100"><polygon points="${$("#starPoly").getAttribute("points")}" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg></div>
     <div class="stack" style="gap:6px"><b>${passed===5?"All five quizzes passed!":`${passed} of 5 quizzes passed`}</b><div class="progress"><div style="width:${passed*20}%"></div></div></div></div>
   <div class="quizzes">${Object.entries(QUIZZES).map(([k,q])=>{const p=pr[k];return `<button class="qcard" data-q="${k}"><div class="meta"><span class="eyebrow">Quiz</span><span class="status ${p&&p.best>=.7?"pass":""}">${p?(p.best>=.7?"Passed ":"Best ")+Math.round(p.best*100)+"%":"Not started"}</span></div><h3>${q.t}</h3><p class="small muted">${q.d}</p></button>`}).join("")}</div>
   <div id="qstage"></div>`;
@@ -802,14 +844,14 @@ function finishQ(){
   $("#qstage").innerHTML=`<div class="card qstage"><span class="eyebrow">${QUIZZES[s.k].t}</span><div class="score">${s.score}/${s.qs.length}</div>
     <p>${pct>=.7?"Great work. You've got a good eye for your colours.":"Keep going. Every round trains your eye a little more."}</p>
     <div class="row"><button class="btn" id="again">Try again</button><button class="btn ghost" id="closeQ">Back to quizzes</button></div></div>
-    ${appCTA("Put it into practice","Now you know your colours, shop them. The app has over 400 styled looks for your Summer season, with links to every piece.")}`;
+    ${appCTA("Put it into practice","Now you know your colours, shop them. The app has over 400 styled looks for your season, with links to every piece.")}`;
   $("#again").onclick=()=>startQuiz(s.k);$("#closeQ").onclick=()=>{$("#qstage").innerHTML="";window.scrollTo({top:0,behavior:"smooth"})};
   $("#qstage").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 
 /* ================= TRY ON VIEW ================= */
-const T={mode:1,slots:["#85a3e0","#e185a3"],active:0,avoid:false,cut:null,busy:false,msg:"",saved:false};
+const T={mode:1,slots:[...SEASON.trySlots],active:0,avoid:false,cut:null,busy:false,msg:"",saved:false};
 (function(){const d=store("selfie");if(!d)return;const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.width;c.height=im.height;c.getContext("2d").drawImage(im,0,0);T.cut=c;T.cx=faceCentre(c);T.saved=true;if(!$("#v-tryon").hidden)renderTryOn()};im.src=d})();
 function savePhoto(on){
   if(!on){try{localStorage.removeItem(PFX+"selfie")}catch(e){}T.saved=false;return true}
@@ -819,7 +861,7 @@ function savePhoto(on){
 function renderTryOn(){
   const allAvoid=[...new Set([...SEASON.avoidGeneral,...Object.values(SEASON.families).flatMap(f=>f.avoid)])];
   $("#v-tryon").innerHTML=`
-  <div class="head"><span class="eyebrow">Try on</span><h2>See your colours on you</h2>
+  <div class="head"><span class="eyebrow">Try on</span><h1>See your colours on you</h1>
   <p class="muted">Add a selfie and we'll remove the background so you can see each colour next to your face, like a draping session. Your photo stays on your device and is never uploaded.</p></div>
   <div class="card stack">
     <div class="row">
@@ -829,9 +871,10 @@ function renderTryOn(){
     </div>
     ${T.cut?`<label class="check" for="savePic"><input type="checkbox" id="savePic" ${T.saved?"checked":""}><span><b>Save my photo for next time</b><br><span class="small muted">If you choose to save it, it's saved on this device only, in this browser. It isn't uploaded to YourSZN or anywhere else. Untick this box to delete it.</span></span></label>`:""}
     <p class="status-line" id="tStatus">${esc(T.msg||"Best results: face a window in natural daylight, no filter, hair off your face, shoulders in frame.")}</p>
-    <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?"Removing your background…":"Add a selfie to start"}</span>`}
-      ${T.mode===2?[0,1].map(i=>`<button class="half ${i?"r":"l"}" data-slot="${i}" aria-pressed="${T.active===i}" aria-label="${i?"Right":"Left"} side: ${nm(T.slots[i])}. Tap to change this side"><span class="tag">${nm(T.slots[i])}</span></button>`).join(""):`<span class="tag">${nm(T.slots[0])}</span>`}</div></div>
+    <div class="stage"><div class="drape${T.mode===2?" split":""}"><canvas id="cv0" width="800" height="1000"></canvas>${T.cut?"":`<span class="ph-empty">${T.busy?`<span class="ex">Removing your background…</span>`:`<span class="ph-card"><span class="ph-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><b>Your face goes here</b><span>Add a selfie and we'll place it between your colours, like a draping session.</span></span>`}</span>`}
+      ${T.mode===2?[0,1].map(i=>`<button class="half ${i?"r":"l"}" data-slot="${i}" aria-pressed="${T.active===i}" aria-label="${i?"Right":"Left"} side: ${nm(T.slots[i])}. Tap to change this side"><span class="tag">${nm(T.slots[i])}</span></button>`).join(""):`<span class="tag">${nm(T.slots[0])}</span>${T.cut?"":`<span class="tag" style="left:auto;right:10px">${nm(T.slots[1])}</span>`}`}</div></div>
     ${T.mode===2?`<p class="small muted">Tap the left or right side of your photo to choose which side changes, then tap a colour below.</p>`:""}
+    ${T.cut?`<a class="nudge" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener"><span class="sw2" style="background:${T.slots[T.active]}"></span><span>Love <b>${nm(T.slots[T.active])}</b> on you? See it styled in real outfits.</span><span class="go">In the app →</span></a>`:""}
   </div>
   <div class="card picker">
     <div class="row" style="justify-content:space-between"><h3>Pick a colour</h3><button class="toggle" id="tAvoid" aria-pressed="${T.avoid}">Show colours to avoid</button></div>
@@ -851,9 +894,24 @@ function renderTryOn(){
   const cb=$("#camBtn");if(cb)cb.onclick=openCamera;
   const sp=$("#savePic");if(sp)sp.onchange=()=>{const ok=savePhoto(sp.checked);if(sp.checked&&!ok){sp.checked=false;setStatus("This browser couldn't save your photo. It may be in private mode.")}else setStatus(sp.checked?"Saved on this device.":"Your saved photo has been deleted.")};
 }
+// Illustrated sitter shown before a selfie is added, so clients can see what Try On does
+function drawExample(ctx,W,H){
+  ctx.save();const hairC=SEASON.exampleHair||"#C9A27A";
+  const skin=ctx.createLinearGradient(0,H*.2,0,H);skin.addColorStop(0,"#EED6C7");skin.addColorStop(1,"#E2C1AE");
+  // hair behind
+  ctx.fillStyle=hairC;ctx.globalAlpha=.9;ctx.beginPath();ctx.moveTo(W*.31,H*.36);ctx.bezierCurveTo(W*.29,H*.12,W*.71,H*.12,W*.69,H*.36);ctx.bezierCurveTo(W*.7,H*.5,W*.68,H*.6,W*.64,H*.66);ctx.lineTo(W*.36,H*.66);ctx.bezierCurveTo(W*.32,H*.6,W*.3,H*.5,W*.31,H*.36);ctx.fill();ctx.globalAlpha=1;
+  // neck and shoulders
+  ctx.fillStyle=skin;ctx.beginPath();ctx.moveTo(W*.02,H);ctx.bezierCurveTo(W*.06,H*.8,W*.26,H*.74,W*.4,H*.7);ctx.bezierCurveTo(W*.44,H*.66,W*.44,H*.6,W*.44,H*.52);ctx.lineTo(W*.56,H*.52);ctx.bezierCurveTo(W*.56,H*.6,W*.56,H*.66,W*.6,H*.7);ctx.bezierCurveTo(W*.74,H*.74,W*.94,H*.8,W*.98,H);ctx.closePath();ctx.fill();
+  // head
+  ctx.beginPath();ctx.ellipse(W*.5,H*.38,W*.135,H*.155,0,0,Math.PI*2);ctx.fill();
+  // soft shadow under jaw
+  ctx.fillStyle="rgba(150,100,80,.12)";ctx.beginPath();ctx.ellipse(W*.5,H*.535,W*.07,H*.02,0,0,Math.PI*2);ctx.fill();
+  // hair top
+  ctx.fillStyle=hairC;ctx.beginPath();ctx.moveTo(W*.36,H*.36);ctx.bezierCurveTo(W*.35,H*.2,W*.5,H*.18,W*.6,H*.22);ctx.bezierCurveTo(W*.66,H*.26,W*.665,H*.32,W*.645,H*.37);ctx.bezierCurveTo(W*.6,H*.28,W*.47,H*.25,W*.36,H*.36);ctx.fill();
+  ctx.restore()}
 function drawDrape(){
   const cv=$("#cv0");if(!cv)return;const ctx=cv.getContext("2d");const W=cv.width,H=cv.height;
-  const L=T.slots[0],R=T.mode===2?T.slots[1]:T.slots[0];
+  const L=T.slots[0],R=(T.mode===2||!T.cut)?T.slots[1]:T.slots[0];
   const paint=(shape)=>{ctx.save();ctx.beginPath();ctx.rect(0,0,W/2,H);ctx.clip();ctx.fillStyle=L;shape();ctx.restore();
     ctx.save();ctx.beginPath();ctx.rect(W/2,0,W/2,H);ctx.clip();ctx.fillStyle=R;shape();ctx.restore()};
   paint(()=>ctx.fillRect(0,0,W,H));
@@ -864,7 +922,6 @@ function drawDrape(){
   ctx.drawImage(im,W/2-cx,H-h,w,h);
   // drape band across the shoulders, like a fabric drape
   paint(()=>{ctx.beginPath();ctx.moveTo(0,H*.86);ctx.quadraticCurveTo(W/2,H*.78,W,H*.86);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill()});
-  if(T.mode===2){ctx.fillStyle="rgba(255,255,255,.55)";ctx.fillRect(W/2-1,H*.8,2,H*.2)}
 }
 // Horizontal centre of the head (top part of the cut-out), 0..1, so the split runs down the middle of the face
 function faceCentre(cut){
@@ -878,7 +935,7 @@ let segP=null;
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.appendChild(s)})}
 function getSeg(){
   if(!segP)segP=(async()=>{await loadScript("vendor/selfie-segmentation/selfie_segmentation.js");
-        const seg=new SelfieSegmentation({locateFile:f=>"vendor/selfie-segmentation/"+f});seg.setOptions({modelSelection:0,selfieMode:false});await seg.initialize();return seg})();
+    const seg=new SelfieSegmentation({locateFile:f=>"vendor/selfie-segmentation/"+f});seg.setOptions({modelSelection:0,selfieMode:false});await seg.initialize();return seg})();
   segP.catch(()=>{segP=null});return segP;
 }
 function setStatus(t){T.msg=t;const el=$("#tStatus");if(el)el.textContent=t}
@@ -904,7 +961,7 @@ function camColours(){return camFam==="all"?SEASON.palette:SEASON.palette.filter
 function drawCamGrid(){const g=$("#camGrid");if(!g)return;g.style.setProperty("--d",camSize+"px");g.style.setProperty("--g",Math.round(camSize*.3)+"px");g.innerHTML=camColours().map(c=>`<span style="background:${c}"></span>`).join("")}
 async function openCamera(){
   const cam=$("#cam");cam.hidden=false;document.body.style.overflow="hidden";
-  const fams=[["all","All"],["blues","Blues"],["aquas","Aquas"],["greens","Greens"],["purples","Purples"],["pinks","Pinks"],["neutrals","Neutrals"]];
+  const fams=[["all","All"],...SEASON.familyOrder.map(k=>[k,SEASON.families[k].short])];
   cam.innerHTML=`<video id="camVid" playsinline muted autoplay></video><img class="shot" id="camShot" alt="" hidden>
     <div class="cam-top"><button class="x" id="camX" aria-label="Close colour camera">×</button>${fams.map(([k,l])=>`<button data-f="${k}" aria-pressed="${camFam===k}">${l}</button>`).join("")}</div>
     <div class="cam-msg" id="camMsg"><div class="stack"><b>Starting your camera…</b></div></div>
@@ -944,56 +1001,281 @@ function renderCloset(){
   <div class="card stack"><h3>4. Your shopping list</h3><p class="small muted">Priority pieces in your season, like a soft white tee, dress pants or a blazer.</p>
     <form class="todo" id="todoForm"><input type="text" id="todoIn" placeholder="Add an item, e.g. soft grey blazer"><button class="btn" type="submit">Add</button></form>
     <ul class="todo-list" id="todoList"></ul></div>
-  ${appCTA("Fill the gaps in your colours","Search the app by category to find pieces from your shopping list already matched to your season.")}
   <p class="screen-note">Your worksheet saves on this device only.</p>`;
   const v=$("#v-closet");
   v.querySelectorAll(".check input").forEach(x=>x.onchange=()=>{const i=+x.dataset.i;c.prep=x.checked?[...c.prep,i]:c.prep.filter(n=>n!==i);save()});
   v.querySelectorAll(".ctl button").forEach(b=>b.onclick=()=>{const k=b.dataset.k;c[k]=Math.max(0,c[k]+ +b.dataset.d);$("#n-"+k).textContent=c[k];save()});
   ["r1","r2","r3"].forEach(id=>$("#"+id).oninput=e=>{c[id]=e.target.value;save()});
-  const drawTodo=()=>{$("#todoList").innerHTML=c.todo.map((t,i)=>`<li><span>${esc(t)}</span><button data-i="${i}" aria-label="Remove ${esc(t)}">×</button></li>`).join("");$("#todoList").querySelectorAll("button").forEach(b=>b.onclick=()=>{c.todo.splice(+b.dataset.i,1);save();drawTodo()})};
+  const drawTodo=()=>{$("#todoList").innerHTML=c.todo.map((t,i)=>`<li><span>${esc(t)}</span><a href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">Find in my colours</a><button data-i="${i}" aria-label="Remove ${esc(t)}">×</button></li>`).join("");$("#todoList").querySelectorAll("button").forEach(b=>b.onclick=()=>{c.todo.splice(+b.dataset.i,1);save();drawTodo()})};
   drawTodo();
   $("#todoForm").onsubmit=e=>{e.preventDefault();const t=$("#todoIn").value.trim();if(!t)return;c.todo.push(t);$("#todoIn").value="";save();drawTodo()};
 }
 
+/* ================= APP CARD (redesign) ================= */
+function appCTA(title,text,img){return `<div class="app"><div class="stack" style="gap:8px;justify-items:start"><span class="eyebrow">YourSZN app</span><h3>${title}</h3><p>${text}</p><a class="btn" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener" style="margin-top:4px">Get the app</a></div><img src="${SIMG}${img||SEASON.images.app}.webp" alt="Inspiration in your season's colours" loading="lazy"></div>`}
+
+/* ================= APP SHOWCASE: a look inside the app ================= */
+// The app screen recording is the same for every season (img/app-demo.mp4, status bar cropped).
+// A season can still set SEASON.appVideo to use its own.
+const APP_VIDEO="img/app-demo.mp4", APP_VIDEO_POSTER="img/app-demo-poster.webp";
+function appShowcase(){
+  const vid=SEASON.appVideo||APP_VIDEO;
+  const looks=SEASON.images.roll;
+  const roll=[...looks,...looks].map(n=>`<img src="${SIMG}${n}.webp" alt="" loading="lazy">`).join("");
+  return `<section class="show"><div class="phone" aria-hidden="true">${vid?`<video src="${vid}" poster="${APP_VIDEO_POSTER}" autoplay muted loop playsinline preload="metadata"></video>`:`<div class="roll">${roll}</div>`}</div>
+    <div class="stack" style="gap:8px;justify-items:start"><span class="eyebrow">Inside the YourSZN app</span><h3>Shop your season, done for you</h3>
+    <div class="facts"><div><b>7,000+</b>items in your colours</div><div><b>400+</b>styled ${SEASON.group} looks</div></div>
+    <a class="btn" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">Get the app</a></div></section>`}
+
+
+/* ================= ACCOUNT ================= */
+function accountHTML(){
+  return `<section class="card stack" id="account"><span class="eyebrow">Your account</span>
+    <p class="small">Signed in as <b>${esc(CLIENT.email)}</b></p>
+    <div class="row">
+      <button class="btn ghost" id="accPwBtn">${CLIENT.hasPassword?"Change password":"Create a password"}</button>
+      <button class="btn ghost" id="accOut">Sign out</button>
+      <button class="btn ghost" id="accOutAll">Sign out of all devices</button>
+    </div>
+    <form class="stack" id="accPwForm" hidden novalidate>
+      <label class="small" for="accNewPw"><b>${CLIENT.hasPassword?"New password":"Password"}</b></label>
+      <input type="password" id="accNewPw" autocomplete="new-password" minlength="8">
+      <p class="small muted">At least 8 characters. Saving signs you out on your other devices.</p>
+      <div class="row"><button class="btn blue" type="submit" id="accSave">Save password</button><button class="btn ghost" type="button" id="accCancel">Cancel</button></div>
+    </form>
+    <p class="small" id="accMsg" role="status"></p>
+    <div class="stack" id="accConfirm" hidden><p class="small"><b>Sign out on every phone and computer?</b> You'll need your password or an email code to sign back in.</p>
+      <div class="row"><button class="btn blue" id="accOutAllYes">Yes, sign out everywhere</button><button class="btn ghost" id="accOutAllNo">Cancel</button></div></div>
+  </section>`}
+function wireAccount(){
+  if(!$("#account"))return;
+  const msg=t=>{$("#accMsg").textContent=t};
+  $("#accPwBtn").onclick=()=>{$("#accPwForm").hidden=false;$("#accNewPw").focus()};
+  $("#accCancel").onclick=()=>{$("#accPwForm").hidden=true;msg("")};
+  $("#accPwForm").onsubmit=e=>{e.preventDefault();const v=$("#accNewPw").value;if(v.length<8){msg("Please use at least 8 characters.");return}
+    const b=$("#accSave");b.disabled=true;b.textContent="Saving…";
+    api("colour-dashboard",{action:"set_password",password:v}).then(d=>{try{localStorage.setItem(TOKEN_KEY,JSON.stringify({token:d.token,expires:d.expires}))}catch(x){}TOKEN=d.token;CLIENT.hasPassword=true;
+      renderHome();wireAccount();setTimeout(()=>{$("#accMsg").textContent="Password saved. Use it with your email next time you sign in.";$("#account").scrollIntoView({block:"center"})},0)})
+      .catch(err=>{msg(err.message);b.disabled=false;b.textContent="Save password"})};
+  $("#accOut").onclick=()=>signOut(false);
+  $("#accOutAll").onclick=()=>{$("#accConfirm").hidden=false};
+  $("#accOutAllNo").onclick=()=>{$("#accConfirm").hidden=true};
+  $("#accOutAllYes").onclick=()=>{api("colour-dashboard",{action:"logout_all"}).catch(()=>{}).then(()=>signOut(true))};
+}
+/* ================= HOME ================= */
+const SIG=SEASON.sig;
+const NEXT={
+  video:["A short hello from Latisha on getting the most out of your season.","Watch now"],
+  favs:[null,"Open my palette"],
+  try:["Add a selfie and see your colours right next to your face, like a draping session.","Try colours on"],
+  quiz:["A two-minute quiz that trains your eye for shopping. Score 70% to pass.","Take a quiz"],
+  closet:["Sort your wardrobe into keep, maybe and donate, one section at a time.","Open the worksheet"]};
+function steps(){
+  const pr=progress(),cl=store("closet")||{};
+  return [
+    {k:"video",t:"Watch your welcome video",done:!!store("watched"),go:"home"},
+    {k:"favs",t:"Save 5 favourite colours",done:favs().length>=5,note:`${Math.min(favs().length,5)} of 5`,go:"palette"},
+    {k:"try",t:"Try your colours on",done:!!store("tried"),go:"tryon"},
+    {k:"quiz",t:"Pass a quiz",done:Object.values(pr).some(x=>x.best>=.7),go:"practise"},
+    {k:"closet",t:"Sort your closet",done:((cl.keep||0)+(cl.maybe||0)+(cl.donate||0))>0,go:"closet"}]}
+function nextCard(){
+  const st=steps(),n=st.filter(x=>x.done).length,nx=st.find(x=>!x.done);
+  const bars=st.map(x=>`<span class="${x.done?"on":""}"></span>`).join("");
+  if(!nx)return `<section class="next"><div class="band"><div class="top-row"><span class="eyebrow">Your first week</span><span class="count">5 of 5 done</span></div><h2>You're Season Confident</h2></div>
+    <div class="body"><div class="bars">${bars}</div><p>You've finished your first week. Now enjoy shopping your colours, with over 400 styled looks for your season in the app.</p><a class="btn blue" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">Shop my looks →</a></div></section>`;
+  const f=favs().length;
+  const text=nx.k==="favs"?(f?`You've saved ${f}. Pick the shades you'd love to wear and they'll show first everywhere.`:"Pick the shades you'd love to wear and they'll show first everywhere."):NEXT[nx.k][0];
+  return `<section class="next"><div class="band"><div class="top-row"><span class="eyebrow">Your next step</span><span class="count">${n} of 5 done</span></div><h2>${nx.t}</h2></div>
+    <div class="body"><div class="bars">${bars}</div><p>${text}</p><button class="btn blue" id="nextBtn" data-k="${nx.k}" data-go="${nx.go}">${NEXT[nx.k][1]} →</button>
+    <div class="steps">${st.map(x=>`<button data-go="${x.go}" data-k="${x.k}" class="${x.done?"done":""}"><span class="tick" aria-hidden="true">${x.done?"✓":""}</span><span class="t">${x.t}</span><span class="n">${x.done?"Done":(x.note||"")}</span></button>`).join("")}</div></div></section>`}
+function meter(on){return `<div class="meter">${[0,1,2,3,4].map(i=>`<span class="${on.includes(i)?"on":""}"></span>`).join("")}</div>`}
+function colourOfWeek(){const wk=Math.floor(Date.now()/(7*864e5));const pool=SEASON.palette.filter(c=>{const x=hsl(c);return x.s>.35&&x.l>.35&&x.l<.8});const c=pool[wk%pool.length];
+  const fam=SEASON.families[familyOf(c)];
+  return `<section class="card cotw"><span class="big" style="background:${c}"></span><div class="stack" style="gap:6px"><span class="eyebrow">Your colour of the week</span><h3>${nm(c)}</h3><p class="small muted">One of your ${fam.name.toLowerCase()}. Try it near your face this week, then see how others are wearing it.</p><div class="row" style="gap:14px"><button class="linkbtn2" data-try="${c}">Try it on me</button><a class="small" style="font-weight:700;color:var(--blue-deep)" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">See it styled →</a></div></div></section>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-try]");if(b){T.mode=1;T.active=0;T.slots[0]=b.dataset.try;go("tryon",true)}});
+function greeting(){const h=new Date().getHours();return h<12?"Good morning":h<17?"Good afternoon":"Good evening"}
+function renderHome(){
+  const v=SEASON.welcomeVideo;
+  $("#v-home").innerHTML=`
+  <p class="hello">${greeting()}, ${esc(CLIENT.first)}</p>
+  <section class="hero"><img src="${SIMG}${SEASON.hero.img}" alt="${SEASON.hero.alt}">
+    <div class="in"><span class="eyebrow">Your season</span><h1>${SEASON.name}</h1>
+    <p class="muted">${SEASON.hero.text}</p>
+    <div class="sig">${SIG.map(c=>`<span style="background:${c}" title="${nm(c)}"></span>`).join("")}</div></div></section>
+  ${nextCard()}
+  ${colourOfWeek()}
+  <div class="card stack"><span class="eyebrow">A welcome from Latisha</span>
+    ${v?`<video class="wvideo" id="wvid" src="${v}" controls playsinline preload="metadata"></video>`
+      :`<button class="wvideo ph" id="wvid"><span class="play"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg></span><span class="small">Your welcome video will appear here</span></button>`}
+  </div>
+  <div class="head" style="margin-top:6px"><span class="eyebrow">Explore</span></div>
+  <div class="tiles">
+    <button class="tile" data-go="palette"><div class="pic"><div class="mosaic">${SEASON.mosaic.map(c=>`<span style="background:${c}"></span>`).join("")}</div></div><div class="lbl"><b>Palette</b><span>${SEASON.palette.length} colours</span></div></button>
+    <button class="tile" data-go="tryon"><div class="pic"><div class="splitpic"><span style="background:${SEASON.trySlots[0]}"></span><span style="background:${SEASON.trySlots[1]}"></span></div><svg viewBox="0 0 110 100" aria-hidden="true"><circle cx="55" cy="40" r="20" fill="#F3DFD3"/><path d="M14 100c4-25 20-36 41-36s37 11 41 36z" fill="#F3DFD3"/><path d="M34 40c0-16 9-26 21-26s21 10 21 26c-4-9-11-14-21-14s-17 5-21 14z" fill="#E8D6A8"/></svg></div><div class="lbl"><b>Try On</b><span>Colours on your face</span></div></button>
+    <button class="tile" data-go="guide"><div class="pic fan" style="background:#F3ECE6"><img data-n="${SEASON.fanPages[0]}" src="${pgSrc(SEASON.fanPages[0])}" alt="" style="left:18%;top:14px;transform:rotate(-7deg)"><img data-n="${SEASON.fanPages[1]}" src="${pgSrc(SEASON.fanPages[1])}" alt="" style="left:44%;top:12px;transform:rotate(6deg)"></div><div class="lbl"><b>Learn</b><span>Guide and quizzes</span></div></button>
+    <button class="tile" data-go="wardrobe"><div class="pic"><img src="${SIMG}${SEASON.images.tile}.webp" alt="" style="object-position:center 20%"></div><div class="lbl"><b>Wardrobe</b><span>Closet and shopping</span></div></button>
+  </div>
+  <div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">${SEASON.name} looks</span><a class="small" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">See 400+ in the app</a></div>
+    <div class="looks">${SEASON.images.looks.map(n=>`<img src="${SIMG}${n}.webp" alt="Styled ${SEASON.name} look from your guide" loading="lazy">`).join("")}</div></div>
+  ${appShowcase()}
+  <div class="card stack" style="gap:14px"><span class="eyebrow">Your colour profile</span>
+    <div class="scales">${SEASON.scales.map(([l,a,b,g,x,y,v])=>`<div class="scale"><div class="sh"><span>${l}</span><b>${v}</b></div><div class="bar" style="background:${g}" role="img" aria-label="${l}: ${v}"><span class="fade l" style="width:${x}%"></span><span class="fade r" style="width:${100-y}%"></span><span class="range" style="left:${x}%;width:${y-x}%"></span></div><div class="ends"><span>${a}</span><span>${b}</span></div></div>`).join("")}</div>
+    <span class="eyebrow" style="margin-top:6px">Best metals</span>
+    <div class="pills">${SEASON.metals.map(m=>`<span class="pill">${m}</span>`).join("")}</div>
+    <span class="eyebrow" style="margin-top:6px">Sister seasons</span>
+    <div class="pills">${SEASON.sisters.map(m=>`<span class="pill">${m}</span>`).join("")}</div>
+  </div>
+  <details class="card acc mobile-only"><summary><span class="stack" style="gap:4px"><span class="eyebrow">Keep it on your phone</span><b>Add to your home screen</b></span><span class="plus" aria-hidden="true">+</span></summary>
+    <div class="grid2" style="margin-top:12px"><div class="stack" style="gap:4px"><b class="small">iPhone (Safari)</b><ol class="clean small"><li>Tap the Share button.</li><li>Tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div>
+    <div class="stack" style="gap:4px"><b class="small">Android (Chrome)</b><ol class="clean small"><li>Tap the three dots at the top right.</li><li>Tap <b>Add to Home screen</b>.</li><li>Tap <b>Add</b>.</li></ol></div></div></details>
+  <div class="row"><a class="btn ghost" href="https://www.instagram.com/yourszn.online" target="_blank" rel="noopener">Follow @yourszn.online</a></div>
+  ${accountHTML()}`;
+  wireAccount();
+  const nb=$("#nextBtn");if(nb&&nb.dataset.k==="video")nb.onclick=e=>{e.stopPropagation();$("#wvid").scrollIntoView({behavior:"smooth",block:"center"})};
+  $("#v-home").querySelectorAll('.steps [data-k="video"]').forEach(b=>b.onclick=e=>{e.stopPropagation();$("#wvid").scrollIntoView({behavior:"smooth",block:"center"})});
+}
+document.addEventListener("click",e=>{const v=e.target.closest("#wvid.ph");if(v){store("watched",true);renderHome()}});
+document.addEventListener("play",e=>{if(e.target.id==="wvid"){store("watched",true)}},true);
+
+/* ================= PALETTE ================= */
+let palFilter="all",showAvoid=false;
+const FAMS=SEASON.familyOrder.map(k=>[k,SEASON.families[k].short]);
+function groups(){const g={};Object.keys(SEASON.families).forEach(k=>g[k]=[]);SEASON.palette.forEach(c=>g[familyOf(c)].push(c));
+  Object.keys(g).forEach(k=>k==="neutrals"?g[k].sort((a,b)=>hsl(b).l-hsl(a).l):g[k].sort((a,b)=>Math.round(hsl(a).h/12)-Math.round(hsl(b).h/12)||hsl(b).l-hsl(a).l));return g}
+function pchip(c,o={}){const fav=!o.avoid&&isFav(c);return `<button class="pchip${o.avoid?" avoid":""}" data-c="${c}"${o.avoid?' data-avoid="1"':""}${o.nb?` data-nb="${o.nb}"`:""} aria-label="${nm(c)}${o.avoid?", not in your palette":""}"><span class="pc" style="background:${c}"></span><span class="nm">${nm(c)}</span>${fav?`<span class="ht">${HEART}</span>`:""}</button>`}
+function renderPalette(){
+  const g=groups(),f=favs();
+  const fams=palFilter==="all"?FAMS.map(x=>x[0]):FAMS.map(x=>x[0]).filter(k=>k===palFilter);
+  $("#v-palette").innerHTML=`
+  <div class="head"><span class="eyebrow">${SEASON.palette.length} colours</span><h1>Your palette</h1><p class="muted">Tap any colour to see its name, save it, or try it on your face.</p></div>
+  <div class="tools"><button class="btn mobile-only" id="camBtn2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Colour camera</button><button class="toggle" id="avoidToggle" aria-pressed="${showAvoid}" style="justify-content:center">${showAvoid?"Hide colours to avoid":"Colours to avoid"}</button></div>
+  <div class="card stack" style="gap:14px"><div class="row" style="justify-content:space-between"><h3>Saved</h3><span class="small muted">${f.length} saved</span></div>
+    <div class="saved">${f.map(c=>`<button data-c="${c}" aria-label="${nm(c)}"><span class="dot" style="background:${c}"></span>${nm(c)}</button>`).join("")}<button id="addMore" aria-label="Add more favourites"><span class="dot add">+</span>${f.length?"Add more":"Save your first"}</button></div>
+    ${f.length?`<div class="row"><button class="btn ghost" data-go="tryon">Try my favourites on</button></div><a class="nudge" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener"><span class="sw2" style="background:linear-gradient(135deg,${(f.length>1?f.slice(0,3):[f[0],f[0]]).join(",")})"></span><span>Pieces in your saved colours are waiting for you.</span><span class="go">Shop them →</span></a>`:""}</div>
+  ${showAvoid?`<section class="card stack" id="avoidTop"><div class="row" style="justify-content:space-between"><h3>Colours to avoid</h3><button class="toggle" id="avoidOff">Hide</button></div><p class="small muted">${SEASON.avoidText} Tap one to see why. You'll also see the ones closest to your colours under each family below.</p>
+    <div class="chipgrid">${SEASON.avoidGeneral.map(c=>pchip(c,{avoid:1})).join("")}</div>
+    <p class="small muted">Love one of these? Keep it away from your face, or wear it in a print that's at least 80% your colours.</p></section>`:""}
+  <div class="chips" role="group" aria-label="Colour family">${[["all","All"],...FAMS].map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${palFilter===k}">${l}</button>`).join("")}</div>
+  ${fams.map(k=>{const fm=SEASON.families[k];return `<section class="stack" id="fam-${k}" style="gap:12px"><div class="fam-head"><div class="t"><h2>${fm.name}</h2><span class="small muted">${g[k].length}</span></div><p>${fm.text}</p></div>
+    <div class="chipgrid">${g[k].map(c=>pchip(c)).join("")}</div>
+    ${showAvoid&&fm.avoid.length?`<span class="eyebrow" style="margin-top:4px">Not in your palette</span><div class="chipgrid">${fm.avoid.map(c=>pchip(c,{avoid:1})).join("")}</div>`:""}</section>`}).join("")}
+  ${palFilter==="all"||palFilter==="neutrals"?`<section class="card stack"><h3>Neutral swaps</h3><p class="small muted">Swap everyday neutrals for softer, cooler versions.</p>
+    ${SEASON.swaps.map(s=>`<div class="swap"><span class="dot" style="background:${s[0]}"></span><span aria-hidden="true">→</span><span class="dot" style="background:${s[1]}"></span><span class="small"><b>${s[2]}</b> becomes ${s[3]}</span></div>`).join("")}</section>`:""}
+  ${palFilter==="all"?`<section class="stack" style="gap:12px"><div class="fam-head"><h2>Neighbouring colours</h2><p>From your sister seasons. The softer, lighter ones closest to your palette can work on you too.</p></div>
+    ${Object.entries(SEASON.neighbours).map(([n,cs])=>`<span class="eyebrow">${n}</span><div class="chipgrid">${cs.map(c=>pchip(c,{nb:n})).join("")}</div>`).join("")}</section>`:""}
+  <p class="screen-note">Screens show colour slightly differently, so treat these swatches as a guide. Check new pieces in natural daylight, near a window if you can.</p>`;
+  const v=$("#v-palette");
+  const setAvoid=on=>{showAvoid=on;store("avoid",on);renderPalette();if(on)$("#avoidTop").scrollIntoView({behavior:"smooth",block:"start"})};
+  $("#avoidToggle").onclick=()=>setAvoid(!showAvoid);const ao=$("#avoidOff");if(ao)ao.onclick=()=>setAvoid(false);
+  v.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{palFilter=b.dataset.f;renderPalette()});
+  v.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>openSheet(b.dataset.c,!!b.dataset.avoid,b.dataset.nb));
+  $("#addMore").onclick=()=>{palFilter="all";renderPalette();const t=$("#fam-blues");if(t)t.scrollIntoView({behavior:"smooth",block:"start"})};
+  const cb=$("#camBtn2");if(cb)cb.onclick=openCamera;
+}
+function nearest(c,list){let best=null,bd=1e9;list.forEach(x=>{if(x===c)return;const a=hsl(c),b=hsl(x);let dh=Math.abs(a.h-b.h);dh=Math.min(dh,360-dh);const d=dh/180+Math.abs(a.l-b.l)*1.5;if(d<bd){bd=d;best=x}});return best}
+function hueShift(c,deg){const{h}=hsl(c);const t=(h+deg)%360;let best=null,bd=1e9;SEASON.palette.forEach(x=>{const y=hsl(x);if(y.s<.23)return;let d=Math.abs(y.h-t);d=Math.min(d,360-d)+Math.abs(y.l-hsl(c).l)*60;if(d<bd){bd=d;best=x}});return best}
+function openSheet(c,avoid,nb){
+  const host=$("#sheetHost"),fam=familyOf(c),fav=isFav(c);
+  const hc=hsl(c).h,hd=x=>{const d=Math.abs(hsl(x).h-hc);return Math.min(d,360-d)};const sameFam=SEASON.palette.filter(x=>fam==="neutrals"?familyOf(x)==="neutrals":familyOf(x)!=="neutrals"&&hd(x)<14).sort((a,b)=>hsl(b).l-hsl(a).l);
+  let ramp=[];if(!avoid&&!nb){const i=sameFam.indexOf(c);const st=Math.max(0,Math.min(sameFam.length-5,i-2));ramp=sameFam.slice(st,st+5)}
+  const pairs=avoid?[]:[[c,hueShift(c,180)||SEASON.pairNeutral,"Contrast"],[c,hueShift(c,35)||SEASON.pairNeutral,"Neighbour"],[c,fam==="neutrals"?SEASON.pairAccent:SEASON.pairNeutral,"With a neutral"]];
+  const label=nb?nb:avoid?"Not in your palette":SEASON.families[fam].name;
+  host.innerHTML=`<div class="sheet-bg" id="sheetBg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${nm(c)}">
+    <span class="grab" aria-hidden="true"></span>
+    <div class="top-row"><span class="big" style="background:${c}"></span><div class="stack" style="gap:4px"><span class="eyebrow">${label}</span><h2>${nm(c)}</h2><span class="small muted">${c.toUpperCase()}</span></div><button class="x" id="sheetX" aria-label="Close">×</button></div>
+    ${avoid?`<p class="note">This one is ${whyNot(c)}. If you love it, wear it away from your face or in a print that's mostly your colours.</p>`:""}
+    <div class="acts">${avoid?"":`<button class="btn ghost heart-btn" id="sheetFav" aria-pressed="${fav}">${HEART}<span>${fav?"Saved":"Save"}</span></button>`}<button class="btn" id="sheetTry"${avoid?' style="grid-column:1/-1"':""}>Try on my face</button></div>
+    ${pairs.length?`<div class="stack" style="gap:10px"><span class="eyebrow">Wear it with</span><div class="pairs">${pairs.map(([a,b,l])=>`<div><span class="duo"><span style="background:${a}"></span><span style="background:${b}"></span></span>${l}: ${nm(b)}</div>`).join("")}</div></div>`:""}
+    ${ramp.length>1?`<div class="stack" style="gap:10px"><span class="eyebrow">Lighter and deeper</span><div class="ramp">${ramp.map(x=>`<button style="background:${x}" data-c="${x}" aria-label="${nm(x)}" aria-current="${x===c}"></button>`).join("")}</div></div>`:""}
+    <a class="small" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener">Shop ${nm(c).toLowerCase()} pieces in the YourSZN app →</a>
+  </div></div>`;
+  document.body.style.overflow="hidden";
+  const close=()=>{host.innerHTML="";document.body.style.overflow="";document.removeEventListener("keydown",key)};
+  const key=e=>{if(e.key==="Escape")close()};document.addEventListener("keydown",key);
+  $("#sheetBg").onclick=e=>{if(e.target.id==="sheetBg")close()};$("#sheetX").onclick=close;
+  const fb=$("#sheetFav");if(fb)fb.onclick=()=>{toggleFav(c);const on=isFav(c);fb.setAttribute("aria-pressed",on);fb.querySelector("span").textContent=on?"Saved":"Save";refreshBehind()};
+  $("#sheetTry").onclick=()=>{close();T.mode=1;T.active=0;T.slots[0]=c;go("tryon",true)};
+  host.querySelectorAll(".ramp button").forEach(b=>b.onclick=()=>openSheet(b.dataset.c));
+  $("#sheetX").focus();
+}
+function refreshBehind(){const y=window.scrollY;if(!$("#v-palette").hidden)renderPalette();else if(!$("#v-home").hidden)renderHome();window.scrollTo(0,y)}
+
+/* ================= LEARN ================= */
+let learnSub=store("sub")||"guide";
+function renderMakeupView(){
+  const pages=GP["Makeup"]||[];
+  $("#v-makeup").innerHTML=`<div class="head"><span class="eyebrow">Makeup</span><h1>Your makeup</h1></div><article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span><h2>Makeup for ${SEASON.name}</h2></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
+   ${pages.length&&CLIENT.tier==="premium"?`<details class="more-pages"><summary><span class="eyebrow">Your makeup guide pages</span><span class="small muted">${pages.length} pages <span class="chev" aria-hidden="true">+</span></span></summary><div class="pages" style="margin-top:14px">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></details>`:""}</article>`}
+const SUBR={guide:renderGuide,combos:renderCombos,practise:renderPractise};
+function renderLearn(){
+  document.querySelectorAll("#v-learn .seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sub===learnSub));
+  if(!SUBR[learnSub])learnSub="guide";
+  ["guide","combos","practise"].forEach(k=>$("#v-"+k).hidden=k!==learnSub);
+  document.querySelectorAll('.subnav[data-for="learn"] .subnavi').forEach(b=>b.setAttribute("aria-current",!$("#v-learn").hidden&&b.dataset.sub===learnSub?"page":"false"));
+  SUBR[learnSub]();
+}
+document.querySelectorAll("#v-learn .seg button").forEach(b=>b.onclick=()=>{learnSub=b.dataset.sub;store("sub",learnSub);if(learnSub==="guide")guideIdx=-1;renderLearn()});
+
+/* ================= WARDROBE ================= */
+let wardSub=store("wsub")||"picks";
+function renderPicks(){
+  const picks=SEASON.shopPicks||[];
+  $("#v-picks").innerHTML=`<div class="card stack" style="gap:16px"><div class="head"><span class="eyebrow">Latisha's picks</span><h2>Pieces I've chosen for ${SEASON.plural}</h2><p class="muted">Each one is in your colours. Tap a piece to shop it.</p></div>
+    <div class="spgrid">${picks.map(p=>`<a class="sp" href="https://go.shopmy.us/p-${p.id}" target="_blank" rel="noopener">${p.img?`<span class="pi"><img src="${SIMG}${p.img}" alt="${esc(p.brand+" "+p.name)}" loading="lazy"></span>`:""}<span class="c">${p.cat}</span><span><b>${p.brand}</b><br><span class="n">${p.name}</span></span><span class="go">Shop →</span></a>`).join("")}</div></div>
+  <div class="card stack" style="gap:14px"><span class="eyebrow">Shop your season</span><h2>Find more in the app</h2>
+    <p class="muted">Shop over 7,000 items for your season and 400+ styled looks in the YourSZN app.</p>
+    <div class="wshop">${SEASON.images.shop.map(n=>`<img src="${SIMG}${n}.webp" alt="${SEASON.name} inspiration" loading="lazy">`).join("")}</div>
+    <a class="btn blue" href="https://www.yourszn.com.au/pages/mobile-app" target="_blank" rel="noopener" style="justify-self:start">Open the app →</a></div>`;
+}
+function renderWardrobe(){
+  if(wardSub!=="closet")wardSub="picks";
+  document.querySelectorAll("#v-wardrobe .seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.wsub===wardSub));
+  $("#v-closet").hidden=wardSub!=="closet"; $("#v-picks").hidden=wardSub!=="picks";
+  document.querySelectorAll('.subnav[data-for="wardrobe"] .subnavi').forEach(b=>b.setAttribute("aria-current",!$("#v-wardrobe").hidden&&b.dataset.sub===wardSub?"page":"false"));
+  if(wardSub==="closet")renderCloset(); else renderPicks();
+}
+document.querySelectorAll("#v-wardrobe .seg button").forEach(b=>b.onclick=()=>{wardSub=b.dataset.wsub;store("wsub",wardSub);renderWardrobe()});
+
 /* ================= routing ================= */
 const TABS=[
- ["season","My Season","Season",'<path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'],
- ["palette","My Palette","Palette",'<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a6 6 0 0 0 6-6c0-4.9-4.5-8.6-10-8.6z"/>'],
- ["tryon","Try On","Try On",'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'],
- ["guide","Season Guide","Guide",'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'],
- ["combos","Colour Combos","Combos",'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>'],
- ["practise","Practise","Practise",'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'],
- ["closet","Closet Clean-up","Closet",'<path d="M12 6a2 2 0 1 1 2-2"/><path d="M12 6v2L3 15.5A1.3 1.3 0 0 0 3.8 18h16.4a1.3 1.3 0 0 0 .8-2.5L12 8"/>']
+ ["home","Home",'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>'],
+ ["palette","Palette",'<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2a10 10 0 0 0 0 20c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a6 6 0 0 0 6-6c0-4.9-4.5-8.6-10-8.6z"/>'],
+ ["tryon","Try On",'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'],
+ ["makeup","Makeup",'<path d="M9 21h6V12H9z"/><path d="M10 12V6.5L14 3v9"/><path d="M8 21h8"/>'],
+ ["wardrobe","Wardrobe",'<path d="M12 6a2 2 0 1 1 2-2"/><path d="M12 6v2L3 15.5A1.3 1.3 0 0 0 3.8 18h16.4a1.3 1.3 0 0 0 .8-2.5L12 8"/>'],
+ ["learn","Learn",'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>']
 ];
-const RENDER={season:renderSeason,palette:renderPalette,tryon:renderTryOn,guide:renderGuide,combos:renderCombos,practise:renderPractise,closet:renderCloset};
-const icon=(d,n)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:${n}px;height:${n}px" aria-hidden="true">${d}</svg>`;
-$("#snav").innerHTML=TABS.map(([k,l,,ic])=>`<button class="nitem" data-k="${k}">${icon(ic,14)}<span>${l}</span></button>`).join("");
-$("#btabs").innerHTML=TABS.map(([k,,sl,ic])=>`<button class="bt-item" data-k="${k}">${icon(ic,18)}<span>${sl}</span></button>`).join("");
+const RENDER={home:renderHome,palette:renderPalette,tryon:renderTryOn,learn:renderLearn,makeup:renderMakeupView,wardrobe:renderWardrobe};
+const ALIAS={season:["home"],guide:["learn","guide"],combos:["learn","combos"],practise:["learn","practise"],closet:["wardrobe","closet"],picks:["wardrobe","picks"]};
+const SUBS={learn:[["guide","Guide"],["combos","Combos"],["practise","Quizzes"]],wardrobe:[["picks","Latisha's picks"],["closet","My wardrobe"]]};
+const icon=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+$("#sidenav").innerHTML=TABS.map(([k,l,ic])=>`<button class="navi" data-k="${k}">${icon(ic)}<span>${l}</span></button>`+(SUBS[k]?`<div class="subnav" data-for="${k}">${SUBS[k].map(([s,t])=>`<button class="subnavi" data-go="${s}" data-sub="${s}">${t}</button>`).join("")}</div>`:"")).join("");
+$("#tabbar").innerHTML=TABS.map(([k,l,ic])=>`<button class="tab" data-k="${k}"><span class="ic">${icon(ic)}</span><span>${l}</span></button>`).join("");
 function go(k,scroll){
+  if(ALIAS[k]){const [t,sub]=ALIAS[k];if(sub&&t==="wardrobe"){wardSub=sub;store("wsub",sub)}else if(sub){learnSub=sub;store("sub",sub);if(sub==="guide"&&k==="guide")guideIdx=-1}k=t}
+  if(!RENDER[k])k="home";
   TABS.forEach(([t])=>{$("#v-"+t).hidden=t!==k});
-  document.querySelectorAll(".nitem,.bt-item").forEach(b=>b.dataset.k===k?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+  document.querySelectorAll(".navi,.tab").forEach(b=>b.dataset.k===k?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+  document.querySelectorAll(".subnavi").forEach(b=>b.setAttribute("aria-current","false"));
+  document.querySelectorAll(".subnav").forEach(n=>n.hidden=k!==n.dataset.for);
   RENDER[k]();store("tab",k);
-  const bt=$(`.bt-item[data-k="${k}"]`);if(bt&&bt.parentElement.scrollWidth>bt.parentElement.clientWidth)bt.scrollIntoView({block:"nearest",inline:"center"});
-  if(scroll)window.scrollTo({top:0,behavior:"smooth"})}
-document.querySelectorAll(".nitem,.bt-item").forEach(b=>b.onclick=()=>go(b.dataset.k,true));
-document.addEventListener("click",e=>{const pg=e.target.closest(".pg");if(pg){openViewer(pg.dataset.pages.split(",").map(Number),+pg.dataset.i);return}});
+  if(scroll)window.scrollTo({top:0,behavior:"instant"in window?"instant":"auto"})}
+document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;go(b.dataset.k,true)});
+$("#avatarBtn").onclick=()=>go("home",true);
+document.addEventListener("click",e=>{const pg=e.target.closest(".pg,.tp-pages");if(pg){openViewer(pg.dataset.pages.split(",").map(Number),+pg.dataset.i);return}});
 function openViewer(pages,i){const rv=$("#rv");rv.hidden=false;document.body.style.overflow="hidden";
-  rv.innerHTML=`<div class="rv-top"><span class="rv-count" id="rvCount"></span><button class="rv-close" id="rvX" aria-label="Close">×</button></div><div class="rv-track" id="rvTrack">${pages.map(n=>`<div class="rv-slide"><div class="wmwrap"><img src="${pgSrc(n)}" data-n="${n}" alt="Light Summer guide page"></div></div>`).join("")}</div><button class="rv-arrow l" aria-label="Previous page">‹</button><button class="rv-arrow r" aria-label="Next page">›</button>`;
+  rv.innerHTML=`<div class="rv-top"><span class="rv-count" id="rvCount"></span><button class="rv-close" id="rvX" aria-label="Close">×</button></div><div class="rv-track" id="rvTrack">${pages.map(n=>`<div class="rv-slide"><img data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page"></div>`).join("")}</div><button class="rv-arrow l" aria-label="Previous page">‹</button><button class="rv-arrow r" aria-label="Next page">›</button>`;
   const tr=$("#rvTrack"),cnt=()=>{$("#rvCount").textContent=`PAGE ${Math.round(tr.scrollLeft/tr.clientWidth)+1} OF ${pages.length}`};
   requestAnimationFrame(()=>{tr.scrollLeft=i*tr.clientWidth;cnt()});tr.onscroll=cnt;
   const close=()=>{rv.hidden=true;rv.innerHTML="";document.body.style.overflow="";document.removeEventListener("keydown",key)};
   const key=e=>{if(e.key==="Escape")close();if(e.key==="ArrowRight")tr.scrollBy({left:tr.clientWidth,behavior:"smooth"});if(e.key==="ArrowLeft")tr.scrollBy({left:-tr.clientWidth,behavior:"smooth"})};
   document.addEventListener("keydown",key);$("#rvX").onclick=close;$("#rvX").focus();
   rv.querySelector(".rv-arrow.l").onclick=()=>tr.scrollBy({left:-tr.clientWidth,behavior:"smooth"});rv.querySelector(".rv-arrow.r").onclick=()=>tr.scrollBy({left:tr.clientWidth,behavior:"smooth"})}
-document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b){e.preventDefault();go(b.dataset.go,true)}});
-$("#sbToggle").onclick=()=>{const c=document.body.classList.toggle("sb-collapsed");$("#sbToggle").innerHTML=c?"&#8250;":"&#8249;";$("#sbToggle").setAttribute("aria-label",c?"Expand sidebar":"Collapse sidebar");store("sb",c)};
-if(store("sb")){document.body.classList.add("sb-collapsed");$("#sbToggle").innerHTML="&#8250;"}
-$("#suname").textContent=CLIENT.name||CLIENT.first;
-$("#bnum").textContent=CLIENT.season;
-$("#blab").textContent=SEASON.bannerSub||SEASON.traits;
+document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b&&!e.defaultPrevented){e.preventDefault();go(b.dataset.go,true)}});
+$("#sideName").textContent=CLIENT.first;$("#avatarBtn").textContent=(CLIENT.first||"Y")[0];
 showAvoid=!!store("avoid");
 const start=(location.hash||"").slice(1);
-go(TABS.some(t=>t[0]===start)?start:(store("tab")||"season"));
+go(RENDER[start]||ALIAS[start]?start:(store("tab")||"home"));
 
 }
 boot();

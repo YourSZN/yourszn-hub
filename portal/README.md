@@ -9,7 +9,10 @@ project, which serves this folder at clients.yourszn.com.au. The staff hub
 | Page | What it is |
 |---|---|
 | `index.html` | Client portal: sign-in, then a home page showing this client's analysis, tour and dashboard |
-| `colour-dashboard.html` | Online Colour Analysis results dashboard (see `COLOUR-DASHBOARD.md`) |
+| `colour-dashboard.html` | Online Colour Analysis results dashboard, season-driven design (see `COLOUR-DASHBOARD.md`) |
+| `colour-dashboard-classic.html` | The original dashboard design, used for seasons not yet written for the new one (Light Summer) |
+| `seasons/` | One content file per season (`<season-slug>.js`) plus its images (`<season-slug>/`) |
+| `img/` | Images shared by every season: logo, app screen recording |
 | `vietnam-tour.html` | Vietnam Tailoring Tour trip dashboard (+ `vietnam-wardrobe.js`, `vietnam-map.js`) |
 | `yourszn-form-7.html` | Online Colour Analysis questionnaire and photo upload |
 

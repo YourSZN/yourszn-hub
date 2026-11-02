@@ -17,6 +17,26 @@ Newest first. Each entry: what we chose, why, and what we rejected.
 - **Not removed yet:** Client Profiles (`app-crm.js`), because Finances, gift vouchers and
   questionnaires still use it. Removing it changes those screens, so Latisha decides.
 
+## 2026-11-02: Season-driven Colour Dashboard (True Spring first)
+
+- **Chose:** the approved True Spring preview becomes `portal/colour-dashboard.html`, with
+  the real sign-in, server saving and account card from the original page. All season
+  content lives in `portal/seasons/true-spring.js`; its images in `portal/seasons/true-spring/`.
+  Adding a season = a new season file and image folder, no page changes.
+- **Light Summer stays on the original design for now (Latisha's choice):** her content
+  hasn't been written for the new design (guide topics, makeup, picks, photos). The original
+  page is kept as `colour-dashboard-classic.html`; the new page hands over to it when the
+  season file has no `topics`, so Light Summer clients see no change.
+- **Rejected:** showing Light Summer on the new design with sections missing (felt
+  unfinished for a paying client), and me writing her content without her review.
+- **Full guide pages stay private:** they go in the `season-guides` bucket, shown through
+  15-minute links, never in the code (the repository is public). Small guide crops,
+  styling photos and product shots are public files, as before.
+- **Makeup bag is saved to the account** (new `colour_client_state.makeup_bag` column), like
+  favourites and quizzes. The Try On selfie stays on the device only.
+- **Selfie model:** uses the copy already hosted in `portal/vendor/` instead of the preview's
+  bundled one.
+
 ## 2026-11-02: Admin Clients page replaces the in-person Clients page
 
 - **Chose:** one list of Online Colour Analysis clients in the staff hub, one row per email,

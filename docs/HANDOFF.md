@@ -78,7 +78,9 @@ account / online submission. Per client:
 
 ## After that
 
-1. **Season-driven colour dashboard:** port the True Spring preview (season file
+1. **Season-driven colour dashboard** (PR on branch `season-dashboard`, 2 Nov: built; Light
+   Summer stays on `colour-dashboard-classic.html` until her content is written; True Spring
+   guide pages need uploading to `season-guides/true-spring/`). Original plan: port the True Spring preview (season file
    `portal/seasons/true-spring.js`, images on the preview artifact) into
    `portal/colour-dashboard.html`, keeping sign-in, server sync and account. Move Light
    Summer onto the same setup. Latisha uploads guide pages to Supabase bucket
