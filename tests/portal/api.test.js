@@ -250,6 +250,9 @@ check('dashboard: opens the tour only for clients on the tour list', async () =>
   await call('colour-auth.js', { action: 'send', email: 'cora@example.com' });
   const t = (await call('colour-auth.js', { action: 'verify', email: 'cora@example.com', code: lastCode() })).data.token;
   assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.tourBooked, true);
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.trial, false, 'not a trial unless set');
+  db.colour_clients[0].trial = true;
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.trial, true, 'trial clients see the banner');
   const r = await call('colour-dashboard.js', { action: 'open_tour' }, t);
   assert.strictEqual(r.status, 200);
   assert.strictEqual((await call('vietnam-dashboard.js', { action: 'get' }, r.data.token)).status !== 401, true, 'the tour session works on the tour');

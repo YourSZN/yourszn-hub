@@ -42,6 +42,12 @@ Staff hub → **Clients** → choose their season and tier → **Give dashboard 
 (see `../docs/CLIENTS-PAGE.md`). That creates or switches on their `colour_clients` row.
 Optional `analysis` on that row, e.g. `{"Contrast": "Low (3)"}`, shows their own results (classic page).
 
+**Trial clients** try a finished season (e.g. True Spring) before their own is built: their
+`colour_clients` row has `trial = true`, and the dashboard shows a banner saying it isn't
+their result. Set it in Supabase (Table editor → colour_clients). When their own season is
+ready: Clients page → Remove dashboard access → choose their real season → Give dashboard
+access. That switches `trial` off and emails them.
+
 ## Season guide pages (private)
 The full guide pages are paid content, so they are never in this folder. Upload page images
 to the private Storage bucket `season-guides`, in a folder named after the season:

@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
   if (!session) return res.status(401).json({ error: 'Please sign in again.', signin: true });
 
   try {
-    const rows = await sb('/rest/v1/colour_clients?id=eq.' + session.cid + '&active=eq.true&select=id,name,email,season,tier,analysis,sessions_valid_after&limit=1');
+    const rows = await sb('/rest/v1/colour_clients?id=eq.' + session.cid + '&active=eq.true&select=id,name,email,season,tier,analysis,trial,sessions_valid_after&limit=1');
     const client = rows[0];
     if (!client || !sessionStillValid(session, client)) return res.status(401).json({ error: 'Please sign in again.', signin: true });
     const { action, state } = req.body || {};
@@ -72,7 +72,7 @@ module.exports = async function handler(req, res) {
       });
       return res.status(200).json({
         ok: true,
-        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {}, hasPassword: await hasPassword(client.email), tourBooked: !!(await findTourClient(client.email)) },
+        client: { name: client.name, first: (client.name || '').split(' ')[0], email: client.email, season: client.season, seasonSlug: slug(client.season), tier: client.tier, analysis: client.analysis || {}, hasPassword: await hasPassword(client.email), tourBooked: !!(await findTourClient(client.email)), trial: !!client.trial },
         state: saved[0] || {},
         pages,
         pagesExpireIn: PAGE_LINK_SECONDS,

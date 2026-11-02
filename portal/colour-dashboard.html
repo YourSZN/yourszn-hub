@@ -339,6 +339,7 @@ section[id],.card[id]{scroll-margin-top:72px}
 .drape .half.l[aria-pressed="true"]{border-radius:20px 0 0 20px}.drape .half.r[aria-pressed="true"]{border-radius:0 20px 20px 0}
 .drape .half.r .tag{left:auto;right:10px}
 .picker{display:grid;gap:12px}
+.trialbar{background:#FFF4D6;border:1px solid #E9CF83;color:#4A3A10;border-radius:14px;padding:12px 16px;font-size:14px;line-height:1.5;margin-bottom:16px}
 .tryon-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
 @media (min-width:1000px){.tryon-grid{grid-template-columns:minmax(0,470px) minmax(0,1fr)}.tryon-grid .picker{position:sticky;top:20px;max-height:calc(100vh - 40px);overflow-y:auto}}
 .picker .sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:8px}
@@ -564,6 +565,7 @@ body.signed-out .side,body.signed-out .top,body.signed-out .main,body.signed-out
 
 <div class="main">
  <div class="inner">
+  <div class="trialbar" id="trialBar" hidden role="note"></div>
   <section class="view" id="v-home"></section>
   <section class="view" id="v-palette" hidden>
     <div class="head"><span class="eyebrow">Palette</span><h1>Your palette</h1></div>
@@ -1327,6 +1329,8 @@ function openViewer(pages,i){const rv=$("#rv");rv.hidden=false;document.body.sty
   document.addEventListener("keydown",key);$("#rvX").onclick=close;$("#rvX").focus();
   rv.querySelector(".rv-arrow.l").onclick=()=>tr.scrollBy({left:-tr.clientWidth,behavior:"smooth"});rv.querySelector(".rv-arrow.r").onclick=()=>tr.scrollBy({left:tr.clientWidth,behavior:"smooth"})}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b&&!e.defaultPrevented){e.preventDefault();go(b.dataset.go,true)}});
+// Trial clients: trying this season's dashboard before their own season is built.
+if(CLIENT.trial){const tb=$("#trialBar");tb.innerHTML=`<b>You're trying the ${esc(SEASON.name)} dashboard.</b> It isn't your result: your own season's dashboard is on its way and will replace this one.`;tb.hidden=false}
 $("#sideName").textContent=CLIENT.first;$("#avatarBtn").textContent=(CLIENT.first||"Y")[0];
 showAvoid=!!store("avoid");
 const start=(location.hash||"").slice(1);

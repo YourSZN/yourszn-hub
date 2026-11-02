@@ -19,7 +19,7 @@
 //       "Grant OCA access": adds someone as paid (e.g. they paid with a different email).
 //       No email is sent.
 //   { action: "give_dashboard", email }
-//       Opens their Colour Dashboard (colour_clients row, active) and emails
+//       Opens their Colour Dashboard (colour_clients row, active, trial off) and emails
 //       "Your results are ready". Only for seasons in READY_SEASONS.
 //   { action: "resend_email", email }     emails "Your results are ready" again.
 //   { action: "remove_dashboard", email } closes the dashboard and signs them out of it.
@@ -236,10 +236,10 @@ module.exports = async function handler(req, res) {
         id = existing[0].id;
         await sb('/rest/v1/colour_clients?id=eq.' + id, {
           method: 'PATCH', headers: { Prefer: 'return=minimal' },
-          body: { name: client.name, season, tier: client.tier, active: true },
+          body: { name: client.name, season, tier: client.tier, active: true, trial: false },
         });
       } else {
-        const created = await sb('/rest/v1/colour_clients', { method: 'POST', body: { email, name: client.name, season, tier: client.tier, active: true } });
+        const created = await sb('/rest/v1/colour_clients', { method: 'POST', body: { email, name: client.name, season, tier: client.tier, active: true, trial: false } });
         id = created[0].id;
       }
       await logEvent(id, 'access-given', staff);
