@@ -1,2 +1,5 @@
 tests/
 docs/
+# The client site (clients.yourszn.com.au) is its own Vercel project with root directory portal/.
+# Keep its files off the staff hub.
+portal/

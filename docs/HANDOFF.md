@@ -83,17 +83,19 @@ account / online submission. Per client:
    `portal/colour-dashboard.html`, keeping sign-in, server sync and account. Move Light
    Summer onto the same setup. Latisha uploads guide pages to Supabase bucket
    `season-guides/true-spring/`. First test client: Montana (email still needed).
-2. **Clean-up pass (agreed):** two `api` folders with overlapping files; `comms-fix-v37/38/39.js`
-   patch files; `project/` folder (old copy of the hub); Netlify config next to Vercel and a
-   second Vercel project; root `client-portal.html` (old portal copy on the staff site,
-   still shows code `1893` and uses root `api/client-submission.js` / `client-booking.js`);
-   social-media PNGs in the repo root. Trace what the staff hub actually loads before deleting.
-   Also: `app-crm.js` and its modals in `index.html` (Client Profiles, now unreachable apart
-   from the gift-voucher "add to CRM" button), `app-colours.js` (not loaded),
-   `comms-fix.js`/`-v37`/`-v38` (not loaded), the in-person dashboard stat cards
-   ("In-Person Rate", "10 in-person"), and `launchApp()` in `app.js`, which calls
-   `renderAdCreativePage()` that no loaded file defines, so the rest of launch is skipped
-   (renderGoals, renderFinances, renderPlanPage, staff page). Already broken on main.
+2. **Clean-up pass** (PR on branch `cleanup`, built on top of the Clients page PR). Done:
+   removed `project/` (old hub copy), root `client-portal.html` (old portal copy with code
+   `1893`) and its `api/client-submission.js` (name + email lookup), root `yourszn-form-7.html`,
+   `Your SZN LOOKBOOK.html`, `comms-fix.js`/`-v37`/`-v38`, `yourszn-patches.js`,
+   `app-colours.js` (none loaded), Netlify config, `.DS_Store`, the client site's unused copy
+   of `vietnam-staff-info.js`, the staff tour API's shared-password fallback, and the social
+   and season PNGs (saved to a zip for Latisha). `DATA_SCHEMA.md` moved to `docs/`.
+   `launchApp()` no longer calls the missing `renderAdCreativePage()`, so start-up finishes.
+   The staff hub no longer publishes the `portal/` folder (`.vercelignore`).
+   **Still open:** Client Profiles code (`app-crm.js`) is used by Finances ("CRM Revenue"),
+   gift vouchers and "Save to CRM" on questionnaires: needs Latisha's decision before removal.
+   The dashboard's in-person stat cards ("In-Person Rate", "10 in-person") need her numbers.
+   Latisha to delete the Netlify site `charming-starlight-37db1e` (it still builds on push).
 3. **Accounts and roles:** one client account table; lock every staff table by role
    (38 tables currently allow any signed-in user). Latisha's rule (2 Nov): Salma (`staff`)
    gets everything except financials: no finance tables, no Dashboard, no Staff page. Test on a temporary Supabase branch

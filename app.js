@@ -761,7 +761,6 @@ function launchApp() {
   renderTaskBoard();
   renderToursPage();
   renderSocialPage();
-  renderAdCreativePage();
   renderGoals();
   renderFinances();
   renderPlanPage();
@@ -822,7 +821,6 @@ function showPage(id) {
   if (ni) ni.classList.add('on');
   if (id === 'comms')  { renderCommsPage(); }
   if (id === 'social') { renderSocialPage(); window.scrollTo(0, 0); }
-  if (id === 'adcreative') { renderAdCreativePage(); }
   if (id === 'clients') renderAdminClients();
   if (id === 'dashboard') { try { renderDashToday(); } catch(e){} }
   if (id === 'tasks') {
@@ -4216,7 +4214,7 @@ function importData(file) {
       if (d.appData)           appData           = d.appData;
       saveData();
       renderSops(); renderAudit(); renderBrands(); renderWatchlist();
-      renderTaskBoard(); renderToursPage(); renderSocialPage(); renderAdCreativePage();
+      renderTaskBoard(); renderToursPage(); renderSocialPage();
       renderGoals(); renderFinances(); renderPlanPage(); renderAppPage();
       if (curUser==='latisha') { renderStaffPage(); renderDashTaskProgress(); } else { renderMyHub(); }
       alert('Data imported successfully!');
@@ -5048,7 +5046,6 @@ if (lastReset !== thisMondayStr && tasks && tasks.length) {
   try { renderAudit(); } catch(e){}
   try { renderBrands(); } catch(e){}
   try { renderWatchlist(); } catch(e){}
-  try { renderAdCreativePage(); } catch(e){}
   try { renderSocialPage(); } catch(e){}
   try { renderTaskBoard(); } catch(e){}
   try { renderPasswords(); } catch(e){}

@@ -1,20 +1,17 @@
 // POST /api/vietnam-staff-info
 // Staff-only access to Vietnam client records, personal info, and documents.
-// Auth: prefers a real Supabase session token (from the internal hub's
-// existing staff login) verified server-side against Supabase Auth — never
-// trusts anything the client claims about who it is. Falls back to a shared
-// password (VIETNAM_STAFF_PASSWORD) only if no token is sent, kept for
-// backwards compatibility.
+// Auth: a real Supabase session token from the staff hub's login, verified
+// server-side against Supabase Auth. Never trusts anything the browser claims
+// about who it is. (The old shared-password fallback was removed on 2 Nov 2026.)
 //
-// Required env vars: SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
-// Optional: VIETNAM_STAFF_PASSWORD (legacy fallback)
+// Required env var: SUPABASE_SERVICE_ROLE_KEY
 
 const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
 // Same publishable key the internal hub's login (index.html) uses — needed so
 // tokens minted by that login verify correctly here.
 const SUPABASE_ANON_KEY = 'sb_publishable_H4rfsOyYOd8A3OQr0ckmfQ_D_JVaGNJ';
 const BUCKET = 'vietnam-client-documents';
-const ALLOWED_ORIGINS = ['https://portal.yourszn.com.au', 'https://clients.yourszn.com.au', 'http://localhost:3000'];
+const ALLOWED_ORIGINS = ['https://portal.yourszn.com.au', 'http://localhost:3000']; // staff hub only
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const SIGNED_URL_TTL = 600;
 
@@ -61,17 +58,10 @@ module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
-  const { staff_token, staff_password, action } = req.body || {};
+  const { staff_token, action } = req.body || {};
 
-  let staffEmail = await verifyStaffToken(staff_token);
-  if (!staffEmail) {
-    const STAFF_PASSWORD = process.env.VIETNAM_STAFF_PASSWORD;
-    if (STAFF_PASSWORD && staff_password && staff_password === STAFF_PASSWORD) {
-      staffEmail = 'password-auth';
-    } else {
-      return res.status(401).json({ error: 'Please log in again.' });
-    }
-  }
+  const staffEmail = await verifyStaffToken(staff_token);
+  if (!staffEmail) return res.status(401).json({ error: 'Please log in again.' });
 
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!SERVICE_KEY) {

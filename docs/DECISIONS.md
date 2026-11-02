@@ -2,6 +2,20 @@
 
 Newest first. Each entry: what we chose, why, and what we rejected.
 
+## 2026-11-02: Clean-up pass
+
+- **Chose:** delete only what nothing loads, traced file by file (scripts in `index.html`,
+  links, API calls). Git history keeps every removed file if one is ever needed.
+- **Security:** removed two old ways into client data on the staff site: the old portal copy
+  (`client-portal.html`, shared code `1893`) with its name + email lookup API, and the tour
+  staff API's shared-password fallback (nothing used it; staff sign in with their own login).
+  The client site's copy of that staff API is gone, and the staff hub no longer serves the
+  client site's files.
+- **Fixed:** the staff hub's start-up stopped halfway (a call to a function that no longer
+  exists), so goals, finances, plan and staff views only filled in after data loaded.
+- **Not removed yet:** Client Profiles (`app-crm.js`), because Finances, gift vouchers and
+  questionnaires still use it. Removing it changes those screens, so Latisha decides.
+
 ## 2026-11-02: Admin Clients page replaces the in-person Clients page
 
 - **Chose:** one list of Online Colour Analysis clients in the staff hub, one row per email,
