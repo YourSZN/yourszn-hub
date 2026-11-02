@@ -10,7 +10,8 @@ Newest first. Each entry: what we chose, why, and what we rejected.
   (`client-portal.html`, shared code `1893`) with its name + email lookup API, and the tour
   staff API's shared-password fallback (nothing used it; staff sign in with their own login).
   The client site's copy of that staff API is gone, and the staff hub no longer serves the
-  client site's files.
+  client site's files (a redirect in the root `vercel.json`; `.vercelignore` was tried and
+  rejected because it also applies to the client site's build).
 - **Fixed:** the staff hub's start-up stopped halfway (a call to a function that no longer
   exists), so goals, finances, plan and staff views only filled in after data loaded.
 - **Not removed yet:** Client Profiles (`app-crm.js`), because Finances, gift vouchers and

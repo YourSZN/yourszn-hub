@@ -91,7 +91,8 @@ account / online submission. Per client:
    of `vietnam-staff-info.js`, the staff tour API's shared-password fallback, and the social
    and season PNGs (saved to a zip for Latisha). `DATA_SCHEMA.md` moved to `docs/`.
    `launchApp()` no longer calls the missing `renderAdCreativePage()`, so start-up finishes.
-   The staff hub no longer publishes the `portal/` folder (`.vercelignore`).
+   The staff hub no longer serves the `portal/` folder (redirect in the root `vercel.json`, which
+   only the staff hub uses; don't use `.vercelignore` for this, it applies to both sites).
    **Still open:** Client Profiles code (`app-crm.js`) is used by Finances ("CRM Revenue"),
    gift vouchers and "Save to CRM" on questionnaires: needs Latisha's decision before removal.
    The dashboard's in-person stat cards ("In-Person Rate", "10 in-person") need her numbers.
