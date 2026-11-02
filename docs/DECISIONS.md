@@ -8,10 +8,14 @@ Newest first. Each entry: what we chose, why, and what we rejected.
   joining a new `oca_clients` table (paid, tier, drape season) with the questionnaire
   (`szn_submissions`) and dashboard access (`colour_clients`). All reads and writes go
   through `api/admin-clients.js`. See `docs/CLIENTS-PAGE.md`.
-- **Admin only (Latisha's choice):** the server checks `profiles.role = 'admin'` from the
-  hub login on every request; the page is also off the staff menus. Because staff could
-  previously edit their own `profiles` row, including the role, the role is now locked
-  (`portal/sql/2026-11-02-profiles-role-lock.sql`, applied on go).
+- **Who can use it:** first admin only; later the same evening Latisha gave Salma full
+  access ("everything except financials"). The server checks `profiles.role` is `admin`
+  or `staff` from the hub login on every request and records who made each change.
+  Because staff could edit their own `profiles` row, including the role, the role is now
+  locked (`portal/sql/2026-11-02-profiles-role-lock.sql`, applied on go).
+- **Salma's menu:** everything except Finances, Dashboard (revenue targets, rates,
+  expenses) and Staff (Latisha's manager view). Menus only change what she sees; the
+  accounts-and-roles job locks the finance tables themselves.
 - **Why a new table, not more columns on `szn_submissions`:** someone can pay before they
   submit, or pay with one email and sign in with another, so payment belongs to the
   person (email), not the questionnaire. `colour_clients` stays only for dashboard access.

@@ -1,4 +1,4 @@
-# Staff hub: Clients page (admin only)
+# Staff hub: Clients page (Latisha and Salma)
 
 The **Clients** page in the staff hub (portal.yourszn.com.au) lists every Online Colour
 Analysis client, one row per email. It replaced the old in-person Clients page and the
@@ -37,13 +37,15 @@ on you": New, In progress, or Complete without a live dashboard) use the same li
 
 ## Who can use it
 
-Only people whose `profiles.role` is `admin` (today: Latisha). The server checks this on
-every request, from the hub's own login session; the browser can't claim to be an admin.
-The page is also taken off Salma's and Lemari's menus. `oca_clients` can't be read or
-changed with the public or staff keys at all, only by the server.
+People whose `profiles.role` is `admin` or `staff` (today: Latisha and Salma). The server
+checks this on every request, from the hub's own login session; the browser can't claim a
+role. Any other signed-in login is refused. Every change records who made it
+(`oca_clients.updated_by`, and `colour_access_log` for dashboard access).
+`oca_clients` can't be read or changed with the public or staff keys at all, only by the server.
 
-To let someone else use it later: set their `profiles.role` to `admin` in Supabase
+To give someone else access: give them a `profiles.role` of `staff` in Supabase
 (Table editor → profiles), and add `'clients'` to their `pages` in `USERS` in `app.js`.
+To take it away from staff, change `['admin', 'staff']` to `['admin']` in `api/admin-clients.js`.
 
 ## Server settings (Vercel project for portal.yourszn.com.au)
 

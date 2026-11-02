@@ -16,6 +16,7 @@ global.fetch = fakeFetch;
 const API = path.join(__dirname, '..', '..', 'api', 'admin-clients.js');
 const ADMIN = 'admin-token';
 const STAFF = 'staff-token';
+const OUTSIDER = 'outsider-token'; // a real Supabase login with no staff profile
 
 const START = {
   profiles: [
@@ -55,12 +56,18 @@ const checks = [];
 const check = (name, fn) => checks.push({ name, fn });
 
 // ── Who can use it ──
-check('access: no login, a fake token or a staff (non-admin) login are all refused', async () => {
+check('access: no login, a fake token, or a login with no staff role are all refused', async () => {
   assert.strictEqual((await call({ action: 'list' })).status, 401);
   assert.strictEqual((await call({ action: 'list' }, 'made-up-token')).status, 401);
-  assert.strictEqual((await call({ action: 'list' }, STAFF)).status, 403, 'staff role is not admin');
-  const g = await call({ action: 'give_dashboard', email: 'mona@example.com' }, STAFF);
+  assert.strictEqual((await call({ action: 'list' }, OUTSIDER)).status, 403, 'signed in, but not staff');
+  const g = await call({ action: 'give_dashboard', email: 'mona@example.com' }, OUTSIDER);
   assert.strictEqual(g.status, 403); assert.strictEqual(db.colour_clients.length, 1); assert.strictEqual(sentEmails.length, 0);
+});
+
+check('access: staff (Salma) can use the page, and her changes are recorded under her email', async () => {
+  assert.strictEqual((await call({ action: 'list' }, STAFF)).status, 200);
+  assert.strictEqual((await call({ action: 'update', email: 'nell@example.com', paid: true }, STAFF)).status, 200);
+  assert.strictEqual(db.oca_clients.find((x) => x.email === 'nell@example.com').updated_by, 'helper@example.com');
 });
 
 // ── The list ──
@@ -158,6 +165,7 @@ check('dashboard: resend only when live; remove closes it and signs them out', a
     reset(START);
     authUsers[ADMIN] = { id: 'u-admin', email: 'Boss@example.com' };
     authUsers[STAFF] = { id: 'u-staff', email: 'helper@example.com' };
+    authUsers[OUTSIDER] = { id: 'u-nobody', email: 'stranger@example.com' };
     try { await c.fn(); console.log('  ok   ' + c.name); }
     catch (e) { failed++; console.log('  FAIL ' + c.name + '\n       ' + e.message); }
   }

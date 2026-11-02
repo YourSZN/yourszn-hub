@@ -3,7 +3,8 @@
 // ══════════════════════════════════════
 var USERS = {
 latisha: { name:'Latisha', role:'Owner', email:'sykes_96@hotmail.com', pages:['dashboard','notifications', 'calendar','clients','vouchers','tours','tasks','plan','staff','finances','vietnam','app','sops','social','marketing','online','comms'] },
-  salma:   { name:'Salma',   role:'Admin Support', email:'azzahrasalma0@gmail.com', pages:['myhub','notifications','tasks', 'calendar','vouchers','tours','vietnam','app','sops','marketing','online','comms'] },
+  // Salma: everything except Finances, Dashboard and Staff (Latisha, 2 Nov 2026).
+  salma:   { name:'Salma',   role:'Admin Support', email:'azzahrasalma0@gmail.com', pages:['myhub','notifications','tasks', 'calendar','clients','vouchers','tours','plan','vietnam','app','sops','social','marketing','online','comms'] },
   lemari:  { name:'Lemari',  role:'Content · Video', inactive:true, email:null, pages:['myhub','notifications','tasks', 'calendar','vouchers','tours','vietnam','app','sops','social','marketing','online','comms'] }
 };
 var NAV = [

@@ -72,7 +72,8 @@ account / online submission. Per client:
 - Filters: All, Paid not submitted, New, In progress, Complete, Dashboard live.
 - Remove the in-person screens and `client-upload.html` / `api/client-booking.js` (confirm
   nothing else uses them first). Latisha is dropping in-person work. (2 Nov: also delete
-  the in-person data, no export; admin only; remove Client Profiles tab; no email on grant.)
+  the in-person data, no export; remove Client Profiles tab; no email on grant. Admin only
+  at first, then opened to Salma the same evening.)
 - Mock-up: the "Your admin · Clients" artboard on the design canvas above.
 
 ## After that
@@ -94,7 +95,8 @@ account / online submission. Per client:
    `renderAdCreativePage()` that no loaded file defines, so the rest of launch is skipped
    (renderGoals, renderFinances, renderPlanPage, staff page). Already broken on main.
 3. **Accounts and roles:** one client account table; lock every staff table by role
-   (38 tables currently allow any signed-in user). Test on a temporary Supabase branch
+   (38 tables currently allow any signed-in user). Latisha's rule (2 Nov): Salma (`staff`)
+   gets everything except financials: no finance tables, no Dashboard, no Staff page. Test on a temporary Supabase branch
    ("claudedev") and delete it afterwards.
 4. **Shopify webhook** for payment (Latisha chose manual for now).
 5. **Pre-launch checklist:** security, performance, accessibility, backup restore test.

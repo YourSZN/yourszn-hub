@@ -56,7 +56,7 @@ async function requireStaff(req, res, roles) {
 
   const rows = await sb('/rest/v1/profiles?id=eq.' + encodeURIComponent(user.id) + '&select=role&limit=1');
   const role = rows && rows[0] && rows[0].role;
-  if (!roles.includes(role)) { res.status(403).json({ error: 'Only an admin can do this.' }); return null; }
+  if (!roles.includes(role)) { res.status(403).json({ error: 'Your login doesn\'t have access to this.' }); return null; }
   return { id: user.id, email: String(user.email || '').toLowerCase(), role };
 }
 

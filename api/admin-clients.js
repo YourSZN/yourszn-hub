@@ -1,5 +1,6 @@
 // POST /api/admin-clients
-// Staff hub → Clients page. Admins only (profiles.role = 'admin').
+// Staff hub → Clients page. Latisha and staff (profiles.role 'admin' or 'staff').
+// A signed-in Supabase user with any other role, or no profile, is refused.
 // Header: Authorization: Bearer <the hub's Supabase session access token>
 //
 // One "client" = one email. The list joins three places:
@@ -146,7 +147,7 @@ async function logEvent(clientId, event, staff) {
 module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
-  const staff = await requireStaff(req, res, ['admin']);
+  const staff = await requireStaff(req, res, ['admin', 'staff']);
   if (!staff) return;
   const body = req.body || {};
   const email = cleanEmail(body.email);

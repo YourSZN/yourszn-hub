@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════
-// CLIENTS PAGE (staff hub, admin only) — Online Colour Analysis clients
+// CLIENTS PAGE (staff hub: Latisha and staff) — Online Colour Analysis clients
 //
 // One row per client email: paid tick, questionnaire status, season from the
 // drape, tier, and Colour Dashboard access. Everything goes through
-// /api/admin-clients, which checks the signed-in person is an admin; this file
+// /api/admin-clients, which checks the signed-in person's staff role; this file
 // only draws the page. Approved mock-up: "Your admin · Clients" artboard.
 //
 // Entry points: renderAdminClients() (showPage('clients')), adminClientsRefreshBadge()
