@@ -21,7 +21,11 @@
 //   { action: "give_dashboard", email }
 //       Opens their Colour Dashboard (colour_clients row, active, trial off) and emails
 //       "Your results are ready". Only for seasons in READY_SEASONS.
-//   { action: "resend_email", email }     emails "Your results are ready" again.
+//   { action: "give_trial", email }
+//       Lets someone TRY a finished season's dashboard (the first of READY_SEASONS) before
+//       their own season is built. Their dashboard shows a trial banner. No email is sent
+//       (Latisha messages them). Their drape season on this page is left alone.
+//   { action: "resend_email", email }     emails "Your results are ready" again (not for trials).
 //   { action: "remove_dashboard", email } closes the dashboard and signs them out of it.
 //
 // Required env vars: SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY
@@ -56,7 +60,7 @@ async function loadAll() {
     sb('/rest/v1/oca_clients?select=*'),
     // Drafts aren't questionnaires yet. (A missing status counts as sent in, i.e. New.)
     sb('/rest/v1/szn_submissions?or=(status.is.null,status.neq.draft)&select=id,email,full_name,status,created_at,predicted_season,revised_photos_at&order=created_at.desc'),
-    sb('/rest/v1/colour_clients?select=id,email,name,season,tier,active,created_at'),
+    sb('/rest/v1/colour_clients?select=id,email,name,season,tier,active,trial,created_at'),
   ]);
   const byEmail = {};
   const get = (email) => byEmail[email] || (byEmail[email] = { email });
@@ -83,7 +87,7 @@ async function loadAll() {
       tier: r.tier || (d && d.tier) || 'standard',
       drapeSeason: r.drape_season || (d && d.season) || null,
       submission: s ? { id: s.id, status: s.status, submittedAt: s.created_at, predictedSeason: s.predicted_season || null, revisedAt: s.revised_photos_at || null } : null,
-      dashboard: d ? { live: !!d.active, season: d.season, since: d.created_at } : { live: false },
+      dashboard: d ? { live: !!d.active, season: d.season, since: d.created_at, trial: !!d.trial } : { live: false },
       addedAt: r.created_at || (s && s.created_at) || (d && d.created_at) || null,
     };
   }).sort((a, b) => String(b.addedAt || '').localeCompare(String(a.addedAt || '')));
@@ -251,6 +255,26 @@ module.exports = async function handler(req, res) {
         console.error('[admin-clients] results email failed', err && err.message);
         return res.status(200).json({ ok: true, emailFailed: true, client: await findClient(email) });
       }
+      return res.status(200).json({ ok: true, client: await findClient(email) });
+    }
+
+    if (body.action === 'give_trial') {
+      if (!validEmail(email)) return res.status(400).json({ error: 'Missing client email.' });
+      const client = await findClient(email);
+      if (!client) return res.status(404).json({ error: 'Client not found.' });
+      if (!client.name) return res.status(400).json({ error: 'This client has no name on file.' });
+      if (client.dashboard.live) return res.status(400).json({ error: 'Their dashboard is already open.' });
+      const season = READY_SEASONS[0];
+      const existing = await sb('/rest/v1/colour_clients?email=eq.' + enc(email) + '&select=id&limit=1');
+      let id;
+      if (existing.length) {
+        id = existing[0].id;
+        await sb('/rest/v1/colour_clients?id=eq.' + id, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: { name: client.name, season, tier: client.tier, active: true, trial: true } });
+      } else {
+        const created = await sb('/rest/v1/colour_clients', { method: 'POST', body: { email, name: client.name, season, tier: client.tier, active: true, trial: true } });
+        id = created[0].id;
+      }
+      await logEvent(id, 'trial-given', staff);
       return res.status(200).json({ ok: true, client: await findClient(email) });
     }
 

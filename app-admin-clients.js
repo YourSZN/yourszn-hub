@@ -161,6 +161,12 @@ function acGiveDashboard() {
   if (!confirm('Open the ' + c.drapeSeason + ' dashboard for ' + (c.name || c.email) + ' and email them that their results are ready?')) return;
   acDo('give_dashboard', { email: c.email }, 'Dashboard open. "Your results are ready" email sent to ' + c.email + '.');
 }
+function acGiveTrial() {
+  var c = acSel(); if (!c) return;
+  var season = acState.readySeasons[0];
+  if (!confirm('Give ' + (c.name || c.email) + ' trial access to the ' + season + ' dashboard? They\'ll see a banner saying it isn\'t their result. No email is sent.')) return;
+  acDo('give_trial', { email: c.email }, 'Trial access given. ' + (c.name || c.email).split(' ')[0] + ' can sign in at clients.yourszn.com.au with ' + c.email + '.');
+}
 function acResendEmail() {
   var c = acSel(); if (!c) return;
   if (!confirm('Send the "Your results are ready" email to ' + c.email + ' again?')) return;
@@ -331,8 +337,8 @@ function acDetailHtml() {
     + '<span class="ac-tnote">' + (s && s.revisedAt ? 'Revised photos ' + acDate(s.revisedAt) : (s ? 'Same as Online Analysis' : 'Shows once they submit')) + '</span></div>';
 
   var dash = '<div class="ac-tile' + (c.dashboard.live ? ' paid' : '') + '"><span class="ac-tlbl">Dashboard</span>'
-    + '<b style="font-size:14px">' + (c.dashboard.live ? 'Live · ' + esc(c.dashboard.season) : 'Not live yet') + '</b>'
-    + '<span class="ac-tnote">' + (c.dashboard.live ? 'Since ' + acDate(c.dashboard.since) : 'Client sees "being prepared"') + '</span></div>';
+    + '<b style="font-size:14px">' + (c.dashboard.live ? (c.dashboard.trial ? 'Trial · ' : 'Live · ') + esc(c.dashboard.season) : 'Not live yet') + '</b>'
+    + '<span class="ac-tnote">' + (c.dashboard.live ? (c.dashboard.trial ? 'Shows a trial banner. Since ' : 'Since ') + acDate(c.dashboard.since) : 'Client sees "being prepared"') + '</span></div>';
 
   var ready = acState.readySeasons;
   var seasonOpts = '<option value="">Choose season…</option>' + acState.seasons.map(function (sn) {
@@ -347,7 +353,11 @@ function acDetailHtml() {
     + '</div>';
 
   var action;
-  if (c.dashboard.live) {
+  var trialSeason = ready[0];
+  if (c.dashboard.live && c.dashboard.trial) {
+    action = '<span class="ac-tnote" style="max-width:420px">When their own season is ready: <b>Remove dashboard access</b>, choose their season above, then <b>Give dashboard access</b>. The trial banner goes and they get their results email.</span>'
+      + '<button type="button" class="ac-link danger"' + dis + ' onclick="acRemoveDashboard()">Remove dashboard access</button>';
+  } else if (c.dashboard.live) {
     action = '<button type="button" class="ac-main"' + dis + ' onclick="acResendEmail()">Resend "results ready" email</button>'
       + '<button type="button" class="ac-link danger"' + dis + ' onclick="acRemoveDashboard()">Remove dashboard access</button>';
   } else {
@@ -356,7 +366,9 @@ function acDetailHtml() {
       : esc((c.name || 'They').split(' ')[0]) + ' gets a "Your results are ready" email and their home page unlocks ' + esc(c.drapeSeason) + '.';
     var can = c.drapeSeason && ready.indexOf(c.drapeSeason) > -1;
     action = '<button type="button" class="ac-main"' + (can && !acState.busy ? '' : ' disabled') + ' onclick="acGiveDashboard()">Give dashboard access + email client</button>'
-      + '<span class="ac-tnote" style="max-width:360px">' + why + '</span>';
+      + '<span class="ac-tnote" style="max-width:360px">' + why + '</span>'
+      + (trialSeason ? '<div class="ac-trial"><button type="button" class="btn btns"' + dis + ' onclick="acGiveTrial()">Give trial access (' + esc(trialSeason) + ')</button>'
+        + '<span class="ac-tnote">Lets them try the ' + esc(trialSeason) + ' dashboard before their own season is built, with a banner saying it isn\'t their result. No email is sent.</span></div>' : '');
   }
 
   return head
@@ -428,6 +440,7 @@ function acStyles() {
     + '.ac-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}'
     + '.ac-main{height:48px;padding:0 24px;border-radius:999px;border:0;background:#7A5C48;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}'
     + '.ac-main:disabled,.ac-seg button:disabled{opacity:.45;cursor:not-allowed}'
+    + '.ac-trial{flex-basis:100%;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px dashed #E2D8CB;padding-top:14px}'
     + '.ac-notice{background:#E2EFE6;color:#245238;border-radius:12px;padding:10px 14px;font-size:13px}'
     + '.ac-modal{position:fixed;inset:0;background:rgba(28,23,18,.45);z-index:900;align-items:center;justify-content:center;padding:16px}'
     + '.ac-modal-box{background:#fff;border-radius:18px;padding:26px;width:440px;max-width:100%;box-sizing:border-box}'

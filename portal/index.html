@@ -308,6 +308,7 @@ function loadHome() {
 
 function headline() {
   var a = home.analysis.state;
+  if (home.dashboard.open && home.dashboard.trial) return 'Try your Colour Dashboard';
   if (home.dashboard.open) return 'Your results are ready';
   if (a === 'none') return 'What would you like to do?';
   if (a === 'sent') return 'Your results are on their way';
@@ -358,6 +359,15 @@ function tourCard() {
 }
 
 function dashboardCard() {
+  if (home.dashboard.open && home.dashboard.trial) {
+    return '<section class="card" aria-labelledby="h-dash" style="border-color:var(--brown)">'
+      + '<span class="eyebrow">Trial</span>'
+      + '<h2 id="h-dash">Try the ' + esc(home.dashboard.season || 'Colour') + ' dashboard</h2>'
+      + '<p class="muted">See what your Colour Dashboard will be like. It isn’t your result: your own season’s dashboard will replace it when it’s ready.</p>'
+      + '<p class="msg" id="m-dash" role="alert" hidden></p>'
+      + '<button class="btn brown" id="b-dash">Open the dashboard →</button>'
+      + '</section>';
+  }
   if (home.dashboard.open) {
     return '<section class="card" aria-labelledby="h-dash" style="border-color:var(--brown)">'
       + '<span class="eyebrow">Your season</span>'

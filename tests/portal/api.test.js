@@ -117,7 +117,7 @@ check('portal: in-progress client sees "review"; approved client sees her season
   assert.strictEqual((await call('client-home.js', { action: 'get' }, dee)).data.analysis.state, 'review');
   const cora = await signIn('client-auth.js', 'cora@example.com', 'Cora');
   const r = await call('client-home.js', { action: 'get' }, cora);
-  assert.strictEqual(r.data.analysis.state, 'sent'); assert.deepStrictEqual(r.data.dashboard, { open: true, season: 'True Spring' });
+  assert.strictEqual(r.data.analysis.state, 'sent'); assert.deepStrictEqual(r.data.dashboard, { open: true, season: 'True Spring', trial: false });
 });
 check('portal: opening the tour or dashboard only works for people on that list', async () => {
   const nina = await signIn('client-auth.js', 'new@example.com', 'Nina');
@@ -242,6 +242,13 @@ check('password: set inside the dashboard, it also works on the front page and k
   assert.strictEqual((await call('client-home.js', { action: 'get' }, r.data.portal.token)).status, 200);
   assert.strictEqual((await call('client-auth.js', { action: 'login', email: 'cora@example.com', password: 'longenough1' })).status, 200);
   assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, r.data.token)).data.client.hasPassword, true);
+});
+
+check('portal: a trial client is told it is a trial, not "results ready"', async () => {
+  db.colour_clients[0].trial = true;
+  const token = await signIn('client-auth.js', 'cora@example.com', 'Cora');
+  const d = (await call('client-home.js', { action: 'get' }, token)).data;
+  assert.strictEqual(d.dashboard.open, true); assert.strictEqual(d.dashboard.trial, true);
 });
 
 // ── Tour from the colour dashboard's account menu ──

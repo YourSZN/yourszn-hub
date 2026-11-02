@@ -14,6 +14,7 @@ Client Profiles tab on 2 Nov 2026.
 | **Tier** (Standard / Premium) | `oca_clients.tier` | Also updates a live dashboard. |
 | **Give dashboard access + email client** | `colour_clients` (row made or switched on) | Only for seasons in `READY_SEASONS` in `api/admin-clients.js` (True Spring for now). Sends "Your colour results are ready" with a link to clients.yourszn.com.au. |
 | **Resend "results ready" email** | | Only when the dashboard is live. |
+| **Give trial access (True Spring)** | `colour_clients` row with `trial = true` | Lets someone try the first finished season's dashboard before their own is built. Their dashboard and portal home say it's a trial. No email is sent. Their drape season isn't changed. Later: Remove dashboard access → choose their real season → Give dashboard access. |
 | **Remove dashboard access** | `colour_clients.active = false` | Signs them out of the dashboard straight away. Can be reopened. |
 | **+ Grant OCA access** | new `oca_clients` row, marked paid | For someone who paid with a different email: add the email they'll sign in with (and optionally the one they paid with). No email is sent. |
 | **Open questionnaire + photos** | | Jumps to that questionnaire on the Online Analysis page. |
