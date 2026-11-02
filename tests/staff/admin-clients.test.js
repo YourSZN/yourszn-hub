@@ -137,6 +137,24 @@ check('dashboard: only for a chosen, ready season; opens it, emails once, logs w
   assert.ok(db.colour_access_log[0].user_agent.includes('boss@example.com'));
 });
 
+check('trial: opens True Spring with a trial flag, leaves their drape season alone, sends nothing', async () => {
+  await call({ action: 'update', email: 'nell@example.com', drapeSeason: 'Soft Autumn' }, ADMIN);
+  const r = await call({ action: 'give_trial', email: 'nell@example.com' }, STAFF);
+  assert.strictEqual(r.status, 200);
+  const cc = db.colour_clients.find((c) => c.email === 'nell@example.com');
+  assert.ok(cc.active && cc.trial); assert.strictEqual(cc.season, 'True Spring');
+  assert.strictEqual(db.oca_clients.find((x) => x.email === 'nell@example.com').drape_season, 'Soft Autumn');
+  assert.strictEqual(sentEmails.length, 0);
+  assert.strictEqual(r.data.client.dashboard.trial, true);
+  assert.strictEqual((await call({ action: 'give_trial', email: 'nell@example.com' }, ADMIN)).status, 400, 'already open');
+  assert.strictEqual((await call({ action: 'give_trial', email: 'nell@example.com' }, OUTSIDER)).status, 403);
+  // Their real result later switches the trial off
+  await call({ action: 'remove_dashboard', email: 'nell@example.com' }, ADMIN);
+  await call({ action: 'update', email: 'nell@example.com', drapeSeason: 'True Spring' }, ADMIN);
+  await call({ action: 'give_dashboard', email: 'nell@example.com' }, ADMIN);
+  assert.strictEqual(db.colour_clients.find((c) => c.email === 'nell@example.com').trial, false);
+});
+
 check('dashboard: names in the email are escaped', async () => {
   await call({ action: 'grant', name: '<b>Evil</b>', email: 'evil@example.com' }, ADMIN);
   await call({ action: 'update', email: 'evil@example.com', drapeSeason: 'True Spring' }, ADMIN);

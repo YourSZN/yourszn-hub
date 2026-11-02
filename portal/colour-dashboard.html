@@ -161,6 +161,17 @@ section.view>*{min-width:0}
 .mk-keys b{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--eyebrow)}
 .mk-bag{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--blue-tint);border-radius:14px;padding:10px 14px;font-size:13px}
 .mk-sec{display:grid;gap:16px}
+.mk-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.mk-tile{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;text-align:left;background:var(--soft);border:1px solid var(--line);border-radius:18px;padding:14px;font:inherit;color:var(--ink);cursor:pointer;min-height:44px}
+.mk-tile:hover{border-color:var(--ink)}
+.mk-tile b{font-size:16px}.mk-tile .go{font-size:16px;color:var(--muted)}
+.mk-tile .small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mk-vis{display:flex;align-items:center;width:100px;flex:none}
+.mk-vis .dot{width:26px;height:26px;border-radius:50%;margin-left:-8px;box-shadow:0 0 0 2px var(--soft)}
+.mk-vis .dot:first-child{margin-left:0}
+.mk-vis img{width:40px;height:40px;border-radius:10px;object-fit:cover;margin-left:-10px;box-shadow:0 0 0 2px var(--soft);background:#fff}
+.mk-vis img:first-child{margin-left:0}
+.mk-back{justify-self:start}
 .shades{display:flex;flex-wrap:wrap;gap:12px 10px}
 .shades div{display:grid;justify-items:center;gap:5px;width:62px;text-align:center;font-size:11px;line-height:1.2;color:var(--muted)}
 .shades span{width:44px;height:44px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(28,23,18,.08)}
@@ -302,7 +313,13 @@ section[id],.card[id]{scroll-margin-top:72px}
 @media (min-width:900px){.sheet-bg{align-items:center}.sheet{border-radius:28px;padding-bottom:26px}}
 .grab{justify-self:center;width:40px;height:4px;border-radius:2px;background:var(--line)}
 .sheet .top-row{display:grid;grid-template-columns:112px 1fr auto;gap:18px;align-items:center}
-.sheet .big{width:112px;height:112px;border-radius:24px}
+.sheet .big{width:112px;height:112px;border-radius:24px;border:0;padding:0;cursor:zoom-in}
+.full{position:fixed;inset:0;z-index:200;display:grid;touch-action:pan-y}
+.full .fl-x{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:14px;width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:26px;line-height:1;color:var(--ink);box-shadow:var(--shadow)}
+.full .fl-name{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(255,255,255,.92);color:var(--ink);border-radius:999px;padding:10px 18px;font-size:14px;white-space:nowrap;box-shadow:var(--shadow)}
+.full .fl-name span{color:var(--muted);margin-left:8px;font-size:12px}
+.full .fl-arrow{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;border-radius:50%;border:0;background:rgba(255,255,255,.82);font-size:26px;color:var(--ink)}
+.full .fl-arrow.l{left:14px}.full .fl-arrow.r{right:14px}
 .sheet h2{font-size:30px}
 .sheet .x{width:44px;height:44px;border-radius:50%;border:0;background:var(--soft);font-size:20px;align-self:start}
 .sheet .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -721,13 +738,25 @@ function ch(title,sub,body){const pages=GP[title]||[];const locked=body.includes
   return `<article class="card chapter" data-t="${title.replace(/&amp;/g,"&")}"><div class="band"><span class="eyebrow">${sub}</span><h2>${title}</h2></div><div class="ch-body">${body}</div>${pages.length&&!locked?`<div class="stack"><div class="row" style="justify-content:space-between"><span class="eyebrow">From your guide</span><span class="small muted">${pages.length} page${pages.length>1?"s":""}, tap to enlarge</span></div><div class="pages">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></div>`:""}</article>`}
 function premium(title,body){return CLIENT.tier==="premium"?body:`<div class="locked"><b>${title} is part of the Premium Colour Analysis</b><p class="small muted">Premium clients get hair colour, makeup, nail and perfume recommendations for their season.</p><a class="btn" href="https://www.yourszn.com.au" target="_blank" rel="noopener">Upgrade to Premium</a></div>`}
 /* ================= MAKEUP (premium chapter) ================= */
-let mkTab=store("mktab")||"lips";
+let mkTab="";  // "" = the Makeup overview; otherwise a category key, or "bag"
 const bag=()=>store("bag")||[];
 function prodCard(x){const on=bag().includes(x.img);return `<div class="prod"><div class="pi"><img src="${SIMG}${x.img}" alt="${esc(x.brand)} ${esc(x.name)}" loading="lazy"></div><div class="pt"><b>${esc(x.brand)}</b><span>${esc(x.name)}</span>${x.url?`<a class="shoplink" href="${x.url}" target="_blank" rel="noopener">Shop →</a>`:""}</div><button class="bagbtn" data-bag="${x.img}" aria-pressed="${on}" aria-label="${on?"Remove from":"Add to"} my makeup bag">${HEART}</button></div>`}
 function renderMakeup(){const M=SEASON.makeup;if(!M)return"";
   const all=M.sections.flatMap(s=>(s.groups||[]).flatMap(g=>g[1]));const mine=all.filter(x=>bag().includes(x.img));
   const tabs=[...M.sections.map(s=>[s.k,s.t]),...(mine.length?[["bag",`My bag (${mine.length})`]]:[])];
-  if(!tabs.some(t=>t[0]===mkTab))mkTab="lips";
+  if(mkTab&&!tabs.some(t=>t[0]===mkTab))mkTab="";
+  if(!mkTab){
+    // Overview: intro, looks, the three keys, then a tile per category
+    const tile=(k,t,txt,vis,count)=>`<button class="mk-tile" data-mk="${k}"><span class="mk-vis">${vis}</span><span class="stack" style="gap:4px"><span class="row" style="justify-content:space-between"><b>${t}</b><span class="go" aria-hidden="true">→</span></span><span class="small muted">${txt}</span>${count?`<span class="eyebrow">${count}</span>`:""}</span></button>`;
+    const vis=s=>s.shades?s.shades.slice(0,5).map(([c])=>`<span class="dot" style="background:${c}"></span>`).join("")
+      :(s.groups||[]).flatMap(g=>g[1]).slice(0,3).map(x=>`<img src="${SIMG}${x.img}" alt="" loading="lazy">`).join("");
+    const n=s=>(s.groups||[]).reduce((a,g)=>a+g[1].length,0);
+    return `<div class="mk" id="mk"><p>${M.intro}</p>
+      ${(SEASON.makeupLooks||[]).length?`<div class="looks">${SEASON.makeupLooks.map(n=>`<img src="${SIMG}${n}" alt="${SEASON.name} makeup look" loading="lazy">`).join("")}</div>`:""}
+      <div class="mk-keys">${M.keys.map(([a,b])=>`<div><b>${a}</b>${b}</div>`).join("")}</div>
+      <div class="mk-tiles">${mine.length?tile("bag","My makeup bag","Products you've saved. Take this list shopping.",mine.slice(0,3).map(x=>`<img src="${SIMG}${x.img}" alt="" loading="lazy">`).join(""),`${mine.length} saved`):""}
+        ${M.sections.map(s=>tile(s.k,s.t,s.text,vis(s),n(s)?`${n(s)} products`:"")).join("")}</div>
+      ${mine.length?"":`<div class="mk-bag"><span>Tap the heart on any product to save it to your makeup bag.</span></div>`}</div>`}
   const sec=M.sections.find(s=>s.k===mkTab);
   const body=mkTab==="bag"?`<div class="mk-sec"><p class="small muted">Products you've saved from your guide. Take this list shopping.</p><div class="prods">${mine.map(prodCard).join("")}</div></div>`
    :`<div class="mk-sec"><p>${sec.text}</p>
@@ -735,15 +764,15 @@ function renderMakeup(){const M=SEASON.makeup;if(!M)return"";
     ${sec.do?`<div class="dd"><div class="y"><b>Choose</b>${sec.do}</div><div class="n"><b>Avoid</b>${sec.avoid}</div></div>`:""}
     ${sec.steps?`<ol class="prepsteps">${sec.steps.map(([t,d],i)=>`<li><span class="n">${i+1}</span><div><b>${t}</b><p class="small muted">${d}</p></div></li>`).join("")}</ol>`:""}
     ${(sec.groups||[]).map(([t,list])=>`<div class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="eyebrow">${t}</span><span class="small muted">${list.length} from your guide</span></div><div class="prods">${list.map(prodCard).join("")}</div></div>`).join("")}</div>`;
-  return `<div class="mk" id="mk"><p>${M.intro}</p>
-    ${(SEASON.makeupLooks||[]).length?`<div class="looks">${SEASON.makeupLooks.map(n=>`<img src="${SIMG}${n}" alt="${SEASON.name} makeup look" loading="lazy">`).join("")}</div>`:""}
-    <div class="mk-keys">${M.keys.map(([a,b])=>`<div><b>${a}</b>${b}</div>`).join("")}</div>
-    ${mine.length?"":`<div class="mk-bag"><span>Tap the heart on any product to save it to your makeup bag.</span></div>`}
-    <div class="chips" role="group" aria-label="Makeup sections">${tabs.map(([k,t])=>`<button class="chip" data-mk="${k}" aria-pressed="${k===mkTab}">${t}</button>`).join("")}</div>
-    ${body}</div>`}
+  // One category, with a way back to the overview and quick hops to the others
+  const title=mkTab==="bag"?"My makeup bag":sec.t;
+  return `<div class="mk" id="mk"><button class="linkbtn2 mk-back" data-mk="">← All makeup</button>
+    <h2>${title}</h2>
+    ${body}
+    <div class="chips" role="group" aria-label="Other makeup sections">${tabs.filter(([k])=>k!==mkTab).map(([k,t])=>`<button class="chip" data-mk="${k}">${t}</button>`).join("")}</div></div>`}
 function redrawMakeup(){const el=$("#mk");if(!el)return;const t=document.createElement("div");t.innerHTML=renderMakeup();el.replaceWith(t.firstElementChild)}
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-mk]");if(t){mkTab=t.dataset.mk;store("mktab",mkTab);redrawMakeup();const c=$(`#mk [data-mk="${mkTab}"]`);if(c)c.scrollIntoView({block:"nearest",inline:"center"});return}
+  const t=e.target.closest("[data-mk]");if(t){mkTab=t.dataset.mk;redrawMakeup();$("#v-makeup").scrollIntoView({block:"start"});return}
   const b=e.target.closest("[data-bag]");if(b){const k=b.dataset.bag,l=bag();store("bag",l.includes(k)?l.filter(x=>x!==k):[...l,k]);
     const on=bag().includes(k);document.querySelectorAll(`[data-bag="${k}"]`).forEach(x=>{x.setAttribute("aria-pressed",on)});
     const chip=$('#mk [data-mk="bag"]'),n=bag().length;if(!chip&&n||chip&&!n||mkTab==="bag")redrawMakeup();else if(chip)chip.textContent=`My bag (${n})`}});
@@ -1224,6 +1253,29 @@ function renderColours(){
   $("#addMore").onclick=()=>{palFilter="all";renderColours();const t=$("#fam-blues");if(t)t.scrollIntoView({behavior:"smooth",block:"start"})};
   const cb=$("#camBtn2");if(cb)cb.onclick=openCamera;
 }
+// Full-screen colour: hold the phone up to clothes or fabric. Swipe or use the arrows to
+// move through the palette in the same order as My colours. Esc or × closes.
+function paletteOrder(){const g=groups();return FAMS.map(x=>x[0]).flatMap(k=>g[k]||[])}
+function openFull(c,list){
+  let i=Math.max(0,list.indexOf(c));
+  const el=document.createElement("div");el.className="full";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");
+  const multi=list.length>1;
+  el.innerHTML=`<button class="fl-x" aria-label="Close">×</button>${multi?`<button class="fl-arrow l" aria-label="Previous colour">‹</button><button class="fl-arrow r" aria-label="Next colour">›</button>`:""}<div class="fl-name" aria-live="polite"></div>`;
+  const draw=()=>{const x=list[i];el.style.background=x;el.setAttribute("aria-label",nm(x)+" full screen");el.querySelector(".fl-name").innerHTML=`<b>${esc(nm(x))}</b><span>${x.toUpperCase()}${multi?` · ${i+1} of ${list.length}`:""}</span>`};
+  const step=d=>{if(!multi)return;i=(i+d+list.length)%list.length;draw()};
+  const close=()=>{document.removeEventListener("keydown",key);try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}el.remove();document.body.style.overflow=""};
+  const key=e=>{if(e.key==="Escape")close();if(e.key==="ArrowRight")step(1);if(e.key==="ArrowLeft")step(-1)};
+  el.querySelector(".fl-x").onclick=close;
+  if(multi){el.querySelector(".fl-arrow.l").onclick=()=>step(-1);el.querySelector(".fl-arrow.r").onclick=()=>step(1)}
+  let sx=null;el.addEventListener("touchstart",e=>{sx=e.touches[0].clientX},{passive:true});
+  el.addEventListener("touchend",e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>50)step(dx<0?1:-1)});
+  // Leaving browser full screen (e.g. the Esc key on a computer) closes it too.
+  el.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&el.isConnected)close()});
+  document.addEventListener("keydown",key);document.body.style.overflow="hidden";
+  document.body.appendChild(el);draw();el.querySelector(".fl-x").focus();
+  // Real full screen where the browser allows it (computers, Android). iPhones keep the overlay.
+  try{if(el.requestFullscreen&&!/iPhone|iPad/.test(navigator.userAgent))el.requestFullscreen().catch(()=>{})}catch(e){}
+}
 function nearest(c,list){let best=null,bd=1e9;list.forEach(x=>{if(x===c)return;const a=hsl(c),b=hsl(x);let dh=Math.abs(a.h-b.h);dh=Math.min(dh,360-dh);const d=dh/180+Math.abs(a.l-b.l)*1.5;if(d<bd){bd=d;best=x}});return best}
 function hueShift(c,deg){const{h}=hsl(c);const t=(h+deg)%360;let best=null,bd=1e9;SEASON.palette.forEach(x=>{const y=hsl(x);if(y.s<.23)return;let d=Math.abs(y.h-t);d=Math.min(d,360-d)+Math.abs(y.l-hsl(c).l)*60;if(d<bd){bd=d;best=x}});return best}
 function openSheet(c,avoid,nb){
@@ -1234,8 +1286,9 @@ function openSheet(c,avoid,nb){
   const label=nb?nb:avoid?"Not in your palette":SEASON.families[fam].name;
   host.innerHTML=`<div class="sheet-bg" id="sheetBg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${nm(c)}">
     <span class="grab" aria-hidden="true"></span>
-    <div class="top-row"><span class="big" style="background:${c}"></span><div class="stack" style="gap:4px"><span class="eyebrow">${label}</span><h2>${nm(c)}</h2><span class="small muted">${c.toUpperCase()}</span></div><button class="x" id="sheetX" aria-label="Close">×</button></div>
+    <div class="top-row"><button class="big" id="sheetBig" style="background:${c}" aria-label="See ${nm(c)} full screen"></button><div class="stack" style="gap:4px"><span class="eyebrow">${label}</span><h2>${nm(c)}</h2><span class="small muted">${c.toUpperCase()}</span></div><button class="x" id="sheetX" aria-label="Close">×</button></div>
     ${avoid?`<p class="note">This one is ${whyNot(c)}. If you love it, wear it away from your face or in a print that's mostly your colours.</p>`:""}
+    <button class="btn ghost" id="sheetFull" style="border-radius:14px;min-height:46px">See it full screen</button>
     <div class="acts">${avoid?"":`<button class="btn ghost heart-btn" id="sheetFav" aria-pressed="${fav}">${HEART}<span>${fav?"Saved":"Save"}</span></button>`}<button class="btn" id="sheetTry"${avoid?' style="grid-column:1/-1"':""}>Try on my face</button></div>
     ${pairs.length?`<div class="stack" style="gap:10px"><span class="eyebrow">Wear it with</span><div class="pairs">${pairs.map(([a,b,l])=>`<div><span class="duo"><span style="background:${a}"></span><span style="background:${b}"></span></span>${l}: ${nm(b)}</div>`).join("")}</div></div>`:""}
     ${ramp.length>1?`<div class="stack" style="gap:10px"><span class="eyebrow">Lighter and deeper</span><div class="ramp">${ramp.map(x=>`<button style="background:${x}" data-c="${x}" aria-label="${nm(x)}" aria-current="${x===c}"></button>`).join("")}</div></div>`:""}
@@ -1247,6 +1300,8 @@ function openSheet(c,avoid,nb){
   $("#sheetBg").onclick=e=>{if(e.target.id==="sheetBg")close()};$("#sheetX").onclick=close;
   const fb=$("#sheetFav");if(fb)fb.onclick=()=>{toggleFav(c);const on=isFav(c);fb.setAttribute("aria-pressed",on);fb.querySelector("span").textContent=on?"Saved":"Save";refreshBehind()};
   $("#sheetTry").onclick=()=>{close();T.mode=1;T.active=0;T.slots[0]=c;go("tryon",true)};
+  const full=()=>{close();openFull(c,avoid||nb?[c]:paletteOrder())};
+  $("#sheetFull").onclick=full;$("#sheetBig").onclick=full;
   host.querySelectorAll(".ramp button").forEach(b=>b.onclick=()=>openSheet(b.dataset.c));
   $("#sheetX").focus();
 }
@@ -1256,7 +1311,7 @@ function refreshBehind(){const y=window.scrollY;if(!$("#v-palette").hidden&&palS
 let learnSub=store("sub")==="practise"?"practise":"guide";
 function renderMakeupView(){
   const pages=GP["Makeup"]||[];
-  $("#v-makeup").innerHTML=`<div class="head"><span class="eyebrow">Makeup</span><h1>Your makeup</h1></div><article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span><h2>Makeup for ${SEASON.name}</h2></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
+  $("#v-makeup").innerHTML=`<div class="head"><span class="eyebrow">Makeup</span><h1>Makeup for ${SEASON.plural}</h1></div><article class="card chapter"><div class="band"><span class="eyebrow">Your makeup guide</span></div><div class="ch-body">${premium("Makeup",renderMakeup())}</div>
    ${pages.length&&CLIENT.tier==="premium"?`<details class="more-pages"><summary><span class="eyebrow">Your makeup guide pages</span><span class="small muted">${pages.length} pages <span class="chev" aria-hidden="true">+</span></span></summary><div class="pages" style="margin-top:14px">${pages.map((n,i)=>`<button class="pg" data-pages="${pages.join(",")}" data-i="${i}" aria-label="Open guide page ${i+1} of ${pages.length}"><img loading="lazy" data-n="${n}" src="${pgSrc(n)}" alt="${SEASON.name} guide page" width="874" height="1241"></button>`).join("")}</div></details>`:""}</article>`}
 const SUBR={guide:renderGuide,practise:renderPractise};
 function renderLearn(){
@@ -1317,7 +1372,7 @@ function go(k,scroll){
   try{RENDER[k]()}catch(err){console.error(err);$("#v-"+k).insertAdjacentHTML("beforeend",`<div class="card"><p>Sorry, this section didn't load. Please refresh the page, or email hello@yourszn.com.au if it keeps happening.</p></div>`)}
   store("tab",k);
   if(scroll)window.scrollTo({top:0,behavior:"instant"in window?"instant":"auto"})}
-document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;go(b.dataset.k,true)});
+document.querySelectorAll(".navi,.tab").forEach(b=>b.onclick=()=>{if(b.dataset.k==="learn"&&learnSub==="guide")guideIdx=-1;if(b.dataset.k==="makeup")mkTab="";go(b.dataset.k,true)});
 $("#avatarBtn").onclick=()=>openAccount();$("#whoBtn").onclick=()=>openAccount();
 document.addEventListener("click",e=>{const pg=e.target.closest(".pg,.tp-pages");if(pg){openViewer(pg.dataset.pages.split(",").map(Number),+pg.dataset.i);return}});
 function openViewer(pages,i){const rv=$("#rv");rv.hidden=false;document.body.style.overflow="hidden";

@@ -30,7 +30,7 @@ const TOUR_SESSION_DAYS = 7;
 const STATE_BY_STATUS = { pending: 'submitted', in_progress: 'review', complete: 'review', sent: 'sent' };
 
 async function findColourClient(email) {
-  const rows = await sb('/rest/v1/colour_clients?email=eq.' + encodeURIComponent(email) + '&active=eq.true&select=id,name,season&limit=1');
+  const rows = await sb('/rest/v1/colour_clients?email=eq.' + encodeURIComponent(email) + '&active=eq.true&select=id,name,season,trial&limit=1');
   return rows[0] || null;
 }
 
@@ -53,7 +53,7 @@ module.exports = async function handler(req, res) {
           ? { state: STATE_BY_STATUS[sub.status] || 'submitted', submissionId: sub.id, submittedAt: sub.created_at, revisedAt: sub.revised_photos_at }
           : { state: 'none' },
         tour: { booked: !!tour },
-        dashboard: colour ? { open: true, season: colour.season || '' } : { open: false },
+        dashboard: colour ? { open: true, season: colour.season || '', trial: !!colour.trial } : { open: false },
       });
     }
 
