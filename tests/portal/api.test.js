@@ -30,7 +30,7 @@ const START = {
     { id: 'sub-dee', email: 'dee@example.com', full_name: 'Dee Review', status: 'in_progress', created_at: '2026-10-20T00:00:00Z', revised_photos_at: null },
     { id: 'sub-eve-draft', email: 'eve@example.com', full_name: 'Eve Draft', status: 'draft', created_at: '2026-10-21T00:00:00Z', revised_photos_at: null },
   ],
-  colour_login_codes: [], vietnam_itinerary_items: [], vietnam_recommendations: [], vietnam_faqs: [],
+  client_accounts: [], colour_login_codes: [], vietnam_itinerary_items: [], vietnam_recommendations: [], vietnam_faqs: [],
   vietnam_packing_items: [], vietnam_budget_items: [], colour_access_log: [], szn_photos: [],
 };
 
@@ -169,6 +169,97 @@ check('colour: sign-in unchanged', async () => {
   assert.ok(sentEmails[0].subject.startsWith('Your YourSZN dashboard code'));
   const r = await call('colour-auth.js', { action: 'verify', email: 'cora@example.com', code: lastCode() });
   assert.strictEqual(r.status, 200); assert.ok(r.data.token);
+});
+
+check('colour: saves the makeup bag with the rest of your progress; unknown fields dropped', async () => {
+  await call('colour-auth.js', { action: 'send', email: 'cora@example.com' });
+  const token = (await call('colour-auth.js', { action: 'verify', email: 'cora@example.com', code: lastCode() })).data.token;
+  const r = await call('colour-dashboard.js', { action: 'save', state: { favourites: ['#ff8844'], makeup_bag: ['mk/lips-67-0-177.webp'], password_hash: 'x' } }, token);
+  assert.strictEqual(r.status, 200);
+  const row = db.colour_client_state[db.colour_client_state.length - 1];
+  assert.deepStrictEqual(row.makeup_bag, ['mk/lips-67-0-177.webp']);
+  assert.strictEqual(row.client_id, CORA, 'saved against the signed-in client only');
+  assert.strictEqual(row.password_hash, undefined, 'only known progress fields are saved');
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'save', state: { makeup_bag: [] } })).status, 401, 'no session, no save');
+});
+
+// ── One password for the whole client site (/api/client-auth, _accounts.js) ──
+check('password: offered after a code sign-in, needs that session, min 8 characters', async () => {
+  await call('client-auth.js', { action: 'send', email: 'dee@example.com', name: 'Dee' });
+  const v = await call('client-auth.js', { action: 'verify', email: 'dee@example.com', code: lastCode(), name: 'Dee' });
+  assert.strictEqual(v.data.hasPassword, false, 'no password yet, so the page asks for one');
+  assert.strictEqual((await call('client-auth.js', { action: 'set_password', password: 'longenough1' })).status, 401, 'no session, no password');
+  assert.strictEqual((await call('client-auth.js', { action: 'set_password', password: 'short' }, v.data.token)).status, 400);
+  const set = await call('client-auth.js', { action: 'set_password', password: 'longenough1' }, v.data.token);
+  assert.strictEqual(set.status, 200); assert.ok(set.data.token);
+  const acct = db.client_accounts.find((a) => a.email === 'dee@example.com');
+  assert.ok(acct.password_hash.startsWith('scrypt$') && !JSON.stringify(acct).includes('longenough1'), 'stored only as a hash');
+});
+
+check('password: signs in on the front page with no email; wrong ones refused, then locked', async () => {
+  const token = await signIn('client-auth.js', 'dee@example.com', 'Dee');
+  await call('client-auth.js', { action: 'set_password', password: 'longenough1' }, token);
+  const sent = sentEmails.length;
+  const ok = await call('client-auth.js', { action: 'login', email: 'DEE@example.com', password: 'longenough1' });
+  assert.strictEqual(ok.status, 200); assert.ok(ok.data.token); assert.strictEqual(sentEmails.length, sent, 'no email sent');
+  assert.strictEqual((await call('client-home.js', { action: 'get' }, ok.data.token)).data.email, 'dee@example.com');
+  assert.strictEqual((await call('client-auth.js', { action: 'login', email: 'nobody@example.com', password: 'longenough1' })).status, 401);
+  for (let i = 0; i < 9; i++) assert.strictEqual((await call('client-auth.js', { action: 'login', email: 'dee@example.com', password: 'wrong-guess' })).status, 401);
+  assert.strictEqual((await call('client-auth.js', { action: 'login', email: 'dee@example.com', password: 'wrong-guess' })).status, 429, 'locked after 10');
+  assert.strictEqual((await call('client-auth.js', { action: 'login', email: 'dee@example.com', password: 'longenough1' })).status, 429, 'even the right one, while locked');
+  await signIn('client-auth.js', 'dee@example.com', 'Dee');
+  assert.strictEqual((await call('client-auth.js', { action: 'login', email: 'dee@example.com', password: 'longenough1' })).status, 200, 'an emailed code clears the lock');
+});
+
+check('password: changing it signs out other devices, front page and dashboard', async () => {
+  const phone = await signIn('client-auth.js', 'cora@example.com', 'Cora');
+  const dash = (await call('client-home.js', { action: 'open', target: 'colour' }, phone)).data.token;
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, dash)).status, 200);
+  const laptop = await signIn('client-auth.js', 'cora@example.com', 'Cora');
+  await new Promise((r) => setTimeout(r, 5));
+  const fresh = await call('client-auth.js', { action: 'set_password', password: 'longenough1' }, laptop);
+  assert.strictEqual((await call('client-home.js', { action: 'get' }, phone)).status, 401, 'old front page session ends');
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, dash)).status, 401, 'old dashboard session ends');
+  assert.strictEqual((await call('client-home.js', { action: 'get' }, fresh.data.token)).status, 200, 'this device stays in');
+});
+
+check('password: the same password opens the dashboard sign-in, only for approved clients', async () => {
+  const cora = await signIn('client-auth.js', 'cora@example.com', 'Cora');
+  await call('client-auth.js', { action: 'set_password', password: 'longenough1' }, cora);
+  const d = await call('colour-auth.js', { action: 'login', email: 'cora@example.com', password: 'longenough1' });
+  assert.strictEqual(d.status, 200); assert.ok(d.data.token);
+  const dee = await signIn('client-auth.js', 'dee@example.com', 'Dee');
+  await call('client-auth.js', { action: 'set_password', password: 'longenough1' }, dee);
+  assert.strictEqual((await call('colour-auth.js', { action: 'login', email: 'dee@example.com', password: 'longenough1' })).status, 401, 'no dashboard, no dashboard session');
+});
+
+check('password: set inside the dashboard, it also works on the front page and keeps this device in', async () => {
+  await call('colour-auth.js', { action: 'send', email: 'cora@example.com' });
+  const t = (await call('colour-auth.js', { action: 'verify', email: 'cora@example.com', code: lastCode() })).data.token;
+  await new Promise((r) => setTimeout(r, 5));
+  const r = await call('colour-dashboard.js', { action: 'set_password', password: 'longenough1' }, t);
+  assert.strictEqual(r.status, 200); assert.ok(r.data.token && r.data.portal && r.data.portal.token);
+  assert.strictEqual((await call('client-home.js', { action: 'get' }, r.data.portal.token)).status, 200);
+  assert.strictEqual((await call('client-auth.js', { action: 'login', email: 'cora@example.com', password: 'longenough1' })).status, 200);
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, r.data.token)).data.client.hasPassword, true);
+});
+
+// ── Tour from the colour dashboard's account menu ──
+check('dashboard: opens the tour only for clients on the tour list', async () => {
+  db.vietnam_clients.push({ id: 'vt-cora', name: 'Cora Colour', email: 'cora@example.com', budget_goal_amount: 0 });
+  await call('colour-auth.js', { action: 'send', email: 'cora@example.com' });
+  const t = (await call('colour-auth.js', { action: 'verify', email: 'cora@example.com', code: lastCode() })).data.token;
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.tourBooked, true);
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.trial, false, 'not a trial unless set');
+  db.colour_clients[0].trial = true;
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.trial, true, 'trial clients see the banner');
+  const r = await call('colour-dashboard.js', { action: 'open_tour' }, t);
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual((await call('vietnam-dashboard.js', { action: 'get' }, r.data.token)).status !== 401, true, 'the tour session works on the tour');
+  db.vietnam_clients = db.vietnam_clients.filter((c) => c.id !== 'vt-cora');
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'load' }, t)).data.client.tourBooked, false);
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'open_tour' }, t)).status, 403);
+  assert.strictEqual((await call('colour-dashboard.js', { action: 'open_tour' })).status, 401, 'no session, no tour');
 });
 
 (async () => {

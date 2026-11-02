@@ -130,6 +130,7 @@ check('dashboard: only for a chosen, ready season; opens it, emails once, logs w
   assert.strictEqual(r.status, 200); assert.ok(!r.data.emailFailed);
   const cc = db.colour_clients.find((c) => c.email === 'mona@example.com');
   assert.ok(cc && cc.active); assert.strictEqual(cc.season, 'True Spring'); assert.strictEqual(cc.tier, 'premium');
+  assert.strictEqual(cc.trial, false, 'a real result is never a trial');
   assert.strictEqual(sentEmails.length, 1); assert.strictEqual(sentEmails[0].to, 'mona@example.com');
   assert.ok(sentEmails[0].html.includes('https://clients.yourszn.com.au'));
   assert.strictEqual(db.colour_access_log[0].event, 'access-given');

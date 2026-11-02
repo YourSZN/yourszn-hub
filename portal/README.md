@@ -9,7 +9,10 @@ project, which serves this folder at clients.yourszn.com.au. The staff hub
 | Page | What it is |
 |---|---|
 | `index.html` | Client portal: sign-in, then a home page showing this client's analysis, tour and dashboard |
-| `colour-dashboard.html` | Online Colour Analysis results dashboard (see `COLOUR-DASHBOARD.md`) |
+| `colour-dashboard.html` | Online Colour Analysis results dashboard, season-driven design (see `COLOUR-DASHBOARD.md`) |
+| `colour-dashboard-classic.html` | The original dashboard design, used for seasons not yet written for the new one (Light Summer) |
+| `seasons/` | One content file per season (`<season-slug>.js`) plus its images (`<season-slug>/`) |
+| `img/` | Images shared by every season: logo, app screen recording |
 | `vietnam-tour.html` | Vietnam Tailoring Tour trip dashboard (+ `vietnam-wardrobe.js`, `vietnam-map.js`) |
 | `yourszn-form-7.html` | Online Colour Analysis questionnaire and photo upload |
 
@@ -50,7 +53,7 @@ there directly:
 | Session length | 30 days | 30 days | 7 days (holds passport and flight details) |
 | Token scope | `portal` (holds the email) | `colour` | `tour` |
 | Stored on the device as | `szn_portal_session` | `szn_colour_token` | `vt_session` |
-| Passwords | No (code only) | Optional | No (code only) |
+| Passwords | Optional (one per client, shared with the dashboard) | Optional (same password) | No (code only) |
 
 A token only opens the area it was issued for (the `scope`): a portal session can't
 read a tour or colour dashboard directly, and the dashboards' sessions can't open the
@@ -83,6 +86,7 @@ Files starting with `_` are shared helpers, not endpoints.
 | `_colour.js` | Supabase access (service role), CORS, signed session tokens, password hashing |
 | `_login-codes.js` | Creating, emailing and checking 6-digit sign-in codes |
 | `_tour.js` | `tourSession()`: who is signed in to the tour dashboard (every tour endpoint calls it first); `findTourClient()` |
+| `_accounts.js` | The client's one optional password (`client_accounts`): set, check, lockout, sign out everywhere |
 | `_portal.js` | `portalSession()`: who is signed in to the portal home; `latestSubmission()` |
 | `client-auth.js`, `client-home.js` | Portal sign-in and home page data |
 | `colour-auth.js`, `colour-dashboard.js` | Colour dashboard sign-in and data |
