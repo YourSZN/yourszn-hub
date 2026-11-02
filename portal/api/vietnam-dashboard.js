@@ -1,14 +1,17 @@
 // POST /api/vietnam-dashboard
-// Returns one client's itinerary + recommendations, after verifying the given
-// email matches the record for the given client id. Uses the Supabase SERVICE
+// Returns the signed-in tour client's itinerary, recommendations and FAQs.
+// Sign-in: every request needs the tour session token (Authorization: Bearer …)
+// from /api/vietnam-login. The client is taken from that token (see _tour.js);
+// any cid/email in the body is ignored.
+// Uses the Supabase SERVICE
 // ROLE key server-side only. Direct anon access to vietnam_clients,
 // vietnam_itinerary_items, and vietnam_recommendations has been revoked, so this
 // endpoint is now the only way to read that data.
 //
-// Required env var (set in Vercel → this project → Settings → Environment Variables):
-//   SUPABASE_SERVICE_ROLE_KEY — from Supabase Dashboard → Settings → API → service_role key
+// Required env vars: SUPABASE_SERVICE_ROLE_KEY, COLOUR_SESSION_SECRET
 
 const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+const { tourSession } = require('./_tour');
 const ALLOWED_ORIGINS = ['https://clients.yourszn.com.au', 'http://localhost:3000'];
 
 function cors(req, res) {
@@ -16,7 +19,7 @@ function cors(req, res) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.setHeader('Access-Control-Allow-Origin', allowed);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') { res.status(204).end(); return false; }
   return true;
@@ -28,10 +31,10 @@ module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
-  const { cid, email } = req.body || {};
-  if (!cid || !email) {
-    return res.status(400).json({ error: 'Missing client id or email.' });
-  }
+  // Identity comes only from the signed tour session (see _tour.js), never from the request body.
+  const who = await tourSession(req, res);
+  if (!who) return;
+  const { cid, email } = who;
 
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!SERVICE_KEY) {
@@ -84,7 +87,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
-      client: { id: client.id, name: client.name },
+      client: { id: client.id, name: client.name, email: email },
       itinerary: itinerary,
       recommendations: recommendations,
       faqs: Array.isArray(faqs) ? faqs : [],

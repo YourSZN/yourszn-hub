@@ -340,36 +340,16 @@
       </div>
     </div>
 
-    <!-- Vietnam Tailoring Tour -->
-    <div class="portal-card" onclick="openGate('vietnam')">
+    <!-- Vietnam Tailoring Tour: lives on the client site, which has the emailed-code sign-in -->
+    <a class="portal-card" href="https://clients.yourszn.com.au/vietnam-tour.html" style="display:block;text-decoration:none;color:inherit">
       <div class="portal-card-inner">
         <div class="portal-card-left">
           <div class="portal-card-title">Vietnam <em>Tailoring</em> Tour</div>
           <div class="portal-card-desc">Your itinerary, recommendations &amp; more</div>
         </div>
-        <div class="portal-card-link">VIEW DASHBOARD</div>
+        <div class="portal-card-link">SIGN IN</div>
       </div>
-      <div class="portal-gate" id="gate-vietnam">
-        <div style="margin-bottom:10px">
-          <label class="portal-gate-label">Access Code</label>
-          <input class="portal-gate-input" id="code-vietnam" type="text" placeholder="Enter your code" onclick="event.stopPropagation()" />
-        </div>
-        <div style="margin-bottom:10px">
-          <label class="portal-gate-label">Your Full Name</label>
-          <input class="portal-gate-input" id="vt-name" type="text" placeholder="Enter your full name" onclick="event.stopPropagation()" />
-        </div>
-        <div style="margin-bottom:12px">
-          <label class="portal-gate-label">Your Email</label>
-          <div class="portal-gate-row">
-            <div class="portal-gate-field">
-              <input class="portal-gate-input" id="vt-email" type="email" placeholder="Enter your email" onclick="event.stopPropagation()" />
-            </div>
-            <button class="portal-gate-btn" id="vt-lookup-btn" onclick="event.stopPropagation();vtLookup()">ENTER</button>
-          </div>
-        </div>
-        <div class="portal-gate-error" id="vt-lookup-err"></div>
-      </div>
-    </div>
+    </a>
 
   </div>
 </div>
@@ -383,8 +363,7 @@ var STORAGE_BUCKET = 'online-clients-photos';
 
 var CODES = {
   online: { code: '1893', url: 'yourszn-form-7.html' },
-  inperson: { code: '2722', url: 'client-upload.html' },
-  vietnam: { code: '2462', url: 'vietnam-tour.html' }
+  inperson: { code: '2722', url: 'client-upload.html' }
 };
 
 function openGate(key) {
@@ -427,49 +406,6 @@ function checkCode(key) {
   window.location.href = CODES[key].url;
 }
 
-/* ── Vietnam dashboard lookup: code + name + email all in one step ──
-   Validated server-side via /api/vietnam-login — the browser never talks to
-   Supabase directly for this data. Email is kept in sessionStorage (not the
-   URL) and re-checked server-side on every dashboard load. */
-function vtLookup() {
-  var code = (document.getElementById('code-vietnam').value || '').trim();
-  var name = (document.getElementById('vt-name').value || '').trim();
-  var email = (document.getElementById('vt-email').value || '').trim().toLowerCase();
-  var errEl = document.getElementById('vt-lookup-err');
-  errEl.style.display = 'none';
-
-  if (!code) { errEl.textContent = 'Please enter your access code.'; errEl.style.display = 'block'; return; }
-  if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
-  if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
-
-  var btn = document.getElementById('vt-lookup-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="portal-spinner"></span>';
-
-  fetch('/api/vietnam-login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: code, name: name, email: email })
-  })
-    .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); })
-    .then(function(res) {
-      btn.disabled = false;
-      btn.textContent = 'ENTER';
-      if (!res.data || !res.data.ok) {
-        errEl.textContent = (res.data && res.data.error) || 'Something went wrong. Please try again.';
-        errEl.style.display = 'block';
-        return;
-      }
-      try { sessionStorage.setItem('vt_email', email); } catch (e) {}
-      window.location.href = CODES.vietnam.url + '?cid=' + encodeURIComponent(res.data.cid) + '&name=' + encodeURIComponent(res.data.name || '');
-    })
-    .catch(function() {
-      btn.disabled = false;
-      btn.textContent = 'ENTER';
-      errEl.textContent = 'Something went wrong. Please try again.';
-      errEl.style.display = 'block';
-    });
-}
 
 /* ── Revised-photo helpers ── */
 /* Submission lookups go through /api/client-submission — the browser can't
@@ -690,13 +626,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (rn) rn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('revised-email').focus(); } });
   var re = document.getElementById('revised-email');
   if (re) re.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); lookupSubmission(); } });
-  /* Enter key for Vietnam lookup fields */
-  var vtc = document.getElementById('code-vietnam');
-  if (vtc) vtc.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('vt-name').focus(); } });
-  var vtn = document.getElementById('vt-name');
-  if (vtn) vtn.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('vt-email').focus(); } });
-  var vte = document.getElementById('vt-email');
-  if (vte) vte.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); vtLookup(); } });
 });
 
 /* Enter key support on all code inputs */

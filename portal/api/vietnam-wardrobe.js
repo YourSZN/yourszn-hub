@@ -2,23 +2,25 @@
 // The client's "Wardrobe & Planning" questionnaire on the Vietnam trip dashboard
 // (vietnam-tour.html → Tailoring → Wardrobe & Planning).
 //
-// Every request carries { cid, email } — the identity the dashboard is verified
-// with (see /api/vietnam-dashboard). It's re-checked against vietnam_clients and
-// the client can only read/write their OWN row in vietnam_wardrobe_plans.
+// Sign-in: every request needs the tour session token (Authorization: Bearer …)
+// from /api/vietnam-login. The client is taken from that token (see _tour.js);
+// any cid/email in the body is ignored.
+// The client can only read/write their OWN row in vietnam_wardrobe_plans.
 // Uses the Supabase SERVICE ROLE key server-side only.
 //
 // Body shapes:
-//   { cid, email, op:'get' }
+//   { op:'get' }
 //       → { ok, plan: { answers, photos:[{path, url, category, why, note, copy}], step, completed_at } | null }
-//   { cid, email, op:'save', answers?, photos?, step?, complete? }
+//   { op:'save', answers?, photos?, step?, complete? }
 //       → upserts; photos must live under wardrobe/<cid>/ in the private bucket
-//   { cid, email, op:'deletePhoto', path }
+//   { op:'deletePhoto', path }
 //       → removes one of the client's own wardrobe photos
 //
 // Photos are uploaded by the browser straight into the private
 // 'inspiration-photos' bucket (upload-only for the public), under wardrobe/<cid>/.
 
 const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+const { tourSession } = require('./_tour');
 const BUCKET = 'inspiration-photos';
 const ALLOWED_ORIGINS = ['https://clients.yourszn.com.au', 'https://portal.yourszn.com.au', 'http://localhost:3000'];
 const MAX_PHOTOS = 6;
@@ -28,7 +30,7 @@ function cors(req, res) {
   const origin = req.headers.origin || '';
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') { res.status(204).end(); return false; }
   return true;
@@ -72,6 +74,11 @@ module.exports = async function handler(req, res) {
   if (!KEY) { console.error('[vietnam-wardrobe] missing SUPABASE_SERVICE_ROLE_KEY'); return res.status(500).json({ error: 'Server not configured.' }); }
   const api = sb(KEY);
   const b = req.body || {};
+  // Identity comes only from the signed tour session (see _tour.js), never from the request body.
+  const who = await tourSession(req, res);
+  if (!who) return;
+  b.cid = who.cid;
+  b.email = who.email;
 
   try {
     if (!b.cid || !b.email || !/^[0-9a-f-]{36}$/i.test(String(b.cid))) throw new Denied('Please log in again.');

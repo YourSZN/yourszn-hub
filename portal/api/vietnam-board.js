@@ -3,23 +3,25 @@
 // dashboard (vietnam-tour.html). Anonymous access to the inspiration_* tables
 // is revoked; the browser sends its board requests here instead.
 //
-// Every request carries { cid, email } — the same identity the dashboard is
-// already verified with (see /api/vietnam-dashboard). This endpoint re-checks it
-// against vietnam_clients, then only allows reads/writes on THAT client's own
-// inspiration board. Uses the Supabase SERVICE ROLE key server-side only.
+// Sign-in: every request needs the tour session token (Authorization: Bearer …)
+// from /api/vietnam-login. The client is taken from that token (see _tour.js);
+// any cid/email in the body is ignored.
+// Only reads/writes on THAT client's own inspiration board are allowed.
+// Uses the Supabase SERVICE ROLE key server-side only.
 //
 // Body shapes:
-//   { cid, email, path:'inspiration_items?client_id=eq.…', method, body, prefer }
+//   { path:'inspiration_items?client_id=eq.…', method, body, prefer }
 //       → a scoped Supabase REST request (same paths the page used before)
-//   { cid, email, op:'deletePhoto', storagePath }
+//   { op:'deletePhoto', storagePath }
 //       → removes one of the client's own photos from the private bucket
 //
 // GET responses for inspiration_items include a short-lived signed_url on each
 // embedded photo (the bucket is private).
 //
-// Required env var: SUPABASE_SERVICE_ROLE_KEY
+// Required env vars: SUPABASE_SERVICE_ROLE_KEY, COLOUR_SESSION_SECRET
 
 const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+const { tourSession } = require('./_tour');
 const BUCKET = 'inspiration-photos';
 const ALLOWED_ORIGINS = ['https://clients.yourszn.com.au', 'https://portal.yourszn.com.au', 'http://localhost:3000'];
 const TABLES = ['inspiration_clients', 'inspiration_items', 'inspiration_photos', 'inspiration_item_colours', 'inspiration_admin_notes'];
@@ -31,7 +33,7 @@ function cors(req, res) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.setHeader('Access-Control-Allow-Origin', allowed);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') { res.status(204).end(); return false; }
   return true;
@@ -81,6 +83,11 @@ module.exports = async function handler(req, res) {
   if (!KEY) { console.error('[vietnam-board] missing SUPABASE_SERVICE_ROLE_KEY'); return res.status(500).json({ error: 'Server not configured.' }); }
   const api = sb(KEY);
   const b = req.body || {};
+  // Identity comes only from the signed tour session (see _tour.js), never from the request body.
+  const who = await tourSession(req, res);
+  if (!who) return;
+  b.cid = who.cid;
+  b.email = who.email;
 
   try {
     // ── 1. Verify the dashboard identity ──

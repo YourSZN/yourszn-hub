@@ -1,5 +1,13 @@
-// Shared helpers for the Online Colour Analysis client dashboard API.
+// Shared helpers for the client-facing APIs on clients.yourszn.com.au
+// (colour dashboard and Vietnam Tailoring Tour dashboard).
 // Server-side only. Uses the Supabase SERVICE ROLE key, which never reaches the browser.
+//
+// Sessions are signed tokens (HMAC with COLOUR_SESSION_SECRET), not Supabase logins.
+// Each token carries a "scope" saying which dashboard it opens:
+//   'colour' -> colour_clients.id   (issued by /api/colour-auth)
+//   'tour'   -> vietnam_clients.id  (issued by /api/vietnam-login)
+// readToken() only accepts a token for the scope the endpoint asks for, so a
+// colour dashboard sign-in can never be used to open a tour dashboard, or the reverse.
 
 const crypto = require('crypto');
 
@@ -36,8 +44,10 @@ function signToken(payload) {
   return body + '.' + sig(body);
 }
 
-// Returns the payload ({ cid, exp }) or null if the token is missing, tampered with or expired.
-function readToken(req) {
+// Returns the payload ({ cid, scope, iat, exp }) or null if the token is missing,
+// tampered with, expired, or issued for a different scope.
+// Tokens issued before scopes existed have no scope and count as 'colour'.
+function readToken(req, scope = 'colour') {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : '';
   const [body, s] = token.split('.');
@@ -46,7 +56,7 @@ function readToken(req) {
   if (s.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(expected))) return null;
   try {
     const p = JSON.parse(Buffer.from(body.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
-    return p && p.cid && p.exp > Date.now() ? p : null;
+    return p && p.cid && p.exp > Date.now() && (p.scope || 'colour') === scope ? p : null;
   } catch (e) { return null; }
 }
 
@@ -80,10 +90,10 @@ function sessionStillValid(session, client) {
   return !!(session && session.iat && session.iat >= after);
 }
 
-function newSession(cid, days) {
+function newSession(cid, days, scope = 'colour') {
   const now = Date.now();
   const exp = now + days * 864e5;
-  return { token: signToken({ cid, iat: now, exp }), expires: exp };
+  return { token: signToken({ cid, scope, iat: now, exp }), expires: exp };
 }
 
 function clientIp(req) {

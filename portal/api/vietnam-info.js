@@ -1,14 +1,18 @@
 // POST /api/vietnam-info
 // Client's "Your Info" tab — personal details, contract, and their own
-// uploaded documents. Verified server-side against the client's email
-// (same pattern as the other Vietnam endpoints). Uses the Supabase SERVICE
+// uploaded documents.
+// Sign-in: every request needs the tour session token (Authorization: Bearer …)
+// from /api/vietnam-login. The client is taken from that token (see _tour.js);
+// any cid/email in the body is ignored.
+// Uses the Supabase SERVICE
 // ROLE key; vietnam_client_personal_info / vietnam_client_documents / the
 // vietnam-client-documents storage bucket all have zero anon policies —
 // this is the only way in or out.
 //
-// Required env var: SUPABASE_SERVICE_ROLE_KEY
+// Required env vars: SUPABASE_SERVICE_ROLE_KEY, COLOUR_SESSION_SECRET
 
 const SUPABASE_URL = 'https://ntqemlkwsymdxhaonfdv.supabase.co';
+const { tourSession } = require('./_tour');
 const BUCKET = 'vietnam-client-documents';
 const ALLOWED_ORIGINS = ['https://clients.yourszn.com.au', 'http://localhost:3000'];
 const MAX_FILE_BYTES = 4 * 1024 * 1024; // keep comfortably under serverless body limits
@@ -19,7 +23,7 @@ function cors(req, res) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.setHeader('Access-Control-Allow-Origin', allowed);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Vary', 'Origin');
   if (req.method === 'OPTIONS') { res.status(204).end(); return false; }
   return true;
@@ -58,8 +62,11 @@ module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
-  const { cid, email, action } = req.body || {};
-  if (!cid || !email) return res.status(400).json({ error: 'Missing client id or email.' });
+  // Identity comes only from the signed tour session (see _tour.js), never from the request body.
+  const who = await tourSession(req, res);
+  if (!who) return;
+  const { cid, email } = who;
+  const { action } = req.body || {};
 
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!SERVICE_KEY) {
