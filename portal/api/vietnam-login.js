@@ -13,19 +13,12 @@
 //
 // Required env vars: SUPABASE_SERVICE_ROLE_KEY, COLOUR_SESSION_SECRET, RESEND_API_KEY
 
-const { cors, sb, newSession } = require('./_colour');
+const { cors, sb, clientIp, newSession } = require('./_colour');
 const { cleanEmail, validEmail, sendCode, checkCode } = require('./_login-codes');
+const { findTourClient } = require('./_tour');
 
 // Shorter than the colour dashboard (30 days): tour dashboards hold passport and flight details.
 const SESSION_DAYS = 7;
-
-async function findTourClient(email) {
-  // Emails may have been typed with capitals in the hub, so match case-insensitively,
-  // then keep only exact matches (ilike treats _ and % as wildcards) and require exactly one.
-  const rows = await sb('/rest/v1/vietnam_clients?email=ilike.' + encodeURIComponent(email) + '&select=id,name,email&limit=10');
-  const exact = rows.filter((r) => String(r.email || '').trim().toLowerCase() === email);
-  return exact.length === 1 ? exact[0] : null;
-}
 
 module.exports = async function handler(req, res) {
   if (!cors(req, res)) return;
@@ -47,7 +40,7 @@ module.exports = async function handler(req, res) {
       const generic = { ok: true, message: 'If that email is booked on the tour, a code is on its way.' };
       const client = await findTourClient(email);
       if (!client) return res.status(200).json(generic);
-      const sent = await sendCode(email, client.name, 'tour');
+      const sent = await sendCode(email, client.name, 'tour', clientIp(req));
       if (!sent.ok) return res.status(sent.status).json({ error: sent.error });
       return res.status(200).json(generic);
     }

@@ -32,4 +32,14 @@ async function tourSession(req, res) {
   return { cid: client.id, email: String(client.email).trim().toLowerCase() };
 }
 
-module.exports = { tourSession };
+// The tour client with this (lowercased) email, or null. Used by sign-in and the portal home.
+async function findTourClient(email) {
+  // Emails may have been typed with capitals in the hub, so match case-insensitively,
+  // then keep only exact matches (ilike treats _ and % as wildcards) and require exactly one.
+  const rows = await sb('/rest/v1/vietnam_clients?email=ilike.' + encodeURIComponent(email) + '&select=id,name,email&limit=10');
+  const exact = rows.filter((r) => String(r.email || '').trim().toLowerCase() === email);
+  return exact.length === 1 ? exact[0] : null;
+}
+
+module.exports = { tourSession, findTourClient };
+
