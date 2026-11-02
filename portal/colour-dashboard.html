@@ -378,7 +378,7 @@ function refreshPages(){return api("colour-dashboard",{action:"pages"}).then(fun
 function loadScriptOnce(src){return new Promise(function(ok,no){var s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 function showSignin(){document.body.classList.add("signed-out");document.getElementById("signin").hidden=false}
 function signOut(expired){try{if(!expired&&TOKEN)api("colour-dashboard",{action:"logout"}).catch(function(){})}catch(e){}
-  try{localStorage.removeItem(TOKEN_KEY)}catch(e){}TOKEN=null;location.reload()}
+  try{localStorage.removeItem(TOKEN_KEY);if(!expired){localStorage.removeItem("szn_portal_session");localStorage.removeItem("vt_session")}}catch(e){}TOKEN=null;location.reload()}
 function boot(){
   if(!TOKEN){showSignin();return}
   api("colour-dashboard",{action:"load"}).then(function(d){

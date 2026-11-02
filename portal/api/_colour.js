@@ -6,6 +6,7 @@
 // Each token carries a "scope" saying which dashboard it opens:
 //   'colour' -> colour_clients.id   (issued by /api/colour-auth)
 //   'tour'   -> vietnam_clients.id  (issued by /api/vietnam-login)
+//   'portal' -> the client's email  (issued by /api/client-auth, the portal front page)
 // readToken() only accepts a token for the scope the endpoint asks for, so a
 // colour dashboard sign-in can never be used to open a tour dashboard, or the reverse.
 
@@ -90,14 +91,17 @@ function sessionStillValid(session, client) {
   return !!(session && session.iat && session.iat >= after);
 }
 
-function newSession(cid, days, scope = 'colour') {
+// `extra` adds fields to the signed payload (e.g. the portal session's display name).
+function newSession(cid, days, scope = 'colour', extra = {}) {
   const now = Date.now();
   const exp = now + days * 864e5;
-  return { token: signToken({ cid, scope, iat: now, exp }), expires: exp };
+  return { token: signToken(Object.assign({}, extra, { cid, scope, iat: now, exp })), expires: exp };
 }
 
+// Vercel sets x-real-ip to the caller's address (it can't be supplied by the browser).
 function clientIp(req) {
-  return String(req.headers['x-forwarded-for'] || '').split(',')[0].trim().slice(0, 64) || null;
+  const ip = req.headers['x-real-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0];
+  return String(ip || '').trim().slice(0, 64) || null;
 }
 
 module.exports = { SUPABASE_URL, cors, sb, signToken, readToken, clientIp, hashPassword, checkPassword, passwordProblem, sessionStillValid, newSession };

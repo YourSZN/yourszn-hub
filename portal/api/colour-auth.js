@@ -49,7 +49,7 @@ module.exports = async function handler(req, res) {
       const generic = { ok: true, message: 'If that email has a YourSZN dashboard, a code is on its way.' };
       const clients = await sb('/rest/v1/colour_clients?email=eq.' + encodeURIComponent(email) + '&active=eq.true&select=id,name&limit=1');
       if (!clients.length) return res.status(200).json(generic);
-      const sent = await sendCode(email, clients[0].name, 'colour');
+      const sent = await sendCode(email, clients[0].name, 'colour', clientIp(req));
       if (!sent.ok) return res.status(sent.status).json({ error: sent.error });
       return res.status(200).json(generic);
     }

@@ -2,6 +2,22 @@
 
 Newest first. Each entry: what we chose, why, and what we rejected.
 
+## 2026-11-02: One sign-in on the portal front page
+
+- **Chose:** clients sign in once on clients.yourszn.com.au (name, email, emailed code) and
+  get a home page built by the server for their email. Opening the tour or colour
+  dashboard hands over that dashboard's own session, only if the email is on its list.
+- **Why:** replaces separate access-code boxes (codes visible in the page source) with one
+  login, and shows each client only what applies to them.
+- **Kept separate on purpose:** the portal session proves email ownership only. It can't
+  read dashboard data itself, so a bug in the home page can't expose a dashboard.
+- **Anyone can sign in:** new clients must be able to start their questionnaire. Codes are
+  limited per email and per IP address to stop the form being used to spam inboxes.
+- **Revised photos** are now tied to the signed-in client's own latest questionnaire,
+  instead of a name + email lookup.
+- **Not yet:** payment check (Shopify webhook), admin approval page, deletion requests.
+- **Removed from the portal:** the online-analysis access code and the in-person card.
+
 ## 2026-11-02: Tour clients sign in with an emailed code
 
 - **Chose:** Vietnam Tailoring Tour clients sign in with an emailed 6-digit code, the same

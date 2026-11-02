@@ -2500,9 +2500,12 @@ function vtHeaders() {
 function vtClearSession() {
   try { localStorage.removeItem(VT_SESSION_KEY); sessionStorage.clear(); } catch (e) {}
 }
+// Signing out on purpose clears every YourSZN session on this device
+// (portal home and colour dashboard too), then goes back to the portal.
 function vtSignOut() {
   vtClearSession();
-  window.location.href = 'vietnam-tour.html';
+  try { localStorage.removeItem('szn_portal_session'); localStorage.removeItem('szn_colour_token'); } catch (e) {}
+  window.location.href = 'index.html';
 }
 function vtAuthPost(body) {
   return fetch('/api/vietnam-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
